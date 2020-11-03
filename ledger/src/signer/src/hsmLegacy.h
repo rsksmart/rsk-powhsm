@@ -53,6 +53,11 @@ case INS_GET_PUBLIC_KEY: {
     unsigned int path[5];
     int pathlen = 5; // G_io_apdu_buffer[2];
     os_memmove(path, &G_io_apdu_buffer[3], pathlen * 4);
+    // Check for path validity before returning the public key
+    if ( !(pathRequireAuth(&G_io_apdu_buffer[2]) ||
+           pathDontRequireAuth(&G_io_apdu_buffer[2])))
+            // If no path match, then bail out
+	    THROW(0x6a8f); // Invalid Key Path
     os_perso_derive_node_bip32(
         CX_CURVE_256K1, path, pathlen, privateKeyData, NULL);
     cx_ecdsa_init_private_key(CX_CURVE_256K1, privateKeyData, 32, &privateKey);
