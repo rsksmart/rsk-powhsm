@@ -5,6 +5,7 @@ import os
 import rlp
 import struct
 import sys
+import traceback
 
 from secp256k1 import PublicKey
 from enum import IntEnum, auto
@@ -86,6 +87,7 @@ OP_UPD_ANCESTOR_SUCCESS = 0x05
 class Error(IntEnum):
     APP_NOT_STARTED = 0x6e00
     PROT_INVALID = 0x6b87
+    PATH_INVALID = 0x6a8f
     RLP_INVALID = auto()
     BLOCK_TOO_OLD = auto()
     BLOCK_TOO_SHORT = auto()
@@ -111,6 +113,7 @@ class Error(IntEnum):
 _errors = {
     Error.APP_NOT_STARTED: "Signer app has not been started",
     Error.PROT_INVALID: "Invalid or unexpected message",
+    Error.PATH_INVALID: "Invalid key path",
     Error.RLP_INVALID: "Invalid RLP",
     Error.BLOCK_TOO_OLD: "Block too old",
     Error.BLOCK_TOO_SHORT: "Block too short",
@@ -134,6 +137,17 @@ _errors = {
     Error.ANCESTOR_TIP_MISMATCH: "Ancestor tip mismatch"
 }
 
+# ------------------------------------------------------------------------
+# Read failCode from json file
+# ------------------------------------------------------------------------
+def getFailCode(jsonFile):
+    try:
+        return int(jsonFile["failCode"],base=16)
+    except (KeyError,AttributeError) as e:
+        return 0
+    except:
+        error("Error parsing json failCode.")
+        sys.exit(1)
 
 # ------------------------------------------------------------------------
 # Interact with a Ledger
@@ -144,7 +158,7 @@ def connect(args):
     else:
         return getDongle(debug=True)
 
-def send(dongle, ins, op, *payload):
+def send(dongle, ins, op, *payload,failCode=0):
     try:
         if (not op):
             b = bytearray([CLA, ins])
@@ -155,8 +169,11 @@ def send(dongle, ins, op, *payload):
         return dongle.exchange(b)
     except CommException as e:
         msg = _errors.get(e.sw, "Unknown error - missing entry in _errors table?")
-        error(f"\U0001F4A5 Invalid status {hex(e.sw)}: {msg}")
-        sys.exit(1)
+        if (e.sw==failCode):
+            info(f"\U0001F4A5 Expected error: Invalid status {hex(e.sw)}: {msg}")
+        else:
+            error(f"\U0001F4A5 Invalid status {hex(e.sw)}: {msg}")
+            sys.exit(1)
 
 
 # ------------------------------------------------------------------------
@@ -206,15 +223,18 @@ def rlp_mm_payload_size(block):
 # Advance blockchain for all blocks in a given file.
 # ------------------------------------------------------------------------
 def advance_blockchain(args, blocks_file, network):
-    with open(blocks_file, 'r') as f:
-        blocks = [bytes.fromhex(b) for b in json.load(f)]
-
     dongle = connect(args)
+
+    with open(blocks_file, 'r') as f:
+        blocks = [bytes.fromhex(b) for b in json.load(f)["blocks"]]
+
+    # Read flag indicating if this test must fail
+    failCode=getFailCode(json.load(open(blocks_file,'r')))
 
     # 1. Send OP_ADVANCE_INIT
     n_blocks = len(blocks)
     info(f"Initialize advance blockchain for {n_blocks} {'block' if n_blocks == 1 else 'blocks'}")
-    r = send(dongle, INS_ADVANCE, OP_ADVANCE_INIT, struct.pack('>L', n_blocks))
+    r = send(dongle, INS_ADVANCE, OP_ADVANCE_INIT, struct.pack('>L', n_blocks),failCode=failCode)
     assert r[2] == OP_ADVANCE_HEADER_META, f"Unexpected response: {r[2]}"
 
     for n, block_rlp in enumerate(blocks):
@@ -222,7 +242,7 @@ def advance_blockchain(args, blocks_file, network):
 
         # 2. Send OP_ADVANCE_HEADER_META for current block
         info(f"\U0001F381 Send metadata for block #{n}")
-        r = send(dongle, INS_ADVANCE, OP_ADVANCE_HEADER_META, struct.pack('>H', mm_payload_len))
+        r = send(dongle, INS_ADVANCE, OP_ADVANCE_HEADER_META, struct.pack('>H', mm_payload_len),failCode=failCode)
         assert r[2] == OP_ADVANCE_HEADER_CHUNK, f"Unexpected response: {r[2]}"
 
         # 3. Send chunks for current block until ledger asks for next one
@@ -232,7 +252,7 @@ def advance_blockchain(args, blocks_file, network):
             buf = block_rlp[total_read:total_read + chunk_size]
             total_read += chunk_size
             info(f'Send chunk [{total_read - len(buf):04d}-{total_read - 1:04d}] (block size = {block_size:04d})')
-            r = send(dongle, INS_ADVANCE, OP_ADVANCE_HEADER_CHUNK, buf)
+            r = send(dongle, INS_ADVANCE, OP_ADVANCE_HEADER_CHUNK, buf,failCode=failCode)
 
         # Ledger asked for next block
         if r[2] == OP_ADVANCE_HEADER_META:
@@ -258,15 +278,18 @@ def advance_blockchain(args, blocks_file, network):
 # Update ancestor block
 # ------------------------------------------------------------------------
 def update_ancestor(args, blocks_file, network):
-    with open(blocks_file, 'r') as f:
-        blocks = [bytes.fromhex(b) for b in json.load(f)]
-
     dongle = connect(args)
+
+    with open(blocks_file, 'r') as f:
+        blocks = [bytes.fromhex(b) for b in json.load(f)["blocks"]]
+
+    # Read flag indicating if this test must fail
+    failCode=getFailCode(json.load(open(blocks_file,'r')))
 
     # 1. Send OP_UPD_ANCESTOR_INIT
     n_blocks = len(blocks)
     info(f"Initialize update ancestor for {n_blocks} {'block' if n_blocks == 1 else 'blocks'}")
-    r = send(dongle, INS_UPD_ANCESTOR, OP_UPD_ANCESTOR_INIT, struct.pack('>L', n_blocks))
+    r = send(dongle, INS_UPD_ANCESTOR, OP_UPD_ANCESTOR_INIT, struct.pack('>L', n_blocks),failCode=failCode)
     assert r[2] == OP_UPD_ANCESTOR_HEADER_META, f"Unexpected response: {r[2]}"
 
     for n, block_rlp in enumerate(blocks):
@@ -278,7 +301,7 @@ def update_ancestor(args, blocks_file, network):
 
         # 2. Send OP_UPD_ANCESTOR_HEADER_META for current block
         info(f"\U0001F381 Send metadata for block #{n}")
-        r = send(dongle, INS_UPD_ANCESTOR, OP_UPD_ANCESTOR_HEADER_META, struct.pack('>H', mm_payload_len))
+        r = send(dongle, INS_UPD_ANCESTOR, OP_UPD_ANCESTOR_HEADER_META, struct.pack('>H', mm_payload_len),failCode=failCode)
         assert r[2] == OP_UPD_ANCESTOR_HEADER_CHUNK, f"Unexpected response: {r[2]}"
 
         # 3. Send chunks for current block until ledger asks for next one
@@ -288,7 +311,7 @@ def update_ancestor(args, blocks_file, network):
             buf = block_rlp[total_read:total_read + chunk_size]
             total_read += chunk_size
             info(f'Send chunk [{total_read - len(buf):04d}-{total_read - 1:04d}] (block size = {block_size:04d})')
-            r = send(dongle, INS_UPD_ANCESTOR, OP_UPD_ANCESTOR_HEADER_CHUNK, buf)
+            r = send(dongle, INS_UPD_ANCESTOR, OP_UPD_ANCESTOR_HEADER_CHUNK, buf,failCode=failCode)
 
         # Ledger asked for next block
         if r[2] == OP_UPD_ANCESTOR_HEADER_META:
@@ -408,6 +431,7 @@ def signTX(dongle, keyId,BTCTran,receipt,MP_tree,input_index):
             if response[2]==P1_SUCCESS:
                 return response[3:]
 
+
 def sign_json(args, sign_file):
     try:
         data=json.load(open(sign_file,'r'))
@@ -427,71 +451,74 @@ def sign_json(args, sign_file):
     result=send(dongle,RSK_MODE_CMD,op="")
     info("Dongle report mode %d..." % result[1])
 
-    # Generate merkle tree message
-    # MP tree message format: [nodeCount][[[nodeLen][nodeBytes]]*nodeCount]
-    mp=data["receipt_merkle_proof"]
-    #Node count
-    MP_msg=bytearray([len(mp)])
-    #Node length+node
-    for p in mp:
-        stra=""
-        MP_msg+=bytearray([int(len(p)/2)])
-        MP_msg+=binascii.unhexlify(p)
+    # Read flag indicating if this test must fail
+    failCode=getFailCode(data)
 
-    # this is signature hash to verify that this signature is correct. This value is not available to the
-    # end use as it's an internal value calculated from the receipt
-    textToSign=binascii.unhexlify(data["sigHashToVerify"]) # signatureHash
-
-    # Test keys that need authentication using Receipt and Trie Merkle Proof
-    for keyId in data["keyIds"]:
-        info("--------------------- Key Path: %s" % keyId )
-        #get public key
-        publicKey = send(dongle,INS_GET_PUBLIC_KEY, "",bip44tobin(keyId))
-        info("Public Key: %s" % binascii.hexlify(publicKey))
-        try:
-            pubKey = PublicKey(bytes(publicKey), raw=True)
-        except:
-            error("Can't read public Key")
-            return
-        info('\033[92m' + "PubKey" + '\x1b[0m')
-
-        for BTCTran in data["BTCTrans"]:
-                info("--------------------- Transaction len: %s" % len(BTCTran))
-                signature=signTX(dongle,keyId,binascii.unhexlify(BTCTran),binascii.unhexlify(data["receipt"]),MP_msg,0)
+    try:
+        # Test keys that do not need authentication
+        textToSign=binascii.unhexlify("AA"*32) # signatureHash
+        if ("keyIdsNoAuth" in data):
+           for keyId in data["keyIdsNoAuth"]:
+                info("--------------------- Key Path: %s" % keyId )
+                #get public key
+                publicKey = send(dongle,INS_GET_PUBLIC_KEY, "",bip44tobin(keyId),failCode=failCode)
+                info("Public Key: %s" % binascii.hexlify(publicKey))
+                pubKey = PublicKey(bytes(publicKey), raw=True)
+                info('\033[92m' + "PubKey" + '\x1b[0m')
+                message=bip44tobin(keyId)
+                message+=textToSign
+                try:
+                    response = send(dongle,INS_SIGN, P1_PATH,message,failCode=failCode)
+                except:
+                    error("Error signing")
+                    return
+                info('\033[92m' + "PubKey" + '\x1b[0m')
+                signature=response[3:]
                 signature=bytearray([0x30])+signature[1:] ### Why Ledger returns 0x31 instead of 0x30?
                 info("Signature (%d): %s" % (len(signature),repr(signature)))
                 signatureDeserialized = pubKey.ecdsa_deserialize(bytes(signature))
                 info("Deserialized Signature: " + str(signatureDeserialized))
                 info("Verified Sigature: " + '\033[92m' + str(pubKey.ecdsa_verify(bytes(textToSign), signatureDeserialized,raw=True)) + '\x1b[0m')
 
-    # Test keys that do not need authentication
-    textToSign=binascii.unhexlify("AA"*32) # signatureHash
-    for keyId in data["keyIdsNoAuth"]:
-        info("--------------------- Key Path: %s" % keyId )
-        #get public key
-        publicKey = send(dongle,INS_GET_PUBLIC_KEY, "",bip44tobin(keyId))
-        info("Public Key: %s" % binascii.hexlify(publicKey))
-        try:
-            pubKey = PublicKey(bytes(publicKey), raw=True)
-        except:
-            error("Can't read public Key")
+        # Test keys that need authentication using Receipt and Trie Merkle Proof
+        if ("keyIds" in data):
+            # this is signature hash to verify that this signature is correct. This value is not available to the
+            # end use as it's an internal value calculated from the receipt
+            textToSign=binascii.unhexlify(data["sigHashToVerify"]) # signatureHash
+            # Generate merkle tree message
+            # MP tree message format: [nodeCount][[[nodeLen][nodeBytes]]*nodeCount]
+            mp=data["receipt_merkle_proof"]
+            #Node count
+            MP_msg=bytearray([len(mp)])
+            #Node length+node
+            for p in mp:
+                stra=""
+                MP_msg+=bytearray([int(len(p)/2)])
+                MP_msg+=binascii.unhexlify(p)
+            for keyId in data["keyIds"]:
+                info("--------------------- Key Path: %s" % keyId )
+                #get public key
+                publicKey = send(dongle,INS_GET_PUBLIC_KEY, "",bip44tobin(keyId),failCode=failCode)
+                info("Public Key: %s" % binascii.hexlify(publicKey))
+                pubKey = PublicKey(bytes(publicKey), raw=True)
+                info('\033[92m' + "PubKey" + '\x1b[0m')
+                for BTCTran in data["BTCTrans"]:
+                        info("--------------------- Transaction len: %s" % len(BTCTran))
+                        signature=signTX(dongle,keyId,binascii.unhexlify(BTCTran),binascii.unhexlify(data["receipt"]),MP_msg,0)
+                        signature=bytearray([0x30])+signature[1:] ### Why Ledger returns 0x31 instead of 0x30?
+                        info("Signature (%d): %s" % (len(signature),repr(signature)))
+                        signatureDeserialized = pubKey.ecdsa_deserialize(bytes(signature))
+                        info("Deserialized Signature: " + str(signatureDeserialized))
+                        info("Verified Sigature: " + '\033[92m' + str(pubKey.ecdsa_verify(bytes(textToSign), signatureDeserialized,raw=True)) + '\x1b[0m')
+
+    except:
+       if (failCode>0):
+            info(traceback.format_exc())
             return
-        info('\033[92m' + "PubKey" + '\x1b[0m')
-        #message=bytearray([P1_PATH])
-        message=bip44tobin(keyId)
-        message+=textToSign
-        try:
-            response = send(dongle,INS_SIGN, P1_PATH,message)
-        except:
-            error("Error signing (Last unauth signature is a test and must fail)")
-            return
-        info('\033[92m' + "PubKey" + '\x1b[0m')
-        signature=response[3:]
-        signature=bytearray([0x30])+signature[1:] ### Why Ledger returns 0x31 instead of 0x30?
-        info("Signature (%d): %s" % (len(signature),repr(signature)))
-        signatureDeserialized = pubKey.ecdsa_deserialize(bytes(signature))
-        info("Deserialized Signature: " + str(signatureDeserialized))
-        info("Verified Sigature: " + '\033[92m' + str(pubKey.ecdsa_verify(bytes(textToSign), signatureDeserialized,raw=True)) + '\x1b[0m')
+       else:
+           error("Unexpected error: "+traceback.format_exc())
+    if (failCode>0):
+                error("Transaction must fail but no error detected.")
 
 
 # ------------------------------------------------------------------------
