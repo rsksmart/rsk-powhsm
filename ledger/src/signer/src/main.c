@@ -61,7 +61,6 @@ static unsigned char display_text_part(void);
 #define CLA 0x80
 #define INS_SIGN 0x02
 #define INS_GET_PUBLIC_KEY 0x04
-#define RSK_GET_LOG 0x05
 #define RSK_IS_ONBOARD 0x06
 #define RSK_GET_ATTESTATION 0x09
 #define RSK_GET_ENDORSEMENT_PUBKEY 0x0A
@@ -105,43 +104,9 @@ static unsigned char display_text_part(void);
 // initialization marker in flash. const and N_ variable name are mandatory here
 static const unsigned char N_initialized;
 
-//********** LOG ***********
-#define MAX_LOGENTRIES 32
-typedef struct {
-    char *hash[32];
-    char *signature[32];
-    char *time[8];
-} log_entry;
-
-static const log_entry N_flash_log[MAX_LOGENTRIES];
-static const unsigned int N_logcursor;
-
 static char lineBuffer[MAX_CHARS_PER_LINE + 1];
 static unsigned char attestation[(1 + 1 + 2 * (1 + 1 + 33))];
 unsigned char attestation_len = 0;
-
-int write_log(char *hash, char *signature, char *time) {
-    log_entry le;
-    os_memmove(&le.hash, hash, sizeof(le.hash));
-    os_memmove(&le.signature, signature, sizeof(le.signature));
-    os_memmove(&le.time, time, sizeof(le.time));
-
-    unsigned int newcursor = N_logcursor;
-    newcursor = (newcursor + 1) % MAX_LOGENTRIES;
-    nvm_write((void *)&N_flash_log[N_logcursor], &le, sizeof(log_entry));
-    nvm_write((void *)&N_logcursor, &newcursor, sizeof(unsigned int));
-    return 0;
-}
-
-int read_log(unsigned int index, log_entry *le) {
-    unsigned int newcursor = (N_logcursor - index) % MAX_LOGENTRIES;
-    os_memmove(le->hash, &N_flash_log[newcursor].hash, sizeof(le->hash));
-    os_memmove(le->signature,
-               &N_flash_log[newcursor].signature,
-               sizeof(le->signature));
-    os_memmove(le->time, &N_flash_log[newcursor].time, sizeof(le->time));
-    return 0;
-}
 
 // clang-format off
 static const bagl_element_t bagl_ui_idle_nanos[] = {

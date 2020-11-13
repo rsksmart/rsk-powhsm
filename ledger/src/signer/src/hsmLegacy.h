@@ -19,29 +19,6 @@ tx = 5;
 THROW(0x9000);
 break;
 
-case RSK_GET_LOG:
-if (rx != 4)
-    THROW(0x6A87); /// Wrong buffer size
-index = G_io_apdu_buffer[3];
-log_entry le;
-read_log(index, &le);
-switch (G_io_apdu_buffer[2]) {
-case 0:
-    os_memmove(&G_io_apdu_buffer[1], le.hash, sizeof(le.hash));
-    tx = 1 + sizeof(le.hash);
-    break;
-case 1:
-    os_memmove(&G_io_apdu_buffer[1], le.signature, sizeof(le.signature));
-    tx = 1 + sizeof(le.signature);
-    break;
-case 2:
-    os_memmove(&G_io_apdu_buffer[1], le.time, sizeof(le.time));
-    tx = 1 + sizeof(le.time);
-    break;
-}
-THROW(0x9000);
-break;
-
 case RSK_GET_APP_HASH:
 os_endorsement_get_code_hash(G_io_apdu_buffer);
 tx = 32;
