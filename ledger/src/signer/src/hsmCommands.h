@@ -8,25 +8,12 @@ reset_if_starting(INS_SIGN);
 //---------------------- PATH Parser --------------------------
 // Generate key with path
 if ((G_io_apdu_buffer[OP] & 0xF) == P1_PATH) {
-    unsigned char privateKeyData[HASHLEN];
     if ((rx != DATA + PATHLEN + INPUTINDEXLEN) &&
         (rx != DATA + PATHLEN + HASHLEN))
         THROW(
             0x6A87); // Wrong buffer size, has to be either 28
                      // (DATA+PATHLEN+INPUTINDEXLEN) or 56 (DATA+PATHLEN+HASHEN)
-    unsigned int path[5];
-    // Read_path
-    int pathlen = 5; // G_io_apdu_buffer[3]; // path len always 5
-    memmove(path, &G_io_apdu_buffer[DATA + 1], pathlen * sizeof(int));
-#ifndef FEDHM_EMULATOR
-    os_perso_derive_node_bip32(
-        CX_CURVE_256K1, path, pathlen, privateKeyData, NULL);
-    cx_ecdsa_init_private_key(
-        CX_CURVE_256K1, privateKeyData, HASHLEN, &privateKey);
-    cx_ecfp_generate_pair(CX_CURVE_256K1, &publicKey, &privateKey, 1);
-#else
-    printf("P1_PATH: Input Index:%d\n", tx_ctx.tx_input_index_to_sign);
-#endif
+    memmove(path, &G_io_apdu_buffer[DATA + 1], RSK_PATH_LEN * sizeof(int));
     // If path requires authorization, continue with authorization and
     // validation state machine
     if (pathRequireAuth(&G_io_apdu_buffer[DATA])) {
@@ -245,6 +232,7 @@ if (G_io_apdu_buffer[OP] & P1_RECEIPT) {
     //---------------------- Merkle Proof Parser --------------------------
     if (G_io_apdu_buffer[OP] & P1_MERKLEPROOF) {
     unsigned char signatureHashCopy[HASHLEN];
+    unsigned char privateKeyData[HASHLEN];
     // Input len check
     if (state != S_MP_START)
         if (rx - DATA != mp_ctx.expectedRXBytes)
@@ -318,8 +306,11 @@ if (G_io_apdu_buffer[OP] & P1_RECEIPT) {
                tx_ctx.validSignature ? "true" : "false");
         tx = 0;
 #else
-// Matching TX found, Contract is valid, Receipt Signature is valid and Merkle
-// Tree passes al verifications. Sign the signatureHash
+	os_perso_derive_node_bip32(CX_CURVE_256K1, path, RSK_PATH_LEN, privateKeyData, NULL);
+	cx_ecdsa_init_private_key(CX_CURVE_256K1, privateKeyData, HASHLEN, &privateKey);
+	cx_ecfp_generate_pair(CX_CURVE_256K1, &publicKey, &privateKey, 1);
+	// Matching TX found, Contract is valid, Receipt Signature is valid and Merkle
+	// Tree passes al verifications. Sign the signatureHash
 #if TARGET_ID == 0x31100003
         tx = cx_ecdsa_sign((void *)&privateKey,
                            CX_RND_RFC6979 | CX_LAST,
@@ -336,6 +327,11 @@ if (G_io_apdu_buffer[OP] & P1_RECEIPT) {
                            sizeof(mp_ctx.signatureHash),
                            &G_io_apdu_buffer[DATA]);
 #endif
+	// Cleanup
+	for (rx=0;rx<sizeof(privateKeyData);rx++) privateKeyData[rx]=0;
+	for (rx=0;rx<sizeof(privateKey);rx++) ((char *)(&privateKey))[rx]=0;
+	for (rx=0;rx<sizeof(publicKey);rx++) ((char *)(&publicKey))[rx]=0;
+	for (rx=0;rx<sizeof(path);rx++) ((char *)(path))[rx]=0;
 #endif
         tx += DATA;
         G_io_apdu_buffer[CLAPOS] = CLA;

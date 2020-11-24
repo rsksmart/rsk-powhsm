@@ -65,6 +65,7 @@ static unsigned char display_text_part(void);
 #define RSK_GET_ATTESTATION 0x09
 #define RSK_GET_ENDORSEMENT_PUBKEY 0x0A
 #define RSK_GET_APP_HASH 0x0B
+#define RSK_PATH_LEN 5
 
 #include "mem.h"
 
@@ -148,6 +149,8 @@ static unsigned int bagl_ui_idle_nanos_button(
     return 0;
 }
 
+// Key definitions
+unsigned int path[5];
 cx_ecfp_public_key_t publicKey;
 cx_ecfp_private_key_t privateKey;
 

@@ -63,6 +63,11 @@ case INS_GET_PUBLIC_KEY: {
     cx_ecdsa_init_private_key(CX_CURVE_256K1, privateKeyData, 32, &privateKey);
     cx_ecfp_generate_pair(CX_CURVE_256K1, &publicKey, &privateKey, 1);
     os_memmove(G_io_apdu_buffer, publicKey.W, 65);
+    // Cleanup.
+    for (rx=0;rx<sizeof(privateKeyData);rx++) privateKeyData[rx]=0;
+    for (rx=0;rx<sizeof(privateKey);rx++) ((char *)(&privateKey))[rx]=0;
+    for (rx=0;rx<sizeof(publicKey);rx++) ((char *)(&publicKey))[rx]=0;
+    for (rx=0;rx<sizeof(path);rx++) ((char *)(path))[rx]=0;
     tx = 65;
     THROW(0x9000);
 } break;
