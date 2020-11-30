@@ -170,9 +170,9 @@ def send(dongle, ins, op, *payload,failCode=0):
     except CommException as e:
         msg = _errors.get(e.sw, "Unknown error - missing entry in _errors table?")
         if (e.sw==failCode):
-            info(f"\U0001F4A5 Expected error: Invalid status {hex(e.sw)}: {msg}")
+            info(f"Expected error: Invalid status {hex(e.sw)}: {msg}")
         else:
-            error(f"\U0001F4A5 Invalid status {hex(e.sw)}: {msg}")
+            error(f"Invalid status {hex(e.sw)}: {msg}")
             sys.exit(1)
 
 
@@ -241,7 +241,7 @@ def advance_blockchain(args, blocks_file, network):
         block_size, mm_payload_len = block_metadata(network, block_rlp)
 
         # 2. Send OP_ADVANCE_HEADER_META for current block
-        info(f"\U0001F381 Send metadata for block #{n}")
+        info(f"Send metadata for block #{n}")
         r = send(dongle, INS_ADVANCE, OP_ADVANCE_HEADER_META, struct.pack('>H', mm_payload_len),failCode=failCode)
         assert r[2] == OP_ADVANCE_HEADER_CHUNK, f"Unexpected response: {r[2]}"
 
@@ -264,13 +264,13 @@ def advance_blockchain(args, blocks_file, network):
 
         # Ledger advanced blockchain
         if r[2] == OP_ADVANCE_SUCCESS:
-            succ("Blockchain fully advanced! \U0001F389")
+            succ("Blockchain fully advanced!")
             return
 
         # Ledger partially advanced blockchain
         if r[2] == OP_ADVANCE_PARTIAL:
             assert n + 1 == len(blocks), "Partial success before trying all blocks"
-            succ("Blockchain partially advanced! \U0001F389")
+            succ("Blockchain partially advanced!")
             return
 
 
@@ -300,7 +300,7 @@ def update_ancestor(args, blocks_file, network):
             block_rlp = rlp.encode(rlp.decode(block_rlp)[:-2])
 
         # 2. Send OP_UPD_ANCESTOR_HEADER_META for current block
-        info(f"\U0001F381 Send metadata for block #{n}")
+        info(f"Send metadata for block #{n}")
         r = send(dongle, INS_UPD_ANCESTOR, OP_UPD_ANCESTOR_HEADER_META, struct.pack('>H', mm_payload_len),failCode=failCode)
         assert r[2] == OP_UPD_ANCESTOR_HEADER_CHUNK, f"Unexpected response: {r[2]}"
 
@@ -320,7 +320,7 @@ def update_ancestor(args, blocks_file, network):
 
         # Ledger successfully updated ancestor
         if r[2] == OP_UPD_ANCESTOR_SUCCESS:
-            succ("Successfully updated ancestor! \U0001F389")
+            succ("Successfully updated ancestor!")
             return
 
 # ------------------------------------------------------------------------
@@ -551,7 +551,7 @@ def exit(ctx):
         send(dongle,INS_EXIT,op="")
     except CommException as e:
         msg = _errors.get(e.sw, "Unknown error - missing entry in _errors table?")
-        error(f"\U0001F4A5 Invalid status {hex(e.sw)}: {msg}")
+        error(f"Invalid status {hex(e.sw)}: {msg}")
     except OSError:
         # This is expected, ignore (we're leaving anyway)
         pass
