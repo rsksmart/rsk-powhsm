@@ -88,6 +88,7 @@ class Error(IntEnum):
     APP_NOT_STARTED = 0x6e00
     PROT_INVALID = 0x6b87
     PATH_INVALID = 0x6a8f
+    LEN_INVALID = 0x6a87
     RLP_INVALID = auto()
     BLOCK_TOO_OLD = auto()
     BLOCK_TOO_SHORT = auto()
@@ -114,6 +115,7 @@ _errors = {
     Error.APP_NOT_STARTED: "Signer app has not been started",
     Error.PROT_INVALID: "Invalid or unexpected message",
     Error.PATH_INVALID: "Invalid key path",
+    Error.LEN_INVALID: "Invalid message len",
     Error.RLP_INVALID: "Invalid RLP",
     Error.BLOCK_TOO_OLD: "Block too old",
     Error.BLOCK_TOO_SHORT: "Block too short",
@@ -171,6 +173,7 @@ def send(dongle, ins, op, *payload,failCode=0):
         msg = _errors.get(e.sw, "Unknown error - missing entry in _errors table?")
         if (e.sw==failCode):
             info(f"Expected error: Invalid status {hex(e.sw)}: {msg}")
+            return False
         else:
             error(f"Invalid status {hex(e.sw)}: {msg}")
             sys.exit(1)
@@ -462,6 +465,8 @@ def sign_json(args, sign_file):
                 info("--------------------- Key Path: %s" % keyId )
                 #get public key
                 publicKey = send(dongle,INS_GET_PUBLIC_KEY, "",bip44tobin(keyId),failCode=failCode)
+                if publicKey==False: # Expected error found
+                    continue
                 info("Public Key: %s" % binascii.hexlify(publicKey))
                 pubKey = PublicKey(bytes(publicKey), raw=True)
                 info('\033[92m' + "PubKey" + '\x1b[0m')
@@ -472,6 +477,8 @@ def sign_json(args, sign_file):
                 except:
                     error("Error signing")
                     return
+                if response==False: # Expected error found
+                    continue
                 info('\033[92m' + "PubKey" + '\x1b[0m')
                 signature=response[3:]
                 signature=bytearray([0x30])+signature[1:] ### Why Ledger returns 0x31 instead of 0x30?
@@ -479,6 +486,8 @@ def sign_json(args, sign_file):
                 signatureDeserialized = pubKey.ecdsa_deserialize(bytes(signature))
                 info("Deserialized Signature: " + str(signatureDeserialized))
                 info("Verified Sigature: " + '\033[92m' + str(pubKey.ecdsa_verify(bytes(textToSign), signatureDeserialized,raw=True)) + '\x1b[0m')
+                if (failCode>0):
+                    error("Transaction must fail but no error detected.")
 
         # Test keys that need authentication using Receipt and Trie Merkle Proof
         if ("keyIds" in data):
@@ -499,6 +508,8 @@ def sign_json(args, sign_file):
                 info("--------------------- Key Path: %s" % keyId )
                 #get public key
                 publicKey = send(dongle,INS_GET_PUBLIC_KEY, "",bip44tobin(keyId),failCode=failCode)
+                if publicKey==False: # Expected error found
+                    continue
                 info("Public Key: %s" % binascii.hexlify(publicKey))
                 pubKey = PublicKey(bytes(publicKey), raw=True)
                 info('\033[92m' + "PubKey" + '\x1b[0m')
@@ -510,6 +521,8 @@ def sign_json(args, sign_file):
                         signatureDeserialized = pubKey.ecdsa_deserialize(bytes(signature))
                         info("Deserialized Signature: " + str(signatureDeserialized))
                         info("Verified Sigature: " + '\033[92m' + str(pubKey.ecdsa_verify(bytes(textToSign), signatureDeserialized,raw=True)) + '\x1b[0m')
+                if (failCode>0):
+                    error("Transaction must fail but no error detected.")
 
     except:
        if (failCode>0):
@@ -517,8 +530,6 @@ def sign_json(args, sign_file):
             return
        else:
            error("Unexpected error: "+traceback.format_exc())
-    if (failCode>0):
-                error("Transaction must fail but no error detected.")
 
 
 # ------------------------------------------------------------------------
