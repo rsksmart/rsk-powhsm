@@ -450,12 +450,6 @@ void MP_NODE_VALUE_LEN(MP_CTX *ctx,
         else
             printf("Receipt Hash MATCH\n");
     }
-    // ValueLen
-    // TODO: We dont use valuelen?
-    ctx->valueLen = (G_io_apdu_buffer[DATA + HASHLEN] << 16) +
-                    (G_io_apdu_buffer[DATA + HASHLEN + 1] << 8) +
-                    (G_io_apdu_buffer[DATA + HASHLEN + 2]);
-    printf("VALUELEN: %d\n", ctx->valueLen);
     G_io_apdu_buffer[CLAPOS] = CLA;
     G_io_apdu_buffer[CMDPOS] = INS_SIGN;
     G_io_apdu_buffer[OP] = P1_MERKLEPROOF;

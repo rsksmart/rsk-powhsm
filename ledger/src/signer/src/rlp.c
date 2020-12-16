@@ -224,7 +224,6 @@ void SM_RLP_HDR(RLP_CTX *ctx,
                 *state = S_RLP_HDR;
             } else { // Regular field
                 ctx->fieldCount++;
-                ctx->totalFieldCount++;
                 if (ctx->offset == 0) // Single-encoded byte
                 {
                     G_io_apdu_buffer[TXLEN] = 1; // Return 1 byte

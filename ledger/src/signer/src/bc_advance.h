@@ -14,7 +14,6 @@
 #define INS_ADVANCE_PARAMS 0x11
 
 // Operations for advancing blockchain protocol
-#define OP_ADVANCE_IDLE 0x01
 #define OP_ADVANCE_INIT 0x02
 #define OP_ADVANCE_HEADER_META 0x03
 #define OP_ADVANCE_HEADER_CHUNK 0x04

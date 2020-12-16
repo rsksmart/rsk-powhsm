@@ -44,7 +44,6 @@ extern const bc_state_t N_bc_state_var;
 // -----------------------------------------------------------------------
 
 #define INS_GET_STATE 0x20
-#define OP_GET_IDLE 0x00
 #define OP_GET_HASH 0x01
 #define OP_GET_DIFF 0x02
 #define OP_GET_FLAGS 0x03
@@ -59,7 +58,6 @@ extern const bc_state_t N_bc_state_var;
 #define U_NEXT_EXPECTED_BLOCK 0x84
 
 #define INS_RESET_STATE 0x21
-#define OP_RESET_IDLE 0x00
 #define OP_RESET_INIT 0x01
 #define OP_RESET_DONE 0x02
 
@@ -67,7 +65,6 @@ extern const bc_state_t N_bc_state_var;
  * Convenience macros to set state boolean flags
  */
 void set_bc_state_flag(const bool* flag);
-void clr_bc_state_flag(const bool* flag);
 
 /*
  * Initialize blockchain state.

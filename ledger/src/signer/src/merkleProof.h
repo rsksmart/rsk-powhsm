@@ -28,7 +28,6 @@ typedef struct {
     unsigned char nodeLen;   // Current node len
     unsigned char offset;    // read count
     unsigned int childrensize;
-    unsigned int valueLen;
     // Current node flags
     unsigned char node_version, has_long_value, shared_prefix_present,
         node_present_left, node_present_right, node_is_embedded_left,

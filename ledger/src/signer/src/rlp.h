@@ -16,10 +16,6 @@ bool rlpDecodeLength(uint8_t *buffer,
                      uint32_t *offset,
                      bool *list);
 
-// Recursive RLP parser
-enum RECEIPT_STATUS { R_START, R_SUCESS, R_FAILURE, R_ERROR };
-void parseRLPBuffer(unsigned char *listbuffer, int size, int level);
-
 // RLP parser State Machine
 
 // Max amount of bytes to transfer
@@ -34,7 +30,6 @@ typedef struct {
     // RLP position variables
     unsigned int listLevel;       // List level
     unsigned int fieldCount;      // Field count inside list
-    unsigned int totalFieldCount; // Field count inside whole RLP tree
 
     // Internal parsing
     int listSize[MAX_RLP_RECURSION];      // Current list Size

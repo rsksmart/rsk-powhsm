@@ -10,7 +10,6 @@
 #define INS_UPD_ANCESTOR 0x30
 
 // Operations for advancing blockchain protocol
-#define OP_UPD_ANCESTOR_IDLE 0x01
 #define OP_UPD_ANCESTOR_INIT 0x02
 #define OP_UPD_ANCESTOR_HEADER_META 0x03
 #define OP_UPD_ANCESTOR_HEADER_CHUNK 0x04

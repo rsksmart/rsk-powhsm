@@ -22,7 +22,6 @@ typedef struct {
     unsigned int tx_input_index_to_sign; // Index to sign
     unsigned int btc_input_counter;      // Amount of inputs in the TX
     unsigned int currentTxInput;         // Current input being parsed
-    unsigned int *out_index;             // TX out index
     // Sha256 hashes CTXs
     SHA256_CTX TX_hash;
     SHA256_CTX signatureHash;
