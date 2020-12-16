@@ -11,5 +11,5 @@ python test.py advance -b resources/advance.json
 python test.py update -b resources/update.json
 python test.py get
 python test.py sign -d ./resources/sign.json
-python test.py sign -d ./resources/sign-fail-Invalid-Path.json
-python test.py sign -d ./resources/sign-fail-Invalid-Lenght.json
+python test.py sign -d ./resources/sign-fail-invalid-path.json
+python test.py sign -d ./resources/sign-fail-invalid-length.json

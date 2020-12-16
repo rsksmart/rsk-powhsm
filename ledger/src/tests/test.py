@@ -86,9 +86,9 @@ OP_UPD_ANCESTOR_SUCCESS = 0x05
 
 class Error(IntEnum):
     APP_NOT_STARTED = 0x6e00
-    PROT_INVALID = 0x6b87
     PATH_INVALID = 0x6a8f
     LEN_INVALID = 0x6a87
+    PROT_INVALID = 0x6b87
     RLP_INVALID = auto()
     BLOCK_TOO_OLD = auto()
     BLOCK_TOO_SHORT = auto()
