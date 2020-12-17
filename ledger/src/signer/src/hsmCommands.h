@@ -232,7 +232,7 @@ if (G_io_apdu_buffer[OP] & P1_RECEIPT) {
     //---------------------- Merkle Proof Parser --------------------------
     if (G_io_apdu_buffer[OP] & P1_MERKLEPROOF) {
     unsigned char signatureHashCopy[HASHLEN];
-    unsigned char privateKeyData[HASHLEN];
+    unsigned char privateKeyData[KEYLEN];
     // Input len check
     if (state != S_MP_START)
         if (rx - DATA != mp_ctx.expectedRXBytes)
@@ -307,7 +307,7 @@ if (G_io_apdu_buffer[OP] & P1_RECEIPT) {
         tx = 0;
 #else
 	os_perso_derive_node_bip32(CX_CURVE_256K1, path, RSK_PATH_LEN, privateKeyData, NULL);
-	cx_ecdsa_init_private_key(CX_CURVE_256K1, privateKeyData, HASHLEN, &privateKey);
+	cx_ecdsa_init_private_key(CX_CURVE_256K1, privateKeyData, KEYLEN, &privateKey);
 	cx_ecfp_generate_pair(CX_CURVE_256K1, &publicKey, &privateKey, 1);
 	// Matching TX found, Contract is valid, Receipt Signature is valid and Merkle
 	// Tree passes al verifications. Sign the signatureHash

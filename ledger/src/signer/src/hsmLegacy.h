@@ -46,7 +46,7 @@ break;
 case INS_GET_PUBLIC_KEY: {
     cx_ecfp_public_key_t publicKey;
     cx_ecfp_private_key_t privateKey;
-    unsigned char privateKeyData[32];
+    unsigned char privateKeyData[KEYLEN];
     if (rx != 3 + 20)
         THROW(0x6A87); // Wrong buffer size (has to be 32)
     moxie_swi_crypto_cleanup();
@@ -58,9 +58,8 @@ case INS_GET_PUBLIC_KEY: {
            pathDontRequireAuth(&G_io_apdu_buffer[2])))
             // If no path match, then bail out
 	    THROW(0x6a8f); // Invalid Key Path
-    os_perso_derive_node_bip32(
-        CX_CURVE_256K1, path, pathlen, privateKeyData, NULL);
-    cx_ecdsa_init_private_key(CX_CURVE_256K1, privateKeyData, 32, &privateKey);
+    os_perso_derive_node_bip32(CX_CURVE_256K1, path, pathlen, privateKeyData, NULL);
+    cx_ecdsa_init_private_key(CX_CURVE_256K1, privateKeyData, KEYLEN, &privateKey);
     cx_ecfp_generate_pair(CX_CURVE_256K1, &publicKey, &privateKey, 1);
     os_memmove(G_io_apdu_buffer, publicKey.W, 65);
     // Cleanup.

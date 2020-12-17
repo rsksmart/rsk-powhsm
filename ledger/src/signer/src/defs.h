@@ -31,6 +31,7 @@
 
 // Size constants
 #define HASHLEN 32
+#define KEYLEN 32
 #define PATHLEN 21
 #define INPUTINDEXLEN 4
 
