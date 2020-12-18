@@ -13,6 +13,9 @@
 #include "bc_adv_upd_host.h"
 #include "bc_state_host.h"
 
+// Constants
+#include "const.h"
+
 typedef struct {
     char* split_file_name;
     uint32_t num_blocks;

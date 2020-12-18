@@ -65,7 +65,6 @@ static unsigned char display_text_part(void);
 #define RSK_GET_ATTESTATION 0x09
 #define RSK_GET_ENDORSEMENT_PUBKEY 0x0A
 #define RSK_GET_APP_HASH 0x0B
-#define RSK_PATH_LEN 5
 
 #include "mem.h"
 

@@ -41,6 +41,12 @@
 // Hardcoded check values
 #include "contractValues.h"
 
+// Constants
+#include "const.h"
+
+// Missing 'main.c' definitions (these should be moved elsewhere)
+unsigned int path[5];
+
 const char ARG_SIGN[] = "--sign";
 const char ARG_ADVANCE[] = "--adv";
 const char ARG_UPD_ANCESTOR[] = "--upd";

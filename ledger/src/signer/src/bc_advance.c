@@ -36,6 +36,12 @@
 // Here we take it from an external definition (see Makefile for details)
 #ifdef PARAM_MIN_REQUIRED_DIFFICULTY
 static const DIGIT_T MIN_REQUIRED_DIFFICULTY[BIGINT_LEN] = PARAM_MIN_REQUIRED_DIFFICULTY;
+#else
+#ifdef FEDHM_EMULATOR
+static const DIGIT_T MIN_REQUIRED_DIFFICULTY[BIGINT_LEN] = {
+    0x1c92f6c6, 0xbcab6123, 0x000001d5, 0, 0, 0, 0, 0, 0
+};
+#endif
 #endif
 
 // -----------------------------------------------------------------------

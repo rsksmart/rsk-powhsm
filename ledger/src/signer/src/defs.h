@@ -34,6 +34,7 @@
 #define KEYLEN 32
 #define PATHLEN 21
 #define INPUTINDEXLEN 4
+#define RSK_PATH_LEN 5
 
 // Number of bytes to transmit for data payload with size s
 #define TX_FOR_DATA_SIZE(s) (DATA + (s))

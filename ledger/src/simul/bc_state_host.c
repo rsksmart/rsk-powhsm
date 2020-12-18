@@ -10,6 +10,9 @@
 #include "bc_state_host.h"
 #include "bc_diff.h"
 
+// Constants
+#include "const.h"
+
 static void dump_hash(const uint8_t* header, const uint8_t* buf);
 
 #define HASH_SIZE 32
