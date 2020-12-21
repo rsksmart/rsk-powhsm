@@ -38,6 +38,8 @@
 static const DIGIT_T MIN_REQUIRED_DIFFICULTY[BIGINT_LEN] = PARAM_MIN_REQUIRED_DIFFICULTY;
 #else
 #ifdef FEDHM_EMULATOR
+// This difficulty works for the test data in the emulator
+// (ledger/src/tests/resources/other/split-*.json).
 static const DIGIT_T MIN_REQUIRED_DIFFICULTY[BIGINT_LEN] = {
     0x1c92f6c6, 0xbcab6123, 0x000001d5, 0, 0, 0, 0, 0, 0
 };
