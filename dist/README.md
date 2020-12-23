@@ -44,7 +44,9 @@ Then, to execute the setup process, within the `/path/to/dist` directory, issue:
 
 and follow the instructions.
 
-As mentioned, a distribution can be used to setup a new device as well as to upgrade a device from HSM 1.x to HSM 2. To upgrade an existing HSM 1.x device, you will first need:
+As mentioned, a distribution can be used to setup a new device as well as to upgrade a device from HSM 1.x to HSM 2 or to upgrade an existing HSM 2 to a newer firmware version. 
+
+To upgrade an existing HSM 1.x device, you will first need:
 
 - A file `/path/to/dist/pin.txt` with the current device's pin.
 - Certifications of both of the ledger applications (UI and Signer) exactly as in the setup process (see above).
@@ -52,7 +54,20 @@ As mentioned, a distribution can be used to setup a new device as well as to upg
 Then, to execute the upgrade process, within the `/path/to/dist` directory, issue:
 
 ```
-/path/to/dist> ./upgrade-device
+/path/to/dist> ./upgrade-v1-device
+```
+
+and follow the instructions.
+
+To upgrade an existing HSM 2 device, you will first need:
+
+- A file `/path/to/dist/pin.txt` with the current device's pin.
+- Certification of the ledger signer exactly as in the setup process (see above).
+
+Then, to execute the upgrade process, within the `/path/to/dist` directory, issue:
+
+```
+/path/to/dist> ./upgrade-v2-device
 ```
 
 and follow the instructions.

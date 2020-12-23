@@ -66,7 +66,7 @@ Aside from the main `manager.py` and `sim.py` scripts, there are other four scri
 
 - `adm.py`: administrative utility for an HSM 2 dongle. It provides common utilities that can be performed on an HSM 2 dongle.
 - `lbutils.py`: common frontend to some of the `ledgerblue` modules. In particular, it ultimately serves the purpose of being able to build a binary for these utilities.
-- `signapp.py`: ledger app signer. Serves the purpose of certifying firmware builds. Can be used to sign with an HSM Certificate Signer Ledger app (see [the ledger readme](`../ledger/README.md`) for details) or with a manually input key (for testing purposes).
+- `signapp.py`: ledger app signer. Serves the purpose of signing firmware builds. Can be used to sign with an HSM Certificate Signer Ledger app (see [the ledger readme](`../ledger/README.md`) for details) or with a manually input key (for testing purposes).
 - `restore.py`: HSM 2 onboarding backup restorer. It takes an HSM 2 backup (one of the byproducts of the onboarding process) as input and produces a mnemonic as output. This mnemonic can then be used to restore the keys of the ledger. It is intended for emergencies only.
 
 The remaining `client.py` is a shorthand client utility for manually testing communication with a running manager or simulator.

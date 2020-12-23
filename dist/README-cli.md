@@ -20,7 +20,7 @@ To setup a brand new device, within the `/path/to/dist` directory, issue:
 
 and follow the instructions.
 
-### Upgrade
+### Upgrade HSM 1.x to HSM 2
 
 To upgrade an existing HSM 1.x device, you will first need:
 
@@ -29,7 +29,21 @@ To upgrade an existing HSM 1.x device, you will first need:
 Then, to execute the upgrade process, within the `/path/to/dist` directory, issue:
 
 ```
-/path/to/dist> ./upgrade-device
+/path/to/dist> ./upgrade-v1-device
+```
+
+and follow the instructions.
+
+### Upgrade an HSM 2
+
+To upgrade an existing HSM 2 device to a newer firmware version, you will first need:
+
+- A file `/path/to/dist/pin.txt` with the current device's pin.
+
+Then, to execute the upgrade process, within the `/path/to/dist` directory, issue:
+
+```
+/path/to/dist> ./upgrade-v2-device
 ```
 
 and follow the instructions.
