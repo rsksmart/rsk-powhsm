@@ -117,8 +117,10 @@ class TestBlockchainState(TestCase):
         self.assertTrue(mock_file.__exit__.called)
 
         uniq_call = mock_file.__enter__().write.call_args_list[0]
-        self.assertEqual(1, len(uniq_call.args))
-        generated_json = uniq_call.args[0]
+
+        self.assertEqual(1, len(uniq_call[0]))
+        self.assertEqual(0, len(uniq_call[1]))
+        generated_json = uniq_call[0][0]
         self.assertEqual(json.loads(generated_json), self.params)
 
     @patch("simulator.blockchain_state.open")
