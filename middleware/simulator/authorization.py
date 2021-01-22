@@ -7,13 +7,18 @@ from comm.bitcoin import get_tx_hash_for_unsigned_tx, get_signature_hash_for_p2s
 
 # These are all the valid signing paths (key ids)
 # Any other key id should be rejected as invalid
+# Paths starting with 'dep_' are deprecated and are to be removed
+# in a future version
 _VALID_BIP32_PATHS = {
     "btc": BIP32Path("m/44'/0'/0'/0/0"),
     "rsk": BIP32Path("m/44'/137'/0'/0/0"),
-    "mst": BIP32Path("m/44'/137'/0'/0/1"),
+    "mst": BIP32Path("m/44'/137'/1'/0/0"),
+    "dep_mst": BIP32Path("m/44'/137'/0'/0/1"),
     "tbtc": BIP32Path("m/44'/1'/0'/0/0"),
-    "trsk": BIP32Path("m/44'/1'/0'/0/1"),
-    "tmst": BIP32Path("m/44'/1'/0'/0/2")
+    "trsk": BIP32Path("m/44'/1'/1'/0/0"),
+    "dep_trsk": BIP32Path("m/44'/1'/0'/0/1"),
+    "tmst": BIP32Path("m/44'/1'/2'/0/0"),
+    "dep_tmst": BIP32Path("m/44'/1'/0'/0/2"),
 }
 
 # These are the only paths that require an authorization
