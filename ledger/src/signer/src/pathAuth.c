@@ -40,8 +40,7 @@ const char noAuthPaths[][21] = {
 // this means this path require authorization and validations.
 bool pathRequireAuth(char *path) {
     char cmpbuf[sizeof(authPaths[0])];
-    int i;
-    for (i = 0; i < sizeof(authPaths) / sizeof(authPaths[0]); i++) {
+    for (unsigned int i = 0; i < sizeof(authPaths) / sizeof(authPaths[0]); i++) {
         // Dont memcmp flash to RAM
         memmove(cmpbuf, authPaths[i], sizeof(cmpbuf));
         if (!memcmp(path, cmpbuf, sizeof(cmpbuf)))
@@ -55,8 +54,7 @@ bool pathRequireAuth(char *path) {
 // authorization
 bool pathDontRequireAuth(char *path) {
     char cmpbuf[sizeof(noAuthPaths[0])];
-    int i;
-    for (i = 0; i < sizeof(noAuthPaths) / sizeof(noAuthPaths[0]); i++) {
+    for (unsigned int i = 0; i < sizeof(noAuthPaths) / sizeof(noAuthPaths[0]); i++) {
         // Dont memcmp flash to RAM
         memmove(cmpbuf, noAuthPaths[i], sizeof(cmpbuf));
         if (!memcmp(path, cmpbuf, sizeof(cmpbuf)))
