@@ -198,11 +198,15 @@ def block_metadata(block_rlp, compute_cb_txn_hash=True):
 # ------------------------------------------------------------------------
 # Advance blockchain for all blocks in a given file.
 # ------------------------------------------------------------------------
-def advance_blockchain(args, blocks_file, network):
+def advance_blockchain(args, blocks_file, network,fakelen):
     dongle = connect(args)
 
     with open(blocks_file, 'r') as f:
-        blocks = [bytes.fromhex(b) for b in json.load(f)["blocks"]]
+        try:
+            blocks = [bytes.fromhex(b) for b in json.load(f)["blocks"]]
+        except:
+            error("Wrong format of json file %s." % blocks_file)
+            return
 
     # Read flag indicating if this test must fail
     failCode=getFailCode(json.load(open(blocks_file,'r')))
@@ -224,6 +228,9 @@ def advance_blockchain(args, blocks_file, network):
         # 3. Send chunks for current block until ledger asks for next one
         total_read = 0
         while r[2] == OP_ADVANCE_HEADER_CHUNK:
+            if fakelen:
+               info(f'Faking lenght to %s' % (fakelen))
+               block_rlp=block_rlp[:1]+bytearray.fromhex(fakelen)+block_rlp[3:]
             chunk_size = r[3]
             # if total_read > 500:
             #     info(f'Pidio {chunk_size}, aborto')
@@ -232,6 +239,7 @@ def advance_blockchain(args, blocks_file, network):
             total_read += chunk_size
             info(f'Send chunk [{total_read - len(buf):04d}-{total_read - 1:04d}] (block size = {block_size:04d})')
             r = send(dongle, INS_ADVANCE, OP_ADVANCE_HEADER_CHUNK, buf,failCode=failCode)
+            if (r==False): return
 
         # Ledger asked for next block
         if r[2] == OP_ADVANCE_HEADER_META:
@@ -558,11 +566,12 @@ def reset(ctx):
 
 @cli.command(short_help=advance_help, help=advance_help)
 @click.option('-b', '--blocks', 'blocks_file', required=True, help='Json blocks file')
+@click.option('-f', '--fakelen', 'fakelen', help='Fake RLP len')
 @click.option('-n', '--network', default='mainnet', help='Network name',
     type=click.Choice(['mainnet', 'testnet'], case_sensitive=False))
 @click.pass_context
-def advance(ctx, blocks_file, network):
-    advance_blockchain(ctx.obj, blocks_file, network)
+def advance(ctx, blocks_file, network,fakelen):
+    advance_blockchain(ctx.obj, blocks_file, network,fakelen)
 
 @cli.command(short_help=update_help, help=update_help)
 @click.option('-b', '--blocks', 'blocks_file', required=True, help='Json blocks file')

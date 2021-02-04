@@ -14,6 +14,10 @@ python test.py sign -d ./resources/sign.json
 python test.py sign -d ./resources/sign-fail-invalid-path.json
 python test.py sign -d ./resources/sign-fail-invalid-length.json
 
+# Test malformed coinbase TX block
+python test.py reset
+python test.py advance --fakelen 0255 -b resources/advance-missing-coinbase.json
+
 # Test block with long MM merkle proof
 echo "***************************************************"
 echo "***** Testing block with long MM merkle proof *****"
