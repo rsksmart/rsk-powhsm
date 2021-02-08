@@ -7,6 +7,7 @@
 #include "defs.h"
 #include "usb.h"
 
+#include "bc_util.h"
 #include "bc_state.h"
 #include "bc_advance.h"
 #include "bc_ancestor.h"
@@ -104,13 +105,6 @@ void setup_bc_advance_host(int num_splits, bool should_upd_ancestor) {
     upd_ancestor = should_upd_ancestor;
 
     printf("Processing split file: %s\n", splits[split_index].split_file_name);
-}
-
-static void dump_bigendian(uint8_t* buffer, size_t bytes, uint64_t n) {
-    for (int i = 0; i < bytes; i++) {
-        buffer[bytes - i - 1] = (uint8_t)(n & 0xff);
-        n >>= 8;
-    }
 }
 
 // Check if we found the best block

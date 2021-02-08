@@ -27,7 +27,7 @@
 
 // Field sizes and offsets
 #define UMM_ROOT_SIZE 20
-#define MAX_MERKLE_PROOF_SIZE 480
+#define MAX_MERKLE_PROOF_SIZE 960
 #define MAX_CB_TXN_SIZE 273
 #define BTC_HEADER_SIZE 80
 #define BTC_HEADER_RLP_LEN 82

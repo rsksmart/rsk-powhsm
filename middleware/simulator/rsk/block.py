@@ -3,7 +3,7 @@ import rlp
 from .utils import rlp_decode_list_of_expected_length
 from comm.utils import bitwise_and_bytes
 from .netparams import NetworkUpgrades
-from . import pow
+import comm.pow as pow
 import comm.bitcoin
 import logging
 
@@ -12,6 +12,7 @@ class RskBlockHeader:
     __HASH_FOR_MM_SIZE = 32
     __HASH_FOR_MM_PREFIX_SIZE = 20
     __HASH_FOR_MM_SUFFIX_SIZE = 4
+    __MAX_MERKLE_PROOF_SIZE = 960 # From Iris onwards
 
     def __init__(self, raw_hex_string, network_parameters, mm_is_mandatory=True):
         self.logger = logging.getLogger("rskblockheader")
@@ -114,6 +115,15 @@ class RskBlockHeader:
         self.__mm_header = rlp_items[mm_header_index].hex()
         self.__mm_merkleproof = rlp_items[mm_merkleproof_index].hex()
         self.__mm_coinbasetx = rlp_items[mm_coinbasetx_index].hex()
+
+        # Validate maximum length for merge mining merkle proof from Iris onwards
+        if self.__has_merged_mining_fields and \
+            self.network_parameters.network_upgrades.is_active(NetworkUpgrades.iris, self.number) and \
+            len(bytes.fromhex(self.__mm_merkleproof)) > self.__MAX_MERKLE_PROOF_SIZE:
+            message = "Maximum MM merkle proof size from Iris is %d. Got #%d." % \
+                (self.__MAX_MERKLE_PROOF_SIZE, len(bytes.fromhex(self.__mm_merkleproof)))
+            self.logger.info(message)
+            raise ValueError(message)
 
         # *** Compute the block hash ***
         # The block hash is computed by hashing the RLP representation

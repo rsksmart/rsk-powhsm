@@ -13,7 +13,8 @@ from operator import setitem
 from ledgerblue.comm import getDongle
 from ledgerblue.commTCP import getDongle as getDongleTCP
 from ledgerblue.commException import CommException
-
+from lib.block_utils import rlp_mm_payload_size, get_coinbase_txn
+from lib.pow import coinbase_tx_get_hash
 
 # Utilities to send colored output to a TTY
 def _ansi_log(msg, cat, color):
@@ -106,6 +107,7 @@ class Error(IntEnum):
     MM_HASH_MISMATCH = auto()
     MERKLE_PROOF_OVERFLOW = auto()
     CB_TXN_OVERFLOW = auto()
+    CB_TXN_HASH_MISMATCH = auto()
     BUFFER_OVERFLOW = auto()
     CHAIN_MISMATCH = auto()
     TOTAL_DIFF_OVERFLOW = auto()
@@ -133,6 +135,7 @@ _errors = {
     Error.MM_HASH_MISMATCH: "Merge mining hashes don't match",
     Error.MERKLE_PROOF_OVERFLOW: "Merkle proof exceeds maximum size",
     Error.CB_TXN_OVERFLOW: "Coinbase transactione exceeds maximum size",
+    Error.CB_TXN_HASH_MISMATCH: "Coinbase transaction hash mismatch",
     Error.BUFFER_OVERFLOW: "Work area buffer overflow",
     Error.CHAIN_MISMATCH: "Block is not parent of previous block",
     Error.TOTAL_DIFF_OVERFLOW: "Total difficulty overflow",
@@ -182,45 +185,15 @@ def send(dongle, ins, op, *payload,failCode=0):
 # ------------------------------------------------------------------------
 # Infer Block metadata from is RLP serializarion
 # ------------------------------------------------------------------------
-def block_metadata(network, block_rlp):
-    block = rlp.decode(block_rlp)
-    return len(block_rlp), rlp_mm_payload_size(block)
-
-# Compute the length that *would* have the RLP encoding of the given
-# block, *if* the last three fields (BTC MM header, MM Merkle proof,
-# and BTC MM coinbase txn) where excluded form the block.
-#
-# This is used by the ledger to efficiently compute the merge-mining
-# hash of a block to be validated.
-def rlp_mm_payload_size(block):
-    # Fields to exclude:
-    #  1. BTC MM header (decoded[-3])
-    #  2. MM Merkle Proof (decoded[-2])
-    #  3. BTC MM coinbase txn (decoded[-1])
-    if len(block) >= 19:
-        block_without_mm_fields = block[:-3]
-    else:
-        block_without_mm_fields = block[:-1]
-    block_without_mm_fields_rlp = rlp.encode(block_without_mm_fields)
-
-    # Infer length L of RLP payload of block without MM fields.
-    # Encoding corresponds to a list, so first byte b will be one of:
-    #   1. anything in the range 0xc0..0xf7: L = b - 0xc0
-    #   2. anything in the range 0xf8..0xff:
-    #     N = b - 0xf7
-    #     length follows, encoded as a bigendian integer of length N
-    b = block_without_mm_fields_rlp[0]
-    if b >= 0xc0 and b <= 0xf7:
-        L = b - 0xc0
-    elif b >= 0xf8 and b <= 0xff:
-        N = b - 0xf7
-        L = 0
-        for i in range(N):
-            L = (L << 8) | block_without_mm_fields_rlp[1 + i]
-    else:
-        assert False, "Invalid RLP encoding for block without MM fields"
-    return L
-
+def block_metadata(block_rlp, compute_cb_txn_hash=True):
+    block_rlp_hex = block_rlp.hex()
+    cb_txn_hash = None
+    if compute_cb_txn_hash:
+        cb_txn_hash = bytes.fromhex(coinbase_tx_get_hash(get_coinbase_txn(block_rlp_hex)))
+    return len(block_rlp), \
+            rlp_mm_payload_size(block_rlp_hex), \
+            cb_txn_hash
+        
 
 # ------------------------------------------------------------------------
 # Advance blockchain for all blocks in a given file.
@@ -241,17 +214,20 @@ def advance_blockchain(args, blocks_file, network):
     assert r[2] == OP_ADVANCE_HEADER_META, f"Unexpected response: {r[2]}"
 
     for n, block_rlp in enumerate(blocks):
-        block_size, mm_payload_len = block_metadata(network, block_rlp)
+        block_size, mm_payload_len, coinbase_tx_hash = block_metadata(block_rlp, compute_cb_txn_hash=True)
 
         # 2. Send OP_ADVANCE_HEADER_META for current block
         info(f"Send metadata for block #{n}")
-        r = send(dongle, INS_ADVANCE, OP_ADVANCE_HEADER_META, struct.pack('>H', mm_payload_len),failCode=failCode)
+        r = send(dongle, INS_ADVANCE, OP_ADVANCE_HEADER_META, struct.pack('>H', mm_payload_len), coinbase_tx_hash, failCode=failCode)
         assert r[2] == OP_ADVANCE_HEADER_CHUNK, f"Unexpected response: {r[2]}"
 
         # 3. Send chunks for current block until ledger asks for next one
         total_read = 0
         while r[2] == OP_ADVANCE_HEADER_CHUNK:
             chunk_size = r[3]
+            # if total_read > 500:
+            #     info(f'Pidio {chunk_size}, aborto')
+            #     return
             buf = block_rlp[total_read:total_read + chunk_size]
             total_read += chunk_size
             info(f'Send chunk [{total_read - len(buf):04d}-{total_read - 1:04d}] (block size = {block_size:04d})')
@@ -296,7 +272,7 @@ def update_ancestor(args, blocks_file, network):
     assert r[2] == OP_UPD_ANCESTOR_HEADER_META, f"Unexpected response: {r[2]}"
 
     for n, block_rlp in enumerate(blocks):
-        block_size, mm_payload_len = block_metadata(network, block_rlp)
+        block_size, mm_payload_len, _ = block_metadata(block_rlp, compute_cb_txn_hash=False)
 
         # Don't send merkle proof and cb txn for some blocks
         if n % 2 == 0 and len(rlp.decode(block_rlp)) >= 19:

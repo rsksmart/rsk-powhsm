@@ -13,3 +13,12 @@ python test.py get
 python test.py sign -d ./resources/sign.json
 python test.py sign -d ./resources/sign-fail-invalid-path.json
 python test.py sign -d ./resources/sign-fail-invalid-length.json
+
+# Test block with long MM merkle proof
+echo "***************************************************"
+echo "***** Testing block with long MM merkle proof *****"
+echo "***************************************************"
+python test.py reset
+python test.py advance -b resources/advance-long-mmmp.json
+python test.py get
+python test.py reset

@@ -1,6 +1,6 @@
 from unittest import TestCase
 from simulator.rsk.block import RskBlockHeader
-from simulator.rsk.pow import difficulty_to_target,\
+from comm.pow import difficulty_to_target,\
     coinbase_tx_extract_merge_mining_hash,\
     coinbase_tx_get_hash,\
     is_valid_merkle_proof

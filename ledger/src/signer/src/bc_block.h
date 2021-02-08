@@ -36,6 +36,8 @@ typedef struct {
 
     uint8_t umm_root[UMM_ROOT_SIZE]; // Block UMM root, only set if present
 
+    uint8_t cb_txn_hash[HASH_SIZE]; // Coinbase transaction hash (from metadata)
+
     union {
         uint8_t mm_hdr_hash[HASH_SIZE];  // BTC merge mining header hash
         uint8_t receipt_root[HASH_SIZE]; // Or receipt root hash
@@ -53,8 +55,8 @@ typedef struct {
         };
         struct {
             uint16_t merkle_off;            // Offset to Merkle proof buffer
+            uint8_t merkle_proof_left[HASH_SIZE]; // Merkle proof reduction current left node
             uint8_t merkle_root[HASH_SIZE]; // Merkle root
-            uint8_t merkle_proof[MAX_MERKLE_PROOF_SIZE]; // Merkle proof buffer
             uint16_t cb_off;                 // Offset to cb txn buffer
             uint8_t cb_txn[MAX_CB_TXN_SIZE]; // cb txn buffer
         };

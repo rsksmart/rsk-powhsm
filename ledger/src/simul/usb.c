@@ -11,15 +11,20 @@
 #include "usb.h"
 #include "usbdata.h"
 #include "defs.h"
+#include "const.h"
 
 #include "bc_state.h"
 #include "bc_state_host.h"
 #include "bc_advance.h"
 #include "bc_ancestor.h"
 #include "bc_adv_upd_host.h"
+#include "bc_single_block.h"
 
 // the global apdu buffer
 unsigned char G_io_apdu_buffer[IO_APDU_BUFFER_SIZE];
+
+// Which advance host to use
+extern int advance_host;
 
 // Print a buffer to stderr
 void printBuf(unsigned char *buf, int len) {
@@ -63,23 +68,39 @@ unsigned short io_exchange(unsigned char channel_and_flags,
         printf("%02x", G_io_apdu_buffer[i]);
     printf("\n");
 
-    // Delegate to blockchain state host simulator if necessary
+    // **** Blockchain state simulator **** //
+
+    uint16_t transmit_len;
     if (APDU_CMD() == INS_GET_STATE) {
-        return bc_get_state_host(tx_len);
-    }
-    if (APDU_CMD() == INS_RESET_STATE) {
-        return bc_reset_state_host(tx_len);
+        // Delegate to blockchain state host simulator if necessary
+        transmit_len = bc_get_state_host(tx_len);
+    } else if (APDU_CMD() == INS_RESET_STATE) {
+        // Delegate to blockchain reset state host simulator if necessary
+        transmit_len = bc_reset_state_host(tx_len);
+    } else if (APDU_CMD() == INS_ADVANCE) {
+        // Delegate to blockchain advance host simulator if necessary
+        switch (advance_host) {
+            case SINGLE_BLOCK_HOST:
+                transmit_len = bc_single_block();
+                break;
+            case ADV_UPD_HOST:
+            default:
+                transmit_len = bc_advance_host();
+                break;
+        }
+    } else if (APDU_CMD() == INS_UPD_ANCESTOR) {
+        // Delegate to update ancestor host simulator if necessary
+        transmit_len = bc_upd_ancestor_host();
     }
 
-    // Delegate to blockchain advance host simulator if necessary
-    if (APDU_CMD() == INS_ADVANCE) {
-        return bc_advance_host();
-    }
+    // Debug what we are transmitting to the dongle
+    printf("HID => ");
+    for (int i = 0; i < transmit_len; i++)
+        printf("%02x", G_io_apdu_buffer[i]);
+    printf("\n");
+    return transmit_len;
 
-    // Delegate to update ancestor host simulator if necessary
-    if (APDU_CMD() == INS_UPD_ANCESTOR) {
-        return bc_upd_ancestor_host();
-    }
+    // **** Signer simulator **** //
 
     SET_APDU_CLA(CLA);
     SET_APDU_CMD(INS_SIGN);

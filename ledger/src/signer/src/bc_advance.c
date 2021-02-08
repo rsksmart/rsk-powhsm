@@ -85,17 +85,37 @@ static void wa_store(const uint8_t* buf, uint16_t size) {
 }
 
 /*
- * Store Merkle proof chunk in block.merkle_proof.
+ * Process merkle proof chunk.
  *
- * @arg[in] chunk pointer to chunk to store
+ * @arg[in] chunk pointer to chunk to process
  * @arg[in] size  chunk size in bytes
  */
-static void store_merkle_bytes(const uint8_t* chunk, uint16_t size) {
-    if (block.merkle_off + size > MAX_MERKLE_PROOF_SIZE) {
+static void process_merkle_proof(const uint8_t* chunk, uint16_t size) {
+    // Size limit established from Iris network upgrade onwards 
+    if (block.network_upgrade >= NU_IRIS && 
+        block.merkle_off + size > MAX_MERKLE_PROOF_SIZE) {
         ABORT(MERKLE_PROOF_OVERFLOW);
     }
-    memcpy(block.merkle_proof + block.merkle_off, chunk, size);
+
+    // Record the additional bytes on the merkle proof (for size tracking)
     block.merkle_off += size;
+
+    // Process as many hashes as possible
+    uint8_t offset = 0;
+    while (block.wa_off + size - offset >= HASH_SIZE) {
+        if (block.wa_off < HASH_SIZE) {
+            uint8_t old_offset = offset;
+            offset += HASH_SIZE - block.wa_off;
+            wa_store(chunk + old_offset, HASH_SIZE - block.wa_off);
+        }
+        fold_left(&block.ctx, block.merkle_proof_left, block.wa_buf);
+        block.wa_off = 0;
+    }
+
+    // Copy any remaining bytes in the chunk to the work area
+    if (offset < size) {
+        wa_store(chunk + offset, size - offset);
+    }
 }
 
 /*
@@ -144,11 +164,9 @@ static void patch_hash_for_mm(bool has_umm_root) {
  * that the cb_txn_hash is stored in the block's work area.
  */
 static void validate_merkle_proof() {
-    for (uint16_t i = 0; i < block.merkle_off; i += HASH_SIZE) {
-        fold_left(&block.ctx, block.wa_buf, block.merkle_proof + i);
-    }
-    REV_HASH(block.wa_buf);
-    if (HNEQ(block.merkle_root, block.wa_buf)) {
+    REV_HASH(block.merkle_proof_left);
+
+    if (HNEQ(block.merkle_root, block.merkle_proof_left)) {
         ABORT(MERKLE_PROOF_MISMATCH);
     }
 }
@@ -156,7 +174,7 @@ static void validate_merkle_proof() {
 /*
  * Compute the cb_txn_hash for the current block. It stores
  * the cb_txn_hash in the block's work area, so this method
- * MUST be called before validate_merkle_proof().
+ * MUST be called before validate_cb_txn_hash().
  */
 static void compute_cb_txn_hash() {
     memset(block.wa_buf, 0, CB_MIDSTATE_PREFIX);
@@ -174,6 +192,16 @@ static void compute_cb_txn_hash() {
     sha256_update(&block.mid_ctx, block.wa_buf, HASH_SIZE);
     sha256_final(&block.mid_ctx, block.wa_buf);
     REV_HASH(block.wa_buf);
+}
+
+/*
+ * Validate the computed coinbase transaction hash
+ * against the metadata coinbase transaction hash
+ */
+static void validate_cb_txn_hash() {
+    if (HNEQ(block.wa_buf, block.cb_txn_hash)) {
+        ABORT(CB_TXN_HASH_MISMATCH);
+    }
 }
 
 const char rsk_tag[] = "RSKBLOCK:";
@@ -320,6 +348,49 @@ static void bc_adv_partial_success() {
               sizeof(aux_bc_st.total_difficulty));
 }
 
+/*
+ * We have received the whole BTC merge mining header. We can:
+ *  - Perform advance blockchain validations
+ *  - Check that merge mining header matches block's difficulty
+ *  - Finish block.hash_for_mm computation
+ */
+static void bc_mm_header_received() {
+    // First block: perform blockchain advance prologue
+    // Otherwise: verify block chains to parent
+    if (curr_block == 0) {
+        bc_adv_prologue();
+    } else if (HNEQ(aux_bc_st.prev_parent_hash, block.block_hash)) {
+        ABORT(CHAIN_MISMATCH);
+    }
+    // Store parent hash to validate chaining for next block
+    // (next block hash must match this block's parent hash)
+    HSTORE(aux_bc_st.prev_parent_hash, block.parent_hash);
+
+    // If we already validated the current block, signal that.
+    if (HEQ(block.block_hash, N_bc_state.newest_valid_block)) {
+        set_bc_state_flag(&N_bc_state.updating.already_validated);
+    }
+
+    // If block is known to be valid, set HEADER_VALID flag.
+    // Otherwise perform valdiations enabled by having the mm header.
+    if (N_bc_state.updating.already_validated) {
+        SET_FLAG(block.flags, HEADER_VALID);
+    } else {
+        // Check difficulty
+        diff_result r =
+            check_difficulty(block.difficulty, block.mm_hdr_hash);
+        if (r == DIFF_ZERO) {
+            ABORT(BLOCK_DIFF_INVALID);
+        }
+        if (r == DIFF_MISMATCH) {
+            ABORT(BTC_DIFF_MISMATCH);
+        }
+
+        // Finish hash for merge mining computation
+        patch_hash_for_mm(HAS_FLAG(block.flags, HAS_UMM_ROOT));
+    }
+}
+
 // -----------------------------------------------------------------------
 // RLP parser callbacks
 // -----------------------------------------------------------------------
@@ -414,11 +485,20 @@ static void str_start(const uint16_t size) {
         ABORT(BTC_HEADER_INVALID);
     }
 
-    if (block.field == F_MERKLE_PROOF) {
+    // Prepare for the processing of the merkle proof
+    // if we don't already know this block is valid
+    if (block.field == F_MERKLE_PROOF && 
+        !HAS_FLAG(block.flags, HEADER_VALID) && 
+        !N_bc_state.updating.already_validated) {
         if (size % HASH_SIZE != 0) {
             ABORT(MERKLE_PROOF_INVALID);
         }
         block.merkle_off = 0;
+
+        // In preparation for the reduction of the merkle proof to the
+        // merkle root, copy the coinbase transaction hash to the
+        // reduction area
+        memcpy(block.merkle_proof_left, block.cb_txn_hash, sizeof(block.cb_txn_hash));
     }
 
     if (block.field == F_COINBASE_TXN) {
@@ -464,8 +544,10 @@ static void str_chunk(const uint8_t* chunk, const size_t size) {
         wa_store(chunk, size);
     }
 
-    if (block.field == F_MERKLE_PROOF) {
-        store_merkle_bytes(chunk, size);
+    if (block.field == F_MERKLE_PROOF &&
+        !HAS_FLAG(block.flags, HEADER_VALID) && 
+        !N_bc_state.updating.already_validated) {
+        process_merkle_proof(chunk, size);
     }
 
     if (block.field == F_COINBASE_TXN) {
@@ -529,12 +611,37 @@ static void str_end() {
     // We have the complete merge mining header in wa_buf. We must:
     //   - Finalize block and hash_for_mm computation
     //   - Store the Merkle root in block.merkle_root
+    //   - Compute btc mm hdr hash
     //   - Signal the merge mining header was received
     if (block.field == F_MM_HEADER) {
         KECCAK_FINAL(&block.block_ctx, block.block_hash);
         KECCAK_FINAL(&block.mm_ctx, block.hash_for_mm);
         HSTORE(block.merkle_root, block.wa_buf + MERKLE_ROOT_OFFSET);
+
+        // If we haven't reached a valid block while descending the chain, 
+        // we need to compute the btc mm header hash to then do the difficulty validation.
+        // We do this here because if within this part of the RLP processing
+        // there's also a portion of the mm merkle proof, then the
+        // wa_buf will be overwritten.
+        if (!N_bc_state.updating.already_validated) {
+            // Compute merge mining header hash
+            double_sha256_rev(&block.ctx,
+                                block.wa_buf,
+                                BTC_HEADER_SIZE,
+                                block.mm_hdr_hash);
+        }
+
         SET_FLAG(block.flags, MM_HEADER_RECV);
+    }
+
+    // We have finished processing the merkle proof.
+    // Validate the reduction against the stored coinbase
+    // transaction hash.
+    // All this given that the block hasn't been marked as valid.
+    if (block.field == F_MERKLE_PROOF &&
+        !HAS_FLAG(block.flags, HEADER_VALID) && 
+        !N_bc_state.updating.already_validated) {
+        validate_merkle_proof();
     }
 
     if (block.field == F_COINBASE_TXN) {
@@ -585,7 +692,7 @@ unsigned int bc_advance(volatile unsigned int rx) {
         ABORT(PROT_INVALID);
     }
     if (op == OP_ADVANCE_HEADER_META &&
-        APDU_DATA_SIZE(rx) != sizeof(block.mm_rlp_len)) {
+        APDU_DATA_SIZE(rx) != (sizeof(block.mm_rlp_len) + sizeof(block.cb_txn_hash))) {
         ABORT(PROT_INVALID);
     }
     if (op == OP_ADVANCE_HEADER_CHUNK) {
@@ -634,6 +741,9 @@ unsigned int bc_advance(volatile unsigned int rx) {
         // Read the RLP payload length
         BIGENDIAN_FROM(APDU_DATA_PTR, block.mm_rlp_len);
 
+        // Read the coinbase transaction hash
+        memcpy(block.cb_txn_hash, APDU_DATA_PTR + sizeof(block.mm_rlp_len), sizeof(block.cb_txn_hash));
+
         // Block hash computation: encode and hash payload len
         KECCAK_INIT(&block.block_ctx);
         mm_hash_rlp_list_prefix(&block.block_ctx,
@@ -662,75 +772,30 @@ unsigned int bc_advance(volatile unsigned int rx) {
         // Check flags. Don't forget to reset them, or they
         // will activated on successive chunks!
 
-        // We have received the whole BTC merge mining header. We can:
-        //  - Perform advance blockchain validations
-        //  - Check that merge mining header matches block's difficulty
-        //  - Finish block.hash_for_mm computation
+        // Do validations after full BTC MM header is received
         if (HAS_FLAG(block.flags, MM_HEADER_RECV)) {
             CLR_FLAG(block.flags, MM_HEADER_RECV);
-
-            // First block: perform blockchain advance prologue
-            // Otherwise: verify block chains to parent
-            if (curr_block == 0) {
-                bc_adv_prologue();
-            } else if (HNEQ(aux_bc_st.prev_parent_hash, block.block_hash)) {
-                ABORT(CHAIN_MISMATCH);
-            }
-            // Store parent hash to validate chaining for next block
-            // (next block hash must match this block's parent hash)
-            HSTORE(aux_bc_st.prev_parent_hash, block.parent_hash);
-
-            // If we already validated the current block, signal that.
-            if (HEQ(block.block_hash, N_bc_state.newest_valid_block)) {
-                set_bc_state_flag(&N_bc_state.updating.already_validated);
-            }
-
-            // If block is known to be valid, set HEADER_VALID flag.
-            // Otherwise perform valdiations enabled by having the mm header.
-            if (N_bc_state.updating.already_validated) {
-                SET_FLAG(block.flags, HEADER_VALID);
-            } else {
-                // Compute merge mining header hash
-                double_sha256_rev(&block.ctx,
-                                  block.wa_buf,
-                                  BTC_HEADER_SIZE,
-                                  block.mm_hdr_hash);
-
-                // Check difficulty
-                diff_result r =
-                    check_difficulty(block.difficulty, block.mm_hdr_hash);
-                if (r == DIFF_ZERO) {
-                    ABORT(BLOCK_DIFF_INVALID);
-                }
-                if (r == DIFF_MISMATCH) {
-                    ABORT(BTC_DIFF_MISMATCH);
-                }
-
-                // Finish hash for merge mining computation
-                patch_hash_for_mm(HAS_FLAG(block.flags, HAS_UMM_ROOT));
-            }
+            bc_mm_header_received();
         }
 
         // We have received the whole coinbase transaction.
         // Provided the block is not valid, we can:
         //  - Extract the cb_txn_hash
-        //  - Use it to validate the merkle proof
+        //  - Validate it against the metadata given cb txn hash
         //  - Extract mm_hash and compare it with hash_for_mm
         //
         // This completes the current block's validation
         if (HAS_FLAG(block.flags, CB_TXN_RECV) &&
             !HAS_FLAG(block.flags, HEADER_VALID)) {
-
             CLR_FLAG(block.flags, CB_TXN_RECV);
             compute_cb_txn_hash();
-            validate_merkle_proof();
+            validate_cb_txn_hash();
             validate_mm_hash();
             SET_FLAG(block.flags, HEADER_VALID);
         }
 
         // We know this block is valid
         if (HAS_FLAG(block.flags, HEADER_VALID)) {
-
             // Since we have a valid block, we can accumulate difficulty.
             // This will set updating.found_best_block if we accumulated
             // enough difficulty.

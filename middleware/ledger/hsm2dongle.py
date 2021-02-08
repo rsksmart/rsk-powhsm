@@ -5,7 +5,8 @@ from ledgerblue.commException import CommException
 from .signature import HSM2DongleSignature
 from .version import HSM2FirmwareVersion
 from .parameters import HSM2FirmwareParameters
-from .block_utils import rlp_mm_payload_size, remove_mm_fields_if_present
+from .block_utils import rlp_mm_payload_size, remove_mm_fields_if_present, get_coinbase_txn
+from comm.pow import coinbase_tx_get_hash
 import logging
 
 #### Enumerations ####
@@ -147,6 +148,7 @@ class _AdvanceUpdateError(IntEnum):
     MM_HASH_MISMATCH = auto()
     MERKLE_PROOF_OVERFLOW = auto()
     CB_TXN_OVERFLOW = auto()
+    CB_TXN_HASH_MISMATCH = auto()
     BUFFER_OVERFLOW = auto()
     CHAIN_MISMATCH = auto()
     TOTAL_DIFF_OVERFLOW = auto()
@@ -715,6 +717,7 @@ class HSM2Dongle:
                 err.BTC_CB_TXN_INVALID: response.ERROR_POW_INVALID,
                 err.MM_HASH_MISMATCH: response.ERROR_POW_INVALID,
                 err.BTC_DIFF_MISMATCH: response.ERROR_POW_INVALID,
+                err.CB_TXN_HASH_MISMATCH: response.ERROR_POW_INVALID,
                 err.CHAIN_MISMATCH: response.ERROR_CHAINING_MISMATCH,
                 err.TOTAL_DIFF_OVERFLOW: response.ERROR_UNSUPPORTED_CHAIN,
                 err.PROT_INVALID: response.ERROR_BLOCK_DATA,
@@ -765,8 +768,11 @@ class HSM2Dongle:
         # The order in which things are required and then sent is:
         # 1. Initialization, where the total number of blocks to send is sent.
         # 2. For each block header:
-        # 2.1. Block metadata: MM payload size in bytes
-        # (see the block_utils.rlp_mm_payload_size method for details on this), single message.
+        # 2.1. Block metadata (single message):
+        #   - MM payload size in bytes
+        #   (see the block_utils.rlp_mm_payload_size method for details on this)
+        #   - In case of an advance blockchain operation, coinbase transaction hash
+        #   (see the block_utils.coinbase_tx_get_hash for details on this)
         # 2.2. Block chunks: block header pieces as requested by the ledger.
         #
         # During these exchanges, an exception can be raised at any moment, which
@@ -805,7 +811,11 @@ class HSM2Dongle:
                 mm_payload_size = rlp_mm_payload_size(block)
                 self.logger.debug("Metadata: MM payload length %d", mm_payload_size)
                 mm_payload_size_bytes = mm_payload_size.to_bytes(2, byteorder='big', signed=False)
-                data = bytes([ops.HEADER_META]) + mm_payload_size_bytes
+                cb_txn_hash = bytes([])
+                if command == self.CMD.ADVANCE:
+                    cb_txn_hash = bytes.fromhex(coinbase_tx_get_hash(get_coinbase_txn(block)))
+                    self.logger.debug("Metadata: CB txn hash: %s", cb_txn_hash.hex())
+                data = bytes([ops.HEADER_META]) + mm_payload_size_bytes + cb_txn_hash
                 self.logger.info("%s: sending metadata - %s", operation_name.capitalize(), data.hex())
                 response = self._send_command(command, data)
 

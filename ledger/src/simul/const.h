@@ -7,4 +7,8 @@
 #define OP_GET_IDLE 0x00
 #define OP_RESET_IDLE 0x00
 
+// Advance blockchain hosts
+#define ADV_UPD_HOST 0
+#define SINGLE_BLOCK_HOST 1
+
 #endif // CONST_H

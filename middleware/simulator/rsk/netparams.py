@@ -3,6 +3,7 @@ import json
 class NetworkUpgrades:
     wasabi = 'wasabi'
     papyrus = 'papyrus'
+    iris = 'iris'
 
     @staticmethod
     def from_dict(dict):
@@ -24,11 +25,19 @@ class NetworkUpgrades:
 NetworkUpgrades.MAINNET = NetworkUpgrades(
     wasabi=1_591_000,
     papyrus=2_392_700,
+    iris=3_000_000,
 )
 
 NetworkUpgrades.TESTNET = NetworkUpgrades(
     wasabi=0,
     papyrus=863_000,
+    iris=2_000_000,
+)
+
+NetworkUpgrades.REGTEST = NetworkUpgrades(
+    wasabi=0,
+    papyrus=0,
+    iris=0,
 )
 
 class NetworkParameters:
@@ -81,7 +90,9 @@ class NetworkParameters:
 
 NetworkParameters.MAINNET = NetworkParameters(name="mainnet", network_upgrades=NetworkUpgrades.MAINNET)
 NetworkParameters.TESTNET = NetworkParameters(name="testnet", network_upgrades=NetworkUpgrades.TESTNET)
+NetworkParameters.REGTEST = NetworkParameters(name="regtest", network_upgrades=NetworkUpgrades.REGTEST)
 NetworkParameters.BY_NAME = {
     'mainnet': NetworkParameters.MAINNET,
     'testnet': NetworkParameters.TESTNET,
+    'regtest': NetworkParameters.REGTEST,
 }

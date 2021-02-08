@@ -707,9 +707,13 @@ class TestHSM2DongleAdvanceBlockchain(_TestHSM2DongleBase):
         ("partial", 0x05, 2),
         ("total", 0x06, 1),
     ])
+    @patch("ledger.hsm2dongle.coinbase_tx_get_hash")
+    @patch("ledger.hsm2dongle.get_coinbase_txn")
     @patch("ledger.hsm2dongle.rlp_mm_payload_size")
-    def test_advance_blockchain_ok(self, _, device_response, expected_response, mmplsize_mock):
+    def test_advance_blockchain_ok(self, _, device_response, expected_response, mmplsize_mock, get_cb_txn_mock, cb_txn_get_hash_mock):
         mmplsize_mock.side_effect = lambda h: len(h)//8
+        get_cb_txn_mock.side_effect = lambda h: { "cb_txn": h }
+        cb_txn_get_hash_mock.side_effect = lambda h: (bytes([len(h["cb_txn"])//5])*4).hex()
         blocks_spec = [
             # (block bytes, chunk size)
             (bytes(map(lambda b: b % 256, range(300))), 80),
@@ -725,16 +729,16 @@ class TestHSM2DongleAdvanceBlockchain(_TestHSM2DongleBase):
 
         self.assert_exchange([\
             [0x10, 0x02, 0x00, 0x00, 0x00, 0x03], # Init, 3 blocks
-            [0x10, 0x03, 0x00, 0x4b], # Block #1 meta
+            [0x10, 0x03, 0x00, 0x4b, 0x78, 0x78, 0x78, 0x78], # Block #1 meta
             [0x10, 0x04] + list(blocks_spec[0][0][80*0:80*1]), # Block #1 chunk
             [0x10, 0x04] + list(blocks_spec[0][0][80*1:80*2]), # Block #1 chunk
             [0x10, 0x04] + list(blocks_spec[0][0][80*2:80*3]), # Block #1 chunk
             [0x10, 0x04] + list(blocks_spec[0][0][80*3:80*4]), # Block #1 chunk
-            [0x10, 0x03, 0x00, 0x3e], # Block #2 meta
+            [0x10, 0x03, 0x00, 0x3e, 0x64, 0x64, 0x64, 0x64], # Block #2 meta
             [0x10, 0x04] + list(blocks_spec[1][0][100*0:100*1]), # Block #2 chunk
             [0x10, 0x04] + list(blocks_spec[1][0][100*1:100*2]), # Block #2 chunk
             [0x10, 0x04] + list(blocks_spec[1][0][100*2:100*3]), # Block #2 chunk
-            [0x10, 0x03, 0x00, 0x23], # Block #3 meta
+            [0x10, 0x03, 0x00, 0x23, 0x38, 0x38, 0x38, 0x38], # Block #3 meta
             [0x10, 0x04] + list(blocks_spec[2][0][50*0:50*1]), # Block #2 chunk
             [0x10, 0x04] + list(blocks_spec[2][0][50*1:50*2]), # Block #3 chunk
             [0x10, 0x04] + list(blocks_spec[2][0][50*2:50*3]), # Block #3 chunk
@@ -758,15 +762,20 @@ class TestHSM2DongleAdvanceBlockchain(_TestHSM2DongleBase):
         ("mm_hash_mismatch", 0x6b96, -6),
         ("merkle_proof_overflow", 0x6b97, -5),
         ("cb_txn_overflow", 0x6b98, -5),
-        ("buffer_overflow", 0x6b99, -5),
-        ("chain_mismatch", 0x6b9a, -7),
-        ("total_diff_overflow", 0x6b9b, -8),
+        ("cb_txn_hash_mismatch", 0x6b99, -6),
+        ("buffer_overflow", 0x6b9a, -5),
+        ("chain_mismatch", 0x6b9b, -7),
+        ("total_diff_overflow", 0x6b9c, -8),
         ("unexpected", 0x6bff, -10),
         ("error_response", bytes([0, 0, 0xff]), -10),
     ])
+    @patch("ledger.hsm2dongle.coinbase_tx_get_hash")
+    @patch("ledger.hsm2dongle.get_coinbase_txn")
     @patch("ledger.hsm2dongle.rlp_mm_payload_size")
-    def test_advance_blockchain_chunk_error_result(self, _, error_code, response, mmplsize_mock):
+    def test_advance_blockchain_chunk_error_result(self, _, error_code, response, mmplsize_mock, get_cb_txn_mock, cb_txn_get_hash_mock):
         mmplsize_mock.side_effect = lambda h: len(h)//8
+        get_cb_txn_mock.side_effect = lambda h: { "cb_txn": h }
+        cb_txn_get_hash_mock.side_effect = lambda h: (bytes([len(h["cb_txn"])//5])*4).hex()
         blocks_spec = [
             # (block bytes, chunk size)
             (bytes(map(lambda b: b % 256, range(300))), 80),
@@ -789,12 +798,12 @@ class TestHSM2DongleAdvanceBlockchain(_TestHSM2DongleBase):
 
         self.assert_exchange([\
             [0x10, 0x02, 0x00, 0x00, 0x00, 0x03], # Init, 3 blocks
-            [0x10, 0x03, 0x00, 0x4b], # Block #1 meta
+            [0x10, 0x03, 0x00, 0x4b, 0x78, 0x78, 0x78, 0x78], # Block #1 meta
             [0x10, 0x04] + list(blocks_spec[0][0][80*0:80*1]), # Block #1 chunk
             [0x10, 0x04] + list(blocks_spec[0][0][80*1:80*2]), # Block #1 chunk
             [0x10, 0x04] + list(blocks_spec[0][0][80*2:80*3]), # Block #1 chunk
             [0x10, 0x04] + list(blocks_spec[0][0][80*3:80*4]), # Block #1 chunk
-            [0x10, 0x03, 0x00, 0x3e], # Block #2 meta
+            [0x10, 0x03, 0x00, 0x3e, 0x64, 0x64, 0x64, 0x64], # Block #2 meta
             [0x10, 0x04] + list(blocks_spec[1][0][100*0:100*1]), # Block #2 chunk
             [0x10, 0x04] + list(blocks_spec[1][0][100*1:100*2]), # Block #2 chunk
         ])
@@ -804,9 +813,13 @@ class TestHSM2DongleAdvanceBlockchain(_TestHSM2DongleBase):
         ("unexpected", 0x6bff, -10),
         ("error_response", bytes([0, 0, 0xff]), -10),
     ])
+    @patch("ledger.hsm2dongle.coinbase_tx_get_hash")
+    @patch("ledger.hsm2dongle.get_coinbase_txn")
     @patch("ledger.hsm2dongle.rlp_mm_payload_size")
-    def test_advance_blockchain_metadata_error_result(self, _, error_code, response, mmplsize_mock):
+    def test_advance_blockchain_metadata_error_result(self, _, error_code, response, mmplsize_mock, get_cb_txn_mock, cb_txn_get_hash_mock):
         mmplsize_mock.side_effect = lambda h: len(h)//8
+        get_cb_txn_mock.side_effect = lambda h: { "cb_txn": h }
+        cb_txn_get_hash_mock.side_effect = lambda h: (bytes([len(h["cb_txn"])//5])*4).hex()
         blocks_spec = [
             # (block bytes, chunk size)
             (bytes(map(lambda b: b % 256, range(300))), 80),
@@ -829,16 +842,16 @@ class TestHSM2DongleAdvanceBlockchain(_TestHSM2DongleBase):
 
         self.assert_exchange([\
             [0x10, 0x02, 0x00, 0x00, 0x00, 0x03], # Init, 3 blocks
-            [0x10, 0x03, 0x00, 0x4b], # Block #1 meta
+            [0x10, 0x03, 0x00, 0x4b, 0x78, 0x78, 0x78, 0x78], # Block #1 meta
             [0x10, 0x04] + list(blocks_spec[0][0][80*0:80*1]), # Block #1 chunk
             [0x10, 0x04] + list(blocks_spec[0][0][80*1:80*2]), # Block #1 chunk
             [0x10, 0x04] + list(blocks_spec[0][0][80*2:80*3]), # Block #1 chunk
             [0x10, 0x04] + list(blocks_spec[0][0][80*3:80*4]), # Block #1 chunk
-            [0x10, 0x03, 0x00, 0x3e], # Block #2 meta
+            [0x10, 0x03, 0x00, 0x3e, 0x64, 0x64, 0x64, 0x64], # Block #2 meta
             [0x10, 0x04] + list(blocks_spec[1][0][100*0:100*1]), # Block #2 chunk
             [0x10, 0x04] + list(blocks_spec[1][0][100*1:100*2]), # Block #2 chunk
             [0x10, 0x04] + list(blocks_spec[1][0][100*2:100*3]), # Block #2 chunk
-            [0x10, 0x03, 0x00, 0x23], # Block #3 meta
+            [0x10, 0x03, 0x00, 0x23, 0x38, 0x38, 0x38, 0x38], # Block #3 meta
         ])
 
     @patch("ledger.hsm2dongle.rlp_mm_payload_size")
@@ -915,9 +928,9 @@ class TestHSM2DongleUpdateAncestor(_TestHSM2DongleBase):
         ("block_num_invalid", 0x6b8d, -5),
         ("btc_header_invalid", 0x6b90, -5),
         ("mm_rlp_len_mismatch", 0x6b93, -5),
-        ("buffer_overflow", 0x6b99, -5),
-        ("chain_mismatch", 0x6b9a, -6),
-        ("ancestor_tip_mismatch", 0x6b9c, -7),
+        ("buffer_overflow", 0x6b9a, -5),
+        ("chain_mismatch", 0x6b9b, -6),
+        ("ancestor_tip_mismatch", 0x6b9d, -7),
         ("unexpected", 0x6bff, -10),
         ("error_response", bytes([0, 0, 0xff]), -10),
     ])

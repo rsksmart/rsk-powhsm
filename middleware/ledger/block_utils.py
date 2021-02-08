@@ -40,6 +40,20 @@ def remove_mm_fields_if_present(raw_block_hex, leave_btcblock=True, hex=True):
 
     return block_without_mm_fields_rlp.hex()
 
+# Given a raw block hex,
+# extract the coinbase transaction (last field)
+def get_coinbase_txn(raw_block_hex):
+    # Decode
+    try:
+        block = rlp.decode(bytes.fromhex(raw_block_hex))
+    except Exception as e:
+        raise ValueError(e)
+    # Sanity validation: list length (w/wo/umm_root)
+    num_fields = len(block)
+    if num_fields not in [19, 20]:
+        raise ValueError("Block header must have 19 or 20 elements, got %d", num_fields)
+    return block[-1].hex()
+
 # Given a bytes object that represents an RLP-encoded list,
 # compute the top level list's payload length.
 def rlp_first_element_list_payload_length(bs):

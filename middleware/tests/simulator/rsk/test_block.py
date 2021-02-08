@@ -11,7 +11,7 @@ logging.disable(logging.CRITICAL)
 
 class TestRskBlockHeader(TestCase):
     def setUp(self):
-        self.netparams = NetworkParameters(NetworkUpgrades(wasabi=2000, papyrus=2500))
+        self.netparams = NetworkParameters(NetworkUpgrades(wasabi=2000, papyrus=2500, iris=5000))
 
     def mock_raw_block(self, parent_hash, receipt_root, difficulty, number, mm_header, mm_mp, mm_cbtx, umm_root, with_mm=True):
         umm_offset = (1 if umm_root is not None else 0)
@@ -197,15 +197,25 @@ class TestRskBlockHeader(TestCase):
         with self.assertRaises(ValueError):
             RskBlockHeader(mocked_block, self.netparams)
 
+    def test_decoding_large_mmmp_before_iris(self):
+        mocked_block, _, _ = self.mock_raw_block('22'*32, '11'*32, 100, 3000, 'aa', 'bb'*1024, 'cc', 'dd'*20, with_mm=True)
+        block = RskBlockHeader(mocked_block, self.netparams)
+        self.assertEqual('bb'*1024, block.mm_merkleproof)
+
+    def test_decoding_large_mmmp_after_iris(self):
+        mocked_block, _, _ = self.mock_raw_block('22'*32, '11'*32, 100, 6000, 'aa', 'bb'*1024, 'cc', 'dd'*20, with_mm=True)
+        with self.assertRaises(ValueError): 
+            RskBlockHeader(mocked_block, self.netparams)
+
 @patch('comm.bitcoin.get_block_hash_as_int')
-@patch('simulator.rsk.pow.difficulty_to_target')
-@patch('simulator.rsk.pow.coinbase_tx_extract_merge_mining_hash')
-@patch('simulator.rsk.pow.coinbase_tx_get_hash')
+@patch('comm.pow.difficulty_to_target')
+@patch('comm.pow.coinbase_tx_extract_merge_mining_hash')
+@patch('comm.pow.coinbase_tx_get_hash')
 @patch('comm.bitcoin.get_merkle_root')
-@patch('simulator.rsk.pow.is_valid_merkle_proof')
+@patch('comm.pow.is_valid_merkle_proof')
 class TestRskBlockHeaderPow(TestCase):
     def setUp(self):
-        self.netparams = NetworkParameters(NetworkUpgrades(wasabi=0, papyrus=None))
+        self.netparams = NetworkParameters(NetworkUpgrades(wasabi=0, papyrus=None, iris=None))
         fields = [0]*19
         fields[0] = bytes.fromhex('22'*32) # Receipts trie root
         fields[5] = bytes.fromhex('33'*32) # Receipts trie root

@@ -37,6 +37,7 @@
 #include "bc_advance.h"
 #include "bc_ancestor.h"
 #include "bc_adv_upd_host.h"
+#include "bc_single_block.h"
 
 // Hardcoded check values
 #include "contractValues.h"
@@ -53,6 +54,7 @@ const char ARG_UPD_ANCESTOR[] = "--upd";
 const char ARG_GET_STATE[] = "--get";
 const char ARG_RESET_STATE[] = "--reset";
 const char ARG_FUZZ[] = "--fuzz";
+const char ARG_SINGLE_BLOCK[] = "--block";
 
 // Activate fuzzer
 bool fuzzer = false;
@@ -62,6 +64,9 @@ int SEED = 0;
 unsigned char ReceiptHashBuf[HASHLEN];
 // Receipts trie root (from block headers)
 unsigned char ReceiptsRootBuf[HASHLEN];
+
+// Which advance host to use
+int advance_host;
 
 static void setup_bc_adv_upd(int num_splits, char* arg) {
     if (strcmp(ARG_ADVANCE, arg) == 0) {
@@ -110,7 +115,11 @@ void main(int argc, char** argv) {
         if (argc == 3) {
             i = atoi(argv[2]);
         }
+        advance_host = ADV_UPD_HOST;
         setup_bc_adv_upd(i, argv[1]);
+    } else if (strcmp(argv[1], ARG_SINGLE_BLOCK) == 0 && argc == 3) {
+        advance_host = SINGLE_BLOCK_HOST;
+        setup_bc_single_block(argv[2]);
     } else if (strcmp(argv[1], ARG_GET_STATE) == 0) {
         SET_APDU_CMD(INS_GET_STATE);
         SET_APDU_OP(OP_GET_IDLE);
