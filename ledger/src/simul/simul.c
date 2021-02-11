@@ -91,7 +91,7 @@ void main(int argc, char** argv) {
     SET_APDU_CLA(CLA);
 
     // Parse options
-    printf("[I] Usage: %s <--sign|--pow> [--fuzz N]\n", argv[0]);
+    printf("[I] Usage: %s <--sign|--adv|--upd|--get|--reset|--block> [--fuzz N]\n", argv[0]);
     printf("[I] Context sizes: (rlp_ctx: %lu tx_ctx: %lu) mp_ctx: %lu\n",
            sizeof(rlp_ctx),
            sizeof(tx_ctx),
