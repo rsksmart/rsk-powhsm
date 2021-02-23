@@ -1,8 +1,9 @@
 from ledger.hsm2dongle import HSM2Dongle
 from .misc import info, bls, get_hsm, dispose_hsm, AdminError
 
-def do_exit(options):
-    info("### -> Exit")
+def do_exit(options, label=True):
+    if label:
+        info("### -> Exit")
     # Connection
     hsm = None
     hsm = get_hsm(options.verbose)

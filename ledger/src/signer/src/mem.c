@@ -1,3 +1,7 @@
+#ifdef FEDHM_EMULATOR
+#include "usb.h"
+#endif
+
 #include "mem.h"
 
 // -----------------------------------------------------------------------

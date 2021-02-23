@@ -29,6 +29,8 @@ class _Command(IntEnum):
     GET_PARAMETERS = 0x11
     SEED = 0x44
     WIPE = 0x07
+    UI_ATT = 0x50
+    SIGNER_ATT = 0x50
 
 # Sign command OPs
 class _SignOps(IntEnum):
@@ -64,6 +66,20 @@ class _UpdateAncestorOps(IntEnum):
     HEADER_CHUNK = 0x04
     SUCCESS = 0x05
 
+# UI attestation OPs
+class _UIAttestationOps(IntEnum):
+    OP_PUBKEY = 0x01
+    OP_HASH = 0x02
+    OP_SIGNATURE = 0x03
+    OP_GET = 0x04
+    OP_APP_HASH = 0x05
+
+# Signer attestation OPs
+class _SignerAttestationOps(IntEnum):
+    OP_GET = 0x01
+    OP_GET_MESSAGE = 0x02
+    OP_APP_HASH = 0x03
+
 # Command Ops
 class _Ops:
     SIGN = _SignOps
@@ -71,6 +87,8 @@ class _Ops:
     RAV = _ResetAdvanceOps
     ADVANCE = _AdvanceOps
     UPD_ANCESTOR = _UpdateAncestorOps
+    UI_ATT = _UIAttestationOps
+    SIGNER_ATT = _SignerAttestationOps
 
 # Protocol offsets
 class _Offset(IntEnum):
@@ -157,6 +175,13 @@ class _AdvanceUpdateError(IntEnum):
 class _UIError(IntEnum):
     INVALID_PIN = 0x69a0
 
+class _UIAttestationError(IntEnum):
+    PROT_INVALID = 0x6a01
+    CA_MISMATCH = 0x6a02
+
+class _SignerAttestationError(IntEnum):
+    PROT_INVALID = 0x6b00
+
 # Error codes
 class _Error:
     SIGN = _SignError
@@ -164,6 +189,8 @@ class _Error:
     ADVANCE = _AdvanceUpdateError
     UPD_ANCESTOR = _AdvanceUpdateError
     UI = _UIError
+    UI_ATT = _UIAttestationError
+    SIGNER_ATT = _SignerAttestationError
 
     # Whether a given code is in the
     # user-defined (RSK firmware) specific error code range
@@ -759,6 +786,52 @@ class HSM2Dongle:
                 err.CHAIN_MISMATCH: response.ERROR_CHAINING_MISMATCH,
                 err.PROT_INVALID: response.ERROR_BLOCK_DATA,
             })
+
+    def get_ui_attestation(self, ca_pubkey_hex, ca_hash_hex, ca_signature_hex):
+        # Parse hexadecimal values
+        ca_pubkey = bytes.fromhex(ca_pubkey_hex)
+        ca_hash = bytes.fromhex(ca_hash_hex)
+        ca_signature = bytes.fromhex(ca_signature_hex)
+
+        # Get UI hash
+        ui_hash = self._send_command(self.CMD.UI_ATT, bytes([self.OP.UI_ATT.OP_APP_HASH]))[self.OFF.DATA:]
+
+        # Send pubkey and retrieve message
+        data = bytes([self.OP.UI_ATT.OP_PUBKEY]) + ca_pubkey
+        message = self._send_command(self.CMD.UI_ATT, data)[3:]
+
+        # Send hash
+        data = bytes([self.OP.UI_ATT.OP_HASH]) + ca_hash
+        self._send_command(self.CMD.UI_ATT, data)
+
+        # Send signature
+        data = bytes([self.OP.UI_ATT.OP_SIGNATURE, len(ca_signature)]) + ca_signature
+        self._send_command(self.CMD.UI_ATT, data)
+
+        # Retrieve attestation
+        attestation = self._send_command(self.CMD.UI_ATT, bytes([self.OP.UI_ATT.OP_GET]))[self.OFF.DATA:]
+
+        return {
+            "app_hash": ui_hash.hex(),
+            "message": message.hex(),
+            "signature": attestation.hex(),
+        }
+
+    def get_signer_attestation(self):
+        # Get signer hash
+        signer_hash = self._send_command(self.CMD.SIGNER_ATT, bytes([self.OP.SIGNER_ATT.OP_APP_HASH]))[self.OFF.DATA:]
+
+        # Retrieve attestation
+        attestation = self._send_command(self.CMD.SIGNER_ATT, bytes([self.OP.SIGNER_ATT.OP_GET]))[self.OFF.DATA:]
+
+        # Retrieve message
+        message = self._send_command(self.CMD.SIGNER_ATT, bytes([self.OP.SIGNER_ATT.OP_GET_MESSAGE]))[self.OFF.DATA:]
+
+        return {
+            "app_hash": signer_hash.hex(),
+            "message": message.hex(),
+            "signature": attestation.hex(),
+        }
 
     # Used both for advance blockchain and update ancestor given the protocol
     # is the same

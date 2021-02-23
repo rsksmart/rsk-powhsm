@@ -10,6 +10,12 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+// Constants and additional definitions
+#include "const.h"
+
+// usb emulation code
+#include "usb.h"
+
 #include "mem.h"
 
 // Simulation of cx_hash()
@@ -30,9 +36,6 @@
 // Path auth definitions
 #include "pathAuth.h"
 
-// usb emulation code
-#include "usb.h"
-
 #include "bc_state.h"
 #include "bc_advance.h"
 #include "bc_ancestor.h"
@@ -41,9 +44,6 @@
 
 // Hardcoded check values
 #include "contractValues.h"
-
-// Constants
-#include "const.h"
 
 // Missing 'main.c' definitions (these should be moved elsewhere)
 unsigned int path[5];

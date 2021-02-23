@@ -1,1 +1,1 @@
-../../manager/comm/bip32.py
+../comm/bip32.py

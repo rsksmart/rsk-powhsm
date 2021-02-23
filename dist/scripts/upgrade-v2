@@ -13,6 +13,9 @@ LBUTILS="$LBUTILS_DIR/lbutils"
 ADMIN_DIR="$ROOT_DIR/bin/adm"
 ADMIN_BUNDLE="$ADMIN_DIR.tgz"
 ADMIN="$ADMIN_DIR/adm"
+SIGNAPP_DIR="$ROOT_DIR/bin/signapp"
+SIGNAPP_BUNDLE="$SIGNAPP_DIR.tgz"
+SIGNAPP="$SIGNAPP_DIR/signapp"
 
 function cleanBinaries() {
     rm -rf $LBUTILS_DIR
@@ -27,6 +30,9 @@ function expandBinaries() {
 
     mkdir -p $ADMIN_DIR
     tar -xzmf $ADMIN_BUNDLE -C $ADMIN_DIR
+
+    mkdir -p $SIGNAPP_DIR
+    tar -xzmf $SIGNAPP_BUNDLE -C $SIGNAPP_DIR
 }
 
 expandBinaries
@@ -38,6 +44,14 @@ PIN_FILE="$ROOT_DIR/pin.txt"
 # File where public keys will be saved after upgrading is done
 EXPORT_DIR="$ROOT_DIR/export"
 PUBLIC_KEY_FILE="$EXPORT_DIR/public-keys.txt"
+PUBLIC_KEY_FILE_JSON="$EXPORT_DIR/public-keys.json"
+DEVICE_ATTESTATION_FILE="$ROOT_DIR/device_attestation.json"
+ATTESTATION_FILE="$EXPORT_DIR/attestation.json"
+
+# Custom CA plus a custom signature and hash from it (use the signer's)
+RSK_CA="$(cat $ROOT_DIR/scripts/rsk-ca.txt)"
+RSK_CA_HASH=$($SIGNAPP hash -a $FIRMWARE_DIR/signer.hex | grep "App hash:" | sed "s/App hash: //g")
+RSK_CA_SIG="$(cat $FIRMWARE_DIR/signer.hex.sig)"
 
 function error() {
     if [ $? -ne 0 ]; then
@@ -50,6 +64,14 @@ function error() {
 function checkForPinFile() {
     if [[ ! -e $PIN_FILE ]]; then
         echo -e "\e[1;31m Pin file '$(basename $PIN_FILE)' not found. \e[0m"
+        cleanBinaries
+        exit 1
+    fi
+}
+
+function checkForAttestationFile() {
+    if [[ ! -e $DEVICE_ATTESTATION_FILE ]]; then
+        echo -e "\e[1;31m Attestation file '$(basename $DEVICE_ATTESTATION_FILE)' not found. \e[0m"
         cleanBinaries
         exit 1
     fi
@@ -98,7 +120,12 @@ function createOutputDir() {
 }
 
 function keys() {
-    $ADMIN pubkeys -p$(cat $PIN_FILE) -o $PUBLIC_KEY_FILE
+    $ADMIN pubkeys -o $PUBLIC_KEY_FILE -u
+    error
+}
+
+function attestation() {
+    $ADMIN attestation -p$(cat $PIN_FILE) -t $DEVICE_ATTESTATION_FILE -o $ATTESTATION_FILE -c $RSK_CA:$RSK_CA_HASH:$RSK_CA_SIG
     error
 }
 
@@ -106,6 +133,7 @@ echo -e "\e[1;32mWelcome to the HSM2 Upgrade for RSK \e[0m"
 echo
 checkFirmware
 checkForPinFile
+checkForAttestationFile
 echo -e "\e[1;33mConnect your ledger.\e[0m"
 echo -e "Press [Enter] to continue"
 read continue
@@ -123,8 +151,11 @@ echo -e "Press [Enter] to continue"
 read continue
 sleep 2
 echo
-echo -e "\e[1;32mGathering public keys\e[0m"
+echo -e "\e[1;32mGathering attestation\e[0m"
 createOutputDir
+attestation
+echo
+echo -e "\e[1;32mGathering public keys\e[0m"
 keys
 echo
 echo -e "\e[1;32mHSM2 Upgrade complete.\e[0m"

@@ -62,9 +62,6 @@ static unsigned char display_text_part(void);
 #define INS_SIGN 0x02
 #define INS_GET_PUBLIC_KEY 0x04
 #define RSK_IS_ONBOARD 0x06
-#define RSK_GET_ATTESTATION 0x09
-#define RSK_GET_ENDORSEMENT_PUBKEY 0x0A
-#define RSK_GET_APP_HASH 0x0B
 
 #include "mem.h"
 
@@ -90,6 +87,8 @@ static unsigned char display_text_part(void);
 #include "bc_advance.h"
 #include "bc_ancestor.h"
 
+#include "attestation.h"
+
 #define RSK_MODE_CMD 0x43
 #define RSK_MODE_APP 0x03
 #define RSK_END_CMD 0xff
@@ -105,8 +104,6 @@ static unsigned char display_text_part(void);
 static const unsigned char N_initialized;
 
 static char lineBuffer[MAX_CHARS_PER_LINE + 1];
-static unsigned char attestation[(1 + 1 + 2 * (1 + 1 + 33))];
-unsigned char attestation_len = 0;
 
 // clang-format off
 static const bagl_element_t bagl_ui_idle_nanos[] = {
@@ -264,6 +261,11 @@ static void hsm_main(void) {
 
 // Include HSM 2 commands
 #include "hsmCommands.h"
+
+                case INS_ATTESTATION:
+                    reset_if_starting(INS_ATTESTATION);
+                    tx = get_attestation(rx, &attestation);
+                    break;
 
                 // Get blockchain state
                 case INS_GET_STATE:

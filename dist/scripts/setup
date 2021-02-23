@@ -4,8 +4,10 @@ pushd $(dirname $0)/.. > /dev/null
 ROOT_DIR="$(pwd)"
 popd > /dev/null
 
+# Firmware directory
+FIRMWARE_DIR=$ROOT_DIR/firmware
+
 TARGET_ID="$(cat $ROOT_DIR/scripts/target.id)"
-RSK_CA="$(cat $ROOT_DIR/scripts/rsk-ca.txt)"
 
 # Binaries
 LBUTILS_DIR="$ROOT_DIR/bin/lbutils"
@@ -14,6 +16,9 @@ LBUTILS="$LBUTILS_DIR/lbutils"
 ADMIN_DIR="$ROOT_DIR/bin/adm"
 ADMIN_BUNDLE="$ADMIN_DIR.tgz"
 ADMIN="$ADMIN_DIR/adm"
+SIGNAPP_DIR="$ROOT_DIR/bin/signapp"
+SIGNAPP_BUNDLE="$SIGNAPP_DIR.tgz"
+SIGNAPP="$SIGNAPP_DIR/signapp"
 
 function cleanBinaries() {
     rm -rf $LBUTILS_DIR
@@ -28,11 +33,12 @@ function expandBinaries() {
 
     mkdir -p $ADMIN_DIR
     tar -xzmf $ADMIN_BUNDLE -C $ADMIN_DIR
+
+    mkdir -p $SIGNAPP_DIR
+    tar -xzmf $SIGNAPP_BUNDLE -C $SIGNAPP_DIR
 }
 
 expandBinaries
-
-FIRMWARE_DIR=$ROOT_DIR/firmware
 
 # Potentially existing file with an existing pin
 PIN_FILE="$ROOT_DIR/pin.txt"
@@ -40,10 +46,18 @@ PIN_FILE="$ROOT_DIR/pin.txt"
 # Directory where public keys will be saved after onboarding is done
 EXPORT_DIR="$ROOT_DIR/export"
 PUBLIC_KEY_FILE="$EXPORT_DIR/public-keys.txt"
+PUBLIC_KEY_FILE_JSON="$EXPORT_DIR/public-keys.json"
+DEVICE_ATTESTATION_FILE="$EXPORT_DIR/device_attestation.json"
+ATTESTATION_FILE="$EXPORT_DIR/attestation.json"
 
 # Generate a random key to use for the interactions with the device
 # (so that the user only needs to confirm once)
 ROOTKEY=$($LBUTILS genCA | grep Private | sed 's/Private key: //g')
+
+# Custom CA plus a custom signature and hash from it (use the signer's)
+RSK_CA="$(cat $ROOT_DIR/scripts/rsk-ca.txt)"
+RSK_CA_HASH=$($SIGNAPP hash -a $FIRMWARE_DIR/signer.hex | grep "App hash:" | sed "s/App hash: //g")
+RSK_CA_SIG="$(cat $FIRMWARE_DIR/signer.hex.sig)"
 
 function checkFirmware() {
     # Check for firmware files
@@ -135,12 +149,17 @@ function createOutputDir() {
 }
 
 function onboard() {
-    $ADMIN onboard
+    $ADMIN onboard -o $DEVICE_ATTESTATION_FILE
     error
 }
 
 function keys() {
-    $ADMIN pubkeys -o $PUBLIC_KEY_FILE
+    $ADMIN pubkeys -o $PUBLIC_KEY_FILE -u
+    error
+}
+
+function attestation() {
+    $ADMIN attestation -t $DEVICE_ATTESTATION_FILE -o $ATTESTATION_FILE -c $RSK_CA:$RSK_CA_HASH:$RSK_CA_SIG
     error
 }
 
@@ -190,6 +209,9 @@ echo -e "\e[1;33mOnboarding complete. Please disconnect and reconnect the device
 echo -e "Press [Enter] to continue"
 read continue
 sleep 2
+echo
+echo -e "\e[1;32mGathering attestation\e[0m"
+attestation
 echo
 echo -e "\e[1;32mGathering public keys\e[0m"
 keys

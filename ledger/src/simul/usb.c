@@ -131,3 +131,24 @@ unsigned short io_exchange(unsigned char channel_and_flags,
 
     return tx_len;
 }
+
+// Mocking assorted OS functions, constants and types
+unsigned int os_endorsement_key2_derive_sign_data(
+    unsigned char src, unsigned int srcLength, unsigned char *signature) {return 0;}
+
+unsigned int os_endorsement_get_code_hash(unsigned char *buffer) {return 0;}
+
+void moxie_swi_crypto_cleanup(void){};
+
+void os_perso_derive_node_bip32(cx_curve_t curve, unsigned int *path,
+    unsigned int pathLength, unsigned char *privateKey,
+    unsigned char *chain) {};
+
+int cx_ecdsa_init_private_key(cx_curve_t curve, unsigned char *rawkey,
+    unsigned int key_len, cx_ecfp_private_key_t *key) {return 0;}
+
+void os_memmove(void *dst, const void *src, unsigned int length) {};
+
+int cx_ecfp_generate_pair(
+    cx_curve_t curve, cx_ecfp_public_key_t *pubkey,
+    cx_ecfp_private_key_t *privkey, int keepprivate) {return 0;}

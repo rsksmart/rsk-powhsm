@@ -1,3 +1,5 @@
+import re
+
 def bitwise_and_bytes(bs1, bs2):
     return bytes(x & y for (x,y) in zip(bs1, bs2))
 
@@ -63,3 +65,22 @@ def normalize_hex_string(value):
         return value[2:]
 
     return value
+
+# Utility functions to parse and use a list slice
+# from a string (in the python fashion [nn:mm])
+_SLICE_REGEXP = re.compile("^(-?\d*):(-?\d*)$", re.ASCII)
+
+def is_slice_str(s):
+    return _SLICE_REGEXP.match(s) is not None
+
+def slice_from_str(s):
+    m = _SLICE_REGEXP.match(s)
+
+    if m is None:
+        raise ValueError(f"Invalid slice str \"{s}\"")
+
+    gs = m.groups()
+    start = 0 if gs[0] == "" else int(gs[0])
+    stop = None if gs[1] == "" else int(gs[1])
+
+    return slice(start, stop, 1)

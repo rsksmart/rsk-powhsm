@@ -1,7 +1,8 @@
+import os
+import json
 import ecdsa
-import time
 from ledger.hsm2dongle import HSM2Dongle
-from .misc import info, bls, get_hsm, dispose_hsm, AdminError
+from .misc import info, bls, get_hsm, dispose_hsm, AdminError, wait_for_reconnection
 from .unlock import do_unlock
 from comm.bip32 import BIP32Path
 
@@ -10,10 +11,13 @@ SIGNER_WAIT_TIME = 1 #second
 PATHS = {
     "btc": BIP32Path("m/44'/0'/0'/0/0"),
     "rsk": BIP32Path("m/44'/137'/0'/0/0"),
-    "mst": BIP32Path("m/44'/137'/0'/0/1"),
+    "mst": BIP32Path("m/44'/137'/1'/0/0"),
+    "dep_mst": BIP32Path("m/44'/137'/0'/0/1"),
     "tbtc": BIP32Path("m/44'/1'/0'/0/0"),
-    "trsk": BIP32Path("m/44'/1'/0'/0/1"),
-    "tmst": BIP32Path("m/44'/1'/0'/0/2"),
+    "trsk": BIP32Path("m/44'/1'/1'/0/0"),
+    "dep_trsk": BIP32Path("m/44'/1'/0'/0/1"),
+    "tmst": BIP32Path("m/44'/1'/2'/0/0"),
+    "dep_tmst": BIP32Path("m/44'/1'/0'/0/2"),
 }
 
 def do_get_pubkeys(options):
@@ -28,7 +32,7 @@ def do_get_pubkeys(options):
             raise AdminError(f"Failed to unlock device: {str(e)}")
 
     # Wait for the signer
-    time.sleep(SIGNER_WAIT_TIME)
+    wait_for_reconnection()
 
     # Connection
     hsm = get_hsm(options.verbose)
@@ -52,26 +56,39 @@ def do_get_pubkeys(options):
 
     try:
         output_file = None
+        save_to_json = False
         if options.output_file_path is not None:
             output_file = open(options.output_file_path, "w")
             do_output = lambda s: output_file.write(f"{s}\n")
+            save_to_json = True
+            json_dict = {}
         else:
             do_output = lambda s: info(s)
 
         do_output("*" * 80)
-        do_output("Name \t\t Path \t\t\t\t Pubkey")
-        do_output("==== \t\t ==== \t\t\t\t ======")
+        do_output("Name \t\t\t Path \t\t\t\t Pubkey")
+        do_output("==== \t\t\t ==== \t\t\t\t ======")
+        path_name_padding = max(map(len, PATHS))
         for path_name in PATHS:
             path = PATHS[path_name]
             # Compress public key
             pk = ecdsa.VerifyingKey.from_string(bytes.fromhex(pubkeys[path_name]), curve=ecdsa.SECP256k1)
             pubkey = pk.to_string("compressed").hex()
-            do_output(f"{path_name} \t\t {path} \t\t {pubkey}")
+            do_output(f"{path_name.ljust(path_name_padding)} \t\t {path} \t\t {pubkey}")
+            if save_to_json:
+                json_dict[str(path)] = pk.to_string("uncompressed").hex()
         do_output("*" * 80)
 
         if output_file is not None:
             output_file.close()
             info(f"Public keys saved to {options.output_file_path}")
+
+        if save_to_json:
+            json_output_file_path = os.path.splitext(options.output_file_path)[0] + ".json"
+            output_file = open(json_output_file_path, "w")
+            output_file.write('%s\n' % json.dumps(json_dict, indent=2))
+            output_file.close()
+            info(f"JSON-formatted public keys saved to {json_output_file_path}")
     except Exception as e:
         raise AdminError(f"Error writing output: {str(e)}")
 

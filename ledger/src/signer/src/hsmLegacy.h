@@ -19,30 +19,6 @@ tx = 5;
 THROW(0x9000);
 break;
 
-case RSK_GET_APP_HASH:
-os_endorsement_get_code_hash(G_io_apdu_buffer);
-tx = 32;
-THROW(0x9000);
-break;
-
-case RSK_GET_ENDORSEMENT_PUBKEY:
-os_endorsement_get_public_key(2, G_io_apdu_buffer);
-tx = 65;
-THROW(0x9000);
-break;
-
-case RSK_GET_ATTESTATION:
-tx = attestation_len;
-// Check if attestation exists
-if (tx < 1)
-    THROW(0x6A87);
-// Sanity Check
-if (tx > sizeof(G_io_apdu_buffer))
-    THROW(0x6A87);
-os_memmove(G_io_apdu_buffer, attestation, tx);
-THROW(0x9000);
-break;
-
 case INS_GET_PUBLIC_KEY: {
     cx_ecfp_public_key_t publicKey;
     cx_ecfp_private_key_t privateKey;

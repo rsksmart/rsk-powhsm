@@ -9,6 +9,7 @@
 #else
 #include <stdio.h>
 #include <stdlib.h>
+#include "usb.h"
 #endif
 
 #include <string.h>

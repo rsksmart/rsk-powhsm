@@ -1,10 +1,10 @@
 from ledger.hsm2dongle import HSM2Dongle
 from ledger.pin import BasePin
-from .misc import info, bls, get_hsm, dispose_hsm, PIN_ERROR_MESSAGE_ANYCHARS, AdminError, ask_for_pin
+from .misc import info, head, bls, get_hsm, dispose_hsm, PIN_ERROR_MESSAGE_ANYCHARS, AdminError, ask_for_pin
 
 def do_unlock(options, exit=True, label=True):
     if label:
-        info("### -> Unlock")
+        head("### -> Unlock", fill="#")
 
     hsm = None
 

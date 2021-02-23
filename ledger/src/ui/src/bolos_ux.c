@@ -23,10 +23,9 @@
 
 #include "bolos_ux_common.h"
 
-#define HASHSIZE 32
-#define SEEDSIZE 32
-#define COMPRESSEDHASHSIZE 16
-#define PUBKEYCOMPRESSEDSIZE 33
+#include "defs.h"
+#include "err.h"
+#include "attestation.h"
 
 // Signer hash blacklist
 #define SIGNER_LOG_SIZE 100
@@ -105,8 +104,6 @@ static const bagl_element_t bagl_ui_idle_nanos[] = {
     }
 };
 */
-
-
 
 unsigned short io_timeout(unsigned short last_timeout) {
     UNUSED(last_timeout);
@@ -373,7 +370,6 @@ void io_seproxyhal_display(const bagl_element_t *element) {
     io_seproxyhal_display_default((bagl_element_t *)element);
 }
 
-
 #define RSK_MSG 0x80
 #define RSK_PIN_CMD 0x41
 #define RSK_SEED_CMD 0x44
@@ -392,8 +388,6 @@ void io_seproxyhal_display(const bagl_element_t *element) {
 #define VERSION_MAJOR 0x02
 #define VERSION_MINOR 0x00
 #define VERSION_PATCH 0x00
-
-//static const int N_firstuse;
 
 static void sample_main(void) {
     volatile unsigned int rx = 0;
@@ -548,6 +542,11 @@ static void sample_main(void) {
 		     tx=2;
 		     THROW(0x9000);
 		     break;
+        case INS_ATTESTATION:
+            // Reusing words buffer as attestation context
+            tx = get_attestation(rx, G_bolos_ux_context.words_buffer); 
+            THROW(0x9000);
+            break;
 		case RSK_UNLOCK_CMD: // Unlock
 		    validpin=os_global_pin_check((unsigned char *)G_bolos_ux_context.pin_buffer,strlen(G_bolos_ux_context.pin_buffer));
 		    G_io_apdu_buffer[2]=validpin;
@@ -849,6 +848,7 @@ void bolos_ux_main(void) {
             // disabled
             io_seproxyhal_setup_ticker(100);
 	    // Run first application once
+            
 	    if (autoexec) {
 		    autoexec=0;
 		    run_first_app();

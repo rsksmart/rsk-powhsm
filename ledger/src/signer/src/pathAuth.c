@@ -36,6 +36,23 @@ const char noAuthPaths[][21] = {
     "\x05\x2c\x00\x00\x80\x01\x00\x00\x80\x00\x00\x00\x80\x00\x00\x00\x00\x02\x00\x00\x00"  // deprecated tMST
 };
 
+// Derivation-path-lexicographically (and statically) ordered binary paths
+// These need to be updated if paths change
+// Each element indexes paths on the above arrays as follows:
+// Most significant byte indicates authPaths (0) or noAuthPaths (1)
+// Least significant byte indicates index on the array in question
+const int ordered_paths[9] = {
+    0x0000, // BTC
+    0x0001, // tBTC
+    0x0104, // deprecated tRSK
+    0x0106, // deprecated tMST
+    0x0103, // tRSK
+    0x0105, // tMST
+    0x0100, // RSK
+    0x0102, // deprecated MST
+    0x0101, // MST
+};
+
 // Return true if the *path is inside the authPaths array, false otherwhise
 // this means this path require authorization and validations.
 bool pathRequireAuth(char *path) {
@@ -61,4 +78,14 @@ bool pathDontRequireAuth(char *path) {
             return true;
     }
     return false;
+}
+
+const char* get_ordered_path(unsigned int index) {
+    if (ordered_paths[index] & 0xFF00) {
+        // No auth path
+        return noAuthPaths[ordered_paths[index] & 0xFF];
+    } else {
+        // Auth path
+        return authPaths[ordered_paths[index] & 0xFF];
+    }
 }
