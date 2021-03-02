@@ -3,7 +3,7 @@ from comm.protocol import HSM2Protocol
 from comm.bip32 import BIP32Path
 from .rsk.receipt import RskTransactionReceipt
 from .rsk.trie import RskTrie
-from comm.bitcoin import get_tx_hash_for_unsigned_tx, get_signature_hash_for_p2sh_input
+from comm.bitcoin import get_tx_hash_for_unsigned_tx, get_signature_hash_for_p2sh_input, get_unsigned_tx
 
 # These are all the valid signing paths (key ids)
 # Any other key id should be rejected as invalid
@@ -96,7 +96,7 @@ def authorize_signature_and_get_message_to_sign(raw_tx_receipt, \
 
     # Step 6. Generate the hash to sign and return
     try:
-        hash_to_sign = get_signature_hash_for_p2sh_input(raw_tx, input_index)
+        hash_to_sign = get_signature_hash_for_p2sh_input(get_unsigned_tx(raw_tx), input_index)
     except ValueError as e:
         logger.info("Error generating hash to sign: %s", str(e))
         return (False, HSM2Protocol.ERROR_CODE_INVALID_MESSAGE)

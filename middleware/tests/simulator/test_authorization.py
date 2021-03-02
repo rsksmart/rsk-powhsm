@@ -10,6 +10,7 @@ logging.disable(logging.CRITICAL)
 @patch("simulator.authorization.RskTrie")
 @patch("simulator.authorization.get_tx_hash_for_unsigned_tx")
 @patch("simulator.authorization.get_signature_hash_for_p2sh_input")
+@patch("simulator.authorization.get_unsigned_tx")
 class TestAuthorization(TestCase):
     EXPECTED_SIGNATURE = "7a7c29481528ac8c2b2e93aee658fddd4dc15304fa723a5c2b88514557bcc790"
     EXPECTED_ADDRESS = "an-address"
@@ -19,7 +20,7 @@ class TestAuthorization(TestCase):
         self.blockchain_state = Mock()
         self.blockchain_state.ancestor_receipts_root = "the-ancestor-receipts-root"
 
-    def test_invalid_receipt(self, get_signature_hash_for_p2sh_input_mock, get_tx_hash_for_unsigned_tx_mock, RskTrieMock, RskTransactionReceiptMock):
+    def test_invalid_receipt(self, get_unsigned_tx_mock, get_signature_hash_for_p2sh_input_mock, get_tx_hash_for_unsigned_tx_mock, RskTrieMock, RskTransactionReceiptMock):
         RskTransactionReceiptMock.side_effect = ValueError()
 
         self.assertEqual(authorize_signature_and_get_message_to_sign("a-receipt", \
@@ -32,8 +33,9 @@ class TestAuthorization(TestCase):
         self.assertFalse(RskTrieMock.from_proof.called)
         self.assertFalse(get_tx_hash_for_unsigned_tx_mock.called)
         self.assertFalse(get_signature_hash_for_p2sh_input_mock.called)
+        self.assertFalse(get_unsigned_tx_mock.called)
 
-    def test_invalid_receipts_trie_proof(self, get_signature_hash_for_p2sh_input_mock, get_tx_hash_for_unsigned_tx_mock, RskTrieMock, RskTransactionReceiptMock):
+    def test_invalid_receipts_trie_proof(self, get_unsigned_tx_mock, get_signature_hash_for_p2sh_input_mock, get_tx_hash_for_unsigned_tx_mock, RskTrieMock, RskTransactionReceiptMock):
         RskTrieMock.from_proof.side_effect = ValueError()
 
         self.assertEqual(authorize_signature_and_get_message_to_sign("a-receipt", \
@@ -46,8 +48,9 @@ class TestAuthorization(TestCase):
         self.assertEqual(RskTrieMock.from_proof.call_args_list, [call(["a", "b"])])
         self.assertFalse(get_tx_hash_for_unsigned_tx_mock.called)
         self.assertFalse(get_signature_hash_for_p2sh_input_mock.called)
+        self.assertFalse(get_unsigned_tx_mock.called)
 
-    def test_receipts_trie_proof_no_leaf(self, get_signature_hash_for_p2sh_input_mock, get_tx_hash_for_unsigned_tx_mock, RskTrieMock, RskTransactionReceiptMock):
+    def test_receipts_trie_proof_no_leaf(self, get_unsigned_tx_mock, get_signature_hash_for_p2sh_input_mock, get_tx_hash_for_unsigned_tx_mock, RskTrieMock, RskTransactionReceiptMock):
         trie_root = Mock(**{"get_first_leaf.side_effect": ValueError()})
         RskTrieMock.from_proof.return_value = trie_root
 
@@ -62,8 +65,9 @@ class TestAuthorization(TestCase):
         self.assertTrue(trie_root.get_first_leaf.called)
         self.assertFalse(get_tx_hash_for_unsigned_tx_mock.called)
         self.assertFalse(get_signature_hash_for_p2sh_input_mock.called)
+        self.assertFalse(get_unsigned_tx_mock.called)
 
-    def test_receipts_root_no_match(self, get_signature_hash_for_p2sh_input_mock, get_tx_hash_for_unsigned_tx_mock, RskTrieMock, RskTransactionReceiptMock):
+    def test_receipts_root_no_match(self, get_unsigned_tx_mock, get_signature_hash_for_p2sh_input_mock, get_tx_hash_for_unsigned_tx_mock, RskTrieMock, RskTransactionReceiptMock):
         trie_leaf = Mock(value_hash="the-receipt-hash")
         trie_root = Mock(**{"hash": "a-different-root-hash", "get_first_leaf.return_value": trie_leaf})
         receipt = Mock(hash=trie_leaf.value_hash)
@@ -80,8 +84,9 @@ class TestAuthorization(TestCase):
         self.assertEqual(RskTrieMock.from_proof.call_args_list, [call(["a", "b"])])
         self.assertFalse(get_tx_hash_for_unsigned_tx_mock.called)
         self.assertFalse(get_signature_hash_for_p2sh_input_mock.called)
+        self.assertFalse(get_unsigned_tx_mock.called)
 
-    def test_receipts_leaf_value_no_match(self, get_signature_hash_for_p2sh_input_mock, get_tx_hash_for_unsigned_tx_mock, RskTrieMock, RskTransactionReceiptMock):
+    def test_receipts_leaf_value_no_match(self, get_unsigned_tx_mock, get_signature_hash_for_p2sh_input_mock, get_tx_hash_for_unsigned_tx_mock, RskTrieMock, RskTransactionReceiptMock):
         trie_leaf = Mock(value_hash="the-receipt-hash")
         trie_root = Mock(**{"hash": self.blockchain_state.ancestor_receipts_root, "get_first_leaf.return_value": trie_leaf})
         receipt = Mock(hash="another-receipt-hash")
@@ -98,8 +103,9 @@ class TestAuthorization(TestCase):
         self.assertEqual(RskTrieMock.from_proof.call_args_list, [call(["a", "b"])])
         self.assertFalse(get_tx_hash_for_unsigned_tx_mock.called)
         self.assertFalse(get_signature_hash_for_p2sh_input_mock.called)
+        self.assertFalse(get_unsigned_tx_mock.called)
 
-    def test_invalid_transaction(self, get_signature_hash_for_p2sh_input_mock, get_tx_hash_for_unsigned_tx_mock, RskTrieMock, RskTransactionReceiptMock):
+    def test_invalid_transaction(self, get_unsigned_tx_mock, get_signature_hash_for_p2sh_input_mock, get_tx_hash_for_unsigned_tx_mock, RskTrieMock, RskTransactionReceiptMock):
         trie_leaf = Mock(value_hash="the-receipt-hash")
         trie_root = Mock(**{"hash": self.blockchain_state.ancestor_receipts_root, "get_first_leaf.return_value": trie_leaf})
         receipt = Mock(hash=trie_leaf.value_hash)
@@ -117,8 +123,9 @@ class TestAuthorization(TestCase):
         self.assertEqual(RskTrieMock.from_proof.call_args_list, [call(["a", "b"])])
         self.assertEqual(get_tx_hash_for_unsigned_tx_mock.call_args_list, [call("a-tx")])
         self.assertFalse(get_signature_hash_for_p2sh_input_mock.called)
+        self.assertFalse(get_unsigned_tx_mock.called)
 
-    def test_no_logs(self, get_signature_hash_for_p2sh_input_mock, get_tx_hash_for_unsigned_tx_mock, RskTrieMock, RskTransactionReceiptMock):
+    def test_no_logs(self, get_unsigned_tx_mock, get_signature_hash_for_p2sh_input_mock, get_tx_hash_for_unsigned_tx_mock, RskTrieMock, RskTransactionReceiptMock):
         trie_leaf = Mock(value_hash="the-receipt-hash")
         trie_root = Mock(**{"hash": self.blockchain_state.ancestor_receipts_root, "get_first_leaf.return_value": trie_leaf})
         receipt = Mock(hash=trie_leaf.value_hash)
@@ -138,8 +145,9 @@ class TestAuthorization(TestCase):
         self.assertEqual(RskTrieMock.from_proof.call_args_list, [call(["a", "b"])])
         self.assertEqual(get_tx_hash_for_unsigned_tx_mock.call_args_list, [call("a-tx")])
         self.assertFalse(get_signature_hash_for_p2sh_input_mock.called)
+        self.assertFalse(get_unsigned_tx_mock.called)
 
-    def test_no_log_matches(self, get_signature_hash_for_p2sh_input_mock, get_tx_hash_for_unsigned_tx_mock, RskTrieMock, RskTransactionReceiptMock):
+    def test_no_log_matches(self, get_unsigned_tx_mock, get_signature_hash_for_p2sh_input_mock, get_tx_hash_for_unsigned_tx_mock, RskTrieMock, RskTransactionReceiptMock):
         trie_leaf = Mock(value_hash="the-receipt-hash")
         trie_root = Mock(**{"hash": self.blockchain_state.ancestor_receipts_root, "get_first_leaf.return_value": trie_leaf})
         receipt = Mock(hash=trie_leaf.value_hash)
@@ -163,8 +171,9 @@ class TestAuthorization(TestCase):
         self.assertEqual(RskTrieMock.from_proof.call_args_list, [call(["a", "b"])])
         self.assertEqual(get_tx_hash_for_unsigned_tx_mock.call_args_list, [call("a-tx")])
         self.assertFalse(get_signature_hash_for_p2sh_input_mock.called)
+        self.assertFalse(get_unsigned_tx_mock.called)
 
-    def test_authorization_ok(self, get_signature_hash_for_p2sh_input_mock, get_tx_hash_for_unsigned_tx_mock, RskTrieMock, RskTransactionReceiptMock):
+    def test_authorization_ok(self, get_unsigned_tx_mock, get_signature_hash_for_p2sh_input_mock, get_tx_hash_for_unsigned_tx_mock, RskTrieMock, RskTransactionReceiptMock):
         trie_leaf = Mock(value_hash="the-receipt-hash")
         trie_root = Mock(**{"hash": self.blockchain_state.ancestor_receipts_root, "get_first_leaf.return_value": trie_leaf})
         receipt = Mock(hash="the-receipt-hash")
@@ -172,6 +181,7 @@ class TestAuthorization(TestCase):
         RskTransactionReceiptMock.return_value = receipt
         get_tx_hash_for_unsigned_tx_mock.return_value = "the-tx-hash"
         get_signature_hash_for_p2sh_input_mock.return_value = "the-hash-to-sign"
+        get_unsigned_tx_mock.return_value = "a-tx-unsigned"
 
         receipt.logs = [
             Mock(signature="something-else", address="another-address", topics=[None, None, "the-tx-hash"]),
@@ -189,4 +199,5 @@ class TestAuthorization(TestCase):
         self.assertEqual(RskTransactionReceiptMock.call_args_list, [call("a-receipt")])
         self.assertEqual(RskTrieMock.from_proof.call_args_list, [call(["a", "b"])])
         self.assertEqual(get_tx_hash_for_unsigned_tx_mock.call_args_list, [call("a-tx")])
-        self.assertEqual(get_signature_hash_for_p2sh_input_mock.call_args_list, [call("a-tx", 123)])
+        self.assertEqual(get_signature_hash_for_p2sh_input_mock.call_args_list, [call("a-tx-unsigned", 123)])
+        self.assertEqual(get_unsigned_tx_mock.call_args_list, [call("a-tx")])
