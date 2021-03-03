@@ -4,6 +4,9 @@
 #include "defs.h"
 #include "err.h"
 
+// Global onboarding flag
+extern const unsigned char* N_onboarded_ui[1];
+
 // Attestation message prefix
 #define ATT_MSG_PREFIX_LENGTH 11
 const char ATT_MSG_PREFIX[ATT_MSG_PREFIX_LENGTH] = "RSK:HSM:UI:";
@@ -35,6 +38,13 @@ static unsigned int generate_message_to_sign(att_t* att_ctx) {
  */
 unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx) {
     unsigned int message_size;
+
+    // Verify that the device has been onboarded
+    unsigned char onboarded = *((unsigned char*)PIC(N_onboarded_ui));
+    if (!onboarded) {
+        THROW(NO_ONBOARD);
+        return 0;
+    }
 
     switch (APDU_OP()) {
         case ATT_OP_PUBKEY:

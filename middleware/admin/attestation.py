@@ -54,7 +54,10 @@ def do_attestation(options):
 
     # UI Attestation
     info("Gathering UI attestation... ", options.verbose)
-    ui_attestation = hsm.get_ui_attestation(ca_pubkey, ca_hash, ca_signature)
+    try:
+        ui_attestation = hsm.get_ui_attestation(ca_pubkey, ca_hash, ca_signature)
+    except Exception as e:
+        raise AdminError(f"Failed to gather UI attestation: {str(e)}")
     info("UI attestation gathered")
 
     # Exit the UI and reconnect
@@ -68,7 +71,10 @@ def do_attestation(options):
 
     # Signer attestation
     info("Gathering Signer attestation... ", options.verbose)
-    signer_attestation = hsm.get_signer_attestation()
+    try:
+        signer_attestation = hsm.get_signer_attestation()
+    except Exception as e:
+        raise AdminError(f"Failed to gather Signer attestation: {str(e)}")
     info("Signer attestation gathered")
 
     # Augment and save the attestation certificate

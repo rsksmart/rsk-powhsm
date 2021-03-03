@@ -178,6 +178,7 @@ class _UIError(IntEnum):
 class _UIAttestationError(IntEnum):
     PROT_INVALID = 0x6a01
     CA_MISMATCH = 0x6a02
+    NO_ONBOARD   = 0x6a03
 
 class _SignerAttestationError(IntEnum):
     PROT_INVALID = 0x6b00

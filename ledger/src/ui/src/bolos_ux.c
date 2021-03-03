@@ -31,6 +31,9 @@
 #define SIGNER_LOG_SIZE 100
 const char N_SignerHashList[SIGNER_LOG_SIZE][COMPRESSEDHASHSIZE];
 
+// Onboarded with the UI flag
+const unsigned char N_onboarded_ui[1] = { 0 };
+
 #ifdef OS_IO_SEPROXYHAL
 
 #define ARRAYLEN(array) (sizeof(array) / sizeof(array[0]))
@@ -396,6 +399,7 @@ static void sample_main(void) {
     volatile unsigned char pin = 0;
     int i=0;
     char validpin;
+    unsigned char aux;
 
     // DESIGN NOTE: the bootloader ignores the way APDU are fetched. The only
     // goal is to retrieve APDU.
@@ -503,6 +507,12 @@ static void sample_main(void) {
 		     for (i=0;i<SIGNER_LOG_SIZE;i++)
 			     nvm_write((void *)PIC(N_SignerHashList[i]),G_bolos_ux_context.string_buffer,COMPRESSEDHASHSIZE);
 		    //  tx=3+SEEDSIZE+PUBKEYCOMPRESSEDSIZE;
+             
+             // Turn the onboarding flag on to mark onboarding
+             // has been done using the UI
+             aux = 1;
+             nvm_write((void*)PIC(N_onboarded_ui), &aux, sizeof(aux));
+
 		     tx=3;
                      THROW(0x9000);
 		     break;
