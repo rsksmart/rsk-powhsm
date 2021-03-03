@@ -24,8 +24,8 @@ typedef char cx_curve_t;
 typedef char cx_ecfp_private_key_t;
 
 typedef struct cx_ecfp_public_key_s {
-    char W;
-    char W_len;
+    unsigned int W_len;
+    unsigned char W[65];
 } cx_ecfp_public_key_t;
 
 unsigned int os_endorsement_key2_derive_sign_data(
