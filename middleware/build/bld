@@ -29,10 +29,4 @@ rm -rf $BINPATH/$TARGET.tgz
 # Build
 PYTHONHASHSEED=$SEED pyinstaller $HIDDENIMPORTS --clean --distpath $BINPATH ../$TARGET.py 2> /dev/null
 
-# Strip symbols
-find $BINPATH/$TARGET -type f | xargs strip --remove-section=".note.gnu.build-id" --remove-section=".comment" --remove-section=".gnu_debuglink" 2> /dev/null
-
-# Create archive
-GZIP=-n tar --sort=name --mtime=1960-10-30 --owner=0 --group=0 --numeric-owner -czf $BINPATH/$TARGET.tgz -C $BINPATH/$TARGET . 2> /dev/null
-
 popd > /dev/null

@@ -89,7 +89,19 @@ As the middleware evolves, unit tests should be maintained and augmented in orde
 
 ## Building middleware binaries
 
-Distribution of the middleware is done in the form of amd64 binaries, which are built using the python tool [pyinstaller](https://www.pyinstaller.org/). Scripts for building binaries for each main script can be found under the `middleware/build` directory. These scripts place the binary output under the `middleware/bin` directory. There are also two scripts that are shorthand for serial building:
+### Prerequisites
+
+The first time, you must build a second docker image that will serve as the packer for the binary files. Within the root directory of the repository, issue:
+
+```
+~/repo> docker/packer/build
+```
+
+that should build (or rebuild in case the `Dockerfile` has changed) the corresponding docker image.
+
+### Building
+
+Distribution of the middleware is done in the form of `.tgz` archives containing the binaries - main file and dependencies -, which are first built using the python tool [pyinstaller](https://www.pyinstaller.org/) and then packed for distribution. Scripts for building binaries for each main tool can be found under the `middleware/build` directory. These scripts place the output under the `middleware/bin` directory. There are also two scripts that are shorthand for serial building:
 
 - `middleware/build/all`: builds all the tools.
 - `middleware/build/dist`: builds all the tools that are meant for distribution (i.e., all but `sim.py` and `restore.py`).

@@ -6,6 +6,7 @@ state.json
 
 bin/
 build/*.spec
+build/core
 build/build/
 
 pin.txt
