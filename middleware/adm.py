@@ -9,7 +9,7 @@ from admin.pubkeys import do_get_pubkeys
 from admin.exit import do_exit
 from admin.changepin import do_changepin
 from admin.attestation import do_attestation
-from admin.verify_attestation import do_verify_attestation
+from admin.verify_attestation import do_verify_attestation, DEFAULT_ROOT_AUTHORITY
 
 DEFAULT_PIN_FILE = "pin.txt"
 DEFAULT_PIN_CHANGE_FILE = "changePIN"
@@ -46,7 +46,7 @@ if __name__ == '__main__':
     parser.add_argument("-t","--attcert", dest="attestation_certificate_file_path", \
                         help=f"Attestation key certificate file (only valid for 'attestation' and 'verify_attestation' operations).")
     parser.add_argument("-r","--root", dest="root_authority", \
-                        help=f"Root attestation authority (only valid for 'verify_attestation' operation).")
+                        help=f"Root attestation authority (only valid for 'verify_attestation' operation). Defaults to Ledger's root authority.")
     parser.add_argument("-b","--pubkeys", dest="pubkeys_file_path", \
                         help=f"Public keys file (only valid for 'verify_attestation' operation).")
     parser.add_argument("-v","--verbose", dest="verbose", action="store_const", \

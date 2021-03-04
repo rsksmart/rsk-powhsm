@@ -8,6 +8,10 @@ from .certificate import HSMCertificate
 UI_MESSAGE_HEADER = b"RSK:HSM:UI:"
 SIGNER_MESSAGE_HEADER = b"RSK:HSM:SIGNER:"
 
+# Ledger's root authority 
+# (according to https://github.com/LedgerHQ/blue-loader-python/blob/master/ledgerblue/endorsementSetup.py#L138):
+DEFAULT_ROOT_AUTHORITY = "0490f5c9d15a0134bb019d2afd0bf297149738459706e7ac5be4abc350a1f818057224fce12ec9a65de18ec34d6e8c24db927835ea1692b14c32e9836a75dad609"
+
 def do_verify_attestation(options):
     head("### -> Verify UI and Signer attestations", fill="#")
 
@@ -17,11 +21,12 @@ def do_verify_attestation(options):
     if options.pubkeys_file_path is None:
         raise AdminError("No public keys file given")
 
-    # Ledger's root authority is: 
-    # 0490f5c9d15a0134bb019d2afd0bf297149738459706e7ac5be4abc350a1f818057224fce12ec9a65de18ec34d6e8c24db927835ea1692b14c32e9836a75dad609
-    # (according to https://github.com/LedgerHQ/blue-loader-python/blob/master/ledgerblue/endorsementSetup.py#L138):
-    if options.root_authority is None or not is_nonempty_hex_string(options.root_authority):
-        raise AdminError("Missing or invalid root authority")
+    root_authority = DEFAULT_ROOT_AUTHORITY
+    if options.root_authority is not None:
+        if not is_nonempty_hex_string(options.root_authority):
+            raise AdminError("Invalid root authority")
+        root_authority = options.root_authority
+    info(f"Using {root_authority} as root authority")
 
     # Load the given public keys and compute
     # their hash (sha256sum of the uncompressed 
@@ -56,7 +61,7 @@ def do_verify_attestation(options):
 
     # Validate the certificate using the given root authority 
     # (this should be *one of* Ledger's public keys)
-    result = att_cert.validate_and_get_values(options.root_authority)
+    result = att_cert.validate_and_get_values(root_authority)
 
     # UI
     if "ui" not in result:
