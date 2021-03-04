@@ -8,6 +8,14 @@ if [[ $# -lt 4 ]]; then
     exit 1
 fi
 
+# Check docker images exist
+CHECK_IMAGE=$ROOT_DIR/docker/check-image
+
+for img in hsm:ledger hsm:mware hsm:packer; do
+    DOCKER_IMAGE=$img
+    source $CHECK_IMAGE
+done
+
 DEST_DIR=$1
 CHECKPOINT=$2
 DIFFICULTY=$3
