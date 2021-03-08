@@ -17,4 +17,7 @@
 #define APDU_DATA_SIZE(rx) ((rx) >= APDU_DATA_OFFSET ? (rx)-APDU_DATA_OFFSET : 0)
 #define G_apdu_data (&G_io_apdu_buffer[APDU_DATA_OFFSET])
 
+// Number of bytes to transmit for data payload with size s
+#define TX_FOR_DATA_SIZE(s) (APDU_DATA_OFFSET + (s))
+
 #endif

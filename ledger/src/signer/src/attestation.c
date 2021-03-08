@@ -9,8 +9,8 @@
 #include "mem.h"
 
 // Attestation message prefix
-#define ATT_MSG_PREFIX_LENGTH 15
-const char ATT_MSG_PREFIX[ATT_MSG_PREFIX_LENGTH] = "RSK:HSM:SIGNER:";
+#define ATT_MSG_PREFIX_LENGTH 14
+const char ATT_MSG_PREFIX[ATT_MSG_PREFIX_LENGTH] = "HSM:SIGNER:2.1";
 
 // -----------------------------------------------------------------------
 // Protocol implementation

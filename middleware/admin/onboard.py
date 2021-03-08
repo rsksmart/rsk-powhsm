@@ -1,4 +1,5 @@
 import sys
+import os
 import random
 from ledger.hsm2dongle import HSM2Dongle
 from ledger.pin import BasePin
@@ -11,6 +12,7 @@ from .certificate import HSMCertificate, HSMCertificateElement
 # TODO: this could perhaps be done with a different value. 
 # Currently unused but necessary for the attestation setup process.
 ENDORSEMENT_CERTIFICATE = b'RSK_ENDORSEMENT_OK'
+SEED_SIZE = 32
 
 def do_onboard(options):
     head("### -> Onboarding and attestation setup", fill="#")
@@ -162,8 +164,4 @@ def do_onboard(options):
     ])
 
 def gen_seed():
-    random.seed()
-    seed = b''
-    for i in range(32):
-        seed += bytes([random.randint(0,255)])
-    return seed
+    return os.urandom(SEED_SIZE)

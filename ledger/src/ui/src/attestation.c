@@ -8,8 +8,8 @@
 extern const unsigned char* N_onboarded_ui[1];
 
 // Attestation message prefix
-#define ATT_MSG_PREFIX_LENGTH 11
-const char ATT_MSG_PREFIX[ATT_MSG_PREFIX_LENGTH] = "RSK:HSM:UI:";
+#define ATT_MSG_PREFIX_LENGTH 10
+const char ATT_MSG_PREFIX[ATT_MSG_PREFIX_LENGTH] = "HSM:UI:2.1";
 
 /*
  * Assuming the custom CA public key is loaded in att_ctx->ca_pubkey,
@@ -21,7 +21,10 @@ const char ATT_MSG_PREFIX[ATT_MSG_PREFIX_LENGTH] = "RSK:HSM:UI:";
 static unsigned int generate_message_to_sign(att_t* att_ctx) {
     // Generate the message to sign
     memcpy(att_ctx->msg, PIC(ATT_MSG_PREFIX), sizeof(ATT_MSG_PREFIX));
-    memcpy(&att_ctx->msg[sizeof(ATT_MSG_PREFIX)], att_ctx->ca_pubkey.W, att_ctx->ca_pubkey.W_len);
+    // Avoid overflowing when copying the CA public key
+    size_t max_pubkey_size = sizeof(att_ctx->msg) - sizeof(ATT_MSG_PREFIX);
+    size_t to_copy = max_pubkey_size < att_ctx->ca_pubkey.W_len ? max_pubkey_size : att_ctx->ca_pubkey.W_len;
+    memcpy(&att_ctx->msg[sizeof(ATT_MSG_PREFIX)], att_ctx->ca_pubkey.W, to_copy);
 
     return sizeof(ATT_MSG_PREFIX) + att_ctx->ca_pubkey.W_len;
 }
@@ -51,6 +54,8 @@ unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx) {
             // Should receive an uncompressed public key. Store it.
             if (APDU_DATA_SIZE(rx) != PUBKEYSIZE)
                 THROW(PROT_INVALID);
+            // Clear public key memory region first just in case initialization fails
+            memset(&att_ctx->ca_pubkey, 0, sizeof(att_ctx->ca_pubkey));
             // Init public key
             cx_ecfp_init_public_key(CX_CURVE_256K1, G_apdu_data, PUBKEYSIZE, &att_ctx->ca_pubkey);
             att_ctx->flags |= ATT_PUBKEY_RECV;
@@ -59,26 +64,29 @@ unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx) {
             message_size = generate_message_to_sign(att_ctx);
             memcpy(G_apdu_data, att_ctx->msg, message_size);
 
-            return message_size + 3;
+            return TX_FOR_DATA_SIZE(message_size);
         case ATT_OP_HASH:
             // Should receive a hash. Store it.
             if (APDU_DATA_SIZE(rx) != HASHSIZE)
                 THROW(PROT_INVALID);
             memcpy(att_ctx->ca_signed_hash, G_apdu_data, HASHSIZE);
             att_ctx->flags |= ATT_HASH_RECV;
-            return 3;
+            return TX_FOR_DATA_SIZE(0);
         case ATT_OP_SIGNATURE:
             // Should receive a length and length bytes
             if (APDU_DATA_SIZE(rx) < 2 || APDU_DATA_SIZE(rx) != G_apdu_data[0]+1)
                 THROW(PROT_INVALID);
-            att_ctx->ca_signature_length = G_apdu_data[0];
             // Respect maximum signature size
-            if (att_ctx->ca_signature_length > MAX_SIGNATURE_LENGTH)
+            if (G_apdu_data[0] > MAX_SIGNATURE_LENGTH)
                 THROW(PROT_INVALID);
+            // Clear signature memory area first just in case something else fails
+            att_ctx->ca_signature_length = 0;
+            memset(att_ctx->ca_signature, 0, sizeof(att_ctx->ca_signature));
             // Store signature and length
+            att_ctx->ca_signature_length = G_apdu_data[0];
             memcpy(att_ctx->ca_signature, &G_apdu_data[1], att_ctx->ca_signature_length);
             att_ctx->flags |= ATT_SIGNATURE_RECV;
-            return 3;
+            return TX_FOR_DATA_SIZE(0);
         case ATT_OP_GET:
             if ((att_ctx->flags & (ATT_PUBKEY_RECV | ATT_HASH_RECV | ATT_SIGNATURE_RECV)) != 
                 (ATT_PUBKEY_RECV | ATT_HASH_RECV | ATT_SIGNATURE_RECV))
@@ -101,10 +109,10 @@ unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx) {
             att_ctx->flags = 0;
 
             // Sign and output            
-            return os_endorsement_key2_derive_sign_data(
-                att_ctx->msg, message_size, G_apdu_data) + 3;
+            return TX_FOR_DATA_SIZE(os_endorsement_key2_derive_sign_data(
+                att_ctx->msg, message_size, G_apdu_data));
         case ATT_OP_APP_HASH:
-            return os_endorsement_get_code_hash(G_apdu_data) + 3;
+            return TX_FOR_DATA_SIZE(os_endorsement_get_code_hash(G_apdu_data));
         default:
             att_ctx->flags = 0;
             THROW(PROT_INVALID);

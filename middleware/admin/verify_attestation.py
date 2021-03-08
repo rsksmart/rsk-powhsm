@@ -5,8 +5,8 @@ from .misc import info, head, AdminError
 from .utils import is_nonempty_hex_string
 from .certificate import HSMCertificate
 
-UI_MESSAGE_HEADER = b"RSK:HSM:UI:"
-SIGNER_MESSAGE_HEADER = b"RSK:HSM:SIGNER:"
+UI_MESSAGE_HEADER = b"HSM:UI:2.1"
+SIGNER_MESSAGE_HEADER = b"HSM:SIGNER:2.1"
 
 # Ledger's root authority 
 # (according to https://github.com/LedgerHQ/blue-loader-python/blob/master/ledgerblue/endorsementSetup.py#L138):
