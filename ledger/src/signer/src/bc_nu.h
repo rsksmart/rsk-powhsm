@@ -21,7 +21,7 @@ typedef enum {
 #define SET_NETWORK_UPGRADE(bn, x) \
     {                              \
         if (bn >= 2000000UL)       \
-            x = NU_IRIS;
+            x = NU_IRIS;           \
         else if (bn >= 863000UL)   \
             x = NU_PAPYRUS;        \
         else                       \
