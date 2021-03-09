@@ -14,3 +14,21 @@ All notable changes to this project will be documented in this file.
 
 - Fixed middleware's Dockerfile apt package versions
 - Fixed middleware reproducible build
+
+## [2.1.0] - 08/03/2021
+
+### Features/enhancements
+
+- UI and Signer attestation is now part of the output of the setup (and upgrade) process
+- Signer is now Iris-aware
+- Signer now supports arbitrarily large merge mining merkle proofs - hard size limit set to 960 from Iris onwards
+- Signer and simulator now support three additional unauthorized derivation paths that deprecate the old MST, tRSK and tMST paths
+- Added upgrade process for 2.x => 2.y
+
+### Fixes
+
+- Ledger compatibility: simulator now unsigns BTC transactions before computing the sighash 
+- Middleware builds are now compatible with older glibc versions (2.24+)
+- Fixed unused symbols reported in 2.0.0 security audit
+- Fixed private key cleaning issues reported in 2.0.0 security audit
+- Restricted public key gathering to only authorized paths in signer
