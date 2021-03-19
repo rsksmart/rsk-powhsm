@@ -39,11 +39,18 @@ and follow the instructions.
 To upgrade an existing HSM 2 device to a newer firmware version, you will first need:
 
 - A file `/path/to/dist/pin.txt` with the current device's pin.
+- A file `/path/to/dist/device_attestation.json` with the device attestation generated upon setup _(only if initially setup with HSM 2.1+)_.
 
 Then, to execute the upgrade process, within the `/path/to/dist` directory, issue:
 
+If initially setup with HSM 2.1+:
 ```
 /path/to/dist> ./upgrade-v2-device
+```
+
+If initially setup with HSM 2.0:
+```
+/path/to/dist> ./upgrade-v2-device-noatt
 ```
 
 and follow the instructions.

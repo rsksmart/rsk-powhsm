@@ -6,6 +6,15 @@ popd > /dev/null
 
 TARGET_ID="$(cat $ROOT_DIR/scripts/target.id)"
 
+# Exclude attestation?
+DO_ATTESTATION="yes"
+if [[ "$1" == "--noatt" ]]; then
+    DO_ATTESTATION="no"
+elif [[ "$1" != "" ]]; then
+    echo -e "\e[1;31mInvalid or unknown option '$1'\e[0m"
+    exit 1
+fi
+
 # Binaries
 LBUTILS_DIR="$ROOT_DIR/bin/lbutils"
 LBUTILS_BUNDLE="$LBUTILS_DIR.tgz"
@@ -120,7 +129,12 @@ function createOutputDir() {
 }
 
 function keys() {
-    $ADMIN pubkeys -o $PUBLIC_KEY_FILE -u
+    UNLOCK_OPT="-p$(cat $PIN_FILE)"
+    if [[ "$DO_ATTESTATION" == "yes" ]]; then
+        UNLOCK_OPT="-u"
+    fi
+
+    $ADMIN pubkeys -o $PUBLIC_KEY_FILE $UNLOCK_OPT
     error
 }
 
@@ -133,7 +147,11 @@ echo -e "\e[1;32mWelcome to the HSM2 Upgrade for RSK \e[0m"
 echo
 checkFirmware
 checkForPinFile
-checkForAttestationFile
+
+if [[ "$DO_ATTESTATION" == "yes" ]]; then
+    checkForAttestationFile
+fi
+
 echo -e "\e[1;33mConnect your ledger.\e[0m"
 echo -e "Press [Enter] to continue"
 read continue
@@ -150,11 +168,15 @@ echo -e "\e[1;33mApp upgrade complete. Please disconnect and reconnect the devic
 echo -e "Press [Enter] to continue"
 read continue
 sleep 2
-echo
-echo -e "\e[1;32mGathering attestation\e[0m"
 createOutputDir
-attestation
 echo
+
+if [[ "$DO_ATTESTATION" == "yes" ]]; then
+    echo -e "\e[1;32mGathering attestation\e[0m"
+    attestation
+    echo
+fi
+
 echo -e "\e[1;32mGathering public keys\e[0m"
 keys
 echo
