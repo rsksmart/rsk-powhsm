@@ -22,13 +22,13 @@ typedef enum {
     MM_HASH_MISMATCH,      // Merge mining hashes don't match
     MERKLE_PROOF_OVERFLOW, // Merkle proof exceeds maximum size
     CB_TXN_OVERFLOW,       // Coinbase transaction exceeds maximum size
-    CB_TXN_HASH_MISMATCH,  // Coinbase transaction mismatch
     BUFFER_OVERFLOW,       // Work area buffer overflow
 
     CHAIN_MISMATCH,      // Block is not parent of previous block
     TOTAL_DIFF_OVERFLOW, // Total difficulty overflow
 
     ANCESTOR_TIP_MISMATCH, // Ancestor tip mismatch
+    CB_TXN_HASH_MISMATCH,  // Coinbase transaction mismatch
 } err_code_t;
 
 /*

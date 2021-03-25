@@ -89,7 +89,9 @@ bin/app.hex:
 	$(error "Build the app first!")
 
 delete:
-	python -m ledgerblue.deleteApp $(COMMON_DELETE_PARAMS)
+	python -m ledgerblue.deleteApp  \
+		--targetId $(TARGET_ID)  \
+		--appName $(APPNAME)
 
 # Import generic rules from the SDK
 include $(BOLOS_SDK)/Makefile.rules

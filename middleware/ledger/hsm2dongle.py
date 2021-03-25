@@ -166,11 +166,11 @@ class _AdvanceUpdateError(IntEnum):
     MM_HASH_MISMATCH = auto()
     MERKLE_PROOF_OVERFLOW = auto()
     CB_TXN_OVERFLOW = auto()
-    CB_TXN_HASH_MISMATCH = auto()
     BUFFER_OVERFLOW = auto()
     CHAIN_MISMATCH = auto()
     TOTAL_DIFF_OVERFLOW = auto()
     ANCESTOR_TIP_MISMATCH = auto()
+    CB_TXN_HASH_MISMATCH = auto()
 
 class _UIError(IntEnum):
     INVALID_PIN = 0x69a0
@@ -285,6 +285,9 @@ class HSM2Dongle:
 
     # Dongle exchange timeout
     DONGLE_TIMEOUT = 10 # seconds
+
+    # Protocol version dependent features
+    MIN_VERSION_META_CBTXHASH = HSM2FirmwareVersion(2,1,0)
 
     def __init__(self, debug):
         self.logger = logging.getLogger("dongle")
@@ -722,7 +725,7 @@ class HSM2Dongle:
     # blocks: list of hex strings
     # (each hex string is a raw block header,
     # which should *always* include merge mining fields)
-    def advance_blockchain(self, blocks):
+    def advance_blockchain(self, blocks, version):
         # Convenient shorthands
         err = self.ERR.ADVANCE
         response = self.RESPONSE.ADVANCE
@@ -749,7 +752,7 @@ class HSM2Dongle:
                 err.CHAIN_MISMATCH: response.ERROR_CHAINING_MISMATCH,
                 err.TOTAL_DIFF_OVERFLOW: response.ERROR_UNSUPPORTED_CHAIN,
                 err.PROT_INVALID: response.ERROR_BLOCK_DATA,
-            })
+            }, version)
 
     # Ask the device to update its ancestor block and ancestor receipts root
     # references by processing a given set of blocks.
@@ -758,7 +761,7 @@ class HSM2Dongle:
     # which doesn't need to include merge mining fields -
     # those will be stripped for efficiency before being sent
     # to the device anyway)
-    def update_ancestor(self, blocks):
+    def update_ancestor(self, blocks, version):
         # Convenient shorthands
         err = self.ERR.UPD_ANCESTOR
         response = self.RESPONSE.UPD_ANCESTOR
@@ -786,7 +789,7 @@ class HSM2Dongle:
                 err.ANCESTOR_TIP_MISMATCH: response.ERROR_TIP_MISMATCH,
                 err.CHAIN_MISMATCH: response.ERROR_CHAINING_MISMATCH,
                 err.PROT_INVALID: response.ERROR_BLOCK_DATA,
-            })
+            }, version)
 
     def get_ui_attestation(self, ca_pubkey_hex, ca_hash_hex, ca_signature_hex):
         # Parse hexadecimal values
@@ -837,7 +840,7 @@ class HSM2Dongle:
     # Used both for advance blockchain and update ancestor given the protocol
     # is the same
     def _do_block_operation(self, operation_name, blocks, command, ops,
-                            errors, responses, chunk_error_mapping):
+                            errors, responses, chunk_error_mapping, version):
         # *** Block operation protocol ***
         # The order in which things are required and then sent is:
         # 1. Initialization, where the total number of blocks to send is sent.
@@ -845,7 +848,7 @@ class HSM2Dongle:
         # 2.1. Block metadata (single message):
         #   - MM payload size in bytes
         #   (see the block_utils.rlp_mm_payload_size method for details on this)
-        #   - In case of an advance blockchain operation, coinbase transaction hash
+        #   - (only for >=2.1.0) In case of an advance blockchain operation, coinbase transaction hash
         #   (see the block_utils.coinbase_tx_get_hash for details on this)
         # 2.2. Block chunks: block header pieces as requested by the ledger.
         #
@@ -886,7 +889,7 @@ class HSM2Dongle:
                 self.logger.debug("Metadata: MM payload length %d", mm_payload_size)
                 mm_payload_size_bytes = mm_payload_size.to_bytes(2, byteorder='big', signed=False)
                 cb_txn_hash = bytes([])
-                if command == self.CMD.ADVANCE:
+                if command == self.CMD.ADVANCE and version >= self.MIN_VERSION_META_CBTXHASH:
                     cb_txn_hash = bytes.fromhex(coinbase_tx_get_hash(get_coinbase_txn(block)))
                     self.logger.debug("Metadata: CB txn hash: %s", cb_txn_hash.hex())
                 data = bytes([ops.HEADER_META]) + mm_payload_size_bytes + cb_txn_hash

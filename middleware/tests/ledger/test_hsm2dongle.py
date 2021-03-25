@@ -1,6 +1,7 @@
 from unittest import TestCase
 from unittest.mock import Mock, patch, call
 from parameterized import parameterized
+from tests.utils import list_product
 from ledger.hsm2dongle import HSM2Dongle, HSM2DongleError, HSM2DongleTimeout, HSM2DongleErrorResult
 from ledger.version import HSM2FirmwareVersion
 from ledgerblue.commException import CommException
@@ -703,14 +704,19 @@ class TestHSM2Dongle(_TestHSM2DongleBase):
         ])
 
 class TestHSM2DongleAdvanceBlockchain(_TestHSM2DongleBase):
-    @parameterized.expand([
-        ("partial", 0x05, 2),
-        ("total", 0x06, 1),
-    ])
+    @parameterized.expand(list_product([
+        ("partial_v2.0.x", 0x05, 2),
+        ("total_v2.0.x", 0x06, 1),
+        ("partial_v2.1.x", 0x05, 2),
+        ("total_v2.1.x", 0x06, 1),
+    ], [
+        (HSM2FirmwareVersion(2, 0, 5),),
+        (HSM2FirmwareVersion(2, 1, 7),),
+    ]))
     @patch("ledger.hsm2dongle.coinbase_tx_get_hash")
     @patch("ledger.hsm2dongle.get_coinbase_txn")
     @patch("ledger.hsm2dongle.rlp_mm_payload_size")
-    def test_advance_blockchain_ok(self, _, device_response, expected_response, mmplsize_mock, get_cb_txn_mock, cb_txn_get_hash_mock):
+    def test_advance_blockchain_ok(self, _, device_response, expected_response, dongle_app_version, mmplsize_mock, get_cb_txn_mock, cb_txn_get_hash_mock):
         mmplsize_mock.side_effect = lambda h: len(h)//8
         get_cb_txn_mock.side_effect = lambda h: { "cb_txn": h }
         cb_txn_get_hash_mock.side_effect = lambda h: (bytes([len(h["cb_txn"])//5])*4).hex()
@@ -725,26 +731,28 @@ class TestHSM2DongleAdvanceBlockchain(_TestHSM2DongleBase):
             [bytes([0, 0, device_response])] # Success response
 
         blocks_hex = list(map(lambda bs: bs[0].hex(), blocks_spec))
-        self.assertEqual((True, expected_response), self.hsm2dongle.advance_blockchain(blocks_hex))
+        self.assertEqual((True, expected_response), self.hsm2dongle.advance_blockchain(blocks_hex, dongle_app_version))
+
+        expect_cb_txn_hash = dongle_app_version >= HSM2FirmwareVersion(2, 1, 0)
 
         self.assert_exchange([\
             [0x10, 0x02, 0x00, 0x00, 0x00, 0x03], # Init, 3 blocks
-            [0x10, 0x03, 0x00, 0x4b, 0x78, 0x78, 0x78, 0x78], # Block #1 meta
+            [0x10, 0x03, 0x00, 0x4b] + ([0x78, 0x78, 0x78, 0x78] if expect_cb_txn_hash else []), # Block #1 meta
             [0x10, 0x04] + list(blocks_spec[0][0][80*0:80*1]), # Block #1 chunk
             [0x10, 0x04] + list(blocks_spec[0][0][80*1:80*2]), # Block #1 chunk
             [0x10, 0x04] + list(blocks_spec[0][0][80*2:80*3]), # Block #1 chunk
             [0x10, 0x04] + list(blocks_spec[0][0][80*3:80*4]), # Block #1 chunk
-            [0x10, 0x03, 0x00, 0x3e, 0x64, 0x64, 0x64, 0x64], # Block #2 meta
+            [0x10, 0x03, 0x00, 0x3e] +([0x64, 0x64, 0x64, 0x64] if expect_cb_txn_hash else []), # Block #2 meta
             [0x10, 0x04] + list(blocks_spec[1][0][100*0:100*1]), # Block #2 chunk
             [0x10, 0x04] + list(blocks_spec[1][0][100*1:100*2]), # Block #2 chunk
             [0x10, 0x04] + list(blocks_spec[1][0][100*2:100*3]), # Block #2 chunk
-            [0x10, 0x03, 0x00, 0x23, 0x38, 0x38, 0x38, 0x38], # Block #3 meta
+            [0x10, 0x03, 0x00, 0x23] + ([0x38, 0x38, 0x38, 0x38] if expect_cb_txn_hash else []), # Block #3 meta
             [0x10, 0x04] + list(blocks_spec[2][0][50*0:50*1]), # Block #2 chunk
             [0x10, 0x04] + list(blocks_spec[2][0][50*1:50*2]), # Block #3 chunk
             [0x10, 0x04] + list(blocks_spec[2][0][50*2:50*3]), # Block #3 chunk
         ])
 
-    @parameterized.expand([
+    @parameterized.expand(list_product([
         ("prot_invalid", 0x6b87, -4),
         ("rlp_invalid", 0x6b88, -5),
         ("block_too_old", 0x6b89, -5),
@@ -762,17 +770,20 @@ class TestHSM2DongleAdvanceBlockchain(_TestHSM2DongleBase):
         ("mm_hash_mismatch", 0x6b96, -6),
         ("merkle_proof_overflow", 0x6b97, -5),
         ("cb_txn_overflow", 0x6b98, -5),
-        ("cb_txn_hash_mismatch", 0x6b99, -6),
-        ("buffer_overflow", 0x6b9a, -5),
-        ("chain_mismatch", 0x6b9b, -7),
-        ("total_diff_overflow", 0x6b9c, -8),
+        ("buffer_overflow", 0x6b99, -5),
+        ("chain_mismatch", 0x6b9a, -7),
+        ("total_diff_overflow", 0x6b9b, -8),
+        ("cb_txn_hash_mismatch", 0x6b9d, -6),
         ("unexpected", 0x6bff, -10),
         ("error_response", bytes([0, 0, 0xff]), -10),
-    ])
+    ], [
+        (HSM2FirmwareVersion(2, 0, 5),),
+        (HSM2FirmwareVersion(2, 1, 7),),
+    ]))
     @patch("ledger.hsm2dongle.coinbase_tx_get_hash")
     @patch("ledger.hsm2dongle.get_coinbase_txn")
     @patch("ledger.hsm2dongle.rlp_mm_payload_size")
-    def test_advance_blockchain_chunk_error_result(self, _, error_code, response, mmplsize_mock, get_cb_txn_mock, cb_txn_get_hash_mock):
+    def test_advance_blockchain_chunk_error_result(self, _, error_code, response, dongle_app_version, mmplsize_mock, get_cb_txn_mock, cb_txn_get_hash_mock):
         mmplsize_mock.side_effect = lambda h: len(h)//8
         get_cb_txn_mock.side_effect = lambda h: { "cb_txn": h }
         cb_txn_get_hash_mock.side_effect = lambda h: (bytes([len(h["cb_txn"])//5])*4).hex()
@@ -794,29 +805,34 @@ class TestHSM2DongleAdvanceBlockchain(_TestHSM2DongleBase):
         self.dongle.exchange.side_effect = side_effect
 
         blocks_hex = list(map(lambda bs: bs[0].hex(), blocks_spec))
-        self.assertEqual((False, response), self.hsm2dongle.advance_blockchain(blocks_hex))
+        self.assertEqual((False, response), self.hsm2dongle.advance_blockchain(blocks_hex, dongle_app_version))
+
+        expect_cb_txn_hash = dongle_app_version >= HSM2FirmwareVersion(2, 1, 0)
 
         self.assert_exchange([\
             [0x10, 0x02, 0x00, 0x00, 0x00, 0x03], # Init, 3 blocks
-            [0x10, 0x03, 0x00, 0x4b, 0x78, 0x78, 0x78, 0x78], # Block #1 meta
+            [0x10, 0x03, 0x00, 0x4b] + ([0x78, 0x78, 0x78, 0x78] if expect_cb_txn_hash else []), # Block #1 meta
             [0x10, 0x04] + list(blocks_spec[0][0][80*0:80*1]), # Block #1 chunk
             [0x10, 0x04] + list(blocks_spec[0][0][80*1:80*2]), # Block #1 chunk
             [0x10, 0x04] + list(blocks_spec[0][0][80*2:80*3]), # Block #1 chunk
             [0x10, 0x04] + list(blocks_spec[0][0][80*3:80*4]), # Block #1 chunk
-            [0x10, 0x03, 0x00, 0x3e, 0x64, 0x64, 0x64, 0x64], # Block #2 meta
+            [0x10, 0x03, 0x00, 0x3e] + ([0x64, 0x64, 0x64, 0x64] if expect_cb_txn_hash else []), # Block #2 meta
             [0x10, 0x04] + list(blocks_spec[1][0][100*0:100*1]), # Block #2 chunk
             [0x10, 0x04] + list(blocks_spec[1][0][100*1:100*2]), # Block #2 chunk
         ])
 
-    @parameterized.expand([
+    @parameterized.expand(list_product([
         ("prot_invalid", 0x6b87, -3),
         ("unexpected", 0x6bff, -10),
         ("error_response", bytes([0, 0, 0xff]), -10),
-    ])
+    ], [
+        (HSM2FirmwareVersion(2, 0, 5),),
+        (HSM2FirmwareVersion(2, 1, 7),),
+    ]))
     @patch("ledger.hsm2dongle.coinbase_tx_get_hash")
     @patch("ledger.hsm2dongle.get_coinbase_txn")
     @patch("ledger.hsm2dongle.rlp_mm_payload_size")
-    def test_advance_blockchain_metadata_error_result(self, _, error_code, response, mmplsize_mock, get_cb_txn_mock, cb_txn_get_hash_mock):
+    def test_advance_blockchain_metadata_error_result(self, _, error_code, response, dongle_app_version, mmplsize_mock, get_cb_txn_mock, cb_txn_get_hash_mock):
         mmplsize_mock.side_effect = lambda h: len(h)//8
         get_cb_txn_mock.side_effect = lambda h: { "cb_txn": h }
         cb_txn_get_hash_mock.side_effect = lambda h: (bytes([len(h["cb_txn"])//5])*4).hex()
@@ -838,20 +854,22 @@ class TestHSM2DongleAdvanceBlockchain(_TestHSM2DongleBase):
         self.dongle.exchange.side_effect = side_effect
 
         blocks_hex = list(map(lambda bs: bs[0].hex(), blocks_spec))
-        self.assertEqual((False, response), self.hsm2dongle.advance_blockchain(blocks_hex))
+        self.assertEqual((False, response), self.hsm2dongle.advance_blockchain(blocks_hex, dongle_app_version))
+
+        expect_cb_txn_hash = dongle_app_version >= HSM2FirmwareVersion(2, 1, 0)
 
         self.assert_exchange([\
             [0x10, 0x02, 0x00, 0x00, 0x00, 0x03], # Init, 3 blocks
-            [0x10, 0x03, 0x00, 0x4b, 0x78, 0x78, 0x78, 0x78], # Block #1 meta
+            [0x10, 0x03, 0x00, 0x4b] + ([0x78, 0x78, 0x78, 0x78] if expect_cb_txn_hash else []), # Block #1 meta
             [0x10, 0x04] + list(blocks_spec[0][0][80*0:80*1]), # Block #1 chunk
             [0x10, 0x04] + list(blocks_spec[0][0][80*1:80*2]), # Block #1 chunk
             [0x10, 0x04] + list(blocks_spec[0][0][80*2:80*3]), # Block #1 chunk
             [0x10, 0x04] + list(blocks_spec[0][0][80*3:80*4]), # Block #1 chunk
-            [0x10, 0x03, 0x00, 0x3e, 0x64, 0x64, 0x64, 0x64], # Block #2 meta
+            [0x10, 0x03, 0x00, 0x3e] + ([0x64, 0x64, 0x64, 0x64] if expect_cb_txn_hash else []), # Block #2 meta
             [0x10, 0x04] + list(blocks_spec[1][0][100*0:100*1]), # Block #2 chunk
             [0x10, 0x04] + list(blocks_spec[1][0][100*1:100*2]), # Block #2 chunk
             [0x10, 0x04] + list(blocks_spec[1][0][100*2:100*3]), # Block #2 chunk
-            [0x10, 0x03, 0x00, 0x23, 0x38, 0x38, 0x38, 0x38], # Block #3 meta
+            [0x10, 0x03, 0x00, 0x23] + ([0x38, 0x38, 0x38, 0x38] if expect_cb_txn_hash else []), # Block #3 meta
         ])
 
     @patch("ledger.hsm2dongle.rlp_mm_payload_size")
@@ -861,7 +879,7 @@ class TestHSM2DongleAdvanceBlockchain(_TestHSM2DongleBase):
             bytes([0, 0, 0x03])
         ]
 
-        self.assertEqual((False, -2), self.hsm2dongle.advance_blockchain(["first-block", "second-block"]))
+        self.assertEqual((False, -2), self.hsm2dongle.advance_blockchain(["first-block", "second-block"], 'an-app-version'))
 
         self.assert_exchange([\
             [0x10, 0x02, 0x00, 0x00, 0x00, 0x02], # Init, 2 blocks
@@ -876,7 +894,7 @@ class TestHSM2DongleAdvanceBlockchain(_TestHSM2DongleBase):
     def test_advance_blockchain_init_error(self, _, error, response):
         self.dongle.exchange.side_effect = [error]
 
-        self.assertEqual((False, response), self.hsm2dongle.advance_blockchain(["first-block", "second-block"]))
+        self.assertEqual((False, response), self.hsm2dongle.advance_blockchain(["first-block", "second-block"], 'an-app-version'))
 
         self.assert_exchange([\
             [0x10, 0x02, 0x00, 0x00, 0x00, 0x02], # Init, 2 blocks
@@ -899,7 +917,7 @@ class TestHSM2DongleUpdateAncestor(_TestHSM2DongleBase):
             [bytes([0, 0, 0x05])] # Success response
 
         blocks_hex = list(map(lambda bs: bs[0].hex(), blocks_spec))
-        self.assertEqual((True, 1), self.hsm2dongle.update_ancestor(blocks_hex))
+        self.assertEqual((True, 1), self.hsm2dongle.update_ancestor(blocks_hex, 'an-app-version'))
 
         self.assert_exchange([\
             [0x30, 0x02, 0x00, 0x00, 0x00, 0x03], # Init, 3 blocks
@@ -928,9 +946,9 @@ class TestHSM2DongleUpdateAncestor(_TestHSM2DongleBase):
         ("block_num_invalid", 0x6b8d, -5),
         ("btc_header_invalid", 0x6b90, -5),
         ("mm_rlp_len_mismatch", 0x6b93, -5),
-        ("buffer_overflow", 0x6b9a, -5),
-        ("chain_mismatch", 0x6b9b, -6),
-        ("ancestor_tip_mismatch", 0x6b9d, -7),
+        ("buffer_overflow", 0x6b99, -5),
+        ("chain_mismatch", 0x6b9a, -6),
+        ("ancestor_tip_mismatch", 0x6b9c, -7),
         ("unexpected", 0x6bff, -10),
         ("error_response", bytes([0, 0, 0xff]), -10),
     ])
@@ -957,7 +975,7 @@ class TestHSM2DongleUpdateAncestor(_TestHSM2DongleBase):
         self.dongle.exchange.side_effect = side_effect
 
         blocks_hex = list(map(lambda bs: bs[0].hex(), blocks_spec))
-        self.assertEqual((False, response), self.hsm2dongle.update_ancestor(blocks_hex))
+        self.assertEqual((False, response), self.hsm2dongle.update_ancestor(blocks_hex, 'an-app-version'))
 
         self.assert_exchange([\
             [0x30, 0x02, 0x00, 0x00, 0x00, 0x03], # Init, 3 blocks
@@ -999,7 +1017,7 @@ class TestHSM2DongleUpdateAncestor(_TestHSM2DongleBase):
         self.dongle.exchange.side_effect = side_effect
 
         blocks_hex = list(map(lambda bs: bs[0].hex(), blocks_spec))
-        self.assertEqual((False, response), self.hsm2dongle.update_ancestor(blocks_hex))
+        self.assertEqual((False, response), self.hsm2dongle.update_ancestor(blocks_hex, 'an-app-version'))
 
         self.assert_exchange([\
             [0x30, 0x02, 0x00, 0x00, 0x00, 0x03], # Init, 3 blocks
@@ -1024,7 +1042,7 @@ class TestHSM2DongleUpdateAncestor(_TestHSM2DongleBase):
             bytes([0, 0, 0x03])
         ]
 
-        self.assertEqual((False, -2), self.hsm2dongle.update_ancestor(["first-block", "second-block"]))
+        self.assertEqual((False, -2), self.hsm2dongle.update_ancestor(["first-block", "second-block"], 'an-app-version'))
 
         self.assert_exchange([\
             [0x30, 0x02, 0x00, 0x00, 0x00, 0x02], # Init, 2 blocks
@@ -1041,7 +1059,7 @@ class TestHSM2DongleUpdateAncestor(_TestHSM2DongleBase):
         rmvflds_mock.side_effect = lambda h: h
         self.dongle.exchange.side_effect = [error]
 
-        self.assertEqual((False, response), self.hsm2dongle.update_ancestor(["first-block", "second-block"]))
+        self.assertEqual((False, response), self.hsm2dongle.update_ancestor(["first-block", "second-block"], 'an-app-version'))
 
         self.assert_exchange([\
             [0x30, 0x02, 0x00, 0x00, 0x00, 0x02], # Init, 2 blocks
@@ -1051,6 +1069,6 @@ class TestHSM2DongleUpdateAncestor(_TestHSM2DongleBase):
     def test_update_ancestor_remove_mmfields_exception(self, rmvflds_mock):
         rmvflds_mock.side_effect = ValueError("an error")
 
-        self.assertEqual((False, -8), self.hsm2dongle.update_ancestor(["first-block", "second-block"]))
+        self.assertEqual((False, -8), self.hsm2dongle.update_ancestor(["first-block", "second-block"], 'an-app-version'))
 
         self.assert_exchange([])

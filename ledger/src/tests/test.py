@@ -107,11 +107,11 @@ class Error(IntEnum):
     MM_HASH_MISMATCH = auto()
     MERKLE_PROOF_OVERFLOW = auto()
     CB_TXN_OVERFLOW = auto()
-    CB_TXN_HASH_MISMATCH = auto()
     BUFFER_OVERFLOW = auto()
     CHAIN_MISMATCH = auto()
     TOTAL_DIFF_OVERFLOW = auto()
     ANCESTOR_TIP_MISMATCH = auto()
+    CB_TXN_HASH_MISMATCH = auto()
 
 _errors = {
     Error.APP_NOT_STARTED: "Signer app has not been started",

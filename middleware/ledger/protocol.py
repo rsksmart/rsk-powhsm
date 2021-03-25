@@ -6,9 +6,9 @@ from ledger.hsm2dongle import HSM2Dongle, HSM2DongleError, \
 from comm.bitcoin import get_unsigned_tx, get_tx_hash
 
 class HSM2ProtocolLedger(HSM2Protocol):
-    # Current manager supports HSM UI 2.0.0 and HSM APP 2.0.0
-    UI_VERSION = HSM2FirmwareVersion(2,0,0)
-    APP_VERSION = HSM2FirmwareVersion(2,0,0)
+    # Current manager supports HSM UI <= 2.1.0 and HSM APP <= 2.1.0
+    UI_VERSION = HSM2FirmwareVersion(2,1,0)
+    APP_VERSION = HSM2FirmwareVersion(2,1,0)
 
     # Amount of time to wait to make sure the app is opened
     OPEN_APP_WAIT = 1 #second
@@ -46,7 +46,7 @@ class HSM2ProtocolLedger(HSM2Protocol):
         current_mode = self.hsm2dongle.get_current_mode()
         self.logger.debug("Mode #%s", current_mode)
 
-        if current_mode == self.hsm2dongle.MODE.BOOTLOADER:
+        if current_mode == HSM2Dongle.MODE.BOOTLOADER:
             self._handle_bootloader()
 
             # After handling the bootloader, we need to reload the mode since
@@ -58,15 +58,15 @@ class HSM2ProtocolLedger(HSM2Protocol):
         # In this point, the mode should be app.
         # Otherwise, we tell the user to manually enter the app and run
         # the manager again
-        if current_mode != self.hsm2dongle.MODE.APP:
+        if current_mode != HSM2Dongle.MODE.APP:
             self.logger.info("Dongle mode unknown. Please manually enter the signing app and re-run the manager")
             raise HSM2ProtocolInterrupt()
 
         self.logger.info("Mode: Signing App")
 
         # Verify that the app's version is correct
-        version = self.hsm2dongle.get_version()
-        self._check_version(version, self.APP_VERSION, "app")
+        self._dongle_app_version = self.hsm2dongle.get_version()
+        self._check_version(self._dongle_app_version, self.APP_VERSION, "App")
 
         # Get and report signer parameters
         signer_parameters = self.hsm2dongle.get_signer_parameters()
@@ -84,8 +84,8 @@ class HSM2ProtocolLedger(HSM2Protocol):
         self.logger.info("Mode: Bootloader")
 
         # Version check
-        version = self.hsm2dongle.get_version()
-        self._check_version(version, self.UI_VERSION, "bootloader")
+        self._dongle_ui_version = self.hsm2dongle.get_version()
+        self._check_version(self._dongle_ui_version, self.UI_VERSION, "UI")
 
         # Echo check
         self.logger.info("Sending echo")
@@ -130,10 +130,10 @@ class HSM2ProtocolLedger(HSM2Protocol):
         self.hsm2dongle.connect()
 
 
-    def _check_version(self, version, wanted_version, name):
-        self.logger.info("%s version: %s (need %s)", name.capitalize(), version, wanted_version)
-        if not version.is_compliant_with(wanted_version):
-            self._error("Incorrect %s version: Dongle reports %s, Node needs %s" % (name, version, wanted_version))
+    def _check_version(self, fware_version, mware_version, name):
+        self.logger.info("%s version: %s (supported <= %s)", name, fware_version, mware_version)
+        if not mware_version.supports(fware_version):
+            self._error("Unsupported %s version: Dongle reports %s, Node needs <= %s" % (name, fware_version, mware_version))
 
     def _error(self, msg):
         self.logger.error(msg)
@@ -257,7 +257,7 @@ class HSM2ProtocolLedger(HSM2Protocol):
 
     def _advance_blockchain(self, request):
         try:
-            advance_result = self.hsm2dongle.advance_blockchain(request["blocks"])
+            advance_result = self.hsm2dongle.advance_blockchain(request["blocks"], self._dongle_app_version)
 
             return (self._translate_advance_result(advance_result[1]), {})
         except (HSM2DongleError, HSM2DongleTimeout) as e:
@@ -281,7 +281,7 @@ class HSM2ProtocolLedger(HSM2Protocol):
 
     def _update_ancestor_block(self, request):
         try:
-            update_result = self.hsm2dongle.update_ancestor(request["blocks"])
+            update_result = self.hsm2dongle.update_ancestor(request["blocks"], self._dongle_app_version)
 
             return (self._translate_update_ancestor_result(update_result[1]), {})
         except (HSM2DongleError, HSM2DongleTimeout) as e:

@@ -4,7 +4,8 @@ from parameterized import parameterized
 from comm.bip32 import BIP32Path
 from comm.protocol import HSM2ProtocolError
 from ledger.protocol import HSM2ProtocolLedger
-from ledger.hsm2dongle import HSM2DongleError, HSM2DongleErrorResult, HSM2DongleTimeout
+from ledger.hsm2dongle import HSM2Dongle, HSM2DongleError, HSM2DongleErrorResult, HSM2DongleTimeout
+from ledger.version import HSM2FirmwareVersion
 
 import logging
 logging.disable(logging.CRITICAL)
@@ -12,8 +13,15 @@ logging.disable(logging.CRITICAL)
 class TestHSM2ProtocolLedger(TestCase):
     def setUp(self):
         self.pin = Mock()
+        self.expected_app_version = HSM2FirmwareVersion(2, 1, 0)
         self.dongle = Mock()
+        self.dongle.connect = Mock()
+        self.dongle.is_onboarded = Mock(return_value=True)
+        self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.APP)
+        self.dongle.get_version = Mock(return_value=HSM2FirmwareVersion(2, 1, 0))
+        self.dongle.get_signer_parameters = Mock(return_value=Mock(min_required_difficulty=123))
         self.protocol = HSM2ProtocolLedger(self.pin, self.dongle)
+        self.protocol.initialize_device()
 
     @patch("comm.protocol.BIP32Path")
     def test_get_pubkey_ok(self, BIP32PathMock):
@@ -408,7 +416,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual({ "errorcode": expected_code },
             self.protocol.handle_request({ "version": 2, "command": "advanceBlockchain", "blocks": ["aabbcc", "ddeeff"] }))
 
-        self.assertEqual([call(["aabbcc", "ddeeff"])], self.dongle.advance_blockchain.call_args_list)
+        self.assertEqual([call(["aabbcc", "ddeeff"], self.expected_app_version)], self.dongle.advance_blockchain.call_args_list)
 
     def test_advance_blockchain_timeout(self):
         self.dongle.advance_blockchain.side_effect = HSM2DongleTimeout()
@@ -416,7 +424,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual({ "errorcode": -905 },
             self.protocol.handle_request({ "version": 2, "command": "advanceBlockchain", "blocks": ["aabbcc", "ddeeff"] }))
 
-        self.assertEqual([call(["aabbcc", "ddeeff"])], self.dongle.advance_blockchain.call_args_list)
+        self.assertEqual([call(["aabbcc", "ddeeff"], self.expected_app_version)], self.dongle.advance_blockchain.call_args_list)
 
     def test_advance_blockchain_exception(self):
         self.dongle.advance_blockchain.side_effect = HSM2DongleError("a-message")
@@ -424,7 +432,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual({ "errorcode": -905 },
             self.protocol.handle_request({ "version": 2, "command": "advanceBlockchain", "blocks": ["aabbcc", "ddeeff"] }))
 
-        self.assertEqual([call(["aabbcc", "ddeeff"])], self.dongle.advance_blockchain.call_args_list)
+        self.assertEqual([call(["aabbcc", "ddeeff"], self.expected_app_version)], self.dongle.advance_blockchain.call_args_list)
 
     @parameterized.expand([
         ("success", (True, 1), 0),
@@ -444,7 +452,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual({ "errorcode": expected_code },
             self.protocol.handle_request({ "version": 2, "command": "updateAncestorBlock", "blocks": ["aabbcc", "ddeeff"] }))
 
-        self.assertEqual([call(["aabbcc", "ddeeff"])], self.dongle.update_ancestor.call_args_list)
+        self.assertEqual([call(["aabbcc", "ddeeff"], self.expected_app_version)], self.dongle.update_ancestor.call_args_list)
 
     def test_update_ancestor_timeout(self):
         self.dongle.update_ancestor.side_effect = HSM2DongleTimeout()
@@ -452,7 +460,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual({ "errorcode": -905 },
             self.protocol.handle_request({ "version": 2, "command": "updateAncestorBlock", "blocks": ["aabbcc", "ddeeff"] }))
 
-        self.assertEqual([call(["aabbcc", "ddeeff"])], self.dongle.update_ancestor.call_args_list)
+        self.assertEqual([call(["aabbcc", "ddeeff"], self.expected_app_version)], self.dongle.update_ancestor.call_args_list)
 
     def test_update_ancestor_exception(self):
         self.dongle.update_ancestor.side_effect = HSM2DongleError("a-message")
@@ -460,4 +468,4 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual({ "errorcode": -905 },
             self.protocol.handle_request({ "version": 2, "command": "updateAncestorBlock", "blocks": ["aabbcc", "ddeeff"] }))
 
-        self.assertEqual([call(["aabbcc", "ddeeff"])], self.dongle.update_ancestor.call_args_list)
+        self.assertEqual([call(["aabbcc", "ddeeff"], self.expected_app_version)], self.dongle.update_ancestor.call_args_list)
