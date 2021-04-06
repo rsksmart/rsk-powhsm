@@ -15,15 +15,19 @@ class HSM2FirmwareVersion:
     def __repr__(self):
         return f"HSM2FirmwareVersion<{str(self)[1:]}>"
 
-    # This returns true iif this version's 
+    # This returns true iff this version's 
     # middleware protocol is compatible
     # with the given firmware running version.
+    #
+    # Declaratively, middleware and firmware major versions must be always equal, 
+    # but middleware's <minor, patch> version must be greater or equal than 
+    # that of the firmware's.
     def supports(self, running_version):
         return self.major == running_version.major and\
                 self.minor >= running_version.minor and\
                 (self.minor > running_version.minor or self.patch >= running_version.patch)
 
-    # This returns true iif this version is
+    # This returns true iff this version is
     # greater or equal than the given version
     # (the implementation is the same as that
     # of the 'supports' method, but the semantics
