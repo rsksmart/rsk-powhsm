@@ -383,6 +383,7 @@ void io_seproxyhal_display(const bagl_element_t *element) {
 #define RSK_END_CMD 0xff
 #define RSK_END_CMD_NOSIG 0xfa
 #define RSK_UNLOCK_CMD 0xfe
+#define RSK_RETRIES 0x45
 #define RSK_DBG1_CMD 0x42
 #define RSK_MODE_CMD 0x43
 #define RSK_MODE_BOOTLOADER 0x02
@@ -392,6 +393,54 @@ void io_seproxyhal_display(const bagl_element_t *element) {
 #define VERSION_MINOR 0x01
 #define VERSION_PATCH 0x00
 
+// Reusing words buffer as attestation context
+#define attestation_ctx (G_bolos_ux_context.words_buffer)
+
+/*
+ * Do pin validations on the given pin buffer
+ * If pin validations fail, throw
+ */
+void validate_pin(char* pin_buffer) {
+    // Check PIN length
+    if (pin_buffer[0] != MAX_PIN_LENGTH) {
+        THROW(0x69a0);
+    }
+    // Check if PIN is alphanumeric
+    int isAlphanumeric=0;
+    for (int i=0;i<MAX_PIN_LENGTH;i++) {
+        if (pin_buffer[i+1]>'9') {
+            isAlphanumeric=1;
+        }
+    }
+    if (!isAlphanumeric) {
+        THROW(0x69a0);
+    }
+}
+
+/*
+ * Reset attestation state.
+ */
+void reset_attestation() {
+    explicit_bzero(attestation_ctx, sizeof(attestation_ctx));
+}
+
+// Operation being currently executed
+static unsigned char curr_cmd;
+
+/*
+ * Reset all reseteable operations, only if the given operation is starting.
+ *
+ * @arg[in] cmd operation code
+ */
+static void reset_if_starting(unsigned char cmd) {
+    // Reset only if starting new operation (cmd != curr_cmd).
+    // Otherwise we already reset when curr_cmd started.
+    if (cmd != curr_cmd) {
+        curr_cmd = cmd;
+        reset_attestation();
+    }
+}
+
 static void sample_main(void) {
     volatile unsigned int rx = 0;
     volatile unsigned int tx = 0;
@@ -400,6 +449,9 @@ static void sample_main(void) {
     int i=0;
     char validpin;
     unsigned char aux;
+
+    // Initialize current operation
+    curr_cmd = 0; // 0 = no operation being executed
 
     // DESIGN NOTE: the bootloader ignores the way APDU are fetched. The only
     // goal is to retrieve APDU.
@@ -451,97 +503,82 @@ static void sample_main(void) {
 		     tx=5;
                      THROW(0x9000);
 		     break;
-                case RSK_WIPE:  //--- wipe and onboard device ---
-		     // Wipe device
-		     os_global_pin_invalidate();
-		     os_perso_wipe();
-		     G_bolos_ux_context.onboarding_kind = BOLOS_UX_ONBOARDING_NEW_24;
-		     // Generate 32 bytes of random with onboard rng
-		     cx_rng((unsigned char *)G_bolos_ux_context.string_buffer, HASHSIZE);
-		     // XOR with host-generated 32 bytes random
-	             for (i=0;i<HASHSIZE;i++)
-				G_bolos_ux_context.string_buffer[i] ^= G_bolos_ux_context.words_buffer[i];
-		     // The seed is in string_buffer. Encrypt/Backup it.
-		     cx_ecfp_private_key_t Da;
-		     cx_ecfp_public_key_t Qa;
-		     cx_aes_key_t aesKey;
-		     char *secret=G_bolos_ux_context.words_buffer;
-		     // Generate Da,Qa
-		     cx_rng((unsigned char *)secret, SEEDSIZE);
-		     cx_ecfp_init_private_key(CX_CURVE_256K1, &secret, SEEDSIZE, &Da);
-       		     cx_ecfp_generate_pair(CX_CURVE_256K1, &Qa, &Da, 1);
-		     // Hardcoded Host Qb
-		     static cx_ecfp_public_key_t *Qb = G_bolos_ux_context.words_buffer;
-		     const char *RSK_PUBKEY = "\x04\xda\x02\x17\x62\x16\x45\x6a\x17\xd5\x73\x94\xb8\x46\x75\x9e\xe6\x84\x6b\xa0\xc7\x7d\xd3\xa1\x95\x31\xab\x90\xf1\xc2\x50\x1a\xb6\xe1\x7a\x02\xd8\x69\xdb\xd9\xfc\x43\xd2\x63\xa3\x71\x0d\x81\x39\x33\x95\xd5\x4c\xdf\xb5\xdd\x14\x69\x7b\x50\xb0\xe6\x91\xdc\xf6";
-		     cx_ecfp_init_public_key(CX_CURVE_256K1,RSK_PUBKEY,65,Qb);
-		     // Generate secret
-		     cx_ecdh(&Da, CX_ECDH_POINT, Qb->W, secret); // shared secret is now in 'secret'
-		     secret[0] = (secret[64] & 1 ? 0x03 : 0x02);
-		     cx_hash_sha256(secret, 33, secret);
-		    //  cx_aes_init_key(secret, 16, &aesKey);
-		    //  cx_aes(&aesKey,CX_LAST | CX_ENCRYPT | CX_PAD_NONE | CX_CHAIN_CBC, G_bolos_ux_context.string_buffer,SEEDSIZE,&G_io_apdu_buffer[3]);
-		     //Send Qa
-		    //  os_memmove(&G_io_apdu_buffer[3+SEEDSIZE],Qa.W,33);
-		    //  G_io_apdu_buffer[3+SEEDSIZE] = (Qa.W[64] & 1 ? 0x03 : 0x02);
-    		     // generate a new seed, and the word list
-    		     os_memset(G_bolos_ux_context.words_buffer, 0, sizeof(G_bolos_ux_context.words_buffer));
-		     G_bolos_ux_context.words_buffer_length = bolos_ux_mnemonic_from_data(
-		        (unsigned char *)G_bolos_ux_context.string_buffer, SEEDSIZE,
-		        (unsigned char *)G_bolos_ux_context.words_buffer,
-		        sizeof(G_bolos_ux_context.words_buffer));
-                     // Set SEED
-		     os_perso_derive_and_set_seed(0, NULL, 0, NULL, 0,
-                                 G_bolos_ux_context.words_buffer,
-                                 strlen(G_bolos_ux_context.words_buffer));
-                     // Set PIN
-    		     os_perso_set_pin(0, (unsigned char *)G_bolos_ux_context.pin_buffer + 1, G_bolos_ux_context.pin_buffer[0]);
-		     // finalize onboarding
-		     os_perso_finalize();
-		     G_io_apdu_buffer[1]=2;
-		     os_global_pin_invalidate();
-		     G_io_apdu_buffer[2]=os_global_pin_check((unsigned char *)G_bolos_ux_context.pin_buffer + 1,G_bolos_ux_context.pin_buffer[0]);
-//		     tx = 0x01;
-//		     nvm_write((void*)&N_firstuse,&tx,sizeof(tx)); // firstuse flag
-		     // clear app hash blacklist
-		     os_memset(G_bolos_ux_context.string_buffer,0,COMPRESSEDHASHSIZE); // We reuse string_buffer to avoid allocating a new buffer
-		     for (i=0;i<SIGNER_LOG_SIZE;i++)
-			     nvm_write((void *)PIC(N_SignerHashList[i]),G_bolos_ux_context.string_buffer,COMPRESSEDHASHSIZE);
-		    //  tx=3+SEEDSIZE+PUBKEYCOMPRESSEDSIZE;
-             
-             // Turn the onboarding flag on to mark onboarding
-             // has been done using the UI
-             aux = 1;
-             nvm_write((void*)PIC(N_onboarded_ui), &aux, sizeof(aux));
-
-		     tx=3;
-                     THROW(0x9000);
-		     break;
-                case RSK_NEWPIN:
+            case RSK_WIPE:  //--- wipe and onboard device ---
 #ifndef DEBUG_BUILD
-		    // Check minimum PIN lenght
-		    if (G_bolos_ux_context.pin_buffer[0] !=MAX_PIN_LENGTH)
-			THROW(0x69a0);
-		    // Check if PIN is alphanumeric
-		    int isAlphanumeric=0,i;
-		    for (i=0;i<MAX_PIN_LENGTH;i++)
-			    if (G_bolos_ux_context.pin_buffer[i+1]>'9')
-				    isAlphanumeric=1;
-		    if (!isAlphanumeric)
-			THROW(0x69a0);
+                validate_pin(G_bolos_ux_context.pin_buffer);
 #endif
-                    // Set PIN
-    		    os_perso_set_pin(0, (unsigned char *)G_bolos_ux_context.pin_buffer + 1, G_bolos_ux_context.pin_buffer[0]);
-		     // check PIN
-		    G_io_apdu_buffer[1]=2;
-		    os_global_pin_invalidate();
-		    G_io_apdu_buffer[2]=os_global_pin_check((unsigned char *)G_bolos_ux_context.pin_buffer + 1,G_bolos_ux_context.pin_buffer[0]);
-		    tx=3;
-                    THROW(0x9000);
-                    break;
-                case RSK_ECHO_CMD: // echo
-                    tx = rx;
-                    THROW(0x9000);
-                    break;
+                // Wipe dice
+                os_global_pin_invalidate();
+                os_perso_wipe();
+                G_bolos_ux_context.onboarding_kind = BOLOS_UX_ONBOARDING_NEW_24;
+                // Generate 32 bytes of random with onboard rng
+                cx_rng((unsigned char *)G_bolos_ux_context.string_buffer, HASHSIZE);
+                // XOR with host-generated 32 bytes random
+                for (i=0;i<HASHSIZE;i++) {
+                    G_bolos_ux_context.string_buffer[i] ^= G_bolos_ux_context.words_buffer[i];
+                }
+                // The seed is now in string_buffer, generate the mnemonic
+                os_memset(G_bolos_ux_context.words_buffer, 0, sizeof(G_bolos_ux_context.words_buffer));
+                G_bolos_ux_context.words_buffer_length = bolos_ux_mnemonic_from_data(
+                    (unsigned char *)G_bolos_ux_context.string_buffer, SEEDSIZE,
+                    (unsigned char *)G_bolos_ux_context.words_buffer,
+                    sizeof(G_bolos_ux_context.words_buffer));
+                // Clear the seed
+                explicit_bzero(
+                    G_bolos_ux_context.string_buffer, 
+                    sizeof(G_bolos_ux_context.string_buffer));
+                // Set seed from mnemonic
+                os_perso_derive_and_set_seed(0, NULL, 0, NULL, 0,
+                    G_bolos_ux_context.words_buffer,
+                    strlen(G_bolos_ux_context.words_buffer));
+                // Clear the mnemonic
+                explicit_bzero(
+                    G_bolos_ux_context.words_buffer, 
+                    sizeof(G_bolos_ux_context.words_buffer));
+                // Set PIN
+                os_perso_set_pin(
+                    0, (unsigned char *)G_bolos_ux_context.pin_buffer + 1, 
+                    G_bolos_ux_context.pin_buffer[0]);
+                // Finalize onboarding
+                os_perso_finalize();
+                G_io_apdu_buffer[1]=2;
+                os_global_pin_invalidate();
+                G_io_apdu_buffer[2] = os_global_pin_check(
+                    (unsigned char *)G_bolos_ux_context.pin_buffer + 1,
+                    G_bolos_ux_context.pin_buffer[0]);
+                // Clear pin buffer
+                explicit_bzero(G_bolos_ux_context.pin_buffer, sizeof(G_bolos_ux_context.pin_buffer));
+                // Clear app hash blacklist
+                // (we reuse string_buffer to avoid allocating a new buffer)
+                os_memset(G_bolos_ux_context.string_buffer, 0, COMPRESSEDHASHSIZE);
+                for (i=0;i<SIGNER_LOG_SIZE;i++) {
+                    nvm_write((void *)PIC(N_SignerHashList[i]),G_bolos_ux_context.string_buffer,COMPRESSEDHASHSIZE);
+                }
+                // Turn the onboarding flag on to mark onboarding
+                // has been done using the UI
+                aux = 1;
+                nvm_write((void*)PIC(N_onboarded_ui), &aux, sizeof(aux));
+                // Output
+                tx=3;
+                THROW(0x9000);
+                break;
+            case RSK_NEWPIN:
+#ifndef DEBUG_BUILD
+                validate_pin(G_bolos_ux_context.pin_buffer);
+#endif
+                // Set PIN
+                os_perso_set_pin(0, (unsigned char *)G_bolos_ux_context.pin_buffer + 1, G_bolos_ux_context.pin_buffer[0]);
+                // check PIN
+                G_io_apdu_buffer[1]=2;
+                os_global_pin_invalidate();
+                G_io_apdu_buffer[2]=os_global_pin_check((unsigned char *)G_bolos_ux_context.pin_buffer + 1,G_bolos_ux_context.pin_buffer[0]);
+                tx=3;
+                THROW(0x9000);
+                break;
+            case RSK_ECHO_CMD: // echo
+                tx = rx;
+                THROW(0x9000);
+                break;
 		case RSK_DBG1_CMD: // Debug1
            	    //os_registry_get(G_io_apdu_buffer[1], &app);
                     //tx = strlen(app.name)+2;
@@ -553,8 +590,13 @@ static void sample_main(void) {
 		     THROW(0x9000);
 		     break;
         case INS_ATTESTATION:
-            // Reusing words buffer as attestation context
-            tx = get_attestation(rx, G_bolos_ux_context.words_buffer); 
+            reset_if_starting(INS_ATTESTATION);
+            tx = get_attestation(rx, attestation_ctx);
+            THROW(0x9000);
+            break;
+        case RSK_RETRIES:
+            G_io_apdu_buffer[2] = (unsigned char) os_global_pin_retries();
+            tx = 3;
             THROW(0x9000);
             break;
 		case RSK_UNLOCK_CMD: // Unlock

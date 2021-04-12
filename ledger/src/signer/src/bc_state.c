@@ -48,7 +48,7 @@ static const uint8_t INITIAL_BLOCK_HASH[] = {
 #ifdef FEDHM_EMULATOR
 static bool N_bc_initialized;
 #else
-static const bool N_bc_initialized;
+static const bool N_bc_initialized = 0;
 #endif
 
 /*
@@ -56,6 +56,10 @@ static const bool N_bc_initialized;
  */
 void bc_init_state() {
     if (!N_bc_initialized) {
+        uint8_t c = 0;
+        for (int i = 0; i < sizeof(N_bc_state); i++) {
+            NVM_WRITE(&(((uint8_t*)&N_bc_state)[i]), &c, sizeof(c));
+        }
         NVM_WRITE(N_bc_state.best_block, INITIAL_BLOCK_HASH, HASH_SIZE);
         NVM_WRITE(N_bc_state.newest_valid_block, INITIAL_BLOCK_HASH, HASH_SIZE);
 

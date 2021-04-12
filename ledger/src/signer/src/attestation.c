@@ -1,5 +1,7 @@
 #ifndef FEDHM_EMULATOR
 #include "os.h"
+#else
+#include "exception.h"
 #endif
 
 #include "attestation.h"
@@ -17,15 +19,38 @@ const char ATT_MSG_PREFIX[ATT_MSG_PREFIX_LENGTH] = "HSM:SIGNER:2.1";
 // -----------------------------------------------------------------------
 
 static void hash_public_key(const char* path, att_t* att_ctx) {
-    // Derive public key
-    moxie_swi_crypto_cleanup();
-    os_memmove(att_ctx->path, (unsigned int*) (&path[1]), sizeof(att_ctx->path)); // Skip first byte of path (size)
-    os_perso_derive_node_bip32(CX_CURVE_256K1, att_ctx->path, RSK_PATH_LEN, att_ctx->priv_key_data, NULL);
-    cx_ecdsa_init_private_key(CX_CURVE_256K1, att_ctx->priv_key_data, KEYLEN, &att_ctx->priv_key);
-    cx_ecfp_generate_pair(CX_CURVE_256K1, &att_ctx->pub_key, &att_ctx->priv_key, 1);
+    BEGIN_TRY {
+        TRY {
+            // Derive public key
+            moxie_swi_crypto_cleanup();
+            os_memmove(att_ctx->path, (unsigned int*) (&path[1]), sizeof(att_ctx->path)); // Skip first byte of path (size)
+            // Derive and init private key
+            os_perso_derive_node_bip32(CX_CURVE_256K1, att_ctx->path, RSK_PATH_LEN, att_ctx->priv_key_data, NULL);
+            cx_ecdsa_init_private_key(CX_CURVE_256K1, att_ctx->priv_key_data, KEYLEN, &att_ctx->priv_key);
+            // Cleanup private key data
+            explicit_bzero(att_ctx->priv_key_data, sizeof(att_ctx->priv_key_data));
+            // Derive public key
+            cx_ecfp_generate_pair(CX_CURVE_256K1, &att_ctx->pub_key, &att_ctx->priv_key, 1);
+            // Cleanup private key
+            explicit_bzero(&att_ctx->priv_key, sizeof(att_ctx->priv_key));
 
-    // Hash
-    SHA256_UPDATE(&att_ctx->hash_ctx, att_ctx->pub_key.W, att_ctx->pub_key.W_len);
+            // Hash
+            SHA256_UPDATE(&att_ctx->hash_ctx, att_ctx->pub_key.W, att_ctx->pub_key.W_len);
+
+            // Cleanup public key
+            explicit_bzero(&att_ctx->pub_key, sizeof(att_ctx->pub_key));
+        }
+        CATCH_OTHER(e) {
+            // Cleanup key data and fail
+            explicit_bzero(att_ctx->priv_key_data, sizeof(att_ctx->priv_key_data));
+            explicit_bzero(&att_ctx->priv_key, sizeof(att_ctx->priv_key));
+            explicit_bzero(&att_ctx->pub_key, sizeof(att_ctx->pub_key));
+            THROW(ATT_INTERNAL);
+        }
+        FINALLY {
+        }
+    }
+    END_TRY;
 }
 
 /*
@@ -35,6 +60,9 @@ static void hash_public_key(const char* path, att_t* att_ctx) {
  * @ret             generated message size
  */
 static unsigned int generate_message_to_sign(att_t* att_ctx) {
+    // Initialize message
+    explicit_bzero(att_ctx->msg, sizeof(att_ctx->msg));
+    
     // Copy the message prefix
     memcpy(att_ctx->msg, PIC(ATT_MSG_PREFIX), ATT_MSG_PREFIX_LENGTH);
 
@@ -48,11 +76,6 @@ static unsigned int generate_message_to_sign(att_t* att_ctx) {
 
     SHA256_FINAL(&att_ctx->hash_ctx, &att_ctx->msg[ATT_MSG_PREFIX_LENGTH]);
 
-    // Keys cleanup
-    for (int i=0;i<sizeof(att_ctx->priv_key_data);i++) att_ctx->priv_key_data[i]=0;
-    for (int i=0;i<sizeof(att_ctx->priv_key);i++) ((char *)(&att_ctx->priv_key))[i]=0;
-    for (int i=0;i<sizeof(att_ctx->pub_key);i++) ((char *)(&att_ctx->pub_key))[i]=0;
-    
     return ATT_MSG_PREFIX_LENGTH + HASH_SIZE;
 }
 

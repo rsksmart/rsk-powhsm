@@ -31,6 +31,7 @@ class _Command(IntEnum):
     WIPE = 0x07
     UI_ATT = 0x50
     SIGNER_ATT = 0x50
+    RETRIES = 0x45
 
 # Sign command OPs
 class _SignOps(IntEnum):
@@ -179,9 +180,11 @@ class _UIAttestationError(IntEnum):
     PROT_INVALID = 0x6a01
     CA_MISMATCH = 0x6a02
     NO_ONBOARD   = 0x6a03
+    INTERNAL = 0x6b04
 
 class _SignerAttestationError(IntEnum):
     PROT_INVALID = 0x6b00
+    INTERNAL = 0x6b01
 
 # Error codes
 class _Error:
@@ -248,10 +251,13 @@ class _Onboarding(IntEnum):
     SEED_LENGTH = 32
     TIMEOUT = 10
 
-class HSM2DongleError(RuntimeError):
+class HSM2DongleBaseError(RuntimeError):
     pass
 
-class HSM2DongleTimeout(RuntimeError):
+class HSM2DongleError(HSM2DongleBaseError):
+    pass
+
+class HSM2DongleTimeout(HSM2DongleBaseError):
     @staticmethod
     def is_timeout(exc):
         if type(exc) == CommException and \
@@ -260,7 +266,7 @@ class HSM2DongleTimeout(RuntimeError):
             return True
         return False
 
-class HSM2DongleErrorResult(RuntimeError):
+class HSM2DongleErrorResult(HSM2DongleBaseError):
     @property
     def error_code(self):
         return self.args[0]
@@ -288,6 +294,7 @@ class HSM2Dongle:
 
     # Protocol version dependent features
     MIN_VERSION_META_CBTXHASH = HSM2FirmwareVersion(2,1,0)
+    MIN_VERSION_UI_GET_RETRIES = HSM2FirmwareVersion(2,1,0)
 
     def __init__(self, debug):
         self.logger = logging.getLogger("dongle")
@@ -430,6 +437,11 @@ class HSM2Dongle:
     def get_version(self):
         apdu_rcv = self._send_command(self.CMD.IS_ONBOARD)
         return HSM2FirmwareVersion(apdu_rcv[2], apdu_rcv[3], apdu_rcv[4])
+
+    # returns the number of pin retries available
+    def get_retries(self):
+        apdu_rcv = self._send_command(self.CMD.RETRIES)
+        return apdu_rcv[2]
 
     # returns an instance of HSM2FirmwareParameters representing
     # the parameters of the currently running firmware on the HSM2

@@ -1,7 +1,7 @@
 import struct
 import time
 from comm.protocol import HSM2Protocol, HSM2ProtocolError, HSM2ProtocolInterrupt
-from ledger.hsm2dongle import HSM2Dongle, HSM2DongleError, \
+from ledger.hsm2dongle import HSM2Dongle, HSM2DongleBaseError, HSM2DongleError, \
                               HSM2DongleErrorResult, HSM2DongleTimeout, HSM2FirmwareVersion
 from comm.bitcoin import get_unsigned_tx, get_tx_hash
 
@@ -12,6 +12,9 @@ class HSM2ProtocolLedger(HSM2Protocol):
 
     # Amount of time to wait to make sure the app is opened
     OPEN_APP_WAIT = 1 #second
+
+    # Required minimum number of pin retries available to proceed with unlocking
+    MIN_AVAILABLE_RETRIES = 2
 
     def __init__(self, pin, dongle):
         super().__init__()
@@ -92,6 +95,22 @@ class HSM2ProtocolLedger(HSM2Protocol):
         if not self.hsm2dongle.echo():
             self._error("Echo error")
         self.logger.info("Echo OK")
+
+        # (!! Only for supported from a specific UI version onwards)
+        # Get the number of retries available to unlock the device
+        # Then, only proceed if there is more than the minimum available
+        # retries required (otherwise we risk wiping the device)
+        if self._dongle_ui_version >= self.hsm2dongle.MIN_VERSION_UI_GET_RETRIES:
+            try:
+                self.logger.info("Retrieving available pin retries")
+                retries = self.hsm2dongle.get_retries()
+                self.logger.info("Available pin retries: %d", retries)
+                if (retries < self.MIN_AVAILABLE_RETRIES):
+                    self.logger.error("Available number of pin retries (%d) not enough to attempt a device unlock. Aborting.", retries)
+                    raise HSM2ProtocolInterrupt()
+            except HSM2DongleBaseError as e:
+                self.logger.error("While trying to get number of pin retries: %s. Aborting.", str(e))
+                raise HSM2ProtocolInterrupt()
 
         # Unlock device with PIN
         self.logger.info("Unlocking with PIN")

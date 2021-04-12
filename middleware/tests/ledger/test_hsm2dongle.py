@@ -153,6 +153,12 @@ class TestHSM2Dongle(_TestHSM2DongleBase):
         self.assertEqual(8, version.patch)
         self.assert_exchange([[0x06]])
 
+    def test_retries(self):
+        self.dongle.exchange.return_value = bytes([0, 0, 57])
+        retries = self.hsm2dongle.get_retries()
+        self.assertEqual(57, retries)
+        self.assert_exchange([[0x45]])
+
     def test_exit_menu(self):
         self.dongle.exchange.return_value = bytes([0])
         self.hsm2dongle.exit_menu()

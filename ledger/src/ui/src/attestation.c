@@ -12,6 +12,22 @@ extern const unsigned char* N_onboarded_ui[1];
 const char ATT_MSG_PREFIX[ATT_MSG_PREFIX_LENGTH] = "HSM:UI:2.1";
 
 /*
+ * Throw an internal error unless the APDU
+ * buffer data part is large enough to fit
+ * the given number of bytes
+ * 
+ * The reason this is treated as an internal
+ * error is that all operations checking this
+ * already know that the buffer *should* be
+ * large enough and are just sanity checking
+ */
+static void check_apdu_buffer_holds(size_t size) {
+    if (G_apdu_data_size() < size) {
+        THROW(INTERNAL);
+    }    
+}
+
+/*
  * Assuming the custom CA public key is loaded in att_ctx->ca_pubkey,
  * generate the attestation message.
  * 
@@ -19,12 +35,17 @@ const char ATT_MSG_PREFIX[ATT_MSG_PREFIX_LENGTH] = "HSM:UI:2.1";
  * @ret             generated message size
  */
 static unsigned int generate_message_to_sign(att_t* att_ctx) {
-    // Generate the message to sign
+    // Initialize message
+    explicit_bzero(att_ctx->msg, sizeof(att_ctx->msg));
+
+    // Avoid overflowing the message buffer when writing the message
+    if (sizeof(att_ctx->msg) < (sizeof(ATT_MSG_PREFIX) + att_ctx->ca_pubkey.W_len)) {
+        THROW(INTERNAL);
+    }
+
+    // Generate the message to sign and return its size
     memcpy(att_ctx->msg, PIC(ATT_MSG_PREFIX), sizeof(ATT_MSG_PREFIX));
-    // Avoid overflowing when copying the CA public key
-    size_t max_pubkey_size = sizeof(att_ctx->msg) - sizeof(ATT_MSG_PREFIX);
-    size_t to_copy = max_pubkey_size < att_ctx->ca_pubkey.W_len ? max_pubkey_size : att_ctx->ca_pubkey.W_len;
-    memcpy(&att_ctx->msg[sizeof(ATT_MSG_PREFIX)], att_ctx->ca_pubkey.W, to_copy);
+    memcpy(&att_ctx->msg[sizeof(ATT_MSG_PREFIX)], att_ctx->ca_pubkey.W, att_ctx->ca_pubkey.W_len);
 
     return sizeof(ATT_MSG_PREFIX) + att_ctx->ca_pubkey.W_len;
 }
@@ -62,6 +83,7 @@ unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx) {
 
             // Generate and output the message to sign
             message_size = generate_message_to_sign(att_ctx);
+            check_apdu_buffer_holds(message_size);
             memcpy(G_apdu_data, att_ctx->msg, message_size);
 
             return TX_FOR_DATA_SIZE(message_size);
@@ -108,10 +130,12 @@ unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx) {
             // Clear flags (data would be inconsistent next time)
             att_ctx->flags = 0;
 
-            // Sign and output            
+            // Sign and output
+            check_apdu_buffer_holds(MAX_SIGNATURE_LENGTH);         
             return TX_FOR_DATA_SIZE(os_endorsement_key2_derive_sign_data(
                 att_ctx->msg, message_size, G_apdu_data));
         case ATT_OP_APP_HASH:
+            check_apdu_buffer_holds(HASHSIZE);         
             return TX_FOR_DATA_SIZE(os_endorsement_get_code_hash(G_apdu_data));
         default:
             att_ctx->flags = 0;

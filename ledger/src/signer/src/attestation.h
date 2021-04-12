@@ -23,6 +23,7 @@
 
 typedef enum {
     ATT_PROT_INVALID = 0x6b00, // Host not respecting protocol
+    ATT_INTERNAL = 0x6b01, // Internal error while generating attestation
 } err_code_attestation_t;
 
 /*

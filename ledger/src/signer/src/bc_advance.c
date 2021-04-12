@@ -745,6 +745,13 @@ unsigned int bc_advance(volatile unsigned int rx) {
         memcpy(block.cb_txn_hash, APDU_DATA_PTR + sizeof(block.mm_rlp_len), sizeof(block.cb_txn_hash));
 
         // Block hash computation: encode and hash payload len
+        
+        // Sanity check: make sure given mm_rlp_len plus BTC_HEADER_RLP_LEN does not overflow
+        if ((uint16_t)(block.mm_rlp_len + BTC_HEADER_RLP_LEN) < block.mm_rlp_len) {
+            LOG("Given MM RLP list length too large, would overflow: %u\n", block.mm_rlp_len);
+            ABORT(PROT_INVALID);
+        }
+
         KECCAK_INIT(&block.block_ctx);
         mm_hash_rlp_list_prefix(&block.block_ctx,
                                 block.mm_rlp_len + BTC_HEADER_RLP_LEN);

@@ -192,6 +192,13 @@ void reset_signer() {
     state = S_CMD_START;
 }
 
+/*
+ * Reset attestation state.
+ */
+void reset_attestation() {
+    explicit_bzero(&attestation, sizeof(attestation));
+}
+
 // Operation being currently executed
 static unsigned char curr_cmd;
 
@@ -205,6 +212,7 @@ static void reset_if_starting(unsigned char cmd) {
     // Otherwise we already reset when curr_cmd started.
     if (cmd != curr_cmd) {
         curr_cmd = cmd;
+        reset_attestation();
         reset_signer();
         bc_init_advance();
         bc_init_upd_ancestor();
