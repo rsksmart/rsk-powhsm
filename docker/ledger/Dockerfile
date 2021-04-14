@@ -22,7 +22,7 @@ RUN curl -L -o nanos-1314.tar.gz https://github.com/LedgerHQ/nanos-secure-sdk/ar
 
 RUN apt install -y python2 && \
     ln -s /usr/bin/python2 /usr/bin/python && \
-    curl -o get-pip.py https://bootstrap.pypa.io/2.7/get-pip.py && \
+    curl -o get-pip.py https://bootstrap.pypa.io/pip/2.7/get-pip.py && \
     python get-pip.py && \
     rm -f get-pip.py
 
