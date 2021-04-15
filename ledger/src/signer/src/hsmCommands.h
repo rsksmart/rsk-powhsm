@@ -342,21 +342,27 @@ if (G_io_apdu_buffer[OP] & P1_RECEIPT) {
     default: // Invalid state
         THROW(0x6A89);
     }
-    // Save the amount of bytes we request, to check at RX
-    mp_ctx.expectedRXBytes = G_io_apdu_buffer[TXLEN];
-    // Check if we request more than our buffer size
-    if (mp_ctx.expectedRXBytes > IO_APDU_BUFFER_SIZE)
-        THROW(0x6A89);
+    // CMD_FINISHED state uses the whole buffer, no expectedRXbytes are needed.
+    if (state!=S_CMD_FINISHED)
+	{
+	// Save the amount of bytes we request, to check at RX
+	mp_ctx.expectedRXBytes = G_io_apdu_buffer[TXLEN];
+	// Check if we request more than our buffer size
+	if (mp_ctx.expectedRXBytes > IO_APDU_BUFFER_SIZE)
+		THROW(0x6A89);
+	}
 #ifdef FEDHM_EMULATOR
     //
     static int TX = 0;
     static int TXCNT = 0;
-    if (mp_ctx.expectedRXBytes != 0) {
-        TX += mp_ctx.expectedRXBytes;
-        TXCNT++;
-    };
     if (state == S_CMD_FINISHED)
         printf("-----Total tranfers: %d ---Total bytes: %d\n", TXCNT, TX);
+    else {
+	if (mp_ctx.expectedRXBytes != 0) {
+		TX += mp_ctx.expectedRXBytes;
+		TXCNT++;
+		};
+	}
 #endif
 }
 break;

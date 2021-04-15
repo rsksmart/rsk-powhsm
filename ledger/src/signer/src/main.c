@@ -246,7 +246,8 @@ static void hsm_main(void) {
                 tx = 0; // ensure no race in catch_other if io_exchange throws
                         // an error
                 if ((G_io_apdu_buffer[1] == INS_SIGN) &&
-                    (G_io_apdu_buffer[TXLEN] == 0))
+                    (G_io_apdu_buffer[TXLEN] == 0) &&
+		    (state!=S_CMD_FINISHED))
                     rx = 3;
                 else
                     rx = io_exchange(CHANNEL_APDU | flags, rx);
