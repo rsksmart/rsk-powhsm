@@ -56,10 +56,7 @@ static const bool N_bc_initialized = 0;
  */
 void bc_init_state() {
     if (!N_bc_initialized) {
-        uint8_t c = 0;
-        for (int i = 0; i < sizeof(N_bc_state); i++) {
-            NVM_WRITE(&(((uint8_t*)&N_bc_state)[i]), &c, sizeof(c));
-        }
+        NVM_RESET(&N_bc_state, sizeof(N_bc_state));
         NVM_WRITE(N_bc_state.best_block, INITIAL_BLOCK_HASH, HASH_SIZE);
         NVM_WRITE(N_bc_state.newest_valid_block, INITIAL_BLOCK_HASH, HASH_SIZE);
 

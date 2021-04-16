@@ -21,7 +21,6 @@ class BasePin:
 
     @classmethod
     def is_valid(cls, pin, require_alpha=True):
-        return True
         if type(pin) != bytes:
             return False
 
