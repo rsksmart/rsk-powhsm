@@ -19,10 +19,11 @@
 #include <stdint.h>
 
 // Constant for values returned by rlp_consume
-#define RLP_OK 0
+#define RLP_OK (0)
 #define RLP_STACK_OVERFLOW (-1)
 #define RLP_STACK_UNDERFLOW (-2)
 #define RLP_TOO_LONG (-3)
+#define RLP_MALFORMED (-4)
 
 // Max RLP buffer size and stack depth
 #define RLP_BUFFER_SIZE 80

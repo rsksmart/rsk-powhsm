@@ -47,7 +47,8 @@ void handle_list_end() {
 void do_test(const char* test_name,
              unsigned char rlp[],
              size_t len,
-             const rlp_callbacks_t* cbs) {
+             const rlp_callbacks_t* cbs,
+             int expected_end_result) {
     printf("-------- %s --------\n", test_name);
 
     list_depth = 0;
@@ -63,8 +64,12 @@ void do_test(const char* test_name,
         }
     }
 
-    assert(r == RLP_OK /* rlp parser returned with error condition */);
-    assert(list_depth == 0 /* rlp parser is reporting unbalanced lists */);
+    assert(r == expected_end_result /* rlp parser returned with expected error condition */);
+    if (expected_end_result == RLP_OK) {
+        assert(list_depth == 0 /* rlp parser is reporting unbalanced lists */);
+    } else {
+        printf("Parsing finished with expected non-OK result: %d\n", expected_end_result);
+    }
 }
 
 static const rlp_callbacks_t std_cbs = {
@@ -89,7 +94,7 @@ void test_strs() {
         0x64, 0x6f, 0x73, 0x20, 0x6c, 0x6f, 0x63, 0x6f, 0x73, 0x80, 0x61,
     };
 
-    do_test("mixed strings", rlp, sizeof(rlp), &std_cbs);
+    do_test("mixed strings", rlp, sizeof(rlp), &std_cbs, RLP_OK);
 }
 
 void test_long_strs_with_empty() {
@@ -102,7 +107,7 @@ void test_long_strs_with_empty() {
         0x74, 0x63, 0x68, 0x88, 0x48, 0x69, 0x20, 0x74, 0x68, 0x65, 0x72, 0x65,
     };
 
-    do_test("long and short strings", rlp, sizeof(rlp), &std_cbs);
+    do_test("long and short strings", rlp, sizeof(rlp), &std_cbs, RLP_OK);
 }
 
 void test_list() {
@@ -111,7 +116,7 @@ void test_list() {
         0x8a, 0x6d, 0x79, 0x20, 0x66, 0x72, 0x69, 0x65, 0x6e, 0x64, 0x73,
     };
 
-    do_test("list", rlp, sizeof(rlp), &std_cbs);
+    do_test("list", rlp, sizeof(rlp), &std_cbs, RLP_OK);
 }
 
 void test_nested_list() {
@@ -121,7 +126,7 @@ void test_nested_list() {
         0x8a, 0x6d, 0x79, 0x20, 0x66, 0x72, 0x69, 0x65, 0x6e, 0x64, 0x73,
     };
 
-    do_test("list with deep nesting structure", rlp, sizeof(rlp), &std_cbs);
+    do_test("list with deep nesting structure", rlp, sizeof(rlp), &std_cbs, RLP_OK);
 }
 
 void test_long_list() {
@@ -134,7 +139,7 @@ void test_long_list() {
         0x6e, 0x20, 0x6c, 0x65, 0x6e, 0x67, 0x74, 0x68,
     };
 
-    do_test("long list", rlp, sizeof(rlp), &std_cbs);
+    do_test("long list", rlp, sizeof(rlp), &std_cbs, RLP_OK);
 }
 
 void test_long_nested_list() {
@@ -148,17 +153,17 @@ void test_long_nested_list() {
         0x61, 0x72, 0x20, 0x63, 0x61, 0x73, 0x65,
     };
 
-    do_test("long list with nesting", rlp, sizeof(rlp), &std_cbs);
+    do_test("long list with nesting", rlp, sizeof(rlp), &std_cbs, RLP_OK);
 }
 
 void test_empty_list() {
     unsigned char rlp[] = {0xc0};
-    do_test("empty list", rlp, sizeof(rlp), &std_cbs);
+    do_test("empty list", rlp, sizeof(rlp), &std_cbs, RLP_OK);
 }
 
 void test_empty_str() {
     unsigned char rlp[] = {0x80};
-    do_test("empty string", rlp, sizeof(rlp), &std_cbs);
+    do_test("empty string", rlp, sizeof(rlp), &std_cbs, RLP_OK);
 }
 
 int read_block_file(const char* file_name, char** buffer, size_t* len) {
@@ -182,7 +187,7 @@ int read_block_file(const char* file_name, char** buffer, size_t* len) {
     return 0;
 }
 
-void test_block(const char* file_name) {
+void test_block(const char* file_name, int expected_end_result) {
     char* buffer = NULL;
     size_t size = 0;
     int r = read_block_file(file_name, &buffer, &size);
@@ -191,7 +196,7 @@ void test_block(const char* file_name) {
         assert(0);
     }
 
-    do_test(file_name, buffer, size, &block_cbs);
+    do_test(file_name, buffer, size, &block_cbs, expected_end_result);
 }
 
 int main() {
@@ -204,10 +209,11 @@ int main() {
     test_empty_list();
     test_empty_str();
 
-    test_block("resources/block-0900123.rlp");
-    test_block("resources/block-1234000.rlp");
-    test_block("resources/block-1900456.rlp");
-    test_block("resources/block-2221171.rlp");
-    test_block("resources/block-post-wasabi.rlp");
-    test_block("resources/block-pre-wasabi.rlp");
+    test_block("resources/block-0900123.rlp", RLP_OK);
+    test_block("resources/block-1234000.rlp", RLP_OK);
+    test_block("resources/block-1900456.rlp", RLP_OK);
+    test_block("resources/block-2221171.rlp", RLP_OK);
+    test_block("resources/block-post-wasabi.rlp", RLP_OK);
+    test_block("resources/block-pre-wasabi.rlp", RLP_OK);
+    test_block("resources/block-fakelen.rlp", RLP_MALFORMED);
 }

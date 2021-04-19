@@ -125,10 +125,7 @@ static void process_merkle_proof(const uint8_t* chunk, uint16_t size) {
  * @arg[in] size  chunk size in bytes
  */
 static void store_cb_txn_bytes(const uint8_t* chunk, uint16_t size) {
-    if (block.cb_off > MAX_CB_TXN_SIZE) {
-        ABORT(CB_TXN_OVERFLOW);
-    }
-    if ((block.cb_off+size) > MAX_CB_TXN_SIZE) {
+    if (block.cb_off+size > MAX_CB_TXN_SIZE) {
         ABORT(CB_TXN_OVERFLOW);
     }
     memcpy(block.cb_txn + block.cb_off, chunk, size);
@@ -798,13 +795,8 @@ unsigned int bc_advance(volatile unsigned int rx) {
         if (HAS_FLAG(block.flags, CB_TXN_RECV) &&
             !HAS_FLAG(block.flags, HEADER_VALID)) {
             CLR_FLAG(block.flags, CB_TXN_RECV);
-            if (block.cb_off>0) {
-                compute_cb_txn_hash();
-                validate_cb_txn_hash();
-            } else {
-                ABORT(BTC_CB_TXN_INVALID);
-            }
-            validate_merkle_proof();
+            compute_cb_txn_hash();
+            validate_cb_txn_hash();
             validate_mm_hash();
             SET_FLAG(block.flags, HEADER_VALID);
         }

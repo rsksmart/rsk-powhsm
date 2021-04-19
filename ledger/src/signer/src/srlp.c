@@ -63,8 +63,9 @@ static const rlp_callbacks_t* rlp_callbacks;
 void print_ctx() {
     for (int i = rlp_ctx_ptr; i >= 0; --i) {
         rlp_ctx_t ctx = rlp_ctx[i];
-        printf("{%d, %lu, %lu}\n", ctx.state, ctx.size, ctx.cursor);
+        printf("{%d, %lu, %lu} ; ", ctx.state, ctx.size, ctx.cursor);
     }
+    printf("{EOC}\n");
 }
 #endif
 
@@ -124,7 +125,9 @@ void rlp_start(const rlp_callbacks_t* cbs) {
 
 // Called for every consumed byte of the input buffer. Traverse stack from
 // top to bottom, incrementing the number of consumed bytes for each list
-// context. If consumed bytes reaches list size, pop context.
+// context. 
+// If consumed bytes reaches list size on the top context, pop it.
+// If consumed bytes reaches list size on a non-top context, fail due to inconsistency.
 //
 // Defined as a macro to save stack.
 // NOTE: Returns if stack underflow
@@ -138,7 +141,11 @@ void rlp_start(const rlp_callbacks_t* cbs) {
             }                                                 \
             ++rlp_ctx[__ix].cursor;                           \
             if (rlp_ctx[__ix].cursor == rlp_ctx[__ix].size) { \
-                RLP_POP_CTX();                                \
+                if (__ix == rlp_ctx_ptr) {                    \
+                    RLP_POP_CTX();                            \
+                } else {                                      \
+                    return RLP_MALFORMED;                     \
+                }                                             \
             }                                                 \
         }                                                     \
     }
@@ -193,6 +200,7 @@ void rlp_start(const rlp_callbacks_t* cbs) {
  *    RLP_TOO_LONG if len greater than RLP_BUFFER_SIZE
  *    RLP_STACK_OVERFLOW if list nesting level is greater than MAX_RLP_CTX_DEPTH
  *    RLP_STACK_UNDERFLOW if RLP to parse is ill-formed (e.g., [[a])
+ *    RLP_MALFORMED if RLP to parse is ill-formed wrt reported sizes
  */
 int rlp_consume(uint8_t* buf, const uint8_t len) {
     if (len > RLP_BUFFER_SIZE) {
