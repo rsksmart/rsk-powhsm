@@ -125,7 +125,7 @@ static void process_merkle_proof(const uint8_t* chunk, uint16_t size) {
  * @arg[in] size  chunk size in bytes
  */
 static void store_cb_txn_bytes(const uint8_t* chunk, uint16_t size) {
-    if (block.cb_off+size > MAX_CB_TXN_SIZE) {
+    if (block.cb_off+size > sizeof(block.cb_txn)) {
         ABORT(CB_TXN_OVERFLOW);
     }
     memcpy(block.cb_txn + block.cb_off, chunk, size);
