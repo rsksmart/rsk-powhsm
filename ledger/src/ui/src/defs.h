@@ -4,6 +4,7 @@
 // Sizes
 #define HASHSIZE 32
 #define SEEDSIZE 32
+#define KEYLEN 32
 #define COMPRESSEDHASHSIZE 16
 #define PUBKEYSIZE 65
 #define PUBKEYCOMPRESSEDSIZE 33

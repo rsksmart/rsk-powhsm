@@ -1,6 +1,8 @@
 #ifndef __ATTESTATION
 #define __ATTESTATION
 
+#include <stdint.h>
+#include "os.h"
 #include "defs.h"
 
 // -----------------------------------------------------------------------
@@ -10,37 +12,72 @@
 // Command and sub-operations
 #define INS_ATTESTATION 0x50
 
-#define ATT_OP_PUBKEY 0x01
-#define ATT_OP_HASH 0x02
-#define ATT_OP_SIGNATURE 0x03
-#define ATT_OP_GET 0x04
-#define ATT_OP_APP_HASH 0x05
+#define ATT_OP_UD_VALUE 0x01
+#define ATT_OP_PUBKEY 0x02
+#define ATT_OP_HASH 0x03
+#define ATT_OP_SIGNATURE 0x04
+#define ATT_OP_GET_MSG 0x05
+#define ATT_OP_GET 0x06
+#define ATT_OP_APP_HASH 0x07
 
-// Maximum attestation message to sign size (prefix + CA public key)
-#define MAX_ATT_MESSAGE_SIZE 80
+// Attestation message prefix
+#define ATT_MSG_PREFIX "HSM:UI:2.1"
+#define ATT_MSG_PREFIX_LENGTH (sizeof(ATT_MSG_PREFIX) - sizeof(""))
+
+// User defined value size
+#define UD_VALUE_SIZE 32
+
+// Path of the public key to derive for the attestation (m/44'/0'/0'/0/0 - BTC)
+#define PUBKEY_PATH "\x2c\x00\x00\x80\x00\x00\x00\x80\x00\x00\x00\x80\x00\x00\x00\x00\x00\x00\x00\x00"
+#define PUBKEY_PATH_LENGTH (sizeof(PUBKEY_PATH) - sizeof(""))
+#define PATH_PART_COUNT 5
+
+// Maximum attestation message to sign size (prefix + UD value + BTC public key + CA public key)
+#define ATT_MESSAGE_SIZE (ATT_MSG_PREFIX_LENGTH + UD_VALUE_SIZE + PUBKEYCOMPRESSEDSIZE + PUBKEYCOMPRESSEDSIZE)
+
+// Attestation SM stages
+typedef enum {
+    att_stage_wait_ud_value = 0,
+    att_stage_wait_ca_pubkey,
+    att_stage_wait_ca_hash,
+    att_stage_wait_ca_signature,
+    att_stage_ready,
+} att_stage_t;
 
 // Attestation context
-typedef struct att_s {
-    cx_ecfp_public_key_t ca_pubkey;
+typedef struct {
+    att_stage_t stage;
+
+    uint8_t msg[ATT_MESSAGE_SIZE];
+    unsigned int msg_offset;
 
     union {
-        uint8_t msg[MAX_ATT_MESSAGE_SIZE];
-        uint8_t ca_signed_hash[HASHSIZE];
+        struct {
+            cx_ecfp_public_key_t ca_pubkey;
+            uint8_t ca_signed_hash[HASHSIZE];
+            uint8_t ca_signature_length;
+            uint8_t ca_signature[MAX_SIGNATURE_LENGTH];
+        };
+
+        struct {
+            unsigned char path[PUBKEY_PATH_LENGTH];
+            unsigned char priv_key_data[SEEDSIZE];
+            cx_ecfp_private_key_t priv_key;
+            cx_ecfp_public_key_t pub_key;
+        };
     };
-
-    uint8_t ca_signature_length;
-    uint8_t ca_signature[MAX_SIGNATURE_LENGTH];
-    uint8_t flags;
 } att_t;
-
-// Attestation flags
-#define ATT_PUBKEY_RECV 0x01
-#define ATT_HASH_RECV 0x02
-#define ATT_SIGNATURE_RECV 0x04
 
 // -----------------------------------------------------------------------
 // Protocol
 // -----------------------------------------------------------------------
+
+/*
+ * Reset the given attestation context
+ *
+ * @arg[in] att_ctx attestation context
+ */
+void reset_attestation(att_t* att_ctx);
 
 /*
  * Implement the attestation protocol.

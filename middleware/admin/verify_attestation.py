@@ -7,6 +7,9 @@ from .certificate import HSMCertificate
 
 UI_MESSAGE_HEADER = b"HSM:UI:2.1"
 SIGNER_MESSAGE_HEADER = b"HSM:SIGNER:2.1"
+UI_DERIVATION_PATH = "m/44'/0'/0'/0/0"
+UD_VALUE_LENGTH = 32
+PUBKEY_COMPRESSED_LENGTH = 33
 
 # Ledger's root authority 
 # (according to https://github.com/LedgerHQ/blue-loader-python/blob/master/ledgerblue/endorsementSetup.py#L138):
@@ -31,6 +34,10 @@ def do_verify_attestation(options):
     # Load the given public keys and compute
     # their hash (sha256sum of the uncompressed 
     # public keys in lexicographical path order)
+    # Also find and save the public key corresponding
+    # to the expected derivation path for the UI
+    # attestation
+    expected_ui_public_key = None
     try:
         with open(options.pubkeys_file_path, "r") as file:
             pubkeys_map = json.loads(file.read())
@@ -48,11 +55,16 @@ def do_verify_attestation(options):
             pubkey = ec.PublicKey(bytes.fromhex(pubkey), raw=True)
             pubkeys_hash.update(pubkey.serialize(compressed=False))
             pubkeys_output.append(f"{(path + ':').ljust(path_name_padding+1)} {pubkey.serialize(compressed=True).hex()}")
+            if path == UI_DERIVATION_PATH:
+                expected_ui_public_key = pubkey.serialize(compressed=True).hex()
         pubkeys_hash = pubkeys_hash.digest()
 
     except (ValueError, json.JSONDecodeError) as e:
         raise ValueError("Unable to read public keys from \"%s\": %s" % (options.pubkeys_file_path, str(e)))
 
+    if expected_ui_public_key is None:
+        raise AdminError(f"Public key with path {UI_DERIVATION_PATH} not present in public key file")
+    
     # Load the given attestation key certificate
     try:
         att_cert = HSMCertificate.from_jsonfile(options.attestation_certificate_file_path)
@@ -76,8 +88,16 @@ def do_verify_attestation(options):
     mh_len = len(UI_MESSAGE_HEADER)
     if ui_message[:mh_len] != UI_MESSAGE_HEADER:
         raise AdminError(f"Invalid UI attestation message header: {ui_message[:mh_len].hex()}")
+
+    # Extract UD value, UI public key and CA public key from message
+    ud_value = ui_message[mh_len:mh_len+UD_VALUE_LENGTH].hex()
+    ui_public_key = ui_message[mh_len+UD_VALUE_LENGTH:mh_len+UD_VALUE_LENGTH+PUBKEY_COMPRESSED_LENGTH].hex()
+    ca_public_key = ui_message[mh_len+UD_VALUE_LENGTH+PUBKEY_COMPRESSED_LENGTH:].hex()
     
-    head(["UI verified with CA:", ui_message[mh_len:].hex(),\
+    head(["UI verified with:",\
+        f"UD value: {ud_value}",\
+        f"CA: {ca_public_key}",\
+        f"Derived public key ({UI_DERIVATION_PATH}): {ui_public_key}",\
         f"Installed UI hash: {ui_hash.hex()}"], fill="-")
 
     # Signer

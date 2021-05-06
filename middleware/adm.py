@@ -13,6 +13,7 @@ from admin.verify_attestation import do_verify_attestation, DEFAULT_ROOT_AUTHORI
 
 DEFAULT_PIN_FILE = "pin.txt"
 DEFAULT_PIN_CHANGE_FILE = "changePIN"
+DEFAULT_ATT_UD_SOURCE = "https://public-node.rsk.co"
 
 if __name__ == '__main__':
     logging.disable(logging.CRITICAL)
@@ -49,6 +50,11 @@ if __name__ == '__main__':
                         help=f"Root attestation authority (only valid for 'verify_attestation' operation). Defaults to Ledger's root authority.")
     parser.add_argument("-b","--pubkeys", dest="pubkeys_file_path", \
                         help=f"Public keys file (only valid for 'verify_attestation' operation).")
+    parser.add_argument("--attudsource", dest="attestation_ud_source", \
+                        default=DEFAULT_ATT_UD_SOURCE, \
+                        help=f"JSON-RPC endpoint used to retrieve the latest RSK block hash used "+
+                               f"as the user defined value for the attestation (defaults to {DEFAULT_ATT_UD_SOURCE}). "+\
+                               "Can also specify a 32-byte hex string to use as the value.")
     parser.add_argument("-v","--verbose", dest="verbose", action="store_const", \
                         help="Enable verbose mode", default=False, const=True)
     options = parser.parse_args()

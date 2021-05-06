@@ -69,11 +69,13 @@ class _UpdateAncestorOps(IntEnum):
 
 # UI attestation OPs
 class _UIAttestationOps(IntEnum):
-    OP_PUBKEY = 0x01
-    OP_HASH = 0x02
-    OP_SIGNATURE = 0x03
-    OP_GET = 0x04
-    OP_APP_HASH = 0x05
+    OP_UD_VALUE = 0x01
+    OP_PUBKEY = 0x02
+    OP_HASH = 0x03
+    OP_SIGNATURE = 0x04
+    OP_GET_MSG = 0x05
+    OP_GET = 0x06
+    OP_APP_HASH = 0x07
 
 # Signer attestation OPs
 class _SignerAttestationOps(IntEnum):
@@ -803,8 +805,9 @@ class HSM2Dongle:
                 err.PROT_INVALID: response.ERROR_BLOCK_DATA,
             }, version)
 
-    def get_ui_attestation(self, ca_pubkey_hex, ca_hash_hex, ca_signature_hex):
+    def get_ui_attestation(self, ud_value_hex, ca_pubkey_hex, ca_hash_hex, ca_signature_hex):
         # Parse hexadecimal values
+        ud_value = bytes.fromhex(ud_value_hex)
         ca_pubkey = bytes.fromhex(ca_pubkey_hex)
         ca_hash = bytes.fromhex(ca_hash_hex)
         ca_signature = bytes.fromhex(ca_signature_hex)
@@ -812,9 +815,13 @@ class HSM2Dongle:
         # Get UI hash
         ui_hash = self._send_command(self.CMD.UI_ATT, bytes([self.OP.UI_ATT.OP_APP_HASH]))[self.OFF.DATA:]
 
-        # Send pubkey and retrieve message
+        # Send UD value
+        data = bytes([self.OP.UI_ATT.OP_UD_VALUE]) + ud_value
+        self._send_command(self.CMD.UI_ATT, data)
+
+        # Send pubkey
         data = bytes([self.OP.UI_ATT.OP_PUBKEY]) + ca_pubkey
-        message = self._send_command(self.CMD.UI_ATT, data)[3:]
+        self._send_command(self.CMD.UI_ATT, data)
 
         # Send hash
         data = bytes([self.OP.UI_ATT.OP_HASH]) + ca_hash
@@ -823,6 +830,17 @@ class HSM2Dongle:
         # Send signature
         data = bytes([self.OP.UI_ATT.OP_SIGNATURE, len(ca_signature)]) + ca_signature
         self._send_command(self.CMD.UI_ATT, data)
+
+        # Retrieve message
+        page = 0
+        message = b""
+        while True:
+            data = bytes([self.OP.UI_ATT.OP_GET_MSG, page])
+            response = self._send_command(self.CMD.UI_ATT, data)
+            page += 1
+            message += response[self.OFF.DATA+1:]
+            if response[self.OFF.DATA] == 0:
+                break
 
         # Retrieve attestation
         attestation = self._send_command(self.CMD.UI_ATT, bytes([self.OP.UI_ATT.OP_GET]))[self.OFF.DATA:]

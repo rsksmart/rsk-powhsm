@@ -20,6 +20,8 @@
 
 #include "os_io_seproxyhal.h"
 
+#include "attestation.h"
+
 #ifdef HAVE_BOLOS_UX
 
 typedef unsigned int (*callback_t)(unsigned int);
@@ -113,25 +115,32 @@ typedef struct bolos_ux_context {
     unsigned int onboarding_algorithm;
 #endif
 
-    unsigned int onboarding_step;
-    unsigned int onboarding_index;
-    unsigned int onboarding_words_checked;
-    unsigned int onboarding_words_are_valid;
-    unsigned int onboarding_step_checked_inc;
-    unsigned int onboarding_step_checked;
+    union {
+        struct {
+            unsigned int onboarding_step;
+            unsigned int onboarding_index;
+            unsigned int onboarding_words_checked;
+            unsigned int onboarding_words_are_valid;
+            unsigned int onboarding_step_checked_inc;
+            unsigned int onboarding_step_checked;
 
-    unsigned int words_buffer_length;
-    // after an int to make sure it's aligned
-    char string_buffer[MAX(32, sizeof(bagl_icon_details_t) +
-                                   BOLOS_APP_ICON_SIZE_B -
-                                   1)]; // to store the seed wholy
+            unsigned int words_buffer_length;
+            // after an int to make sure it's aligned
+            char string_buffer[MAX(32, sizeof(bagl_icon_details_t) +
+                                        BOLOS_APP_ICON_SIZE_B -
+                                        1)]; // to store the seed wholy
 
-    char words_buffer[257]; // 128 of words (215 => hashed to 64, or 128) +
-                            // HMAC_LENGTH*2 = 256
-#define MAX_PIN_LENGTH 8
-#define MIN_PIN_LENGTH 4
-    char pin_buffer[MAX_PIN_LENGTH +
-                    1]; // length prepended for custom pin length
+            char words_buffer[257]; // 128 of words (215 => hashed to 64, or 128) +
+                                    // HMAC_LENGTH*2 = 256
+        };
+
+        att_t attestation;
+    };
+
+    #define MAX_PIN_LENGTH 8
+    #define MIN_PIN_LENGTH 4
+        char pin_buffer[MAX_PIN_LENGTH +
+                        1]; // length prepended for custom pin length
 
     // filled up during os_ux syscall when called by user or bolos.
     bolos_ux_params_t parameters;

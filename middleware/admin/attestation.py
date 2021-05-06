@@ -1,10 +1,13 @@
 from ledger.hsm2dongle import HSM2Dongle
 from .misc import info, head, get_hsm, dispose_hsm, AdminError, wait_for_reconnection
-from .utils import is_nonempty_hex_string
+from .utils import is_nonempty_hex_string, is_hex_string_of_length, normalize_hex_string
 from .dongle_admin import DongleAdmin
 from .unlock import do_unlock
 from .exit import do_exit
 from .certificate import HSMCertificate, HSMCertificateElement
+from .rsk_client import RskClient, RskClientError
+
+UD_VALUE_LENGTH = 32
 
 def do_attestation(options):
     head("### -> Get UI and Signer attestations", fill="#")
@@ -43,6 +46,21 @@ def do_attestation(options):
     if not is_nonempty_hex_string(ca_signature):
         raise AdminError("Invalid CA signature given")
 
+    # Get the UD value for the UI attestation
+    if is_hex_string_of_length(options.attestation_ud_source, UD_VALUE_LENGTH, allow_prefix=True):
+        ud_value = normalize_hex_string(options.attestation_ud_source)
+    else:
+        try:
+            rsk_client = RskClient(options.attestation_ud_source)
+            best_block = rsk_client.get_block_by_number(rsk_client.get_best_block_number())
+            ud_value = best_block["hash"][2:]
+            if not is_hex_string_of_length(ud_value, UD_VALUE_LENGTH):
+                raise ValueError(f"Got invalid best block from RSK server: {ud_value}")
+        except RskClientError as e:
+            raise AdminError(f"While fetching the best RSK block hash: {str(e)}")
+
+    info(f"Using {ud_value} as the user-defined UI attestation value")
+
     # Attempt to unlock the device without exiting the UI
     try:
         do_unlock(options, label=False, exit=False)
@@ -55,7 +73,7 @@ def do_attestation(options):
     # UI Attestation
     info("Gathering UI attestation... ", options.verbose)
     try:
-        ui_attestation = hsm.get_ui_attestation(ca_pubkey, ca_hash, ca_signature)
+        ui_attestation = hsm.get_ui_attestation(ud_value, ca_pubkey, ca_hash, ca_signature)
     except Exception as e:
         raise AdminError(f"Failed to gather UI attestation: {str(e)}")
     info("UI attestation gathered")

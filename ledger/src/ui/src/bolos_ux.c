@@ -393,8 +393,8 @@ void io_seproxyhal_display(const bagl_element_t *element) {
 #define VERSION_MINOR 0x01
 #define VERSION_PATCH 0x00
 
-// Reusing words buffer as attestation context
-#define attestation_ctx (G_bolos_ux_context.words_buffer)
+// Attestation context shorthand
+#define attestation_ctx (G_bolos_ux_context.attestation)
 
 /*
  * Do pin validations on the given pin buffer
@@ -417,13 +417,6 @@ void validate_pin(char* pin_buffer) {
     }
 }
 
-/*
- * Reset attestation state.
- */
-void reset_attestation() {
-    explicit_bzero(attestation_ctx, sizeof(attestation_ctx));
-}
-
 // Operation being currently executed
 static unsigned char curr_cmd;
 
@@ -437,7 +430,7 @@ static void reset_if_starting(unsigned char cmd) {
     // Otherwise we already reset when curr_cmd started.
     if (cmd != curr_cmd) {
         curr_cmd = cmd;
-        reset_attestation();
+        reset_attestation(&attestation_ctx);
     }
 }
 
@@ -591,7 +584,7 @@ static void sample_main(void) {
                     break;
                 case INS_ATTESTATION:
                     reset_if_starting(INS_ATTESTATION);
-                    tx = get_attestation(rx, attestation_ctx);
+                    tx = get_attestation(rx, &attestation_ctx);
                     THROW(0x9000);
                     break;
                 case RSK_RETRIES:
