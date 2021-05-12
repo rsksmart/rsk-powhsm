@@ -384,9 +384,10 @@ void io_seproxyhal_display(const bagl_element_t *element) {
 #define RSK_END_CMD_NOSIG 0xfa
 #define RSK_UNLOCK_CMD 0xfe
 #define RSK_RETRIES 0x45
-#define RSK_DBG1_CMD 0x42
 #define RSK_MODE_CMD 0x43
 #define RSK_MODE_BOOTLOADER 0x02
+
+#define RSK_META_CMD_UIOP 0x66
 
 // Version and patchlevel
 #define VERSION_MAJOR 0x02
@@ -430,6 +431,10 @@ static void reset_if_starting(unsigned char cmd) {
     // Otherwise we already reset when curr_cmd started.
     if (cmd != curr_cmd) {
         curr_cmd = cmd;
+        explicit_bzero(G_bolos_ux_context.words_buffer, sizeof(G_bolos_ux_context.words_buffer));
+        explicit_bzero(G_bolos_ux_context.pin_buffer, sizeof(G_bolos_ux_context.pin_buffer));
+        explicit_bzero(G_bolos_ux_context.string_buffer, sizeof(G_bolos_ux_context.string_buffer));
+        G_bolos_ux_context.words_buffer_length = 0;
         reset_attestation(&attestation_ctx);
     }
 }
@@ -477,18 +482,21 @@ static void sample_main(void) {
                 // unauthenticated instruction
                 switch (G_io_apdu_buffer[1]) {
                 case RSK_SEED_CMD: // Send wordlist
+                    reset_if_starting(RSK_META_CMD_UIOP);
                     pin=G_io_apdu_buffer[2];
                     if ( (pin>=0) && (pin <=sizeof(G_bolos_ux_context.words_buffer)))
                         G_bolos_ux_context.words_buffer[pin]=G_io_apdu_buffer[3];
                     THROW(0x9000);
                     break;
                 case RSK_PIN_CMD: // Send pin_buffer
+                    reset_if_starting(RSK_META_CMD_UIOP);
                     pin=G_io_apdu_buffer[2];
                     if ( (pin>=0) && (pin <=MAX_PIN_LENGTH))
                         G_bolos_ux_context.pin_buffer[pin]=G_io_apdu_buffer[3];
                     THROW(0x9000);
                     break;
                 case RSK_IS_ONBOARD: // Wheter it's onboarded or not
+                    reset_if_starting(RSK_IS_ONBOARD);
                     G_io_apdu_buffer[1]=os_perso_isonboarded();
                     G_io_apdu_buffer[2]=VERSION_MAJOR;
                     G_io_apdu_buffer[3]=VERSION_MINOR;
@@ -497,6 +505,7 @@ static void sample_main(void) {
                     THROW(0x9000);
                     break;
                 case RSK_WIPE:  //--- wipe and onboard device ---
+                    reset_if_starting(RSK_META_CMD_UIOP);
         #ifndef DEBUG_BUILD
                     validate_pin(G_bolos_ux_context.pin_buffer);
         #endif
@@ -556,6 +565,7 @@ static void sample_main(void) {
                     THROW(0x9000);
                     break;
                 case RSK_NEWPIN:
+                    reset_if_starting(RSK_META_CMD_UIOP);
 #ifndef DEBUG_BUILD
                     validate_pin(G_bolos_ux_context.pin_buffer);
 #endif
@@ -569,15 +579,12 @@ static void sample_main(void) {
                     THROW(0x9000);
                     break;
                 case RSK_ECHO_CMD: // echo
+                    reset_if_starting(RSK_ECHO_CMD);
                     tx = rx;
                     THROW(0x9000);
                     break;
-                case RSK_DBG1_CMD: // Debug1
-                    //os_registry_get(G_io_apdu_buffer[1], &app);
-                    //tx = strlen(app.name)+2;
-                    THROW(0x9000);
-                    break;
                 case RSK_MODE_CMD: // print mode
+                    reset_if_starting(RSK_MODE_CMD);
                     G_io_apdu_buffer[1]=RSK_MODE_BOOTLOADER;
                     tx=2;
                     THROW(0x9000);
@@ -588,20 +595,24 @@ static void sample_main(void) {
                     THROW(0x9000);
                     break;
                 case RSK_RETRIES:
+                    reset_if_starting(RSK_RETRIES);
                     G_io_apdu_buffer[2] = (unsigned char) os_global_pin_retries();
                     tx = 3;
                     THROW(0x9000);
                     break;
                 case RSK_UNLOCK_CMD: // Unlock
+                    reset_if_starting(RSK_META_CMD_UIOP);
                     validpin=os_global_pin_check((unsigned char *)G_bolos_ux_context.pin_buffer,strlen(G_bolos_ux_context.pin_buffer));
                     G_io_apdu_buffer[2]=validpin;
                     tx=5;
                     THROW(0x9000);
                     break;
                 case RSK_END_CMD: // return to dashboard
+                    reset_if_starting(RSK_END_CMD);
                     autoexec=1;
                     goto return_to_dashboard;
                 case RSK_END_CMD_NOSIG: // return to dashboard
+                    reset_if_starting(RSK_END_CMD_NOSIG);
                     autoexec=0;
                     goto return_to_dashboard;
                 default:
@@ -609,6 +620,11 @@ static void sample_main(void) {
                     break;
                 }
             } CATCH_OTHER(e) {
+                // Reset the state in case of an error
+                if (e != 0x9000) {
+                    reset_if_starting(0);
+                }
+                
                 switch (e & 0xF000) {
                 case 0x6000:
                 case 0x9000:
