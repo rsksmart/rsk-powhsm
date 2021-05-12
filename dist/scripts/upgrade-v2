@@ -64,7 +64,7 @@ RSK_CA_SIG="$(cat $FIRMWARE_DIR/signer.hex.sig)"
 
 function error() {
     if [ $? -ne 0 ]; then
-        echo -e "\e[1;31m Error comunicating with the dongle. Please check connection and restart the process. \e[0m"
+        echo -e "\e[1;31m Error comunicating with the dongle. Please check that dongle is onboarded, check connection and restart the process. \e[0m"
         cleanBinaries
         exit 1
     fi
@@ -147,6 +147,7 @@ function verify_attestation() {
 }
 
 echo -e "\e[1;32mWelcome to the HSM2 Upgrade for RSK \e[0m"
+echo -e "\e[1;32mPlease make sure your HSM is onboarded before continuing with the firmware upgrade.\e[0m"
 echo
 checkFirmware
 checkForPinFile
