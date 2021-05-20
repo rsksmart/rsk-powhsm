@@ -298,6 +298,9 @@ class HSM2Dongle:
     MIN_VERSION_META_CBTXHASH = HSM2FirmwareVersion(2,1,0)
     MIN_VERSION_UI_GET_RETRIES = HSM2FirmwareVersion(2,1,0)
 
+    # Maximum pages expected to conform the UI attestation message
+    MAX_PAGES_UI_ATT_MESSAGE = 4
+
     def __init__(self, debug):
         self.logger = logging.getLogger("dongle")
         self.debug = debug
@@ -835,6 +838,10 @@ class HSM2Dongle:
         page = 0
         message = b""
         while True:
+            if page == self.MAX_PAGES_UI_ATT_MESSAGE:
+                msg = "Maximum number of UI attestation pages exceeded ()" % self.MAX_PAGES_UI_ATT_MESSAGE
+                self.logger.error(msg)
+                raise HSM2DongleError(msg)
             data = bytes([self.OP.UI_ATT.OP_GET_MSG, page])
             response = self._send_command(self.CMD.UI_ATT, data)
             page += 1
