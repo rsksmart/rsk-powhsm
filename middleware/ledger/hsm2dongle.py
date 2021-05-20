@@ -22,6 +22,7 @@ class _Command(IntEnum):
     CHANGE_PIN = 0x08
     GET_MODE = 0x43
     EXIT_MENU = 0xff
+    EXIT_MENU_NO_AUTOEXEC = 0xfa
     GET_STATE = 0x20
     RESET_AB = 0x21
     ADVANCE = 0x10
@@ -297,6 +298,7 @@ class HSM2Dongle:
     # Protocol version dependent features
     MIN_VERSION_META_CBTXHASH = HSM2FirmwareVersion(2,1,0)
     MIN_VERSION_UI_GET_RETRIES = HSM2FirmwareVersion(2,1,0)
+    MAX_VERSION_SIGNER_EXIT = HSM2FirmwareVersion(2,1,0)
 
     # Maximum pages expected to conform the UI attestation message
     MAX_PAGES_UI_ATT_MESSAGE = 4
@@ -461,8 +463,9 @@ class HSM2Dongle:
             raise HSM2DongleError(msg)
 
     # exit the ledger nano S menu
-    def exit_menu(self):
-        self._send_command(self.CMD.EXIT_MENU, bytes([0x00,0x00]))
+    def exit_menu(self, autoexec=True):
+        self._send_command(self.CMD.EXIT_MENU if autoexec else self.CMD.EXIT_MENU_NO_AUTOEXEC, \
+            bytes([0x00,0x00]))
 
     # get the public key for a bip32 path
     # key_id: BIP32Path

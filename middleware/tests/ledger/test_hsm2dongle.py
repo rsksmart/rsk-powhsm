@@ -164,6 +164,16 @@ class TestHSM2Dongle(_TestHSM2DongleBase):
         self.hsm2dongle.exit_menu()
         self.assert_exchange([[0xff, 0x00, 0x00]])
 
+    def test_exit_menu_explicit_autoexec(self):
+        self.dongle.exchange.return_value = bytes([0])
+        self.hsm2dongle.exit_menu(autoexec=True)
+        self.assert_exchange([[0xff, 0x00, 0x00]])
+
+    def test_exit_menu_no_autoexec(self):
+        self.dongle.exchange.return_value = bytes([0])
+        self.hsm2dongle.exit_menu(autoexec=False)
+        self.assert_exchange([[0xfa, 0x00, 0x00]])
+
     def test_get_public_key_ok(self):
         key_id = Mock(**{"to_binary.return_value": bytes.fromhex("11223344")})
         self.dongle.exchange.return_value = bytes.fromhex("aabbccddee")

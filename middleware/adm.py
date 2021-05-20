@@ -42,6 +42,9 @@ if __name__ == '__main__':
     parser.add_argument("-u","--nounlock", dest="no_unlock", action="store_const", \
                         help=f"Do not attempt to unlock (only valid for 'changepin' and 'pubkeys' operations).", \
                         default=False, const=True)
+    parser.add_argument("-e","--noexec", dest="no_exec", action="store_const", \
+                        help=f"Do not attempt to execute the signer after unlocking (only valid for the 'unlock' operation).", \
+                        default=False, const=True)
     parser.add_argument("-c","--ca", dest="ca", \
                         help=f"CA info in the <pubkey>:<hash>:<signature> format (only valid for 'attestation' operation).")
     parser.add_argument("-t","--attcert", dest="attestation_certificate_file_path", \

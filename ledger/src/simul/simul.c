@@ -117,9 +117,9 @@ void main(int argc, char** argv) {
         }
         advance_host = ADV_UPD_HOST;
         setup_bc_adv_upd(i, argv[1]);
-    } else if (strcmp(argv[1], ARG_SINGLE_BLOCK) == 0 && argc == 3) {
-        advance_host = SINGLE_BLOCK_HOST;
-        setup_bc_single_block(argv[2]);
+    } else if (strcmp(argv[1], ARG_SINGLE_BLOCK) == 0 && (argc == 3 || argc == 4)) {
+        advance_host = (argc == 4 && argv[3][0] == 'U') ? SINGLE_BLOCK_HOST_UPDATE :  SINGLE_BLOCK_HOST_ADVANCE;
+        setup_bc_single_block(argv[2], argc == 4 && argv[3][0] == 'U');
     } else if (strcmp(argv[1], ARG_GET_STATE) == 0) {
         SET_APDU_CMD(INS_GET_STATE);
         SET_APDU_OP(OP_GET_IDLE);

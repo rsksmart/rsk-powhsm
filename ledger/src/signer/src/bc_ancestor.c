@@ -264,6 +264,8 @@ static const rlp_callbacks_t callbacks = {
  * Initialize Blockchain update ancestor protocol state.
  */
 void bc_init_upd_ancestor() {
+    expected_blocks = 0;
+    curr_block = 0;
     expected_state = OP_UPD_ANCESTOR_INIT;
 }
 
@@ -330,6 +332,13 @@ unsigned int bc_upd_ancestor(volatile unsigned int rx) {
         BIGENDIAN_FROM(APDU_DATA_PTR, block.mm_rlp_len);
 
         // Block hash computation: encode and hash payload len
+
+        // Sanity check: make sure given mm_rlp_len plus BTC_HEADER_RLP_LEN does not overflow
+        if ((uint16_t)(block.mm_rlp_len + BTC_HEADER_RLP_LEN) < block.mm_rlp_len) {
+            LOG("Given MM RLP list length too large, would overflow: %u\n", block.mm_rlp_len);
+            ABORT(PROT_INVALID);
+        }
+
         KECCAK_INIT(&block.block_ctx);
         mm_hash_rlp_list_prefix(&block.block_ctx,
                                 block.mm_rlp_len + BTC_HEADER_RLP_LEN);

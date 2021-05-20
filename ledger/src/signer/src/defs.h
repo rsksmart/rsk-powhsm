@@ -35,6 +35,7 @@
 #define PATHLEN 21
 #define INPUTINDEXLEN 4
 #define RSK_PATH_LEN 5
+#define MAX_SIGNATURE_LENGTH 72
 
 // Number of bytes to transmit for data payload with size s
 #define TX_FOR_DATA_SIZE(s) (DATA + (s))
@@ -57,6 +58,9 @@
 // Get pointer to payload within APDU buffer.
 // No args, so it can be treated like an array pointer.
 #define APDU_DATA_PTR (G_io_apdu_buffer + DATA)
+
+// Total size of APDU data part
+#define APDU_TOTAL_DATA_SIZE (sizeof(G_io_apdu_buffer)-DATA)
 
 // Size of payload in APDU
 #define APDU_DATA_SIZE(rx) ((rx) >= DATA ? (rx)-DATA : 0)

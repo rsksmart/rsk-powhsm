@@ -47,7 +47,6 @@ bool rlpCanDecode(uint8_t *buffer, uint32_t bufferLength, bool *valid) {
 /* Decode and returns information about a field: Lenght, offset in buffer and
  * wheter field is a list */
 bool rlpDecodeLength(uint8_t *buffer,
-                     uint32_t bufferLength,
                      uint32_t *fieldLength,
                      uint32_t *offset,
                      bool *list) {
@@ -174,19 +173,24 @@ void SM_RLP_HDR(RLP_CTX *ctx,
                 unsigned int *tx) {
     bool currentFieldIsList;
     bool valid;
+    if ((sizeof(ctx->decodeBuffer) - ctx->decodeOffset) < 1) {
+        #ifdef FEDHM_EMULATOR
+        fprintf(stderr, "RLP decode buffer would overflow\n");
+        #endif
+        THROW(0x6A8A);
+    }
     memcpy(ctx->decodeBuffer + ctx->decodeOffset, &G_io_apdu_buffer[TXLEN], 1);
     ctx->decodeOffset++;
     ctx->listRemaining[ctx->listLevel] -= 1;
     if (rlpCanDecode(ctx->decodeBuffer, ctx->decodeOffset, &valid)) {
         // Can decode now, if valid
         if (!valid) {
-#ifdef FEDHM_EMULATOR
+            #ifdef FEDHM_EMULATOR
             fprintf(stderr, "RLP pre-decode error\n");
-#endif
+            #endif
             THROW(0x6A8A);
         } else {
             if (!rlpDecodeLength(ctx->decodeBuffer,
-                                 ctx->decodeOffset,
                                  &ctx->currentFieldLength,
                                  &ctx->offset,
                                  &currentFieldIsList)) {
@@ -213,9 +217,8 @@ void SM_RLP_HDR(RLP_CTX *ctx,
             *tx = 4;
             if (currentFieldIsList) // List field
             {
-                if (ctx->listLevel >= sizeof(ctx->listSize))
+                if (++ctx->listLevel == (sizeof(ctx->listSize) / sizeof(ctx->listSize[0])))
                     THROW(0x6A8C); // Max tree depth reached
-                ctx->listLevel++;
                 ctx->fieldCount = 0;
                 ctx->listSize[ctx->listLevel] =
                     ctx->listRemaining[ctx->listLevel] =

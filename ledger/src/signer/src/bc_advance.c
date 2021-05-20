@@ -670,6 +670,8 @@ static const rlp_callbacks_t callbacks = {
  * Initialize Blockchain advance protocol state.
  */
 void bc_init_advance() {
+    expected_blocks = 0;
+    curr_block = 0;
     expected_state = OP_ADVANCE_INIT;
 }
 
@@ -859,9 +861,10 @@ unsigned int bc_advance(volatile unsigned int rx) {
  * @ret number of bytes dumped to APDU buffer
  */
 static uint8_t dump_min_req_difficulty(int offset) {
-    uint8_t buf[sizeof(MIN_REQUIRED_DIFFICULTY)];
-    dump_bigint(buf, MIN_REQUIRED_DIFFICULTY, BIGINT_LEN);
-    memcpy(APDU_DATA_PTR + offset, buf, sizeof(buf));
+    // Make sure the minimum required difficulty fits into the output buffer
+    if (APDU_TOTAL_DATA_SIZE < sizeof(MIN_REQUIRED_DIFFICULTY)+offset)
+        THROW(BUFFER_OVERFLOW);
+    dump_bigint(APDU_DATA_PTR + offset, MIN_REQUIRED_DIFFICULTY, BIGINT_LEN);
     return sizeof(MIN_REQUIRED_DIFFICULTY);
 }
 

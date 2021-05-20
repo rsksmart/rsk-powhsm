@@ -6,7 +6,6 @@ from ledger.pin import BasePin
 from .misc import info, head, bls, get_hsm, get_admin_hsm, dispose_hsm, PIN_ERROR_MESSAGE, AdminError, ask_for_pin, wait_for_reconnection
 from .dongle_admin import DongleAdmin
 from .unlock import do_unlock
-from .exit import do_exit
 from .certificate import HSMCertificate, HSMCertificateElement
 
 # TODO: this could perhaps be done with a different value. 
@@ -97,19 +96,11 @@ def do_onboard(options):
     # Wait for the dongle
     wait_for_reconnection()
 
-    # Unlock
+    # Unlock without executing the signer
     try:
-        do_unlock(options, label=False)
+        do_unlock(options, no_exec=True, label=False)
     except Exception as e:
         raise AdminError(f"Failed to unlock device: {str(e)}")
-
-    # Wait for the signer
-    wait_for_reconnection()
-
-    try:
-        do_exit(options, label=False)
-    except Exception as e:
-        raise AdminError(f"Failed to exit to menu: {str(e)}")    
 
     # Wait for the UI
     wait_for_reconnection()

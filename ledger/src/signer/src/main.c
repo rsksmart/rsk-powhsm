@@ -68,11 +68,11 @@ static unsigned char display_text_part(void);
 // Simulation of cx_hash()
 #include "sha256.h"
 
-// local definitions
-//#include "defs.h"
-
 // BTC TX-parsing code
 #include "txparser.h"
+
+// Signing code
+#include "sign.h"
 
 // rlp-parsing code
 #include "rlp.h"
@@ -91,7 +91,6 @@ static unsigned char display_text_part(void);
 
 #define RSK_MODE_CMD 0x43
 #define RSK_MODE_APP 0x03
-#define RSK_END_CMD 0xff
 
 // Version and patchlevel
 #define VERSION_MAJOR 0x02
@@ -104,6 +103,23 @@ static unsigned char display_text_part(void);
 static const unsigned char N_initialized;
 
 static char lineBuffer[MAX_CHARS_PER_LINE + 1];
+
+/*** Bussiness logic related static variables ***/
+
+// Make state variables used by signer global static, so they can be reset
+static PARSE_STM state;
+// Receipt keccak256 hash
+unsigned char ReceiptHashBuf[HASHLEN];
+// Receipts trie root (from block headers)
+unsigned char ReceiptsRootBuf[HASHLEN];
+
+// Key definitions
+unsigned int path[5];
+
+// Operation being currently executed
+static unsigned char curr_cmd;
+
+/************************************************/
 
 // clang-format off
 static const bagl_element_t bagl_ui_idle_nanos[] = {
@@ -145,11 +161,6 @@ static unsigned int bagl_ui_idle_nanos_button(
     return 0;
 }
 
-// Key definitions
-unsigned int path[5];
-cx_ecfp_public_key_t publicKey;
-cx_ecfp_private_key_t privateKey;
-
 unsigned short io_exchange_al(unsigned char channel, unsigned short tx_len) {
     switch (channel & ~(IO_FLAGS)) {
     case CHANNEL_KEYBOARD:
@@ -176,31 +187,25 @@ unsigned short io_exchange_al(unsigned char channel, unsigned short tx_len) {
     return 0;
 }
 
-// Make state variables used by signer global static, so they can be reset
-static PARSE_STM state;
-// Receipt keccak256 hash
-unsigned char ReceiptHashBuf[HASHLEN];
-// Receipts trie root (from block headers)
-unsigned char ReceiptsRootBuf[HASHLEN];
-
 /*
- * Reset signer state.
+ * Initialize signer state.
  *
  * TODO: (ppedemon) Not sure this is correct, Alfredo should check.
  */
-void reset_signer() {
+void init_signer() {
+    explicit_bzero(ReceiptHashBuf, sizeof(ReceiptHashBuf));
+    explicit_bzero(ReceiptsRootBuf, sizeof(ReceiptsRootBuf));
+    explicit_bzero(path, sizeof(path));
+
     state = S_CMD_START;
 }
 
 /*
- * Reset attestation state.
+ * Reset shared memory state.
  */
-void reset_attestation() {
-    explicit_bzero(&attestation, sizeof(attestation));
+void reset_shared_state() {
+    explicit_bzero(&mem, sizeof(mem));
 }
-
-// Operation being currently executed
-static unsigned char curr_cmd;
 
 /*
  * Reset all reseteable operations, only if the given operation is starting.
@@ -211,11 +216,11 @@ static void reset_if_starting(unsigned char cmd) {
     // Reset only if starting new operation (cmd != curr_cmd).
     // Otherwise we already reset when curr_cmd started.
     if (cmd != curr_cmd) {
-        curr_cmd = cmd;
-        reset_attestation();
-        reset_signer();
+        reset_shared_state();
+        init_signer();
         bc_init_advance();
         bc_init_upd_ancestor();
+        curr_cmd = cmd;
     }
 }
 
@@ -238,7 +243,6 @@ static void hsm_main(void) {
     // APDU injection faults.
     for (;;) {
         volatile unsigned short sw = 0;
-        unsigned int index;
 
         BEGIN_TRY {
             TRY {
@@ -265,11 +269,11 @@ static void hsm_main(void) {
                 }
 
                 switch (G_io_apdu_buffer[1]) {
-// Include HSM 1.1 Legacy commands
-#include "hsmLegacy.h"
+                // Include HSM 1.1 Legacy commands
+                #include "hsmLegacy.h"
 
-// Include HSM 2 commands
-#include "hsmCommands.h"
+                // Include HSM 2 commands
+                #include "hsmCommands.h"
 
                 case INS_ATTESTATION:
                     reset_if_starting(INS_ATTESTATION);
@@ -313,6 +317,10 @@ static void hsm_main(void) {
                 THROW(0x9000);
             }
             CATCH_OTHER(e) {
+                // Reset the full state in case of an error
+                if (e != 0x9000) {
+                    reset_if_starting(0);
+                }
                 switch (e & 0xF000) {
                 case 0x6000:
                 case 0x9000:

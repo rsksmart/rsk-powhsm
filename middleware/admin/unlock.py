@@ -2,7 +2,7 @@ from ledger.hsm2dongle import HSM2Dongle
 from ledger.pin import BasePin
 from .misc import info, head, bls, get_hsm, dispose_hsm, PIN_ERROR_MESSAGE_ANYCHARS, AdminError, ask_for_pin
 
-def do_unlock(options, exit=True, label=True):
+def do_unlock(options, exit=True, no_exec=False, label=True):
     if label:
         head("### -> Unlock", fill="#")
 
@@ -57,8 +57,9 @@ def do_unlock(options, exit=True, label=True):
     # Exit the bootloader, go into menu (or, if app is properly signed, into
     # the app)
     if exit:
-        info("Exiting to menu/app... ", options.verbose)
-        try: hsm.exit_menu()
+        autoexec=not(options.no_exec or no_exec)
+        info(f"Exiting to menu/app (execute signer: {bls(autoexec)})... ", options.verbose)
+        try: hsm.exit_menu(autoexec=autoexec)
         except: pass
         info("Exit OK")
 

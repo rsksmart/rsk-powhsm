@@ -9,6 +9,7 @@
 
 // Advance blockchain hosts
 #define ADV_UPD_HOST 0
-#define SINGLE_BLOCK_HOST 1
+#define SINGLE_BLOCK_HOST_ADVANCE 1
+#define SINGLE_BLOCK_HOST_UPDATE 2
 
 #endif // CONST_H

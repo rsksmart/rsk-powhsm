@@ -35,6 +35,13 @@ static void printHex(char *hdr, unsigned char *buf, int len) {
 // Avoid printf on real device
 void printnull(char *format, ...){};
 
+void increment_offset(MP_CTX *ctx, unsigned int rx) {
+    if (rx < DATA || (ctx->offset + rx - DATA) > ctx->nodeLen) {
+        THROW(0x6A99);
+    }
+    ctx->offset += rx - DATA;
+}
+
 void MP_START(MP_CTX *ctx,
               PARSE_STM *state,
               unsigned int rx,
@@ -74,6 +81,10 @@ void MP_NODE_HDR(MP_CTX *ctx,
     // Update node hash
     keccak_update(&ctx->NodeHash_ctx, &G_io_apdu_buffer[DATA + 1], 1);
     ctx->nodeLen = G_io_apdu_buffer[DATA];
+    // Verify node is at least one byte long
+    if (ctx->nodeLen == 0) {
+        THROW(0x6A87);
+    }
     ctx->offset = 1;
     unsigned char flags = G_io_apdu_buffer[DATA + 1];
     // Parse flags
@@ -132,7 +143,7 @@ void MP_NODE_SHARED_PREFIX_HDR(MP_CTX *ctx,
                                unsigned int rx,
                                unsigned int *tx) {
     printf("MP SP_HDR rx:%d\n", rx);
-    ctx->offset += rx - DATA;
+    increment_offset(ctx, rx);
     // Update node hash
     keccak_update(&ctx->NodeHash_ctx, &G_io_apdu_buffer[DATA], rx - DATA);
 
@@ -161,7 +172,7 @@ void MP_NODE_SHARED_PREFIX_VARINT_HDR(MP_CTX *ctx,
                                       unsigned int rx,
                                       unsigned int *tx) {
     printf("MP SP_VARINT_HDR rx:%d\n", rx);
-    ctx->offset += rx - DATA;
+    increment_offset(ctx, rx);
     // Update node hash
     keccak_update(&ctx->NodeHash_ctx, &G_io_apdu_buffer[DATA], rx - DATA);
     G_io_apdu_buffer[CLAPOS] = CLA;
@@ -191,7 +202,7 @@ void MP_NODE_SHARED_PREFIX_VARINT_BODY(MP_CTX *ctx,
                                        unsigned int rx,
                                        unsigned int *tx) {
     printf("MP SP_VARINT_BODY rx:%d\n", rx);
-    ctx->offset += rx - DATA;
+    increment_offset(ctx, rx);
     // Update node hash
     keccak_update(&ctx->NodeHash_ctx, &G_io_apdu_buffer[DATA], rx - DATA);
     G_io_apdu_buffer[CLAPOS] = CLA;
@@ -199,8 +210,8 @@ void MP_NODE_SHARED_PREFIX_VARINT_BODY(MP_CTX *ctx,
     G_io_apdu_buffer[OP] = P1_MERKLEPROOF;
     *tx = 4;
     unsigned int length = 0;
-    // Read length from input
-    if (rx - DATA > 0)
+    // Read length from input, making sure the destination buffer is large enough
+    if (rx > DATA && sizeof(length) >= (rx - DATA))
         memmove(&length, &G_io_apdu_buffer[DATA], rx - DATA);
     else
         THROW(0x6A87);
@@ -216,7 +227,7 @@ void MP_NODE_SHARED_PREFIX_BODY(MP_CTX *ctx,
                                 unsigned int rx,
                                 unsigned int *tx) {
     printf("MP SP_BODY rx:%d\n", rx);
-    ctx->offset += rx - DATA;
+    increment_offset(ctx, rx);
     // Update node hash
     keccak_update(&ctx->NodeHash_ctx, &G_io_apdu_buffer[DATA], rx - DATA);
 
@@ -246,7 +257,7 @@ void MP_NODE_LEFT(MP_CTX *ctx,
                   unsigned int rx,
                   unsigned int *tx) {
     printf("MP LEFT rx:%d\n", rx);
-    ctx->offset += rx - DATA;
+    increment_offset(ctx, rx);
     // Update node hash
     keccak_update(&ctx->NodeHash_ctx, &G_io_apdu_buffer[DATA], rx - DATA);
     G_io_apdu_buffer[CLAPOS] = CLA;
@@ -273,7 +284,7 @@ void MP_NODE_LEFT_BYTES(MP_CTX *ctx,
                         unsigned int rx,
                         unsigned int *tx) {
     printf("MP LEFT_BYTES rx:%d\n", rx);
-    ctx->offset += rx - DATA;
+    increment_offset(ctx, rx);
     // Update node hash
     keccak_update(&ctx->NodeHash_ctx, &G_io_apdu_buffer[DATA], rx - DATA);
     // Per RSKIP107 we know the node fits in a single message, proceed to hash
@@ -295,7 +306,7 @@ void MP_NODE_HDR2(MP_CTX *ctx,
                   unsigned int rx,
                   unsigned int *tx) {
     printf("MP HDR2 rx:%d\n", rx);
-    ctx->offset += rx - DATA;
+    increment_offset(ctx, rx);
     // Update node hash
     keccak_update(&ctx->NodeHash_ctx, &G_io_apdu_buffer[DATA], rx - DATA);
     G_io_apdu_buffer[CLAPOS] = CLA;
@@ -319,7 +330,7 @@ void MP_NODE_RIGHT(MP_CTX *ctx,
                    unsigned int rx,
                    unsigned int *tx) {
     printf("MP RIGHT rx:%d\n", rx);
-    ctx->offset += rx - DATA;
+    increment_offset(ctx, rx);
     // Update node hash
     keccak_update(&ctx->NodeHash_ctx, &G_io_apdu_buffer[DATA], rx - DATA);
     G_io_apdu_buffer[CLAPOS] = CLA;
@@ -346,7 +357,7 @@ void MP_NODE_RIGHT_BYTES(MP_CTX *ctx,
                          unsigned int rx,
                          unsigned int *tx) {
     printf("MP RIGHT_BYTES rx:%d\n", rx);
-    ctx->offset += rx - DATA;
+    increment_offset(ctx, rx);
     // Update node hash
     keccak_update(&ctx->NodeHash_ctx, &G_io_apdu_buffer[DATA], rx - DATA);
     // Per RSKIP107 we know the node fits in a single message, proceed to hash
@@ -367,7 +378,7 @@ void MP_NODE_CHILDRENSIZE(MP_CTX *ctx,
                           unsigned int rx,
                           unsigned int *tx) {
     printf("MP CHILDRENSIZE rx:%d\n", rx);
-    ctx->offset += rx - DATA;
+    increment_offset(ctx, rx);
     G_io_apdu_buffer[CLAPOS] = CLA;
     G_io_apdu_buffer[CMDPOS] = INS_SIGN;
     G_io_apdu_buffer[OP] = P1_MERKLEPROOF;
@@ -387,7 +398,7 @@ void MP_NODE_VARINT_HDR(MP_CTX *ctx,
                         unsigned int rx,
                         unsigned int *tx) {
     printf("MP VARINT_HDR rx:%d\n", rx);
-    ctx->offset += rx - DATA;
+    increment_offset(ctx, rx);
     // Update node hash
     keccak_update(&ctx->NodeHash_ctx, &G_io_apdu_buffer[DATA], rx - DATA);
     G_io_apdu_buffer[CLAPOS] = CLA;
@@ -403,7 +414,7 @@ void MP_NODE_VARINT_BODY(MP_CTX *ctx,
                          unsigned int rx,
                          unsigned int *tx) {
     printf("MP VARINT_BODY rx:%d\n", rx);
-    ctx->offset += rx - DATA;
+    increment_offset(ctx, rx);
     // Update node hash
     keccak_update(&ctx->NodeHash_ctx, &G_io_apdu_buffer[DATA], rx - DATA);
     G_io_apdu_buffer[CLAPOS] = CLA;
@@ -419,7 +430,7 @@ void MP_NODE_VALUE(MP_CTX *ctx,
                    unsigned int rx,
                    unsigned int *tx) {
     printf("MP VALUE rx:%d\n", rx);
-    ctx->offset += rx - DATA;
+    increment_offset(ctx, rx);
     G_io_apdu_buffer[CLAPOS] = CLA;
     G_io_apdu_buffer[CMDPOS] = INS_SIGN;
     G_io_apdu_buffer[OP] = P1_MERKLEPROOF;
@@ -439,7 +450,7 @@ void MP_NODE_VALUE_LEN(MP_CTX *ctx,
                        unsigned int rx,
                        unsigned int *tx) {
     printf("MP VALUE_LEN rx:%d\n", rx);
-    ctx->offset += rx - DATA;
+    increment_offset(ctx, rx);
     // Update node hash
     keccak_update(&ctx->NodeHash_ctx, &G_io_apdu_buffer[DATA], rx - DATA);
     // ValueHash
@@ -476,8 +487,10 @@ void MP_NODE_REMAINING(MP_CTX *ctx,
         } else
             printf("Node Chaining check PASSED\n");
     }
-    // Update node hash
-    keccak_update(&ctx->NodeHash_ctx, &G_io_apdu_buffer[DATA], rx - DATA);
+    // Update node hash (only if there is more data)
+    if (rx > DATA) {
+        keccak_update(&ctx->NodeHash_ctx, &G_io_apdu_buffer[DATA], rx - DATA);
+    }
     G_io_apdu_buffer[CLAPOS] = CLA;
     G_io_apdu_buffer[CMDPOS] = INS_SIGN;
     G_io_apdu_buffer[OP] = P1_MERKLEPROOF;

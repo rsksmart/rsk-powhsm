@@ -98,10 +98,8 @@ function checkFirmware() {
     done
 }
 
-function unlockAndExit() {
-    $ADMIN unlock -p$(cat $PIN_FILE)
-    sleep 1
-    $ADMIN exit
+function unlockToMenu() {
+    $ADMIN unlock -p$(cat $PIN_FILE) -e
     error
 }
 
@@ -161,7 +159,7 @@ echo -e "\e[1;33mConnect your ledger.\e[0m"
 echo -e "Press [Enter] to continue"
 read continue
 sleep 2
-unlockAndExit
+unlockToMenu
 sleep 2
 echo
 echo -e "\e[1;32mRemoving the old RSK Signer App...\e[0m"

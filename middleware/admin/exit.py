@@ -17,6 +17,12 @@ def do_exit(options, label=True):
     if mode != HSM2Dongle.MODE.APP:
         raise AdminError("Device not in App mode")
 
+    # Get version (this feature is version-dependent)
+    version = hsm.get_version()
+    info(f"Signer version: {version}")
+    if (version >= HSM2Dongle.MAX_VERSION_SIGNER_EXIT):
+        raise AdminError(f"Exit command not supported from {HSM2Dongle.MAX_VERSION_SIGNER_EXIT} onwards")
+
     # Onboard check
     info("Is device onboarded? ... ", options.verbose)
     is_onboarded = hsm.is_onboarded()

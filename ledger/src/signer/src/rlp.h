@@ -11,7 +11,6 @@
 // Shared decoding functions
 bool rlpCanDecode(uint8_t *buffer, uint32_t bufferLength, bool *valid);
 bool rlpDecodeLength(uint8_t *buffer,
-                     uint32_t bufferLength,
                      uint32_t *fieldLength,
                      uint32_t *offset,
                      bool *list);
@@ -38,7 +37,7 @@ typedef struct {
     unsigned int currentFieldLength;
     unsigned int offset;
     unsigned char decodeBuffer[MAX_HEADER_LEN]; // RLP Header buffer
-    char decodeOffset;                          // Offset inside header buffer
+    unsigned char decodeOffset;                          // Offset inside header buffer
     // Input validation
     unsigned char expectedRXBytes;
 } RLP_CTX;

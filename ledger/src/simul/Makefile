@@ -5,7 +5,7 @@
 #*******************************************************************************
 VPATH = ../signer/src
 
-CFLAGS = -g -O0 -DFEDHM_EMULATOR -DREGTEST -I$(VPATH) -I.
+CFLAGS = -g -O0 -DFEDHM_EMULATOR -I$(VPATH) -I.
 
 OBJDIR := objs
 

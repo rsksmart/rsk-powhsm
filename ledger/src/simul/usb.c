@@ -77,20 +77,22 @@ unsigned short io_exchange(unsigned char channel_and_flags,
     } else if (APDU_CMD() == INS_RESET_STATE) {
         // Delegate to blockchain reset state host simulator if necessary
         transmit_len = bc_reset_state_host(tx_len);
-    } else if (APDU_CMD() == INS_ADVANCE) {
+    } else if (APDU_CMD() == INS_ADVANCE || APDU_CMD() == INS_UPD_ANCESTOR) {
         // Delegate to blockchain advance host simulator if necessary
         switch (advance_host) {
-            case SINGLE_BLOCK_HOST:
-                transmit_len = bc_single_block();
+            case SINGLE_BLOCK_HOST_ADVANCE:
+            case SINGLE_BLOCK_HOST_UPDATE:
+                transmit_len = bc_single_block(advance_host == SINGLE_BLOCK_HOST_UPDATE);
                 break;
             case ADV_UPD_HOST:
             default:
-                transmit_len = bc_advance_host();
+                if (APDU_CMD() == INS_ADVANCE) {
+                    transmit_len = bc_advance_host();
+                } else {
+                    transmit_len = bc_upd_ancestor_host();
+                }
                 break;
         }
-    } else if (APDU_CMD() == INS_UPD_ANCESTOR) {
-        // Delegate to update ancestor host simulator if necessary
-        transmit_len = bc_upd_ancestor_host();
     }
 
     // Debug what we are transmitting to the dongle

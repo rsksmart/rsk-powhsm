@@ -298,11 +298,13 @@ void SM_TX_INPUT_REMAINING(TX_CTX *ctx,
 #ifdef FEDHM_EMULATOR
     printf(" TX_REMAINING: read %d bytes\n", rx - DATA);
 #endif
-    sha256_update(
-        &ctx->TX_hash, &G_io_apdu_buffer[DATA], rx - DATA); // Update TX hash
-    sha256_update(&ctx->signatureHash,
-                  &G_io_apdu_buffer[DATA],
-                  rx - DATA); // Update signature hash
+    if (rx > DATA) {
+        sha256_update(
+            &ctx->TX_hash, &G_io_apdu_buffer[DATA], rx - DATA); // Update TX hash
+        sha256_update(&ctx->signatureHash,
+                    &G_io_apdu_buffer[DATA],
+                    rx - DATA); // Update signature hash
+    }
     printHex(&G_io_apdu_buffer[DATA], (rx - DATA));
     ctx->tx_total_read += rx - DATA;
     G_io_apdu_buffer[CLAPOS] = CLA;

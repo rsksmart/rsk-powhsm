@@ -5,13 +5,21 @@ case INS_SIGN:
 #ifndef FEDHM_EMULATOR
 reset_if_starting(INS_SIGN);
 #endif
+
+// Check for a valid OP, otherwise throw an error
+if ((G_io_apdu_buffer[OP] & 0xF) != P1_PATH &&
+    (G_io_apdu_buffer[OP] & 0xF) != P1_BTC &&
+    (G_io_apdu_buffer[OP] & 0xF) != P1_RECEIPT &&
+    (G_io_apdu_buffer[OP] & 0xF) != P1_MERKLEPROOF) {
+    THROW(0x6A87);
+}
+
 //---------------------- PATH Parser --------------------------
 // Generate key with path
 if ((G_io_apdu_buffer[OP] & 0xF) == P1_PATH) {
     if ((rx != DATA + PATHLEN + INPUTINDEXLEN) &&
         (rx != DATA + PATHLEN + HASHLEN))
-        THROW(
-            0x6A87); // Wrong buffer size, has to be either 28
+        THROW(0x6A87); // Wrong buffer size, has to be either 28
                      // (DATA+PATHLEN+INPUTINDEXLEN) or 56 (DATA+PATHLEN+HASHEN)
     memmove(path, &G_io_apdu_buffer[DATA + 1], RSK_PATH_LEN * sizeof(int));
     // If path requires authorization, continue with authorization and
@@ -60,9 +68,11 @@ memmove(ReceiptsRootBuf,
 //---------------------- BTC TX Parser --------------------------
 if (G_io_apdu_buffer[OP] & P1_BTC) {
     // Input len check
-    if (state != S_TX_REMAINING)
-        if (rx - DATA != tx_ctx.expectedRXBytes)
-            THROW(0x6A87);
+    if ((state != S_TX_REMAINING && (rx - DATA) != tx_ctx.expectedRXBytes) ||
+        (state == S_TX_REMAINING && rx < DATA)) {
+        THROW(0x6A87);
+    }
+    
     switch (state) {
     case S_CMD_START:                          // Start the state machine
                                                // Check for valid parameters
@@ -86,20 +96,28 @@ if (G_io_apdu_buffer[OP] & P1_BTC) {
     case S_TX_END:
         SM_TX_END(&tx_ctx, &state, rx, &tx);
         rlp_ctx.expectedRXBytes = G_io_apdu_buffer[TXLEN];
+        // Check if we request more than our buffer size
+        if (rlp_ctx.expectedRXBytes > IO_APDU_BUFFER_SIZE)
+            THROW(0x6A89);
         break;
     default: // Invalid state
         THROW(0x6A89);
     }
     // Save the amount of bytes we request, to check at RX
     tx_ctx.expectedRXBytes = G_io_apdu_buffer[TXLEN];
+    // Check if we request more than our buffer size
+	if (tx_ctx.expectedRXBytes > IO_APDU_BUFFER_SIZE)
+		THROW(0x6A89);
 }
 //---------------------- Receipt RLP Parser --------------------------
 if (G_io_apdu_buffer[OP] & P1_RECEIPT) {
     static unsigned int oldListLevel = 0;
     // Input len check
-    if (state != S_RLP_FINISH)
-        if (rx - DATA != rlp_ctx.expectedRXBytes)
-            THROW(0x6A87);
+    if ((state != S_RLP_FINISH && (rx - DATA) != rlp_ctx.expectedRXBytes) ||
+        (state == S_RLP_FINISH && rx < DATA)) {
+        THROW(0x6A87);
+    }
+
     switch (state) {
     // Start the state machine
     case S_CMD_START:
@@ -126,12 +144,9 @@ if (G_io_apdu_buffer[OP] & P1_RECEIPT) {
         oldListLevel = rlp_ctx.listLevel;
         // Check for Contract Address
         if ((rlp_ctx.listLevel == 3) && (rlp_ctx.fieldCount == 1)) {
-            char cmpbuf[CONTRACTADDRESS_LEN];
             // Check input size
             if (rx != CONTRACTADDRESS_LEN + DATA)
                 THROW(0x6A87);
-            // Dont memcmp flash to RAM
-            memmove(cmpbuf, ContractAddress, CONTRACTADDRESS_LEN);
             if (!memcmp(&G_io_apdu_buffer[DATA],
                         ContractAddress,
                         CONTRACTADDRESS_LEN))
@@ -140,12 +155,9 @@ if (G_io_apdu_buffer[OP] & P1_RECEIPT) {
         // Check for correct Signature
         if ((rlp_ctx.listLevel == 4) &&
             (rlp_ctx.fieldCount == EXPECTED_TOPIC_SIGNATURE_INDEX)) {
-            char cmpbuf[CONTRACTSIGNATURE_LEN];
             // Check input size
             if (rx != CONTRACTSIGNATURE_LEN + DATA)
                 THROW(0x6A87);
-            // Dont memcmp flash to RAM
-            memmove(cmpbuf, ContractSignature, CONTRACTSIGNATURE_LEN);
             if (!memcmp(&G_io_apdu_buffer[DATA],
                         ContractSignature,
                         CONTRACTSIGNATURE_LEN))
@@ -197,9 +209,11 @@ if (G_io_apdu_buffer[OP] & P1_RECEIPT) {
         break;
     // Finish RLP transmission
     case S_RLP_FINISH:
-        keccak_update(&ReceiptHash,
-                      &G_io_apdu_buffer[DATA],
-                      rx - DATA);            // Update Receipt hash
+        if (rx > DATA) {
+            keccak_update(&ReceiptHash,
+                        &G_io_apdu_buffer[DATA],
+                        rx - DATA);            // Update Receipt hash
+        }
         if (rx - DATA == RLP_MAX_TRANSFER) { // Data still remains
             G_io_apdu_buffer[CLAPOS] = CLA;
             G_io_apdu_buffer[CMDPOS] = INS_SIGN;
@@ -228,6 +242,9 @@ if (G_io_apdu_buffer[OP] & P1_RECEIPT) {
     }
     // Save the amount of bytes we request, to check at RX
     rlp_ctx.expectedRXBytes = G_io_apdu_buffer[TXLEN];
+    // Check if we request more than our buffer size
+	if (rlp_ctx.expectedRXBytes > IO_APDU_BUFFER_SIZE)
+		THROW(0x6A89);
 } else
     //---------------------- Merkle Proof Parser --------------------------
     if (G_io_apdu_buffer[OP] & P1_MERKLEPROOF) {
@@ -298,47 +315,39 @@ if (G_io_apdu_buffer[OP] & P1_RECEIPT) {
     case S_MP_NODE_REMAINING:
         MP_NODE_REMAINING(&mp_ctx, &state, rx, &tx);
         break;
-    case S_SIGN_MESSAGE:
-#ifdef FEDHM_EMULATOR
+    case S_SIGN_MESSAGE: {
+        // Matching TX found, Contract is valid, Receipt Signature is valid and Merkle
+        // Tree passes al verifications. Sign the signatureHash
+
+        #ifdef FEDHM_EMULATOR
+
         printf("[I] MP parsing done. Valid TX found. ValidContract=%s "
                "ValidSignature=%s \n",
                tx_ctx.validContract ? "true" : "false",
                tx_ctx.validSignature ? "true" : "false");
         tx = 0;
-#else
-	os_perso_derive_node_bip32(CX_CURVE_256K1, path, RSK_PATH_LEN, privateKeyData, NULL);
-	cx_ecdsa_init_private_key(CX_CURVE_256K1, privateKeyData, KEYLEN, &privateKey);
-	cx_ecfp_generate_pair(CX_CURVE_256K1, &publicKey, &privateKey, 1);
-	// Matching TX found, Contract is valid, Receipt Signature is valid and Merkle
-	// Tree passes al verifications. Sign the signatureHash
-#if TARGET_ID == 0x31100003
-        tx = cx_ecdsa_sign((void *)&privateKey,
-                           CX_RND_RFC6979 | CX_LAST,
-                           CX_SHA256,
-                           mp_ctx.signatureHash,
-                           sizeof(mp_ctx.signatureHash),
-                           &G_io_apdu_buffer[DATA],
-                           NULL);
-#else
-        tx = cx_ecdsa_sign((void *)&privateKey,
-                           CX_RND_RFC6979 | CX_LAST,
-                           CX_SHA256,
-                           mp_ctx.signatureHash,
-                           sizeof(mp_ctx.signatureHash),
-                           &G_io_apdu_buffer[DATA]);
-#endif
-	// Cleanup
-	for (rx=0;rx<sizeof(privateKeyData);rx++) privateKeyData[rx]=0;
-	for (rx=0;rx<sizeof(privateKey);rx++) ((char *)(&privateKey))[rx]=0;
-	for (rx=0;rx<sizeof(publicKey);rx++) ((char *)(&publicKey))[rx]=0;
-	for (rx=0;rx<sizeof(path);rx++) ((char *)(path))[rx]=0;
-#endif
+        
+        #else
+
+        tx = do_sign(
+            path, RSK_PATH_LEN, 
+            mp_ctx.signatureHash, sizeof(mp_ctx.signatureHash), 
+            G_io_apdu_buffer+DATA, sizeof(G_io_apdu_buffer)-DATA);
+
+        // Error signing?
+        if (tx == DO_SIGN_ERROR) {
+            THROW(0x6A99);
+        }
+
+        #endif
+
         tx += DATA;
         G_io_apdu_buffer[CLAPOS] = CLA;
         G_io_apdu_buffer[CMDPOS] = INS_SIGN;
         G_io_apdu_buffer[OP] = P1_SUCCESS; // Command finished
         state = S_CMD_FINISHED;
         break;
+    }
     default: // Invalid state
         THROW(0x6A89);
     }
