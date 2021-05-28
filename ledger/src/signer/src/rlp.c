@@ -121,7 +121,7 @@ int readData() {
 // parsing field body
 void SM_RLP_FIELD(RLP_CTX *ctx,
                   PARSE_STM *state,
-                  int unsigned rx,
+                  unsigned int rx,
                   unsigned int *tx) {
 #ifdef FEDHM_EMULATOR
     for (unsigned int q = 0; q < ctx->listLevel; q++)

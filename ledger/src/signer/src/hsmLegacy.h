@@ -11,7 +11,7 @@ case RSK_MODE_CMD: // print mode
     THROW(0x9000);
     break;
 
-case RSK_IS_ONBOARD: // Wheter it's onboarded or not
+case RSK_IS_ONBOARD: // Reports wheter the device is onboarded and the current signer version
     reset_if_starting(RSK_IS_ONBOARD);
     G_io_apdu_buffer[1] = os_perso_isonboarded();
     G_io_apdu_buffer[2] = VERSION_MAJOR;
