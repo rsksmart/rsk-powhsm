@@ -3,7 +3,8 @@ from comm.protocol import HSM2Protocol
 from comm.bip32 import BIP32Path
 from .rsk.receipt import RskTransactionReceipt
 from .rsk.trie import RskTrie
-from comm.bitcoin import get_tx_hash_for_unsigned_tx, get_signature_hash_for_p2sh_input, get_unsigned_tx
+from comm.bitcoin import get_tx_hash_for_unsigned_tx, get_signature_hash_for_p2sh_input, \
+                         get_unsigned_tx, get_tx_version
 
 # These are all the valid signing paths (key ids)
 # Any other key id should be rejected as invalid
@@ -30,6 +31,9 @@ _EXPECTED_RECEIPT_EVENT_SIGNATURE = sha3.keccak_256(\
 
 _EXPECTED_NUMBER_OF_TOPICS = 3
 _EXPECTED_TOPIC_BTC_TX_INDEX = 2
+
+# Valid BTC transaction versions
+_VALID_BTC_TX_VERSIONS = [1,2]
 
 def get_authorized_signing_paths():
     return _VALID_BIP32_PATHS.values()
@@ -81,6 +85,10 @@ def authorize_signature_and_get_message_to_sign(raw_tx_receipt, \
     # Step 4
     try:
         tx_hash = get_tx_hash_for_unsigned_tx(raw_tx)
+        # Make sure the TX version is within our supported versions
+        tx_version = get_tx_version(raw_tx)
+        if tx_version not in _VALID_BTC_TX_VERSIONS:
+            raise ValueError("Unsupported transaction version %d" % tx_version)
     except ValueError as e:
         logger.info("Invalid BTC transaction: %s", str(e))
         return (False, HSM2Protocol.ERROR_CODE_INVALID_MESSAGE)

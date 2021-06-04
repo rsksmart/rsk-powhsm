@@ -55,9 +55,11 @@ void SM_TX_HDR(TX_CTX *ctx,
     printf(" TX_HDR: TX total len %u\n", ctx->tx_total_len);
     printf(" TX_HDR: version %u\n", ctx->tx_version);
 #endif
-    if (ctx->tx_version != 1) {
+    // The bridge currently only generates pegout transactions with
+    // versions 1 or 2. Validate that.
+    if (ctx->tx_version != 1 && ctx->tx_version != 2) {
 #ifdef FEDHM_EMULATOR
-        printf("[E] TX Version !=1\n");
+        printf("[E] Unsupported TX Version: %u\n", ctx->tx_version);
 #endif
         THROW(0x6A8E);
     }

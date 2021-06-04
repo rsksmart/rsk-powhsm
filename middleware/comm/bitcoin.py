@@ -14,6 +14,10 @@ def get_tx_hash(raw_tx_hex):
 def get_tx_hash_for_unsigned_tx(raw_tx_hex):
     return _unsign_tx(raw_tx_hex).GetHash()[::-1].hex()
 
+def get_tx_version(raw_tx_hex):
+    tx = _deserialize_tx(raw_tx_hex)
+    return tx.nVersion
+
 def _unsign_tx(raw_tx_hex):
     # Given a p2sh-only inputs transaction (all of them corresponding
     # to multisig outputs), this method clears any

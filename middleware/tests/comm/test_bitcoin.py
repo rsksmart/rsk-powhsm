@@ -4,7 +4,8 @@ from comm.bitcoin import get_tx_hash_for_unsigned_tx,\
     get_block_hash_as_int,\
     get_merkle_root,\
     get_unsigned_tx,\
-    get_tx_hash
+    get_tx_hash,\
+    get_tx_version
 
 import logging
 logging.disable(logging.CRITICAL)
@@ -74,6 +75,17 @@ ee4511563688dce9b5d74e07cc9932b8e01f2288ac00000000
 
 SAMPLE_3_UNSIGNED_HASH = "ea73e8a9a6b98da8ba3f47d28f94af6818c8e906937a95f302263920b4cda792"
 SAMPLE_3_SIGHASH_INPUT0 = "5aeb5a6bbecda560b297da643559ce3c1b727076fb2ba1118c94d5906617aa19"
+
+SAMPLE_TX_V2 = """
+02000000010ac6236167ee3c88aee00f0f3b89f92b43a84797a71b6b62ffd354f11ef8c2f000000000de00000000
+4cd8645221024c759affafc5589872d218ca30377e6d97211c039c375672c169ba76ce7fad6a21031f4aa4943fa2
+b731cd99c551d6992021555877b3b32c125385600fbc1b89c2a92103767a0994daa8babee7215b2371916d09fc11
+58de3c23feeefaae2dfe5baf483053670132b275522102132685d71b0109fecef0160f1efcab0187eff916f4d472
+289741bff2666d0e1c2102ed498022f9d618a96f272b1990a640d9f24fb97d2648f8716f9ee22dc008eba721036f
+66639295ca8e4294c24d63e3fbc11247f6ba6a27b6b4de9a3492f414152d9b5368aeffffffff02948e4b00000000
+001976a9140a4f09cbd39d5d8072b24385e1a9eb1c84ae544688acf83d6e0b0000000017a914ba053351893c7495
+e0c75d5abacb3ed886cf1ff88700000000
+""".replace('\n','').replace('\r','')
 
 class TestBitcoin(TestCase):
     def test_signed_unsigned_different_sample1(self):
@@ -165,3 +177,9 @@ class TestBitcoin(TestCase):
     def test_get_merkle_root_malformed(self):
         with self.assertRaises(ValueError):
             get_merkle_root("aabbcc")
+
+    def test_get_tx_version_a(self):
+        self.assertEqual(1, get_tx_version(SAMPLE_1_UNSIGNED))
+
+    def test_get_tx_version_b(self):
+        self.assertEqual(2, get_tx_version(SAMPLE_TX_V2))
