@@ -48,3 +48,5 @@ All notable changes to this project will be documented in this file.
 - Fixed outdated ledger docker image build
 - Signer: fixed assigning a wrong value to expectedRXBytes on S_CMD_FINISHED state
 - Signer: fixed RLP parser behavior when handling inconsistent length encodings
+- Signer now verifies BTC transactions are either version 1 or 2
+- Simulator now verifies BTC transactions are either version 1 or 2
