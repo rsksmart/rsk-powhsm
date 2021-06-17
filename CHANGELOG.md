@@ -50,3 +50,9 @@ All notable changes to this project will be documented in this file.
 - Signer: fixed RLP parser behavior when handling inconsistent length encodings
 - Signer now verifies BTC transactions are either version 1 or 2
 - Simulator now verifies BTC transactions are either version 1 or 2
+
+## [2.1.2-SNAPSHOT]
+
+### Fixes
+
+- Fixed SIGHASH calculation bug in BTC transactions with scriptSigs larger than 256 bytes
