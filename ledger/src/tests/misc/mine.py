@@ -5,7 +5,7 @@ import rlp
 import comm.bitcoin as bitcoin
 import simulator.rsk.block as rsk_block
 import simulator.rsk.netparams as netparams
-import simulator.rsk.pow as pow
+import comm.pow as pow
 import ledger.block_utils as block_utils
 
 MM_HASH_PLACEHOLDER = "<MM_HASH>"
@@ -14,7 +14,7 @@ COINBASE_TX_TEMPLATE = f"0000000000000400f1f2c62bc5bfded2c12c1696ff5ecd3d8ee4867
 MERKLE_ROOT_PLACEHOLDER = "<MERKLE_ROOT>"
 BTC_TX_TEMPLATE = f"711101000000000000000000000000000000000000000000000000000000000000000000{MERKLE_ROOT_PLACEHOLDER}22c0355fffff7f2100000000"
 
-regtest = netparams.NetworkParameters.from_dict({'network_upgrades': {'wasabi': 0, 'papyrus': 0}})
+regtest = netparams.NetworkParameters.REGTEST
 
 def mine(block_hex, np):
     new_block = rlp.decode(block_utils.remove_mm_fields_if_present(block_hex, leave_btcblock=False, hex=False)) + \
