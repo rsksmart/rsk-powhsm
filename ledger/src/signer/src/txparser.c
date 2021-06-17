@@ -316,11 +316,15 @@ void SM_TX_INPUT_REMAINING(TX_CTX *ctx,
         sha256_update(&ctx->signatureHash,
                     &G_io_apdu_buffer[DATA],
                     rx - DATA); // Update signature hash
+        ctx->tx_total_read += rx - DATA;
     }
 #ifdef FEDHM_EMULATOR
-    printHex(" DATA recv: ", &G_io_apdu_buffer[DATA], (rx - DATA));
+    if (rx > DATA) {
+        printHex(" DATA recv: ", &G_io_apdu_buffer[DATA], (rx - DATA));
+    } else {
+        printf(" NO DATA received");
+    }
 #endif
-    ctx->tx_total_read += rx - DATA;
     G_io_apdu_buffer[CLAPOS] = CLA;
     G_io_apdu_buffer[CMDPOS] = INS_SIGN;
     G_io_apdu_buffer[OP] = P1_BTC;

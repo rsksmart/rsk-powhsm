@@ -173,7 +173,7 @@ void SM_RLP_HDR(RLP_CTX *ctx,
                 unsigned int *tx) {
     bool currentFieldIsList;
     bool valid;
-    if ((sizeof(ctx->decodeBuffer) - ctx->decodeOffset) < 1) {
+    if (ctx->decodeOffset >= sizeof(ctx->decodeBuffer)) {
         #ifdef FEDHM_EMULATOR
         fprintf(stderr, "RLP decode buffer would overflow\n");
         #endif
