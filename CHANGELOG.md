@@ -51,7 +51,7 @@ All notable changes to this project will be documented in this file.
 - Signer now verifies BTC transactions are either version 1 or 2
 - Simulator now verifies BTC transactions are either version 1 or 2
 
-## [2.1.2-SNAPSHOT]
+## [2.1.2] - 17/06/2021
 
 ### Fixes
 
