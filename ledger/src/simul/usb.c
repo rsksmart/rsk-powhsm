@@ -93,6 +93,31 @@ unsigned short io_exchange(unsigned char channel_and_flags,
                 }
                 break;
         }
+    } else {
+        // **** Signer simulator **** //
+
+        SET_APDU_CLA(CLA);
+        SET_APDU_CMD(INS_SIGN);
+        switch (APDU_OP()) {
+        case P1_PATH:
+            SET_APDU_OP(P1_PATH);
+            memcpy(APDU_DATA_PTR, G_path, PATH_LEN);
+            transmit_len = PATH_LEN + DATA;
+            break;
+        case P1_RECEIPT:
+            SET_APDU_OP(P1_RECEIPT);
+            transmit_len = copySegment(receipt, RECEIPT_LEN, &receiptOffset);
+            break;
+        case P1_BTC:
+            SET_APDU_OP(P1_BTC);
+            transmit_len = copySegment(BTCTran, BTCTran_LEN, &btcOffset);
+            break;
+        case P1_MERKLEPROOF:
+            SET_APDU_OP(P1_MERKLEPROOF);
+            G_io_apdu_buffer[OP] = P1_MERKLEPROOF;
+            transmit_len = copySegment(MerkleProof, MerkleProof_LEN, &MPOffset);
+            break;
+        }
     }
 
     // Debug what we are transmitting to the dongle
@@ -101,37 +126,6 @@ unsigned short io_exchange(unsigned char channel_and_flags,
         printf("%02x", G_io_apdu_buffer[i]);
     printf("\n");
     return transmit_len;
-
-    // **** Signer simulator **** //
-
-    SET_APDU_CLA(CLA);
-    SET_APDU_CMD(INS_SIGN);
-    switch (APDU_OP()) {
-    case P1_PATH:
-        SET_APDU_OP(P1_PATH);
-        memcpy(APDU_DATA_PTR, G_path, PATH_LEN);
-        tx_len = PATH_LEN + DATA;
-        break;
-    case P1_RECEIPT:
-        SET_APDU_OP(P1_RECEIPT);
-        tx_len = copySegment(receipt, RECEIPT_LEN, &receiptOffset);
-        break;
-    case P1_BTC:
-        SET_APDU_OP(P1_BTC);
-        tx_len = copySegment(BTCTran, BTCTran_LEN, &btcOffset);
-        break;
-    case P1_MERKLEPROOF:
-        SET_APDU_OP(P1_MERKLEPROOF);
-        G_io_apdu_buffer[OP] = P1_MERKLEPROOF;
-        tx_len = copySegment(MerkleProof, MerkleProof_LEN, &MPOffset);
-        break;
-    }
-    printf("HID => ");
-    for (int i = 0; i < tx_len; i++)
-        printf("%02x", G_io_apdu_buffer[i]);
-    printf("\n");
-
-    return tx_len;
 }
 
 // Mocking assorted OS functions, constants and types

@@ -89,16 +89,16 @@ void SM_TX_HDR(TX_CTX *ctx,
     *tx = 4;
 }
 
-// For debugging
-void printHex(unsigned char *buffer, int len) {
 #ifdef FEDHM_EMULATOR
+// For debugging
+static void printHex(unsigned char *title, unsigned char *buffer, int buffer_length) {
     int i;
-    printf("\nSigHash fake transaction: ");
-    for (i = 0; i < len; i++)
+    printf("%s: ", title);
+    for (i = 0; i < buffer_length; i++)
         printf("%02x", buffer[i]);
-    printf("--\n");
-#endif
+    printf("\n");
 }
+#endif
 
 void SM_TX_INPUT_START(TX_CTX *ctx,
                        PARSE_STM *state,
@@ -113,7 +113,9 @@ void SM_TX_INPUT_START(TX_CTX *ctx,
     sha256_update(&ctx->signatureHash,
                   &G_io_apdu_buffer[DATA],
                   (rx - DATA) - 1); // Update signatureHash minus scriptlength
-    printHex(&G_io_apdu_buffer[DATA], (rx - DATA) - 1);
+#ifdef FEDHM_EMULATOR
+    printHex("SM_TX_INPUT_START received: ", &G_io_apdu_buffer[DATA], rx - DATA);
+#endif
     ctx->tx_total_read += rx - DATA;
     // Read Script
     ctx->script_read = 0;
@@ -186,13 +188,10 @@ void SM_TX_INPUT_READ(TX_CTX *ctx,
     sha256_update(
         &ctx->TX_hash, &G_io_apdu_buffer[DATA], rx - DATA); // Update TX hash
 #ifdef FEDHM_EMULATOR
-    printf(" TX_INPUT_READ: readed %d bytes (script+seqno)\nScript: ",
+    printf(" TX_INPUT_READ: read %d bytes (script+seqno)\nScript: ",
            rx - DATA);
     // Print script
-    printf("Script: ");
-    for (int i = 0; i < rx - DATA; i++)
-        printf("%02x", G_io_apdu_buffer[DATA + i]);
-    printf("\n");
+    printHex(" Script: ", G_io_apdu_buffer+DATA, rx - DATA);
 #endif
     if (ctx->tx_input_index_to_sign == ctx->currentTxInput) {
         if (ctx->script_read ==
@@ -207,13 +206,24 @@ void SM_TX_INPUT_READ(TX_CTX *ctx,
                     break;
             if (pushOffset == rx - DATA) // push op couldn't be found
                 THROW(0x6A8D);
-            // Add push instruction
-            pushOffset += 2;
-            // Add varint variable-len offsets
-            if (ctx->script_length > 252)
-                pushOffset++;
-            if (ctx->script_length > 65535)
-                pushOffset++;
+            // Skip push instruction (could be , OP_PUSHDATA2 or OP_PUSHDATA4)
+            switch (G_io_apdu_buffer[pushOffset + DATA]) {
+                case 0x4c: // OP_PUSHDATA1
+                    pushOffset += 2;
+                    break;
+                case 0x4d: // OP_PUSHDATA2
+                    pushOffset += 3;
+                    break;
+                case 0x4e: // OP_PUSHDATA4
+                    pushOffset += 5;
+                    break;
+                default: // Unexpected opcode
+                    THROW(0x6A8D);
+            }
+#ifdef FEDHM_EMULATOR
+            printf(" Redeem script offset: %u\n", pushOffset);
+            printf(" Creating varint for new script: %u\n", ctx->script_length - pushOffset - 4);
+#endif
             // Now we need to generate a varint with the new size of the script
             createVarint(
                 ctx->script_length - pushOffset - 4, tempVarint, &varintLen);
@@ -221,20 +231,18 @@ void SM_TX_INPUT_READ(TX_CTX *ctx,
                           tempVarint,
                           varintLen); // Update SignatureHash with new Varint
                                       // containing new script size
-            printHex(tempVarint, varintLen);
 #ifdef FEDHM_EMULATOR
-            printf(
-                " TX_VARINT: pushOffset: %d CreateVarint: ln %d varint: %d\n",
+            printHex(" VARINT new script length: ", tempVarint, varintLen);
+            printf(" TX_VARINT: pushOffset: %d CreateVarint: lengtn %d\n",
                 pushOffset,
-                varintLen,
-                tempVarint[0]);
+                varintLen);
+            printHex(" DATA after pushOffset: ", &G_io_apdu_buffer[DATA + pushOffset],
+                     (rx - DATA) - pushOffset);
 #endif
             sha256_update(&ctx->signatureHash,
                           &G_io_apdu_buffer[DATA + pushOffset],
                           (rx - DATA) -
                               pushOffset); // Update TX hash minus first 4 OPs
-            printHex(&G_io_apdu_buffer[DATA + pushOffset],
-                     (rx - DATA) - pushOffset);
         } else
             sha256_update(&ctx->signatureHash,
                           &G_io_apdu_buffer[DATA],
@@ -246,7 +254,9 @@ void SM_TX_INPUT_READ(TX_CTX *ctx,
         fakeScript[1] = fakeScript[2] = fakeScript[3] = fakeScript[4] = 0xff;
         sha256_update(
             &ctx->signatureHash, fakeScript, 5); // Update SignatureHash
-        printHex(fakeScript, 5);
+#ifdef FEDHM_EMULATOR
+        printHex(" Fake script: ", fakeScript, 5);
+#endif
     }
 
     ctx->script_read += rx - DATA; // Advance script pointer
@@ -307,7 +317,9 @@ void SM_TX_INPUT_REMAINING(TX_CTX *ctx,
                     &G_io_apdu_buffer[DATA],
                     rx - DATA); // Update signature hash
     }
-    printHex(&G_io_apdu_buffer[DATA], (rx - DATA));
+#ifdef FEDHM_EMULATOR
+    printHex(" DATA recv: ", &G_io_apdu_buffer[DATA], (rx - DATA));
+#endif
     ctx->tx_total_read += rx - DATA;
     G_io_apdu_buffer[CLAPOS] = CLA;
     G_io_apdu_buffer[CMDPOS] = INS_SIGN;
@@ -334,7 +346,7 @@ void SM_TX_END(TX_CTX *ctx,
                unsigned int rx,
                unsigned int *tx) {
 #ifdef FEDHM_EMULATOR
-    printf(" TX_END: ");
+    printf(" TX_END\n");
 #endif
     // ----- Finish TX Hash calculation
     sha256_final(&ctx->TX_hash, ctx->TXHashBuf);
@@ -349,10 +361,7 @@ void SM_TX_END(TX_CTX *ctx,
         ctx->TXHashBuf[sizeof(ctx->TXHashBuf) - i - 1] = q;
     }
 #ifdef FEDHM_EMULATOR
-    printf(" TX_HASH: ");
-    // Print hash
-    for (unsigned int i = 0; i < sizeof(ctx->TXHashBuf); i++)
-        printf("%02x", ctx->TXHashBuf[i]);
+    printHex(" TX_HASH", ctx->TXHashBuf, sizeof(ctx->TXHashBuf));
 #endif
     // Add HashType to Temporary Transaction
     unsigned int hashType = SIGHASH_ALL;
@@ -367,16 +376,7 @@ void SM_TX_END(TX_CTX *ctx,
                   sizeof(ctx->signatureHashBuf));
     sha256_final(&ctx->signatureHash, ctx->signatureHashBuf);
 #ifdef FEDHM_EMULATOR
-    // Print hash
-    printf("\n signatureHash:");
-    for (unsigned int i = 0; i < sizeof(ctx->signatureHashBuf); i++)
-        printf("%02x", ctx->signatureHashBuf[i]);
-    printf("\n");
-    printf(
-        " (Correct values: TX: "
-        "f7e2b314eb12bd13481c5325ae3839fdbe5c508dbc7e24a44aac5e9992d07718, "
-        "signatureHash:"
-        "db4ca3f81a68996e7c51e7e138524a53ab9770410f628199dc6ab5a5bac73e5c)\n");
+    printHex(" TX_SIGHASH", ctx->signatureHashBuf, sizeof(ctx->signatureHashBuf));
 #endif
     ctx->validHashes = true; // Indicated hashes have been calculated
     G_io_apdu_buffer[CLAPOS] = CLA;
