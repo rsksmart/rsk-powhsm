@@ -25,4 +25,4 @@ source $DOCKER_ROOT/../check-image
 # Default port
 PORT=9999
 
-docker run -ti --rm -v $HSM_ROOT:/hsm2 -v /dev/bus/usb:/dev/bus/usb --privileged -p$PORT:$PORT -w $1 $DOCKER_IMAGE $2
+docker run -ti --rm --name hsm-mware -v $HSM_ROOT:/hsm2 -v /dev/bus/usb:/dev/bus/usb --privileged -p$PORT:$PORT -w $1 $DOCKER_IMAGE $2

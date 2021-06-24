@@ -1,7 +1,8 @@
 from comm.protocol_v1 import HSM1Protocol
 from .protocol import HSM2ProtocolLedger, HSM2ProtocolError
 from ledger.hsm2dongle import HSM2Dongle, HSM2DongleError, \
-                              HSM2DongleErrorResult, HSM2DongleTimeout
+                              HSM2DongleErrorResult, HSM2DongleTimeoutError, \
+                              HSM2DongleCommError
 
 class HSM1ProtocolLedger(HSM1Protocol):
     def __init__(self, pin, dongle):
@@ -16,23 +17,35 @@ class HSM1ProtocolLedger(HSM1Protocol):
 
     def _get_pubkey(self, request):
         try:
+            self.protocol_v2.ensure_connection()
             return (self.ERROR_CODE_OK, {
                 "pubKey":  self.hsm2dongle.get_public_key(request["keyId"])
                 })
         except HSM2DongleErrorResult as e:
             return (self.ERROR_CODE_INVALID_KEYID, )
-        except HSM2DongleTimeout as e:
+        except HSM2DongleTimeoutError as e:
             self.logger.error("Dongle timeout getting public key")
+            return (self.ERROR_CODE_DEVICE, )
+        except HSM2DongleCommError as e:
+            # Signal a communication problem and return a device error
+            self.protocol_v2.report_comm_issue()
+            self.logger.error("Dongle communication error getting public key")
             return (self.ERROR_CODE_DEVICE, )
         except HSM2DongleError as e:
             self._error("Dongle error in get_pubkey: %s" % str(e))
 
     def _sign(self, request):
         try:
+            self.protocol_v2.ensure_connection()
             sign_result = self.hsm2dongle.sign_unauthorized(key_id=request["keyId"],
                 hash=request["message"])
-        except HSM2DongleTimeout as e:
+        except HSM2DongleTimeoutError as e:
             self.logger.error("Dongle timeout signing")
+            return (self.ERROR_CODE_DEVICE, )
+        except HSM2DongleCommError as e:
+            # Signal a communication problem and return a device error
+            self.protocol_v2.report_comm_issue()
+            self.logger.error("Dongle communication error getting public key")
             return (self.ERROR_CODE_DEVICE, )
         except HSM2DongleError as e:
             self._error("Dongle error in sign: %s" % str(e))

@@ -2,6 +2,7 @@ import struct
 from enum import IntEnum, auto
 from ledgerblue.comm import getDongle
 from ledgerblue.commException import CommException
+import hid
 from .signature import HSM2DongleSignature
 from .version import HSM2FirmwareVersion
 from .parameters import HSM2FirmwareParameters
@@ -255,17 +256,31 @@ class _Onboarding(IntEnum):
     TIMEOUT = 10
 
 class HSM2DongleBaseError(RuntimeError):
-    pass
+    @property
+    def message(self):
+        if len(self.args) == 0:
+            return None
+        return self.args[0]
 
 class HSM2DongleError(HSM2DongleBaseError):
     pass
 
-class HSM2DongleTimeout(HSM2DongleBaseError):
+class HSM2DongleTimeoutError(HSM2DongleBaseError):
     @staticmethod
     def is_timeout(exc):
         if type(exc) == CommException and \
             exc.sw == 0x6f00 and \
             exc.message == "Timeout":
+            return True
+        return False
+
+class HSM2DongleCommError(HSM2DongleBaseError):
+    @staticmethod
+    def is_comm_error(exc):
+        if (type(exc) == BaseException and \
+            len(exc.args) == 1 and \
+            exc.args[0] == "Error while writing") or \
+            isinstance(exc, HSM2DongleCommError):
             return True
         return False
 
@@ -315,17 +330,21 @@ class HSM2Dongle:
             result = self.dongle.exchange(cmd, timeout=timeout)
             self.logger.debug("Received: 0x%s", result.hex())
         except (CommException, BaseException) as e:
-            # If this is a user-defined exception, raise an
-            # error result exception
+            # If this is a user-defined error, raise an
+            # error result error
             if type(e) == CommException:
                 error_code = e.sw
                 if _Error.is_user_defined_error(error_code):
                     self.logger.error("Received error code: %s", hex(error_code))
                     raise HSM2DongleErrorResult(error_code)
 
-            # If this is a dongle timeout, raise a timeout exception
-            if HSM2DongleTimeout.is_timeout(e):
-                raise HSM2DongleTimeout()
+            # If this is a dongle timeout, raise a timeout error
+            if HSM2DongleTimeoutError.is_timeout(e):
+                raise HSM2DongleTimeoutError(str(e))
+
+            # If this is a dongle communication problem, raise a comm error
+            if HSM2DongleCommError.is_comm_error(e):
+                raise HSM2DongleCommError(str(e))
 
             # Otherwise, raise a standard error
             msg = "Error sending command: %s" % str(e)
@@ -346,7 +365,7 @@ class HSM2Dongle:
         except CommException as e:
             msg = "Error connecting: %s" % e.message
             self.logger.error(msg)
-            raise HSM2DongleError(msg)
+            raise HSM2DongleCommError(msg)
 
     # Disconnect from dongle
     def disconnect(self):
@@ -354,11 +373,22 @@ class HSM2Dongle:
             self.logger.info("Disconnecting")
             if self.dongle and self.dongle.opened:
                 self.dongle.close()
+            #### Begin hack ####
+            # When running within a docker container,
+            # the hidapi library fails to detect a physical
+            # usb device reconnection. This will "hard reset" the
+            # stack so that a potential physical device reconnection
+            # can be detected.
+            try:
+                hid.hidapi_exit()
+            except:
+                pass
+            #### End hack ####
             self.logger.info("Disconnected")
         except CommException as e:
             msg = "Error disconnecting: %s" % e.message
             self.logger.error(msg)
-            raise HSM2DongleError(msg)
+            raise HSM2DongleCommError(msg)
 
     # Return device mode
     def get_current_mode(self):

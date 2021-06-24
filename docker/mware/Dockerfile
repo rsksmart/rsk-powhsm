@@ -4,7 +4,8 @@ WORKDIR /hsm2
 
 RUN apt-get update && \
     apt-get install -y apt-utils vim && \
-    apt-get install -y build-essential=12.3
+    apt-get install -y build-essential=12.3 && \
+    apt-get install -y git
 
 # Python package prerequisites
 RUN apt-get install -y \
@@ -18,3 +19,7 @@ RUN apt-get install -y \
 COPY requirements.txt /hsm2/requirements.txt
 RUN pip install -r requirements.txt --require-hashes
 RUN rm -f requirements.txt
+
+# Hidapi wrapper with hid_exit support
+RUN pip install git+git://github.com/rsksmart/cython-hidapi@0.10.1.post1
+

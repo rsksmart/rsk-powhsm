@@ -2,7 +2,7 @@ from unittest import TestCase
 from unittest.mock import Mock, patch, call
 from parameterized import parameterized
 from tests.utils import list_product
-from ledger.hsm2dongle import HSM2Dongle, HSM2DongleError, HSM2DongleTimeout, HSM2DongleErrorResult
+from ledger.hsm2dongle import HSM2Dongle, HSM2DongleError, HSM2DongleCommError, HSM2DongleTimeoutError, HSM2DongleErrorResult
 from ledger.version import HSM2FirmwareVersion
 from ledgerblue.commException import CommException
 
@@ -48,7 +48,7 @@ class TestHSM2Dongle(_TestHSM2DongleBase):
     @patch("ledger.hsm2dongle.getDongle")
     def test_connects_error_comm(self, getDongleMock):
         getDongleMock.side_effect = CommException("a-message")
-        with self.assertRaises(HSM2DongleError):
+        with self.assertRaises(HSM2DongleCommError):
             self.hsm2dongle.connect()
 
     @patch("ledger.hsm2dongle.getDongle")
@@ -190,7 +190,7 @@ class TestHSM2Dongle(_TestHSM2DongleBase):
     def test_get_public_key_timeout(self):
         key_id = Mock(**{"to_binary.return_value": bytes.fromhex("11223344")})
         self.dongle.exchange.side_effect = CommException("Timeout")
-        with self.assertRaises(HSM2DongleTimeout):
+        with self.assertRaises(HSM2DongleTimeoutError):
             self.hsm2dongle.get_public_key(key_id)
         self.assert_exchange([[0x04, 0x11, 0x22, 0x33, 0x44]])
 

@@ -4,7 +4,8 @@ from parameterized import parameterized
 from comm.bip32 import BIP32Path
 from comm.protocol import HSM2ProtocolError
 from ledger.protocol import HSM2ProtocolLedger
-from ledger.hsm2dongle import HSM2Dongle, HSM2DongleError, HSM2DongleErrorResult, HSM2DongleTimeout
+from ledger.hsm2dongle import HSM2Dongle, HSM2DongleError, HSM2DongleErrorResult, \
+                              HSM2DongleTimeoutError, HSM2DongleCommError
 from ledger.version import HSM2FirmwareVersion
 
 import logging
@@ -16,6 +17,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.expected_app_version = HSM2FirmwareVersion(2, 1, 0)
         self.dongle = Mock()
         self.dongle.connect = Mock()
+        self.dongle.disconnect = Mock()
         self.dongle.is_onboarded = Mock(return_value=True)
         self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.APP)
         self.dongle.get_version = Mock(return_value=HSM2FirmwareVersion(2, 1, 0))
@@ -32,6 +34,7 @@ class TestHSM2ProtocolLedger(TestCase):
             { "errorcode": 0, "pubKey": "this-is-the-public-key" },
             self.protocol.handle_request({ "version": 2, "command": "getPubKey", "keyId": "m/44'/1'/2'/3/4" }))
         self.assertEqual([call("the-key-id")], self.dongle.get_public_key.call_args_list)
+        self.assertFalse(self.dongle.disconnect.called)
 
     @patch("comm.protocol.BIP32Path")
     def test_get_pubkey_error(self, BIP32PathMock):
@@ -42,16 +45,40 @@ class TestHSM2ProtocolLedger(TestCase):
             { "errorcode": -103 },
             self.protocol.handle_request({ "version": 2, "command": "getPubKey", "keyId": "m/44'/1'/2'/3/4" }))
         self.assertEqual([call("the-key-id")], self.dongle.get_public_key.call_args_list)
+        self.assertFalse(self.dongle.disconnect.called)
 
     @patch("comm.protocol.BIP32Path")
     def test_get_pubkey_timeout(self, BIP32PathMock):
         BIP32PathMock.return_value = "the-key-id"
-        self.dongle.get_public_key.side_effect = HSM2DongleTimeout()
+        self.dongle.get_public_key.side_effect = HSM2DongleTimeoutError()
 
         self.assertEqual(
             { "errorcode": -905 },
             self.protocol.handle_request({ "version": 2, "command": "getPubKey", "keyId": "m/44'/1'/2'/3/4" }))
         self.assertEqual([call("the-key-id")], self.dongle.get_public_key.call_args_list)
+        self.assertFalse(self.dongle.disconnect.called)
+
+    @patch("comm.protocol.BIP32Path")
+    def test_get_pubkey_commerror_reconnection(self, BIP32PathMock):
+        BIP32PathMock.return_value = "the-key-id"
+        self.dongle.get_public_key.side_effect = HSM2DongleCommError()
+
+        self.assertEqual(
+            { "errorcode": -905 },
+            self.protocol.handle_request({ "version": 2, "command": "getPubKey", "keyId": "m/44'/1'/2'/3/4" }))
+        self.assertEqual([call("the-key-id")], self.dongle.get_public_key.call_args_list)
+        self.assertFalse(self.dongle.disconnect.called)
+
+        # Reconnection logic testing
+        self.dongle.get_public_key.side_effect = None
+        self.dongle.get_public_key.return_value = "this-is-the-public-key"
+
+        self.assertEqual(
+            { "errorcode": 0, "pubKey": "this-is-the-public-key" },
+            self.protocol.handle_request({ "version": 2, "command": "getPubKey", "keyId": "m/44'/1'/2'/3/4" }))
+
+        self._assert_reconnected()
+        
 
     @patch("comm.protocol.BIP32Path")
     def test_get_pubkey_unexpected_error(self, BIP32PathMock):
@@ -62,6 +89,7 @@ class TestHSM2ProtocolLedger(TestCase):
             self.protocol.handle_request({ "version": 2, "command": "getPubKey", "keyId": "m/44'/1'/2'/3/4" })
 
         self.assertEqual([call("the-key-id")], self.dongle.get_public_key.call_args_list)
+        self.assertFalse(self.dongle.disconnect.called)
 
     @patch("ledger.protocol.get_tx_hash")
     @patch("ledger.protocol.get_unsigned_tx")
@@ -88,6 +116,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual([call(key_id="the-key-id", rsk_tx_receipt="aa", \
                                receipt_merkle_proof=["cc", "dd"], btc_tx="the-unsigned-tx", \
                                input_index=12)], self.dongle.sign_authorized.call_args_list)
+        self.assertFalse(self.dongle.disconnect.called)
 
 
     @parameterized.expand([
@@ -122,13 +151,14 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual([call(key_id="the-key-id", rsk_tx_receipt="aa", \
                                receipt_merkle_proof=["cc", "dd"], btc_tx="the-unsigned-tx", \
                                input_index=12)], self.dongle.sign_authorized.call_args_list)
+        self.assertFalse(self.dongle.disconnect.called)
 
     @patch("ledger.protocol.get_tx_hash")
     @patch("ledger.protocol.get_unsigned_tx")
     @patch("comm.protocol.BIP32Path")
     def test_sign_authorized_timeout(self, BIP32PathMock, get_unsigned_tx_mock, _):
         BIP32PathMock.return_value = "the-key-id"
-        self.dongle.sign_authorized.side_effect = HSM2DongleTimeout()
+        self.dongle.sign_authorized.side_effect = HSM2DongleTimeoutError()
         get_unsigned_tx_mock.return_value = "the-unsigned-tx"
 
         self.assertEqual(
@@ -147,6 +177,54 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual([call(key_id="the-key-id", rsk_tx_receipt="aa", \
                                receipt_merkle_proof=["cc", "dd"], btc_tx="the-unsigned-tx", \
                                input_index=12)], self.dongle.sign_authorized.call_args_list)
+        self.assertFalse(self.dongle.disconnect.called)
+
+    @patch("ledger.protocol.get_tx_hash")
+    @patch("ledger.protocol.get_unsigned_tx")
+    @patch("comm.protocol.BIP32Path")
+    def test_sign_authorized_commerror_reconnection(self, BIP32PathMock, get_unsigned_tx_mock, _):
+        BIP32PathMock.return_value = "the-key-id"
+        self.dongle.sign_authorized.side_effect = HSM2DongleCommError()
+        get_unsigned_tx_mock.return_value = "the-unsigned-tx"
+
+        self.assertEqual(
+            { "errorcode": -905 },
+            self.protocol.handle_request({ \
+                                          "version": 2, \
+                                          "command": "sign", \
+                                          "keyId": "m/44'/1'/2'/3/4", \
+                                          "auth": { \
+                                                   "receipt": "aa", \
+                                                   "receipt_merkle_proof": ["cc", "dd"]}, \
+                                          "message": {\
+                                                      "tx": "eeff", \
+                                                      "input": 12 }}))
+
+        self.assertEqual([call(key_id="the-key-id", rsk_tx_receipt="aa", \
+                               receipt_merkle_proof=["cc", "dd"], btc_tx="the-unsigned-tx", \
+                               input_index=12)], self.dongle.sign_authorized.call_args_list)
+        self.assertFalse(self.dongle.disconnect.called)
+
+        # Reconnection logic
+        self.dongle.sign_authorized.side_effect = None
+        signature = Mock(r="this-is-r", s="this-is-s")
+        self.dongle.sign_authorized.return_value = (True, signature)
+
+        self.assertEqual(
+            { "errorcode": 0, "signature": { "r": "this-is-r", "s": "this-is-s" }},
+            self.protocol.handle_request({ \
+                                          "version": 2, \
+                                          "command": "sign", \
+                                          "keyId": "m/44'/1'/2'/3/4", \
+                                          "auth": { \
+                                                   "receipt": "aa", \
+                                                   "receipt_merkle_proof": ["cc", "dd"]}, \
+                                          "message": {\
+                                                      "tx": "eeff", \
+                                                      "input": 12 }}))
+
+        self._assert_reconnected()
+
 
     @patch("ledger.protocol.get_tx_hash")
     @patch("ledger.protocol.get_unsigned_tx")
@@ -171,6 +249,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual([call(key_id="the-key-id", rsk_tx_receipt="aa", \
                                receipt_merkle_proof=["cc", "dd"], btc_tx="the-unsigned-tx", \
                                input_index=12)], self.dongle.sign_authorized.call_args_list)
+        self.assertFalse(self.dongle.disconnect.called)
 
     @patch("ledger.protocol.get_tx_hash")
     @patch("ledger.protocol.get_unsigned_tx")
@@ -193,6 +272,7 @@ class TestHSM2ProtocolLedger(TestCase):
                                                       "input": 12 }}))
 
         self.assertFalse(self.dongle.sign_authorized.called)
+        self.assertFalse(self.dongle.disconnect.called)
 
     @patch("ledger.protocol.get_tx_hash")
     @patch("ledger.protocol.get_unsigned_tx")
@@ -215,6 +295,7 @@ class TestHSM2ProtocolLedger(TestCase):
 
         self.assertFalse(self.dongle.sign_authorized.called)
         self.assertFalse(get_unsigned_tx_mock.called)
+        self.assertFalse(self.dongle.disconnect.called)
 
     @patch("ledger.protocol.get_tx_hash")
     @patch("ledger.protocol.get_unsigned_tx")
@@ -237,6 +318,7 @@ class TestHSM2ProtocolLedger(TestCase):
 
         self.assertFalse(self.dongle.sign_authorized.called)
         self.assertFalse(get_unsigned_tx_mock.called)
+        self.assertFalse(self.dongle.disconnect.called)
 
     @patch("comm.protocol.BIP32Path")
     def test_sign_unauthorized_ok(self, BIP32PathMock):
@@ -254,6 +336,7 @@ class TestHSM2ProtocolLedger(TestCase):
 
         self.assertEqual([call(key_id="the-key-id", hash="aa"*32)], \
             self.dongle.sign_unauthorized.call_args_list)
+        self.assertFalse(self.dongle.disconnect.called)
 
     @parameterized.expand([
         ("path", -1, -103),
@@ -276,11 +359,12 @@ class TestHSM2ProtocolLedger(TestCase):
 
         self.assertEqual([call(key_id="the-key-id", hash="aa"*32)], \
             self.dongle.sign_unauthorized.call_args_list)
+        self.assertFalse(self.dongle.disconnect.called)
 
     @patch("comm.protocol.BIP32Path")
     def test_sign_unauthorized_timeout(self, BIP32PathMock):
         BIP32PathMock.return_value = "the-key-id"
-        self.dongle.sign_unauthorized.side_effect = HSM2DongleTimeout()
+        self.dongle.sign_unauthorized.side_effect = HSM2DongleTimeoutError()
 
         self.assertEqual(
             { "errorcode": -905 },
@@ -292,6 +376,40 @@ class TestHSM2ProtocolLedger(TestCase):
 
         self.assertEqual([call(key_id="the-key-id", hash="aa"*32)], \
             self.dongle.sign_unauthorized.call_args_list)
+        self.assertFalse(self.dongle.disconnect.called)
+
+    @patch("comm.protocol.BIP32Path")
+    def test_sign_unauthorized_commerror_reconnection(self, BIP32PathMock):
+        BIP32PathMock.return_value = "the-key-id"
+        self.dongle.sign_unauthorized.side_effect = HSM2DongleCommError()
+
+        self.assertEqual(
+            { "errorcode": -905 },
+            self.protocol.handle_request({ \
+                                          "version": 2, \
+                                          "command": "sign", \
+                                          "keyId": "m/44'/1'/2'/3/4", \
+                                          "message": { "hash": "aa"*32 }}))
+
+        self.assertEqual([call(key_id="the-key-id", hash="aa"*32)], \
+            self.dongle.sign_unauthorized.call_args_list)
+        self.assertFalse(self.dongle.disconnect.called)
+
+        # Reconnection logic
+        self.dongle.sign_unauthorized.side_effect = None
+        signature = Mock(r="this-is-r", s="this-is-s")
+        self.dongle.sign_unauthorized.return_value = (True, signature)
+
+        self.assertEqual(
+            { "errorcode": 0, "signature": { "r": "this-is-r", "s": "this-is-s" }},
+            self.protocol.handle_request({ \
+                                          "version": 2, \
+                                          "command": "sign", \
+                                          "keyId": "m/44'/1'/2'/3/4", \
+                                          "message": { "hash": "aa"*32 }}))
+
+        self._assert_reconnected()
+
 
     @patch("comm.protocol.BIP32Path")
     def test_sign_unauthorized_exception(self, BIP32PathMock):
@@ -307,6 +425,7 @@ class TestHSM2ProtocolLedger(TestCase):
 
         self.assertEqual([call(key_id="the-key-id", hash="aa"*32)], \
             self.dongle.sign_unauthorized.call_args_list)
+        self.assertFalse(self.dongle.disconnect.called)
 
     @patch("comm.protocol.BIP32Path")
     def test_sign_unauthorized_message_invalid(self, BIP32PathMock):
@@ -321,6 +440,7 @@ class TestHSM2ProtocolLedger(TestCase):
                                           "message": { "hash": "not-a-hexadecimal-string" }}))
 
         self.assertFalse(self.dongle.sign_unauthorized.called)
+        self.assertFalse(self.dongle.disconnect.called)
 
     def test_blockchain_state_ok(self):
         self.dongle.get_blockchain_state.return_value = {
@@ -358,6 +478,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.protocol.handle_request({ "version": 2, "command": "blockchainState" }))
 
         self.assertEqual([call()], self.dongle.get_blockchain_state.call_args_list)
+        self.assertFalse(self.dongle.disconnect.called)
 
     def test_blockchain_state_dongle_exception(self):
         self.dongle.get_blockchain_state.side_effect = HSM2DongleError("an-error")
@@ -366,28 +487,96 @@ class TestHSM2ProtocolLedger(TestCase):
             self.protocol.handle_request({ "version": 2, "command": "blockchainState" }))
 
         self.assertEqual([call()], self.dongle.get_blockchain_state.call_args_list)
+        self.assertFalse(self.dongle.disconnect.called)
 
     def test_blockchain_state_dongle_timeout(self):
-        self.dongle.get_blockchain_state.side_effect = HSM2DongleTimeout()
+        self.dongle.get_blockchain_state.side_effect = HSM2DongleTimeoutError()
 
         self.assertEqual({ "errorcode": -905 },
             self.protocol.handle_request({ "version": 2, "command": "blockchainState" }))
 
         self.assertEqual([call()], self.dongle.get_blockchain_state.call_args_list)
+        self.assertFalse(self.dongle.disconnect.called)
+
+    def test_blockchain_state_dongle_commerror_reconnection(self):
+        self.dongle.get_blockchain_state.side_effect = HSM2DongleCommError()
+
+        self.assertEqual({ "errorcode": -905 },
+            self.protocol.handle_request({ "version": 2, "command": "blockchainState" }))
+
+        self.assertEqual([call()], self.dongle.get_blockchain_state.call_args_list)
+        self.assertFalse(self.dongle.disconnect.called)
+
+        # Reconnection logic
+        self.dongle.get_blockchain_state.side_effect = None
+        self.dongle.get_blockchain_state.return_value = {
+            "best_block": "the-best-block",
+            "newest_valid_block": "the-newest_valid_block",
+            "ancestor_block": "the-ancestor-block",
+            "ancestor_receipts_root": "the-ancestor-receipts-root",
+            "updating.best_block": "the-updating-best-block",
+            "updating.newest_valid_block": "the-updating-newest-valid-block",
+            "updating.next_expected_block": "the-updating-next-expected-block",
+            "updating.total_difficulty": "total-difficulty",
+            "updating.in_progress": "is-in-progress",
+            "updating.already_validated": "is-already-validated",
+            "updating.found_best_block": "have-found-best-block",
+        }
+
+        self.assertEqual({
+            "errorcode": 0,
+            "state": {
+                "best_block": "the-best-block",
+                "newest_valid_block": "the-newest_valid_block",
+                "ancestor_block": "the-ancestor-block",
+                "ancestor_receipts_root": "the-ancestor-receipts-root",
+                "updating": {
+                    "best_block": "the-updating-best-block",
+                    "newest_valid_block": "the-updating-newest-valid-block",
+                    "next_expected_block": "the-updating-next-expected-block",
+                    "total_difficulty": "total-difficulty",
+                    "in_progress": "is-in-progress",
+                    "already_validated": "is-already-validated",
+                    "found_best_block": "have-found-best-block",
+                },
+            },
+        },
+        self.protocol.handle_request({ "version": 2, "command": "blockchainState" }))
+
+        self._assert_reconnected()
 
     def test_reset_advance_blockchain_ok(self):
         self.assertEqual({ "errorcode": 0 },
             self.protocol.handle_request({ "version": 2, "command": "resetAdvanceBlockchain" }))
 
         self.assertEqual([call()], self.dongle.reset_advance_blockchain.call_args_list)
+        self.assertFalse(self.dongle.disconnect.called)
 
     def test_reset_advance_blockchain_dongle_timeout(self):
-        self.dongle.reset_advance_blockchain.side_effect = HSM2DongleTimeout()
+        self.dongle.reset_advance_blockchain.side_effect = HSM2DongleTimeoutError()
 
         self.assertEqual({ "errorcode": -905 },
             self.protocol.handle_request({ "version": 2, "command": "resetAdvanceBlockchain" }))
 
         self.assertEqual([call()], self.dongle.reset_advance_blockchain.call_args_list)
+        self.assertFalse(self.dongle.disconnect.called)
+
+    def test_reset_advance_blockchain_dongle_commerror_reconnection(self):
+        self.dongle.reset_advance_blockchain.side_effect = HSM2DongleCommError()
+
+        self.assertEqual({ "errorcode": -905 },
+            self.protocol.handle_request({ "version": 2, "command": "resetAdvanceBlockchain" }))
+
+        self.assertEqual([call()], self.dongle.reset_advance_blockchain.call_args_list)
+        self.assertFalse(self.dongle.disconnect.called)
+
+        # Reconnection logic
+        self.dongle.reset_advance_blockchain.side_effect = None
+
+        self.assertEqual({ "errorcode": 0 },
+            self.protocol.handle_request({ "version": 2, "command": "resetAdvanceBlockchain" }))
+
+        self._assert_reconnected()
 
     def test_reset_advance_blockchain_dongle_exception(self):
         self.dongle.reset_advance_blockchain.side_effect = HSM2DongleError("an-error")
@@ -396,6 +585,7 @@ class TestHSM2ProtocolLedger(TestCase):
             self.protocol.handle_request({ "version": 2, "command": "resetAdvanceBlockchain" }))
 
         self.assertEqual([call()], self.dongle.reset_advance_blockchain.call_args_list)
+        self.assertFalse(self.dongle.disconnect.called)
 
     @parameterized.expand([
         ("success", (True, 1), 0),
@@ -417,14 +607,33 @@ class TestHSM2ProtocolLedger(TestCase):
             self.protocol.handle_request({ "version": 2, "command": "advanceBlockchain", "blocks": ["aabbcc", "ddeeff"] }))
 
         self.assertEqual([call(["aabbcc", "ddeeff"], self.expected_app_version)], self.dongle.advance_blockchain.call_args_list)
+        self.assertFalse(self.dongle.disconnect.called)
 
     def test_advance_blockchain_timeout(self):
-        self.dongle.advance_blockchain.side_effect = HSM2DongleTimeout()
+        self.dongle.advance_blockchain.side_effect = HSM2DongleTimeoutError()
 
         self.assertEqual({ "errorcode": -905 },
             self.protocol.handle_request({ "version": 2, "command": "advanceBlockchain", "blocks": ["aabbcc", "ddeeff"] }))
 
         self.assertEqual([call(["aabbcc", "ddeeff"], self.expected_app_version)], self.dongle.advance_blockchain.call_args_list)
+        self.assertFalse(self.dongle.disconnect.called)
+
+    def test_advance_blockchain_commerror_reconnection(self):
+        self.dongle.advance_blockchain.side_effect = HSM2DongleCommError()
+
+        self.assertEqual({ "errorcode": -905 },
+            self.protocol.handle_request({ "version": 2, "command": "advanceBlockchain", "blocks": ["aabbcc", "ddeeff"] }))
+
+        self.assertEqual([call(["aabbcc", "ddeeff"], self.expected_app_version)], self.dongle.advance_blockchain.call_args_list)
+        self.assertFalse(self.dongle.disconnect.called)
+
+        # Reconnection logic
+        self.dongle.advance_blockchain.side_effect = None
+        self.dongle.advance_blockchain.return_value = (True, 1)
+        self.assertEqual({ "errorcode": 0 },
+            self.protocol.handle_request({ "version": 2, "command": "advanceBlockchain", "blocks": ["aabbcc", "ddeeff"] }))
+
+        self._assert_reconnected()
 
     def test_advance_blockchain_exception(self):
         self.dongle.advance_blockchain.side_effect = HSM2DongleError("a-message")
@@ -433,6 +642,7 @@ class TestHSM2ProtocolLedger(TestCase):
             self.protocol.handle_request({ "version": 2, "command": "advanceBlockchain", "blocks": ["aabbcc", "ddeeff"] }))
 
         self.assertEqual([call(["aabbcc", "ddeeff"], self.expected_app_version)], self.dongle.advance_blockchain.call_args_list)
+        self.assertFalse(self.dongle.disconnect.called)
 
     @parameterized.expand([
         ("success", (True, 1), 0),
@@ -453,14 +663,33 @@ class TestHSM2ProtocolLedger(TestCase):
             self.protocol.handle_request({ "version": 2, "command": "updateAncestorBlock", "blocks": ["aabbcc", "ddeeff"] }))
 
         self.assertEqual([call(["aabbcc", "ddeeff"], self.expected_app_version)], self.dongle.update_ancestor.call_args_list)
+        self.assertFalse(self.dongle.disconnect.called)
 
     def test_update_ancestor_timeout(self):
-        self.dongle.update_ancestor.side_effect = HSM2DongleTimeout()
+        self.dongle.update_ancestor.side_effect = HSM2DongleTimeoutError()
 
         self.assertEqual({ "errorcode": -905 },
             self.protocol.handle_request({ "version": 2, "command": "updateAncestorBlock", "blocks": ["aabbcc", "ddeeff"] }))
 
         self.assertEqual([call(["aabbcc", "ddeeff"], self.expected_app_version)], self.dongle.update_ancestor.call_args_list)
+        self.assertFalse(self.dongle.disconnect.called)
+
+    def test_update_ancestor_commerror_reconnection(self):
+        self.dongle.update_ancestor.side_effect = HSM2DongleCommError()
+
+        self.assertEqual({ "errorcode": -905 },
+            self.protocol.handle_request({ "version": 2, "command": "updateAncestorBlock", "blocks": ["aabbcc", "ddeeff"] }))
+
+        self.assertEqual([call(["aabbcc", "ddeeff"], self.expected_app_version)], self.dongle.update_ancestor.call_args_list)
+        self.assertFalse(self.dongle.disconnect.called)
+
+        # Reconnection logic
+        self.dongle.update_ancestor.side_effect = None
+        self.dongle.update_ancestor.return_value = (True, 1)
+        self.assertEqual({ "errorcode": 0 },
+            self.protocol.handle_request({ "version": 2, "command": "updateAncestorBlock", "blocks": ["aabbcc", "ddeeff"] }))
+
+        self._assert_reconnected()
 
     def test_update_ancestor_exception(self):
         self.dongle.update_ancestor.side_effect = HSM2DongleError("a-message")
@@ -469,3 +698,8 @@ class TestHSM2ProtocolLedger(TestCase):
             self.protocol.handle_request({ "version": 2, "command": "updateAncestorBlock", "blocks": ["aabbcc", "ddeeff"] }))
 
         self.assertEqual([call(["aabbcc", "ddeeff"], self.expected_app_version)], self.dongle.update_ancestor.call_args_list)
+        self.assertFalse(self.dongle.disconnect.called)
+
+    def _assert_reconnected(self):
+        self.assertTrue(self.dongle.disconnect.called)
+        self.assertEqual(2, self.dongle.connect.call_count)
