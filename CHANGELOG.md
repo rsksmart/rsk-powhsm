@@ -57,3 +57,9 @@ All notable changes to this project will be documented in this file.
 
 - Fixed SIGHASH calculation bug in BTC transactions with scriptSigs larger than 256 bytes
 - Implements fixes to reported issues on Coinspect 2.1 Second Security Audit fixes v20210611
+
+## [2.1.3] - 08/07/2021
+
+### Features/enhancements
+
+- Set Iris activation block numbers for mainnet and testnet
