@@ -73,3 +73,13 @@ All notable changes to this project will be documented in this file.
 ### Fixes
 
 - Implements fixes to reported issues on HSM2 July Review Security Report v210723
+
+## [2.2-SNAPSHOT] - dd/mm/yyyy
+
+### Features/enhancements
+
+- Manager is disconnection resistant (it attempts to reconnect upon a hardware disconnection)
+
+### Fixes
+
+- Abort the firmware upgrade process if device is not onboarded
