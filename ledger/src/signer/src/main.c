@@ -16,25 +16,9 @@
  ********************************************************************************/
 
 #include "os.h"
-#include <string.h>
-
 #include "os_io_seproxyhal.h"
 
-#undef FEDHM_EMULATOR
-
-#ifdef FEDHM_EMULATOR
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
-
-void init_perso(char *persoFile);
-
-#else
-
-// Crypto_cleanup() not needed on real hardware
-void moxie_swi_crypto_cleanup(void){};
-
-#endif
+#include "hsm.h"
 
 unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
 
@@ -45,11 +29,6 @@ enum UI_STATE { UI_IDLE, UI_TEXT, UI_APPROVAL };
 enum UI_STATE uiState;
 ux_state_t ux;
 
-// avoid including stdbool.h
-typedef unsigned char bool;
-#define true 1
-#define false 0
-
 static void ui_idle(void);
 static unsigned char display_text_part(void);
 
@@ -58,68 +37,7 @@ static unsigned char display_text_part(void);
 #define TEXT_HEIGHT 15
 #define TEXT_SPACE 4
 
-#define CLA 0x80
-#define INS_SIGN 0x02
-#define INS_GET_PUBLIC_KEY 0x04
-#define RSK_IS_ONBOARD 0x06
-
-#include "mem.h"
-
-// Simulation of cx_hash()
-#include "sha256.h"
-
-// BTC TX-parsing code
-#include "txparser.h"
-
-// Signing code
-#include "sign.h"
-
-// rlp-parsing code
-#include "rlp.h"
-
-// Path auth definitions
-#include "pathAuth.h"
-
-// Hardcoded contract values
-#include "contractValues.h"
-
-#include "bc_state.h"
-#include "bc_advance.h"
-#include "bc_ancestor.h"
-
-#include "attestation.h"
-
-#define RSK_MODE_CMD 0x43
-#define RSK_MODE_APP 0x03
-
-// Version and patchlevel
-#define VERSION_MAJOR 0x02
-#define VERSION_MINOR 0x01
-#define VERSION_PATCH 0x00
-
-// private key in flash. const and N_ variable name are mandatory here
-// static const cx_ecfp_private_key_t N_privateKey;
-// initialization marker in flash. const and N_ variable name are mandatory here
-static const unsigned char N_initialized;
-
 static char lineBuffer[MAX_CHARS_PER_LINE + 1];
-
-/*** Bussiness logic related static variables ***/
-
-// Make state variables used by signer global static, so they can be reset
-static PARSE_STM state;
-// Receipt keccak256 hash
-unsigned char ReceiptHashBuf[HASHLEN];
-// Receipts trie root (from block headers)
-unsigned char ReceiptsRootBuf[HASHLEN];
-
-// Key definitions
-unsigned int path[5];
-
-// Operation being currently executed
-static unsigned char curr_cmd;
-
-/************************************************/
 
 // clang-format off
 static const bagl_element_t bagl_ui_idle_nanos[] = {
@@ -185,169 +103,6 @@ unsigned short io_exchange_al(unsigned char channel, unsigned short tx_len) {
         THROW(INVALID_PARAMETER);
     }
     return 0;
-}
-
-/*
- * Initialize signer state.
- *
- * TODO: (ppedemon) Not sure this is correct, Alfredo should check.
- */
-void init_signer() {
-    explicit_bzero(ReceiptHashBuf, sizeof(ReceiptHashBuf));
-    explicit_bzero(ReceiptsRootBuf, sizeof(ReceiptsRootBuf));
-    explicit_bzero(path, sizeof(path));
-
-    state = S_CMD_START;
-}
-
-/*
- * Reset shared memory state.
- */
-void reset_shared_state() {
-    explicit_bzero(&mem, sizeof(mem));
-}
-
-/*
- * Reset all reseteable operations, only if the given operation is starting.
- *
- * @arg[in] cmd operation code
- */
-static void reset_if_starting(unsigned char cmd) {
-    // Reset only if starting new operation (cmd != curr_cmd).
-    // Otherwise we already reset when curr_cmd started.
-    if (cmd != curr_cmd) {
-        reset_shared_state();
-        init_signer();
-        bc_init_advance();
-        bc_init_upd_ancestor();
-        curr_cmd = cmd;
-    }
-}
-
-static void hsm_main(void) {
-    volatile unsigned int rx = 0;
-    unsigned int tx = 0;
-    volatile unsigned int flags = 0;
-
-    // next timer callback in 500 ms
-    UX_CALLBACK_SET_INTERVAL(500);
-
-    // Buffer cleanup
-    memset(G_io_apdu_buffer, 0, sizeof(G_io_apdu_buffer));
-
-    // DESIGN NOTE: the bootloader ignores the way APDU are fetched. The only
-    // goal is to retrieve APDU.
-    // When APDU are to be fetched from multiple IOs, like NFC+USB+BLE, make
-    // sure the io_event is called with a
-    // switch event, before the apdu is replied to the bootloader. This avoid
-    // APDU injection faults.
-    for (;;) {
-        volatile unsigned short sw = 0;
-
-        BEGIN_TRY {
-            TRY {
-                rx = tx;
-                tx = 0; // ensure no race in catch_other if io_exchange throws
-                        // an error
-                if ((G_io_apdu_buffer[1] == INS_SIGN) &&
-                    (G_io_apdu_buffer[TXLEN] == 0) &&
-		    (state!=S_CMD_FINISHED))
-                    rx = 3;
-                else
-                    rx = io_exchange(CHANNEL_APDU | flags, rx);
-
-                flags = 0;
-
-                // no apdu received, well, reset the session, and reset the
-                // bootloader configuration
-                if (rx == 0) {
-                    THROW(0x6982);
-                }
-
-                // Zero out commonly read APDU buffer offsets, 
-                // to avoid reading uninitialized memory
-                if (rx < MIN_APDU_BYTES) {
-                    explicit_bzero(&G_io_apdu_buffer[rx], MIN_APDU_BYTES - rx);
-                }
-
-                if (G_io_apdu_buffer[0] != CLA) {
-                    THROW(0x6E11);
-                }
-
-                switch (G_io_apdu_buffer[1]) {
-                // Include HSM 1.1 Legacy commands
-                #include "hsmLegacy.h"
-
-                // Include HSM 2 commands
-                #include "hsmCommands.h"
-
-                case INS_ATTESTATION:
-                    reset_if_starting(INS_ATTESTATION);
-                    tx = get_attestation(rx, &attestation);
-                    break;
-
-                // Get blockchain state
-                case INS_GET_STATE:
-                    reset_if_starting(INS_GET_STATE);
-                    tx = bc_get_state(rx);
-                    break;
-
-                // Reset blockchain state
-                case INS_RESET_STATE:
-                    reset_if_starting(INS_RESET_STATE);
-                    tx = bc_reset_state(rx);
-                    break;
-
-                // Advance blockchain
-                case INS_ADVANCE:
-                    reset_if_starting(INS_ADVANCE);
-                    tx = bc_advance(rx);
-                    break;
-
-                // Advance blockchain precompiled parameters
-                case INS_ADVANCE_PARAMS:
-                    reset_if_starting(INS_ADVANCE_PARAMS);
-                    tx = bc_advance_get_params();
-                    break;
-
-                // Update ancestor
-                case INS_UPD_ANCESTOR:
-                    reset_if_starting(INS_UPD_ANCESTOR);
-                    tx = bc_upd_ancestor(rx);
-                    break;
-
-                default: // Unknown command
-                    THROW(0x6D00);
-                    break;
-                }
-                THROW(0x9000);
-            }
-            CATCH_OTHER(e) {
-                // Reset the full state in case of an error
-                if (e != 0x9000) {
-                    reset_if_starting(0);
-                }
-                switch (e & 0xF000) {
-                case 0x6000:
-                case 0x9000:
-                    sw = e;
-                    break;
-                default:
-                    sw = 0x6800 | (e & 0x7FF);
-                    break;
-                }
-                // Unexpected exception => report
-                G_io_apdu_buffer[tx] = sw >> 8;
-                G_io_apdu_buffer[tx + 1] = sw;
-                tx += 2;
-            }
-            FINALLY {
-            }
-        }
-        END_TRY;
-    }
-
-    return;
 }
 
 void io_seproxyhal_display(const bagl_element_t *element) {
@@ -430,6 +185,38 @@ unsigned char io_event(unsigned char channel) {
     return 1;
 }
 
+static void hsm_main_loop() {
+    volatile unsigned int rx = 0;
+    unsigned int tx = 0;
+
+    // DESIGN NOTE: the bootloader ignores the way APDU are fetched. The only
+    // goal is to retrieve APDU.
+    // When APDU are to be fetched from multiple IOs, like NFC+USB+BLE, make
+    // sure the io_event is called with a
+    // switch event, before the apdu is replied to the bootloader. This avoid
+    // APDU injection faults.
+    for (;;) {
+        BEGIN_TRY {
+            TRY {
+                // ensure no race in catch_other if io_exchange throws
+                // an error
+                rx = tx;
+                tx = 0; 
+                rx = io_exchange(CHANNEL_APDU, rx);
+
+                tx = hsm_process_apdu(rx);
+                THROW(0x9000);
+            }
+            CATCH_OTHER(e) {
+                tx = hsm_process_exception(e, tx);
+            }
+            FINALLY {
+            }
+        }
+        END_TRY;
+    }
+}
+
 __attribute__((section(".boot"))) int main(int argc, char **argv) {
     __asm volatile("cpsie i");
 
@@ -440,24 +227,7 @@ __attribute__((section(".boot"))) int main(int argc, char **argv) {
 
     BEGIN_TRY {
         TRY {
-            unsigned char canary;
             io_seproxyhal_init();
-
-            // Initialize current operation
-            curr_cmd = 0; // 0 = no operation being executed
-
-            // Blockchain state initialization
-            bc_init_state();
-
-            // DEBUG
-            canary = 0x00;
-            nvm_write((void *)&N_initialized, &canary, sizeof(canary));
-
-            // Create the private key if not initialized
-            if (N_initialized != 0x01) {
-                canary = 0x01;
-                nvm_write((void *)&N_initialized, &canary, sizeof(canary));
-            }
 
 #ifdef LISTEN_BLE
             if (os_seph_features() &
@@ -473,7 +243,18 @@ __attribute__((section(".boot"))) int main(int argc, char **argv) {
 
             ui_idle();
 
-            hsm_main();
+            // next timer callback in 500 ms
+            UX_CALLBACK_SET_INTERVAL(500);
+
+            // APDU buffer initialization
+            memset(G_io_apdu_buffer, 0, sizeof(G_io_apdu_buffer));
+
+            // HSM context initialization
+            hsm_init();
+
+            // HSM main loop 
+            // (separate function to allow for nested TRY...CATCH)
+            hsm_main_loop();
         }
         CATCH_OTHER(e) {
         }

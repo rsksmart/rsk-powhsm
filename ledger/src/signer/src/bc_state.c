@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <string.h>
 
+#include "runtime.h"
 #include "defs.h"
 #include "dbg.h"
 #include "nvm.h"
@@ -31,25 +32,16 @@ void clr_bc_state_flag(const bool* flag) {
 #ifdef PARAM_INITIAL_BLOCK_HASH
 static const uint8_t INITIAL_BLOCK_HASH[] = PARAM_INITIAL_BLOCK_HASH;
 #else
-#ifdef FEDHM_EMULATOR
-// This hash works for the test data (parent hash of
-// last block in ledger/src/tests/resources/splits-09.json).
-static const uint8_t INITIAL_BLOCK_HASH[] = {
-    0x69, 0x87, 0x80, 0x41, 0xd1, 0xb7, 0x8d, 0x61, 0x05, 0x86, 0x2e,
-    0xb9, 0xef, 0xa5, 0xe6, 0xda, 0x85, 0x13, 0x30, 0xf2, 0xc0, 0x0f,
-    0xb9, 0x2f, 0x3a, 0xb4, 0xa0, 0x4b, 0xbe, 0xa1, 0x33, 0x7c,
-};
-#endif
+    #ifndef HSM_SIMULATOR
+    #error "Initial block hash not defined!"
+    #endif
+uint8_t INITIAL_BLOCK_HASH[HASHLEN];
 #endif
 
 // Non-volatile initialization flag.
 // Linker rules are different in emulator and Ledger mode.
 // When running in emulator mode we must avoid the const.
-#ifdef FEDHM_EMULATOR
-static bool N_bc_initialized;
-#else
-static const bool N_bc_initialized = 0;
-#endif
+NON_VOLATILE bool N_bc_initialized = 0;
 
 /*
  * Initialize blockchain state.

@@ -4,36 +4,15 @@
  *   MP parser state machine
  ********************************************************************************/
 
-#ifndef FEDHM_EMULATOR
 #include "os.h"
-#else
-#include <stdio.h>
-#include <stdlib.h>
-#include "usb.h"
-#endif
+
+#include "dbg.h"
 
 #include <string.h>
 #include "defs.h"
 #include "merkleProof.h"
 #include "varint.h"
 #include "mem.h"
-
-// Print buffer in hex (Debug)
-static void printHex(char *hdr, unsigned char *buf, int len) {
-#ifdef FEDHM_EMULATOR
-    puts(hdr);
-    for (int i = 0; i < len; i++)
-        printf("%02x", (unsigned char)buf[i]);
-    printf("\n");
-#endif
-}
-
-#ifndef FEDHM_EMULATOR
-#define printf printnull
-#endif
-
-// Avoid printf on real device
-void printnull(char *format, ...){};
 
 void increment_offset(MP_CTX *ctx, unsigned int rx) {
     if (rx < DATA || (ctx->offset + rx - DATA) > ctx->nodeLen) {
@@ -61,7 +40,7 @@ void MP_START(MP_CTX *ctx,
     memcpy(ctx->receiptHash, Receipt_Hash, HASHLEN);
     memcpy(ctx->receiptsRoot, receiptsRoot, HASHLEN);
     memcpy(ctx->signatureHash, signatureHash, HASHLEN);
-    printf("MP START rx:%d\n", rx);
+    LOG("MP START rx:%d\n", rx);
     G_io_apdu_buffer[CLAPOS] = CLA;
     G_io_apdu_buffer[CMDPOS] = INS_SIGN;
     G_io_apdu_buffer[OP] = P1_MERKLEPROOF;
@@ -74,8 +53,7 @@ void MP_NODE_HDR(MP_CTX *ctx,
                  PARSE_STM *state,
                  unsigned int rx,
                  unsigned int *tx) {
-    printf("---------------- Node start: %d--------------------\n",
-           ctx->nodeIndex);
+    LOG("---------------- Node start: %d--------------------\n", ctx->nodeIndex);
     // Init node hash
     keccak_init(&ctx->NodeHash_ctx);
     // Update node hash
@@ -98,8 +76,7 @@ void MP_NODE_HDR(MP_CTX *ctx,
     ctx->node_present_right = (flags & 0b00000100) > 0;
     ctx->node_is_embedded_left = (flags & 0b00000010) > 0;
     ctx->node_is_embedded_right = (flags & 0b00000001) > 0;
-    printf(
-        "MP NODEHDR nodelen:%d node_version: %d has_long_value: %d "
+    LOG("MP NODEHDR nodelen:%d node_version: %d has_long_value: %d "
         "shared_prefix_present: %d node_present_left: %d node_present_right: "
         "%d node_embedded_left: %d node_embeddeD_right: %d \n",
         ctx->nodeLen,
@@ -145,7 +122,7 @@ void MP_NODE_SHARED_PREFIX_HDR(MP_CTX *ctx,
                                PARSE_STM *state,
                                unsigned int rx,
                                unsigned int *tx) {
-    printf("MP SP_HDR rx:%d\n", rx);
+    LOG("MP SP_HDR rx:%d\n", rx);
     increment_offset(ctx, rx);
     // Update node hash
     keccak_update(&ctx->NodeHash_ctx, &G_io_apdu_buffer[DATA], rx - DATA);
@@ -174,7 +151,7 @@ void MP_NODE_SHARED_PREFIX_VARINT_HDR(MP_CTX *ctx,
                                       PARSE_STM *state,
                                       unsigned int rx,
                                       unsigned int *tx) {
-    printf("MP SP_VARINT_HDR rx:%d\n", rx);
+    LOG("MP SP_VARINT_HDR rx:%d\n", rx);
     increment_offset(ctx, rx);
     // Update node hash
     keccak_update(&ctx->NodeHash_ctx, &G_io_apdu_buffer[DATA], rx - DATA);
@@ -204,7 +181,7 @@ void MP_NODE_SHARED_PREFIX_VARINT_BODY(MP_CTX *ctx,
                                        PARSE_STM *state,
                                        unsigned int rx,
                                        unsigned int *tx) {
-    printf("MP SP_VARINT_BODY rx:%d\n", rx);
+    LOG("MP SP_VARINT_BODY rx:%d\n", rx);
     increment_offset(ctx, rx);
     // Update node hash
     keccak_update(&ctx->NodeHash_ctx, &G_io_apdu_buffer[DATA], rx - DATA);
@@ -229,7 +206,7 @@ void MP_NODE_SHARED_PREFIX_BODY(MP_CTX *ctx,
                                 PARSE_STM *state,
                                 unsigned int rx,
                                 unsigned int *tx) {
-    printf("MP SP_BODY rx:%d\n", rx);
+    LOG("MP SP_BODY rx:%d\n", rx);
     increment_offset(ctx, rx);
     // Update node hash
     keccak_update(&ctx->NodeHash_ctx, &G_io_apdu_buffer[DATA], rx - DATA);
@@ -259,7 +236,7 @@ void MP_NODE_LEFT(MP_CTX *ctx,
                   PARSE_STM *state,
                   unsigned int rx,
                   unsigned int *tx) {
-    printf("MP LEFT rx:%d\n", rx);
+    LOG("MP LEFT rx:%d\n", rx);
     increment_offset(ctx, rx);
     // Update node hash
     keccak_update(&ctx->NodeHash_ctx, &G_io_apdu_buffer[DATA], rx - DATA);
@@ -273,7 +250,7 @@ void MP_NODE_LEFT(MP_CTX *ctx,
         memcpy(ctx->left_node_hash, &G_io_apdu_buffer[DATA], HASHLEN);
         G_io_apdu_buffer[TXLEN] = 0;
         *state = S_MP_NODE_HDR2;
-        printHex("Left: ", ctx->left_node_hash, HASHLEN);
+        LOG_HEX("Left: ", ctx->left_node_hash, HASHLEN);
     }
     // Prepare to read bytes
     if (rx - DATA == 1) {
@@ -286,7 +263,7 @@ void MP_NODE_LEFT_BYTES(MP_CTX *ctx,
                         PARSE_STM *state,
                         unsigned int rx,
                         unsigned int *tx) {
-    printf("MP LEFT_BYTES rx:%d\n", rx);
+    LOG("MP LEFT_BYTES rx:%d\n", rx);
     increment_offset(ctx, rx);
     // Update node hash
     keccak_update(&ctx->NodeHash_ctx, &G_io_apdu_buffer[DATA], rx - DATA);
@@ -295,7 +272,7 @@ void MP_NODE_LEFT_BYTES(MP_CTX *ctx,
     keccak_init(&ctx->ReceiptHash_ctx);
     keccak_update(&ctx->ReceiptHash_ctx, &G_io_apdu_buffer[DATA], rx - DATA);
     keccak_final(&ctx->ReceiptHash_ctx, ctx->left_node_hash);
-    printHex("Hash: ", ctx->left_node_hash, HASHLEN);
+    LOG_HEX("Hash: ", ctx->left_node_hash, HASHLEN);
     G_io_apdu_buffer[CLAPOS] = CLA;
     G_io_apdu_buffer[CMDPOS] = INS_SIGN;
     G_io_apdu_buffer[OP] = P1_MERKLEPROOF;
@@ -308,7 +285,7 @@ void MP_NODE_HDR2(MP_CTX *ctx,
                   PARSE_STM *state,
                   unsigned int rx,
                   unsigned int *tx) {
-    printf("MP HDR2 rx:%d\n", rx);
+    LOG("MP HDR2 rx:%d\n", rx);
     increment_offset(ctx, rx);
     // Update node hash
     keccak_update(&ctx->NodeHash_ctx, &G_io_apdu_buffer[DATA], rx - DATA);
@@ -332,7 +309,7 @@ void MP_NODE_RIGHT(MP_CTX *ctx,
                    PARSE_STM *state,
                    unsigned int rx,
                    unsigned int *tx) {
-    printf("MP RIGHT rx:%d\n", rx);
+    LOG("MP RIGHT rx:%d\n", rx);
     increment_offset(ctx, rx);
     // Update node hash
     keccak_update(&ctx->NodeHash_ctx, &G_io_apdu_buffer[DATA], rx - DATA);
@@ -346,7 +323,7 @@ void MP_NODE_RIGHT(MP_CTX *ctx,
         memcpy(ctx->right_node_hash, &G_io_apdu_buffer[DATA], HASHLEN);
         G_io_apdu_buffer[TXLEN] = 0;
         *state = S_MP_NODE_CHILDRENSIZE;
-        printHex("Right: ", ctx->right_node_hash, HASHLEN);
+        LOG_HEX("Right: ", ctx->right_node_hash, HASHLEN);
     }
     // Prepare to read bytes
     if (rx - DATA == 1) {
@@ -359,7 +336,7 @@ void MP_NODE_RIGHT_BYTES(MP_CTX *ctx,
                          PARSE_STM *state,
                          unsigned int rx,
                          unsigned int *tx) {
-    printf("MP RIGHT_BYTES rx:%d\n", rx);
+    LOG("MP RIGHT_BYTES rx:%d\n", rx);
     increment_offset(ctx, rx);
     // Update node hash
     keccak_update(&ctx->NodeHash_ctx, &G_io_apdu_buffer[DATA], rx - DATA);
@@ -380,7 +357,7 @@ void MP_NODE_CHILDRENSIZE(MP_CTX *ctx,
                           PARSE_STM *state,
                           unsigned int rx,
                           unsigned int *tx) {
-    printf("MP CHILDRENSIZE rx:%d\n", rx);
+    LOG("MP CHILDRENSIZE rx:%d\n", rx);
     increment_offset(ctx, rx);
     G_io_apdu_buffer[CLAPOS] = CLA;
     G_io_apdu_buffer[CMDPOS] = INS_SIGN;
@@ -400,7 +377,7 @@ void MP_NODE_VARINT_HDR(MP_CTX *ctx,
                         PARSE_STM *state,
                         unsigned int rx,
                         unsigned int *tx) {
-    printf("MP VARINT_HDR rx:%d\n", rx);
+    LOG("MP VARINT_HDR rx:%d\n", rx);
     increment_offset(ctx, rx);
     // Update node hash
     keccak_update(&ctx->NodeHash_ctx, &G_io_apdu_buffer[DATA], rx - DATA);
@@ -416,7 +393,7 @@ void MP_NODE_VARINT_BODY(MP_CTX *ctx,
                          PARSE_STM *state,
                          unsigned int rx,
                          unsigned int *tx) {
-    printf("MP VARINT_BODY rx:%d\n", rx);
+    LOG("MP VARINT_BODY rx:%d\n", rx);
     increment_offset(ctx, rx);
     // Update node hash
     keccak_update(&ctx->NodeHash_ctx, &G_io_apdu_buffer[DATA], rx - DATA);
@@ -432,7 +409,7 @@ void MP_NODE_VALUE(MP_CTX *ctx,
                    PARSE_STM *state,
                    unsigned int rx,
                    unsigned int *tx) {
-    printf("MP VALUE rx:%d\n", rx);
+    LOG("MP VALUE rx:%d\n", rx);
 
     if (!ctx->nodeIndex && !ctx->has_long_value) {
         // We are reading the first node of the partial merkle
@@ -464,7 +441,7 @@ void MP_NODE_VALUE_LEN(MP_CTX *ctx,
                        PARSE_STM *state,
                        unsigned int rx,
                        unsigned int *tx) {
-    printf("MP VALUE_LEN rx:%d\n", rx);
+    LOG("MP VALUE_LEN rx:%d\n", rx);
     increment_offset(ctx, rx);
     // Update node hash
     keccak_update(&ctx->NodeHash_ctx, &G_io_apdu_buffer[DATA], rx - DATA);
@@ -475,7 +452,7 @@ void MP_NODE_VALUE_LEN(MP_CTX *ctx,
         if (memcmp(ctx->value_hash, ctx->receiptHash, HASHLEN))
             THROW(0x6A94);
         else
-            printf("Receipt Hash MATCH\n");
+            LOG("Receipt Hash MATCH\n");
     }
     G_io_apdu_buffer[CLAPOS] = CLA;
     G_io_apdu_buffer[CMDPOS] = INS_SIGN;
@@ -489,7 +466,7 @@ void MP_NODE_REMAINING(MP_CTX *ctx,
                        PARSE_STM *state,
                        unsigned int rx,
                        unsigned int *tx) {
-    printf("MP REMAINING rx:%d\n", rx);
+    LOG("MP REMAINING rx:%d\n", rx);
     // Check chaining of this node with the parent
     if (ctx->nodeIndex > 0) {
         int cmpLeft =
@@ -497,10 +474,10 @@ void MP_NODE_REMAINING(MP_CTX *ctx,
         int cmpRight =
             memcmp(ctx->current_node_hash, ctx->right_node_hash, HASHLEN);
         if (cmpLeft && cmpRight) {
-            printf("Node Chaining check MISMATCH\n");
+            LOG("Node Chaining check MISMATCH\n");
             THROW(0x6A95);
         } else
-            printf("Node Chaining check PASSED\n");
+            LOG("Node Chaining check PASSED\n");
     }
     // Update node hash (only if there is more data)
     if (rx > DATA) {
@@ -513,13 +490,13 @@ void MP_NODE_REMAINING(MP_CTX *ctx,
     ctx->nodeCount--;
     ctx->nodeIndex++;
     keccak_final(&ctx->NodeHash_ctx, ctx->current_node_hash);
-    printHex("Node hash: ", ctx->current_node_hash, HASHLEN);
+    LOG_HEX("Node hash: ", ctx->current_node_hash, HASHLEN);
     // Check Node Trie ROOT
     if (!ctx->nodeCount) {
         if (memcmp(ctx->current_node_hash, ctx->receiptsRoot, HASHLEN))
             THROW(0x6A96);
         else
-            printf("Receipt trie root MATCH\n");
+            LOG("Receipt trie root MATCH\n");
     }
     if (ctx->nodeCount) {
         G_io_apdu_buffer[TXLEN] = 2; // NodeLen+Flags

@@ -539,7 +539,7 @@ sign_help = 'Sign receipt'
 @click.option('--proxy/--no-proxy', '-p/ ', 'use_proxy',
     default=False, help='Connect to a Legder through a proxy')
 @click.option('--proxy-addr', default='127.0.0.1', help='Ledger proxy address', show_default=True)
-@click.option('--proxy-port', default=9999, help='Ledger proxy port', type=int, show_default=True)
+@click.option('--proxy-port', default=8888, help='Ledger proxy port', type=int, show_default=True)
 @click.pass_context
 def cli(ctx, use_proxy, proxy_addr, proxy_port):
     ctx.ensure_object(dict)

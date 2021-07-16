@@ -12,7 +12,7 @@
     m/44'/0'/0'/0/0 (BTC)
     m/44'/1'/0'/0/0 (tBTC)
 */
-const char authPaths[][21] = {
+const char authPaths[][SINGLE_PATH_BYTES] = {
     "\x05\x2c\x00\x00\x80\x00\x00\x00\x80\x00\x00\x00\x80\x00\x00\x00\x00\x00\x00\x00\x00", // BTC
     "\x05\x2c\x00\x00\x80\x01\x00\x00\x80\x00\x00\x00\x80\x00\x00\x00\x00\x00\x00\x00\x00"  // tBTC
 };
@@ -26,7 +26,7 @@ const char authPaths[][21] = {
     m/44'/1'/2'/0/0 (tMST)
     m/44'/1'/0'/0/2 (deprecated tMST)
 */
-const char noAuthPaths[][21] = {
+const char noAuthPaths[][SINGLE_PATH_BYTES] = {
     "\x05\x2c\x00\x00\x80\x89\x00\x00\x80\x00\x00\x00\x80\x00\x00\x00\x00\x00\x00\x00\x00", // RSK
     "\x05\x2c\x00\x00\x80\x89\x00\x00\x80\x01\x00\x00\x80\x00\x00\x00\x00\x00\x00\x00\x00", // MST
     "\x05\x2c\x00\x00\x80\x89\x00\x00\x80\x00\x00\x00\x80\x00\x00\x00\x00\x01\x00\x00\x00", // deprecated MST
@@ -41,7 +41,7 @@ const char noAuthPaths[][21] = {
 // Each element indexes paths on the above arrays as follows:
 // Most significant byte indicates authPaths (0) or noAuthPaths (1)
 // Least significant byte indicates index on the array in question
-const int ordered_paths[9] = {
+const int ordered_paths[TOTAL_AUTHORIZED_PATHS] = {
     0x0000, // BTC
     0x0001, // tBTC
     0x0104, // deprecated tRSK

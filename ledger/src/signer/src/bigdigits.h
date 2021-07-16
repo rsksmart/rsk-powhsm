@@ -122,11 +122,6 @@ int spMultiply(DIGIT_T p[2], DIGIT_T x, DIGIT_T y);
 /** Computes quotient q = u div v, remainder r = u mod v, where q, r and v are single digits */
 DIGIT_T spDivide(DIGIT_T *q, DIGIT_T *r, const DIGIT_T u[2], DIGIT_T v);
 
-#ifdef FEDHM_EMULATOR
-/** Print in hex format with optional prefix and suffix strings */
-void mpPrintHex(const char *prefix, const DIGIT_T *a, size_t ndigits, const char *suffix);
-#endif
-
 /**********************************************/
 /* FUNCTIONS THAT OPERATE WITH A SINGLE DIGIT */
 /**********************************************/

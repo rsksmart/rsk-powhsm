@@ -1,10 +1,6 @@
 #include <string.h>
 
-#ifdef FEDHM_EMULATOR
-#include "usb.h"
-#else
 #include "os.h"
-#endif
 
 #include "bc.h"
 #include "dbg.h"
@@ -221,7 +217,7 @@ static void str_end() {
             ABORT(BLOCK_NUM_INVALID);
         }
         VAR_BIGENDIAN_FROM(block.wa_buf, block.number, block.wa_off);
-        SET_NETWORK_UPGRADE(block.number, block.network_upgrade);
+        SET_NETWORK_UPGRADE(block.number, &block.network_upgrade);
         if (block.network_upgrade == NU_ANCIENT) {
             ABORT(BLOCK_TOO_OLD);
         }

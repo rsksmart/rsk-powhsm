@@ -9,16 +9,18 @@
 
 #include <stdbool.h>
 
+#define TOTAL_AUTHORIZED_PATHS 9
+#define SINGLE_PATH_BYTES 21
+
 // Paths
 //
 extern const char authPaths[][21];
 extern const char noAuthPaths[][21];
-extern const int ordered_paths[9];
+extern const int ordered_paths[TOTAL_AUTHORIZED_PATHS];
 
 bool pathRequireAuth(char *path);
 bool pathDontRequireAuth(char *path);
 
-const int get_path_count();
 const char* get_ordered_path(unsigned int index);
 
 #define KEY_PATH_COUNT() (sizeof(ordered_paths)/sizeof(ordered_paths[0]))

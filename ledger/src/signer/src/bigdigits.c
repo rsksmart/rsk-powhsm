@@ -22,10 +22,6 @@
 /* No asserts in stripped down version of this library */
 #define assert(x)
 
-#ifdef FEDHM_EMULATOR
-#include <stdio.h>
-#endif
-
 #include "bigdigits.h"
 
 #define BITS_PER_HALF_DIGIT (BITS_PER_DIGIT / 2)
@@ -509,28 +505,6 @@ int mpCompare(const DIGIT_T a[], const DIGIT_T b[], size_t ndigits)
 
     return 0;    /* EQ */
 }
-
-#ifdef FEDHM_EMULATOR
-void mpPrintHex(const char *prefix, const DIGIT_T *a, size_t len, const char *suffix)
-{
-    if (prefix) printf("%s", prefix);
-    /* Trim leading digits which are zero */
-    while (len--)
-    {
-        if (a[len] != 0)
-            break;
-    }
-    len++;
-    if (0 == len) len = 1;
-    /* print first digit without leading zeros */
-    printf("%" PRIxBIGD, a[--len]);
-    while (len--)
-    {
-        printf("%08" PRIxBIGD, a[len]);
-    }
-    if (suffix) printf("%s", suffix);
-}
-#endif
 
 int spMultiply(DIGIT_T p[2], DIGIT_T x, DIGIT_T y)
 {    /*    Computes p = x * y */

@@ -17,34 +17,53 @@ typedef enum {
     NU_IRIS
 } network_upgrade_t;
 
+// Network identifier constants
+#define NETID_MAINNET 0x01
+#define NETID_TESTNET 0x02
+#define NETID_REGTEST 0x03
+
+// Activation block numbers
+#define MAINNET_ANCIENT_ABN     0
+#define MAINNET_WASABI_ABN      1591000UL
+#define MAINNET_PAPYRUS_ABN     2392700UL
+#define MAINNET_IRIS_ABN        3589500UL
+
+#define TESTNET_WASABI_ABN      0
+#define TESTNET_PAPYRUS_ABN     863000UL
+#define TESTNET_IRIS_ABN        2027200UL
+
 #ifdef TESTNET
-#define SET_NETWORK_UPGRADE(bn, x) \
-    {                              \
-        if (bn >= 2060500UL)       \
-            x = NU_IRIS;           \
-        else if (bn >= 863000UL)   \
-            x = NU_PAPYRUS;        \
-        else                       \
-            x = NU_WASABI;         \
+#define SET_NETWORK_UPGRADE(bn, x)          \
+    {                                       \
+        if (bn >= TESTNET_IRIS_ABN)         \
+            *(x) = NU_IRIS;                 \
+        else if (bn >= TESTNET_PAPYRUS_ABN) \
+            *(x) = NU_PAPYRUS;              \
+        else                                \
+            *(x) = NU_WASABI;               \
     }
-#define NETWORK_IDENTIFIER 0x02
+#define GET_NETWORK_IDENTIFIER() NETID_TESTNET
 #elif defined(REGTEST)
 #define SET_NETWORK_UPGRADE(bn, x) \
-    { x = NU_IRIS; }
-#define NETWORK_IDENTIFIER 0x03
+    { *(x) = NU_IRIS; }
+#define GET_NETWORK_IDENTIFIER() NETID_REGTEST
+#elif defined(HSM_SIMULATOR)
+#include "hsmsim_nu.h"
+#define SET_NETWORK_UPGRADE(bn, x) hsmsim_set_network_upgrade(bn, x)
+#define GET_NETWORK_IDENTIFIER() hsmsim_get_network_identifier()
 #else
 #define SET_NETWORK_UPGRADE(bn, x) \
     {                              \
-        if (bn >= 3614800UL)       \
-            x = NU_IRIS;           \
-        else if (bn >= 2392700UL)  \
-            x = NU_PAPYRUS;        \
-        else if (bn >= 1591000UL)  \
-            x = NU_WASABI;         \
+        if (bn >= MAINNET_IRIS_ABN)       \
+            *(x) = NU_IRIS;           \
+        else if (bn >= MAINNET_PAPYRUS_ABN)  \
+            *(x) = NU_PAPYRUS;        \
+        else if (bn >= MAINNET_WASABI_ABN)  \
+            *(x) = NU_WASABI;         \
         else                       \
-            x = NU_ANCIENT;        \
+            *(x) = NU_ANCIENT;        \
     }
-#define NETWORK_IDENTIFIER 0x01
+#define GET_NETWORK_IDENTIFIER() NETID_MAINNET
 #endif
 
 #endif // POWNU

@@ -35,12 +35,6 @@ typedef struct {
     unsigned char expectedRXBytes;
 } TX_CTX;
 
-#ifndef FEDHM_EMULATOR
-// Privatekey from PATH
-#include "os.h"
-extern cx_ecfp_private_key_t privateKey;
-#endif
-
 // Signature type
 #define SIGHASH_ALL 1
 #define TXDEBUG 0

@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+# Script directory
+pushd $(dirname $0) > /dev/null
+TEST_ROOT=$(pwd)
+popd > /dev/null
+
+$TEST_ROOT/../../build/build-tcpsigner
+
+$TEST_ROOT/../../../docker/mware/do-notty-nousb /hsm2/ledger/src/tcpsigner ./tcpsigner --checkpoint 0xbdcb3c17c7aee714cec8ad900341bfd987b452280220dcbd6e7191f67ea4209b --difficulty 0x32 --network regtest > /dev/null &
+sleep 1
+
+docker exec -ti hsm-mware-notty /hsm2/ledger/src/tests/t-all -p
+
+docker kill hsm-mware-notty > /dev/null

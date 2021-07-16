@@ -1,10 +1,14 @@
+// *** Important: ***
+// All this code is included in the context
+// of a:
+// case INS_SIGN:
+// statement.
+// ******************
+
 // TODO: check input lenghts and correct structure on every state
 
-case INS_SIGN:
-// If not running in emulator mode, reset all other operations first
-#ifndef FEDHM_EMULATOR
+// Reset all other operations first
 reset_if_starting(INS_SIGN);
-#endif
 
 // Check for a valid OP, otherwise throw an error
 if ((G_io_apdu_buffer[OP] & 0xF) != P1_PATH &&
@@ -49,12 +53,13 @@ if ((G_io_apdu_buffer[OP] & 0xF) == P1_PATH) {
         memmove(mp_ctx.signatureHash,
                 &G_io_apdu_buffer[DATA + PATHLEN],
                 sizeof(mp_ctx.signatureHash));
-        tx = 4;
-        break;
+        // Go straight to the merkleproof case, without having to go through the APDU exchange cycle
+        rx = 3;
+    } else {
+        // If no path match, then bail out
+        THROW(0x6a8f); // Invalid Key Path
+       break;
     }
-    // If no path match, then bail out
-    THROW(0x6a8f); // Invalid Key Path
-    break;
 }
 // For testing, we use a hardcoded receipt root TODO: CHANGE THIS ON FINAL
 // RELEASE
@@ -65,6 +70,7 @@ memmove(ReceiptsRootBuf,
         N_bc_state.ancestor_receipt_root,
         sizeof(ReceiptsRootBuf));
 #endif
+
 //---------------------- BTC TX Parser --------------------------
 if (G_io_apdu_buffer[OP] & P1_BTC) {
     // Input len check
@@ -109,6 +115,7 @@ if (G_io_apdu_buffer[OP] & P1_BTC) {
 	if (tx_ctx.expectedRXBytes > IO_APDU_BUFFER_SIZE)
 		THROW(0x6A89);
 }
+
 //---------------------- Receipt RLP Parser --------------------------
 if (G_io_apdu_buffer[OP] & P1_RECEIPT) {
     static unsigned int oldListLevel = 0;
@@ -180,15 +187,13 @@ if (G_io_apdu_buffer[OP] & P1_RECEIPT) {
                         tx_ctx.TXHashBuf))) { // Matching TX found, Contract is
                                               // valid and Receipt Signature is
                                               // valid. Sign the signatureHash
-#ifdef FEDHM_EMULATOR
-                tx = 0;
-                fprintf(stderr,
-                        "[I] RLP parsing done. Valid TX found. "
-                        "ValidContract=%s ValidSignature=%s ValidHashes=%s\n",
-                        tx_ctx.validContract ? "true" : "false",
-                        tx_ctx.validSignature ? "true" : "false",
-                        tx_ctx.validHashes ? "true" : "false");
-#endif
+
+                LOG("[I] RLP parsing done. Valid TX found."
+                    "ValidContract=%s ValidSignature=%s ValidHashes=%s\n",
+                    tx_ctx.validContract ? "true" : "false",
+                    tx_ctx.validSignature ? "true" : "false",
+                    tx_ctx.validHashes ? "true" : "false");
+
                 G_io_apdu_buffer[CLAPOS] = CLA;
                 G_io_apdu_buffer[CMDPOS] = INS_SIGN;
                 G_io_apdu_buffer[OP] = P1_RECEIPT;
@@ -212,7 +217,7 @@ if (G_io_apdu_buffer[OP] & P1_RECEIPT) {
         if (rx > DATA) {
             keccak_update(&ReceiptHash,
                         &G_io_apdu_buffer[DATA],
-                        rx - DATA);            // Update Receipt hash
+                        rx - DATA); // Update Receipt hash
         }
         if (rx - DATA == RLP_MAX_TRANSFER) { // Data still remains
             G_io_apdu_buffer[CLAPOS] = CLA;
@@ -223,12 +228,7 @@ if (G_io_apdu_buffer[OP] & P1_RECEIPT) {
             state = S_RLP_FINISH;
         } else { // Last chunk transmitted
             keccak_final(&ReceiptHash, ReceiptHashBuf);
-#ifdef FEDHM_EMULATOR
-            printf("LAST CHUNK, RLP Keccak256: ");
-            for (int i = 0; i < sizeof(ReceiptHashBuf); i++)
-                printf("%02x", ReceiptHashBuf[i]);
-            printf("\n");
-#endif
+            LOG_HEX("LAST CHUNK, RLP Keccak256: ", ReceiptHashBuf, sizeof(ReceiptHashBuf));
             G_io_apdu_buffer[CLAPOS] = CLA;
             G_io_apdu_buffer[CMDPOS] = INS_SIGN;
             G_io_apdu_buffer[OP] = P1_MERKLEPROOF;
@@ -237,6 +237,7 @@ if (G_io_apdu_buffer[OP] & P1_RECEIPT) {
             tx = 4;
         }
         break;
+        
     default: // Invalid state
         THROW(0x6A89);
     }
@@ -245,9 +246,11 @@ if (G_io_apdu_buffer[OP] & P1_RECEIPT) {
     // Check if we request more than our buffer size
 	if (rlp_ctx.expectedRXBytes > IO_APDU_BUFFER_SIZE)
 		THROW(0x6A89);
-} else
-    //---------------------- Merkle Proof Parser --------------------------
-    if (G_io_apdu_buffer[OP] & P1_MERKLEPROOF) {
+    break;
+}
+
+//---------------------- Merkle Proof Parser --------------------------
+if (G_io_apdu_buffer[OP] & P1_MERKLEPROOF) {
     unsigned char signatureHashCopy[HASHLEN];
     unsigned char privateKeyData[KEYLEN];
     // Input len check
@@ -314,20 +317,16 @@ if (G_io_apdu_buffer[OP] & P1_RECEIPT) {
         break;
     case S_MP_NODE_REMAINING:
         MP_NODE_REMAINING(&mp_ctx, &state, rx, &tx);
-        break;
+        if (state != S_SIGN_MESSAGE)
+            break;
     case S_SIGN_MESSAGE: {
         // Matching TX found, Contract is valid, Receipt Signature is valid and Merkle
         // Tree passes al verifications. Sign the signatureHash
 
-        #ifdef FEDHM_EMULATOR
-
-        printf("[I] MP parsing done. Valid TX found. ValidContract=%s "
-               "ValidSignature=%s \n",
-               tx_ctx.validContract ? "true" : "false",
-               tx_ctx.validSignature ? "true" : "false");
-        tx = 0;
-        
-        #else
+        LOG("[I] MP parsing done. Valid TX found. ValidContract=%s "
+            "ValidSignature=%s \n",
+            tx_ctx.validContract ? "true" : "false",
+            tx_ctx.validSignature ? "true" : "false");
 
         tx = do_sign(
             path, RSK_PATH_LEN, 
@@ -338,8 +337,6 @@ if (G_io_apdu_buffer[OP] & P1_RECEIPT) {
         if (tx == DO_SIGN_ERROR) {
             THROW(0x6A99);
         }
-
-        #endif
 
         tx += DATA;
         G_io_apdu_buffer[CLAPOS] = CLA;
@@ -360,18 +357,4 @@ if (G_io_apdu_buffer[OP] & P1_RECEIPT) {
 	if (mp_ctx.expectedRXBytes > IO_APDU_BUFFER_SIZE)
 		THROW(0x6A89);
 	}
-#ifdef FEDHM_EMULATOR
-    //
-    static int TX = 0;
-    static int TXCNT = 0;
-    if (state == S_CMD_FINISHED)
-        printf("-----Total tranfers: %d ---Total bytes: %d\n", TXCNT, TX);
-    else {
-	if (mp_ctx.expectedRXBytes != 0) {
-		TX += mp_ctx.expectedRXBytes;
-		TXCNT++;
-		};
-	}
-#endif
 }
-break;

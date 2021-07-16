@@ -1,10 +1,6 @@
 #ifndef __ATTESTATION
 #define __ATTESTATION
 
-#ifdef FEDHM_EMULATOR
-#include "usb.h"
-#endif
-
 #include "bc_hash.h"
 #include "mem.h"
 

@@ -8,6 +8,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "os.h"
+
 #include "bigdigits.h"
 #include "nvm.h"
 
@@ -31,13 +33,17 @@ typedef struct {
 } bc_state_t;
 
 extern const bc_state_t N_bc_state_var;
-
-#ifdef FEDHM_EMULATOR
-#define N_bc_state N_bc_state_var
-#else
-#include "os.h"
 #define N_bc_state (*(bc_state_t*)PIC(&N_bc_state_var))
+
+#ifndef PARAM_INITIAL_BLOCK_HASH
+#include "defs.h"
+extern uint8_t INITIAL_BLOCK_HASH[HASHLEN];
 #endif
+
+// #ifdef FEDHM_EMULATOR
+// #define N_bc_state N_bc_state_var
+// #else
+// #endif
 
 // -----------------------------------------------------------------------
 // Get/Reset blockchain state protocol

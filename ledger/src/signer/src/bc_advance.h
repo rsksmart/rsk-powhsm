@@ -20,6 +20,12 @@
 #define OP_ADVANCE_PARTIAL 0x05
 #define OP_ADVANCE_SUCCESS 0x06
 
+#ifndef PARAM_MIN_REQUIRED_DIFFICULTY
+#include "bc.h"
+#include "bigdigits.h"
+extern DIGIT_T MIN_REQUIRED_DIFFICULTY[BIGINT_LEN];
+#endif
+
 /*
  * Initialize Blockchain advance protocol state.
  */

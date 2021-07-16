@@ -1,11 +1,7 @@
-#ifdef FEDHM_EMULATOR
-#include <stdio.h>
-#endif
-
 #include <string.h>
-#include "bc_diff.h"
 
-#define DEBUG_DIFF
+#include "bc_diff.h"
+#include "dbg.h"
 
 /*
  * Initialize a big integer. This is kind of tricky because the way big
@@ -136,13 +132,11 @@ diff_result check_difficulty(DIGIT_T difficulty[], const uint8_t* mm_hdr_hash) {
     // aux <= target. That is, if cmp != 1.
     cmp = mpCompare_ct(aux, target, BIGINT_LEN);
 
-#if defined(FEDHM_EMULATOR) && defined(DEBUG_DIFF)
-    mpPrintHex("2^256 = ", _2e256, BIGINT_LEN, "\n");
-    mpPrintHex("Block difficulty = ", difficulty, BIGINT_LEN, "\n");
-    mpPrintHex("Target = ", target, BIGINT_LEN, "\n");
-    mpPrintHex("BTC MM block hash = ", aux, BIGINT_LEN, "\n");
-    fprintf(stderr, "Difficulty is %s\n", cmp == 1 ? "not valid" : "valid");
-#endif
+    LOG_BIGD_HEX("2^256 = ", _2e256, BIGINT_LEN, "\n");
+    LOG_BIGD_HEX("Block difficulty = ", difficulty, BIGINT_LEN, "\n");
+    LOG_BIGD_HEX("Target = ", target, BIGINT_LEN, "\n");
+    LOG_BIGD_HEX("BTC MM block hash = ", aux, BIGINT_LEN, "\n");
+    LOG("Difficulty is %s\n", cmp == 1 ? "not valid" : "valid");
 
     return cmp != 1 ? DIFF_MATCH : DIFF_MISMATCH;
 }

@@ -1,10 +1,6 @@
 #include <string.h>
 
-#ifdef FEDHM_EMULATOR
-#include "usb.h"
-#else
 #include "os.h"
-#endif
 
 #include "bc.h"
 #include "dbg.h"
@@ -37,13 +33,10 @@
 #ifdef PARAM_MIN_REQUIRED_DIFFICULTY
 static const DIGIT_T MIN_REQUIRED_DIFFICULTY[BIGINT_LEN] = PARAM_MIN_REQUIRED_DIFFICULTY;
 #else
-#ifdef FEDHM_EMULATOR
-// This difficulty works for the test data in the emulator
-// (ledger/src/tests/resources/other/split-*.json).
-static const DIGIT_T MIN_REQUIRED_DIFFICULTY[BIGINT_LEN] = {
-    0x1c92f6c6, 0xbcab6123, 0x000001d5, 0, 0, 0, 0, 0, 0
-};
-#endif
+    #ifndef HSM_SIMULATOR
+    #error "Minimum required difficulty not defined!"
+    #endif
+DIGIT_T MIN_REQUIRED_DIFFICULTY[BIGINT_LEN];
 #endif
 
 // -----------------------------------------------------------------------
@@ -286,13 +279,11 @@ static void bc_adv_accum_diff() {
         return;
     }
 
-#if defined(FEDHM_EMULATOR)
-    mpPrintHex("Total difficulty before = ",
+    LOG_BIGD_HEX("Total difficulty before = ",
                aux_bc_st.total_difficulty,
                BIGINT_LEN,
                "\n");
-    mpPrintHex("Block difficulty = ", block.difficulty, BIGINT_LEN, "\n");
-#endif
+    LOG_BIGD_HEX("Block difficulty = ", block.difficulty, BIGINT_LEN, "\n");
 
     // Otherwise accumulate total difficulty
     DIGIT_T carry =
@@ -301,17 +292,15 @@ static void bc_adv_accum_diff() {
         ABORT(TOTAL_DIFF_OVERFLOW);
     }
 
-#ifdef FEDHM_EMULATOR
-    mpPrintHex("Min required difficulty = ",
+    LOG_BIGD_HEX("Min required difficulty = ",
                MIN_REQUIRED_DIFFICULTY,
                BIGINT_LEN,
                "\n");
-    mpPrintHex(
+    LOG_BIGD_HEX(
         "Total difficulty = ", aux_bc_st.total_difficulty, BIGINT_LEN, "\n");
     LOG("Comparison: %d\n",
         mpCompare_ct(
             aux_bc_st.total_difficulty, MIN_REQUIRED_DIFFICULTY, BIGINT_LEN));
-#endif
 
     // Not enough difficulty yet: we are done
     if (mpCompare_ct(aux_bc_st.total_difficulty,
@@ -588,7 +577,7 @@ static void str_end() {
             ABORT(BLOCK_NUM_INVALID);
         }
         VAR_BIGENDIAN_FROM(block.wa_buf, block.number, block.wa_off);
-        SET_NETWORK_UPGRADE(block.number, block.network_upgrade);
+        SET_NETWORK_UPGRADE(block.number, &block.network_upgrade);
         if (block.network_upgrade == NU_ANCIENT) {
             ABORT(BLOCK_TOO_OLD);
         }
@@ -882,7 +871,7 @@ unsigned int bc_advance_get_params() {
     int dump_size = 0;
     dump_size += bc_dump_initial_block_hash(0);
     dump_size += dump_min_req_difficulty(dump_size);
-    APDU_DATA_PTR[dump_size++] = NETWORK_IDENTIFIER;
+    APDU_DATA_PTR[dump_size++] = GET_NETWORK_IDENTIFIER();
 
     return TX_FOR_DATA_SIZE(dump_size);
 }

@@ -11,6 +11,10 @@ signer/test/**/test.out
 simul/simul
 simul/objs
 
+# TCPSigner
+tcpsigner/tcpsigner
+tcpsigner/objs
+
 # Icons hex
 signer/icon.hex
 ui/icon.hex

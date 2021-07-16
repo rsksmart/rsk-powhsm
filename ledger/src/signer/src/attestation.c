@@ -1,9 +1,4 @@
-#ifndef FEDHM_EMULATOR
 #include "os.h"
-#else
-#include "exception.h"
-#endif
-
 #include "attestation.h"
 #include "defs.h"
 #include "pathAuth.h"
@@ -22,7 +17,6 @@ static void hash_public_key(const char* path, att_t* att_ctx) {
     BEGIN_TRY {
         TRY {
             // Derive public key
-            moxie_swi_crypto_cleanup();
             os_memmove(att_ctx->path, (unsigned int*) (&path[1]), sizeof(att_ctx->path)); // Skip first byte of path (size)
             // Derive and init private key
             os_perso_derive_node_bip32(CX_CURVE_256K1, att_ctx->path, RSK_PATH_LEN, att_ctx->priv_key_data, NULL);

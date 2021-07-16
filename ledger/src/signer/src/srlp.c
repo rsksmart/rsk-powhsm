@@ -3,18 +3,14 @@
 
 #include "srlp.h"
 
-#ifdef FEDHM_EMULATOR
-#define PIC(x) x
-#ifdef RLP_DEBUG
-#include <stdio.h>
-#endif
-#else
+#include "os.h"
+
+#include "dbg.h"
+
 // This code tinkers with function pointers referenced from
 // const data structures, so we need to use the PIC macro.
 // See:
 // https://ledger.readthedocs.io/en/latest/userspace/memory.html?highlight=PIC#pic-and-model-implications
-#include "os.h"
-#endif
 
 // Parser state is modeled as a stack of context items of the form:
 //
@@ -28,27 +24,6 @@
 // stack underflow. The stack size is limited to MAX_RLP_CTX_DEPTH
 // items (see srlp.h).
 
-// Context item state:
-//  - RLP_BOTTOM: bottom of stack marker
-//  - RLP_STR: parser is consuming a byte array
-//  - RLP_STR_LEN: parser is consuming a byte array length
-//  - RLP_LIST: parser is consuming a list
-//  - RLP_LIST_LEN: parser is consuming a list length
-typedef enum {
-    RLP_BOTTOM,
-    RLP_STR,
-    RLP_STR_LEN,
-    RLP_LIST,
-    RLP_LIST_LEN
-} rlp_state_t;
-
-// Context item
-typedef struct {
-    rlp_state_t state;
-    uint16_t size;
-    uint16_t cursor;
-} rlp_ctx_t;
-
 // Context item stack and stack pointer
 static uint8_t rlp_ctx_ptr;
 static rlp_ctx_t rlp_ctx[MAX_RLP_CTX_DEPTH];
@@ -58,16 +33,6 @@ static uint8_t* rlp_frame_start;
 
 // User callbacks
 static const rlp_callbacks_t* rlp_callbacks;
-
-#if defined(FEDHM_EMULATOR) && defined(RLP_DEBUG)
-void print_ctx() {
-    for (int i = rlp_ctx_ptr; i >= 0; --i) {
-        rlp_ctx_t ctx = rlp_ctx[i];
-        printf("{%d, %lu, %lu} ; ", ctx.state, ctx.size, ctx.cursor);
-    }
-    printf("{EOC}\n");
-}
-#endif
 
 /*
  * Initialize the parser.
@@ -211,9 +176,7 @@ int rlp_consume(uint8_t* buf, const uint8_t len) {
     for (uint8_t i = 0; i < len; ++i) {
         uint8_t* b = buf + i;
 
-#if defined(FEDHM_EMULATOR) && defined(RLP_DEBUG)
-        print_ctx();
-#endif
+        LOG_SRLP_CTX(rlp_ctx, rlp_ctx_ptr);
 
         switch (rlp_ctx[rlp_ctx_ptr].state) {
         case RLP_BOTTOM:

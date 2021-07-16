@@ -1,6 +1,7 @@
 #include "bc_err.h"
 
-#ifdef FEDHM_EMULATOR
+#ifdef HSM_SIMULATOR
+
 #include <stdio.h>
 
 static struct err_entry {

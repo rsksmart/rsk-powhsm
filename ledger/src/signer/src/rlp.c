@@ -4,12 +4,9 @@
  *   RLP parser
  ********************************************************************************/
 
-#ifdef FEDHM_EMULATOR
-#include <stdio.h>
-#include <stdlib.h>
-#else
 #include "os.h"
-#endif
+
+#include "dbg.h"
 
 #include <stdbool.h>
 #include <string.h>
@@ -123,23 +120,16 @@ void SM_RLP_FIELD(RLP_CTX *ctx,
                   PARSE_STM *state,
                   unsigned int rx,
                   unsigned int *tx) {
-#ifdef FEDHM_EMULATOR
-    for (unsigned int q = 0; q < ctx->listLevel; q++)
-        fprintf(stderr, "\t");
-#endif
+    LOG_N_CHARS('\t', ctx->listLevel);
     unsigned char bytesToCopy = rx - 3;
     if (ctx->remainingFieldBytes < bytesToCopy)
         bytesToCopy = ctx->remainingFieldBytes;
     ctx->remainingFieldBytes -= bytesToCopy;
-#ifdef FEDHM_EMULATOR
-    fprintf(stderr, "[I] Remaining bytes: %d. ", ctx->remainingFieldBytes);
-#endif
+    LOG("[I] Remaining bytes: %d. ", ctx->remainingFieldBytes);
     if (ctx->remainingFieldBytes == 0) { // Field transfer complete
         *state = S_RLP_HDR;
         G_io_apdu_buffer[TXLEN] = 1; // Return 1 byte
-#ifdef FEDHM_EMULATOR
-        fprintf(stderr, "Field complete\n");
-#endif
+        LOG("Field complete\n");
         // Check if the current list is completely tranferred
         if (ctx->listLevel > 0) {
             ctx->listRemaining[ctx->listLevel] -= ctx->currentFieldLength;
@@ -151,9 +141,7 @@ void SM_RLP_FIELD(RLP_CTX *ctx,
             }
         }
     } else { // Field incomplete
-#ifdef FEDHM_EMULATOR
-        fprintf(stderr, "Partial field.\n");
-#endif
+        LOG("Partial field.\n");
         if (ctx->remainingFieldBytes <= RLP_MAX_TRANSFER)
             G_io_apdu_buffer[TXLEN] =
                 ctx->remainingFieldBytes; // Return whole field
@@ -174,9 +162,7 @@ void SM_RLP_HDR(RLP_CTX *ctx,
     bool currentFieldIsList;
     bool valid;
     if (ctx->decodeOffset >= sizeof(ctx->decodeBuffer)) {
-        #ifdef FEDHM_EMULATOR
-        fprintf(stderr, "RLP decode buffer would overflow\n");
-        #endif
+        LOG("RLP decode buffer would overflow\n");
         THROW(0x6A8A);
     }
     memcpy(ctx->decodeBuffer + ctx->decodeOffset, &G_io_apdu_buffer[TXLEN], 1);
@@ -185,31 +171,25 @@ void SM_RLP_HDR(RLP_CTX *ctx,
     if (rlpCanDecode(ctx->decodeBuffer, ctx->decodeOffset, &valid)) {
         // Can decode now, if valid
         if (!valid) {
-            #ifdef FEDHM_EMULATOR
-            fprintf(stderr, "RLP pre-decode error\n");
-            #endif
+            LOG("RLP pre-decode error\n");
             THROW(0x6A8A);
         } else {
             if (!rlpDecodeLength(ctx->decodeBuffer,
                                  &ctx->currentFieldLength,
                                  &ctx->offset,
                                  &currentFieldIsList)) {
-#ifdef FEDHM_EMULATOR
-                fprintf(stderr, "RLP decode error\n");
-#endif
+                LOG("RLP decode error\n");
                 THROW(0x6A8B);
             }
-#ifdef FEDHM_EMULATOR
-            for (int q = 0; q < ctx->listLevel; q++)
-                fprintf(stderr, "\t");
-            fprintf(stderr,
-                    "[I] listDepth: %d currentFieldLenght: %d offset: %d "
-                    "IsList: %d\n",
-                    ctx->listLevel,
-                    ctx->currentFieldLength,
-                    ctx->offset,
-                    currentFieldIsList);
-#endif
+
+            LOG_N_CHARS('\t', ctx->listLevel);
+            LOG("[I] listDepth: %d currentFieldLenght: %d offset: %d "
+                "IsList: %d\n",
+                ctx->listLevel,
+                ctx->currentFieldLength,
+                ctx->offset,
+                currentFieldIsList);
+
             ctx->decodeOffset = 0;
             G_io_apdu_buffer[0] = CLA;
             G_io_apdu_buffer[1] = INS_SIGN;
@@ -259,10 +239,9 @@ void SM_RLP_START(RLP_CTX *ctx,
                   PARSE_STM *state,
                   unsigned int rx,
                   unsigned int *tx) {
+    LOG("[I] Starting RLP parsing\n");
+
     memset(ctx, 0, sizeof(RLP_CTX));
-#ifdef FEDHM_EMULATOR
-    fprintf(stderr, "[I] Starting RLP parsing\n");
-#endif
     G_io_apdu_buffer[0] = CLA;
     G_io_apdu_buffer[1] = INS_SIGN;
     G_io_apdu_buffer[OP] = P1_RECEIPT;

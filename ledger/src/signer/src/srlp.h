@@ -33,6 +33,27 @@
 #define MAX_RLP_CTX_DEPTH 3
 #endif
 
+// Context item state:
+//  - RLP_BOTTOM: bottom of stack marker
+//  - RLP_STR: parser is consuming a byte array
+//  - RLP_STR_LEN: parser is consuming a byte array length
+//  - RLP_LIST: parser is consuming a list
+//  - RLP_LIST_LEN: parser is consuming a list length
+typedef enum {
+    RLP_BOTTOM,
+    RLP_STR,
+    RLP_STR_LEN,
+    RLP_LIST,
+    RLP_LIST_LEN
+} rlp_state_t;
+
+// Context item
+typedef struct {
+    rlp_state_t state;
+    uint16_t size;
+    uint16_t cursor;
+} rlp_ctx_t;
+
 // Type synonyms for callbacks
 typedef void (*rlp_start_cb_t)(const uint16_t size);
 typedef void (*rlp_end_cb_t)(void);

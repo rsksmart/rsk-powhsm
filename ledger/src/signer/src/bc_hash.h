@@ -1,7 +1,6 @@
 #ifndef __HASH
 #define __HASH
 
-#include <string.h>
 #include "bc.h"
 
 // -----------------------------------------------------------------------
@@ -10,37 +9,14 @@
 // which will depend on the environment where bulk PoW validation is
 // executed. Environments can be:
 //
-//  - Development simulator: use sha256.h and sha256.c
-//  - Speculos: use BOLOS_SDK, version 1.5
+//  - Development simulator: see the simulator's "os_hashing.h"
 //  - Ledger (the real thing): use BOLOS_SDK, version 1.3
 // -----------------------------------------------------------------------
 
-#if FEDHM_EMULATOR
-
-#include "sha256.h"
-#include "keccak256.h"
-
-typedef SHA256_CTX sha256_ctx_t;
-
-#define SHA256_INIT(ctx) sha256_init(ctx)
-#define SHA256_UPDATE(ctx, data, len) sha256_update(ctx, data, len)
-#define SHA256_FINAL(ctx, hash) sha256_final(ctx, hash)
-
-typedef SHA3_CTX keccak_ctx_t;
-
-#define KECCAK_INIT(ctx) keccak_init(ctx)
-#define KECCAK_UPDATE(ctx, data, len) keccak_update(ctx, data, len)
-#define KECCAK_FINAL(ctx, hash) keccak_final(ctx, hash)
-
-#else
-
-#include "bolos_target.h"
 #include "os.h"
 
 typedef cx_sha256_t sha256_ctx_t;
 typedef cx_sha3_t keccak_ctx_t;
-
-#if TARGET_ID == 0x31100002 // SDK 1.3
 
 #define SHA256_INIT(ctx) cx_sha256_init(ctx)
 #define SHA256_UPDATE(ctx, data, len) \
@@ -53,24 +29,6 @@ typedef cx_sha3_t keccak_ctx_t;
     cx_hash((cx_hash_t*)(ctx), 0, (uint8_t*)data, len, NULL)
 #define KECCAK_FINAL(ctx, hash) \
     cx_hash((cx_hash_t*)(ctx), CX_LAST, NULL, 0, hash)
-
-#elif TARGET_ID == 0x31100004 // SDK 1.5
-
-#define SHA256_INIT(ctx) cx_sha256_init(ctx)
-#define SHA256_UPDATE(ctx, data, len) cx_hash(ctx, 0, data, len, NULL, 0)
-#define SHA256_FINAL(ctx, hash) cx_hash(ctx, CX_LAST, NULL, 0, hash, HASH_SIZE)
-
-#define KECCAK_INIT(ctx) cx_keccak_init(ctx, 256)
-#define KECCAK_UPDATE(ctx, data, len) \
-    cx_hash((cx_hash_t*)(ctx), 0, data, len, NULL, 0)
-#define KECCAK_FINAL(ctx, hash) \
-    cx_hash((cx_hash_t*)(ctx), CX_LAST, NULL, 0, hash, HASH_SIZE)
-
-#else
-#error "Unrecognized SDK"
-#endif // TARGET_ID
-
-#endif // FEDHM_EULATOR
 
 // Convenience macros to deal with frequent hash ops
 #define HEQ(h0, h1) (memcmp(h0, h1, HASH_SIZE) == 0)

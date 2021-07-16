@@ -1,8 +1,5 @@
-#ifndef FEDHM_EMULATOR
 #include "os.h"
 #include "cx.h"
-#endif
-#include "strings.h"
 
 #include "sign.h"
 #include "defs.h"
@@ -22,7 +19,6 @@ int do_pubkey(
     unsigned int* path, unsigned char path_length, 
     unsigned char* dest, size_t dest_size) {
 
-#ifndef FEDHM_EMULATOR
     unsigned char private_key_data[KEYLEN];
     cx_ecfp_private_key_t private_key;
     cx_ecfp_public_key_t public_key;
@@ -46,7 +42,7 @@ int do_pubkey(
                 pubkey_size = DO_PUBKEY_ERROR;
             } else {
                 // Output public key
-                memcpy(dest, public_key.W, public_key.W_len);
+                os_memmove(dest, public_key.W, public_key.W_len);
                 pubkey_size = public_key.W_len;
             }
             // Cleanup public key
@@ -66,9 +62,6 @@ int do_pubkey(
     END_TRY;
     // Return public key size
     return pubkey_size;
-#else
-    return DO_PUBKEY_ERROR;
-#endif
 }
 
 /*
@@ -89,7 +82,6 @@ int do_sign(
     unsigned char* message, size_t message_size,
     unsigned char* dest, size_t dest_size) {
 
-#ifndef FEDHM_EMULATOR
     unsigned char private_key_data[KEYLEN];
     cx_ecfp_private_key_t private_key;
 
@@ -129,7 +121,4 @@ int do_sign(
     END_TRY;
     // Return signature size
     return sig_size;
-#else
-    return DO_SIGN_ERROR;
-#endif
 }

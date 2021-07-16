@@ -7,11 +7,19 @@
 #ifndef DEFS_H
 #define DEFS_H
 
-#include <stdint.h>
+// Version and patchlevel
+#define VERSION_MAJOR 0x02
+#define VERSION_MINOR 0x01
+#define VERSION_PATCH 0x00
 
-// Ledger commands
+// Ledger commands and protocol constants
 #define CLA 0x80
+
 #define INS_SIGN 0x02
+#define INS_GET_PUBLIC_KEY 0x04
+#define RSK_IS_ONBOARD 0x06
+#define RSK_MODE_CMD 0x43
+#define RSK_MODE_APP 0x03
 
 #define P1_PATH 0x01
 #define P1_BTC 0x02
@@ -68,8 +76,6 @@
 // Size of payload in APDU
 #define APDU_DATA_SIZE(rx) ((rx) >= DATA ? (rx)-DATA : 0)
 
-extern unsigned char G_io_apdu_buffer[];
-
 // Parser state machine:
 typedef enum {
     S_CMD_START,
@@ -108,9 +114,5 @@ typedef enum {
 // Topic Offsets
 #define EXPECTED_TOPIC_BTC_TX_INDEX 2
 #define EXPECTED_TOPIC_SIGNATURE_INDEX 1
-
-#ifdef FEDHM_EMULATOR
-#define THROW(x) exit(x)
-#endif
 
 #endif // DEFS_H
