@@ -25,13 +25,13 @@ class NetworkUpgrades:
 NetworkUpgrades.MAINNET = NetworkUpgrades(
     wasabi=1_591_000,
     papyrus=2_392_700,
-    iris=3_589_500,
+    iris=3_614_800,
 )
 
 NetworkUpgrades.TESTNET = NetworkUpgrades(
     wasabi=0,
     papyrus=863_000,
-    iris=2_027_200,
+    iris=2_060_500,
 )
 
 NetworkUpgrades.REGTEST = NetworkUpgrades(

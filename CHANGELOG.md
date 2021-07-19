@@ -63,3 +63,9 @@ All notable changes to this project will be documented in this file.
 ### Features/enhancements
 
 - Set Iris activation block numbers for mainnet and testnet
+
+## [2.1.4-SNAPSHOT] - To be defined
+
+### Features/enhancements
+
+- Set Iris activation block numbers for mainnet and testnet (reviewed)

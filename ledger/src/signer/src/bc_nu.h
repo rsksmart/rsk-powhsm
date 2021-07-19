@@ -20,7 +20,7 @@ typedef enum {
 #ifdef TESTNET
 #define SET_NETWORK_UPGRADE(bn, x) \
     {                              \
-        if (bn >= 2027200UL)       \
+        if (bn >= 2060500UL)       \
             x = NU_IRIS;           \
         else if (bn >= 863000UL)   \
             x = NU_PAPYRUS;        \
@@ -35,7 +35,7 @@ typedef enum {
 #else
 #define SET_NETWORK_UPGRADE(bn, x) \
     {                              \
-        if (bn >= 3589500UL)       \
+        if (bn >= 3614800UL)       \
             x = NU_IRIS;           \
         else if (bn >= 2392700UL)  \
             x = NU_PAPYRUS;        \
