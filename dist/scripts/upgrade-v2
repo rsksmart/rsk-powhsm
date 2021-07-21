@@ -1,0 +1,134 @@
+#!/bin/bash
+
+pushd $(dirname $0)/.. > /dev/null
+ROOT_DIR="$(pwd)"
+popd > /dev/null
+
+TARGET_ID="$(cat $ROOT_DIR/scripts/target.id)"
+
+# Binaries
+LBUTILS_DIR="$ROOT_DIR/bin/lbutils"
+LBUTILS_BUNDLE="$LBUTILS_DIR.tgz"
+LBUTILS="$LBUTILS_DIR/lbutils"
+ADMIN_DIR="$ROOT_DIR/bin/adm"
+ADMIN_BUNDLE="$ADMIN_DIR.tgz"
+ADMIN="$ADMIN_DIR/adm"
+
+function cleanBinaries() {
+    rm -rf $LBUTILS_DIR
+    rm -rf $ADMIN_DIR
+}
+
+function expandBinaries() {
+    cleanBinaries
+
+    mkdir -p $LBUTILS_DIR
+    tar -xzmf $LBUTILS_BUNDLE -C $LBUTILS_DIR
+
+    mkdir -p $ADMIN_DIR
+    tar -xzmf $ADMIN_BUNDLE -C $ADMIN_DIR
+}
+
+expandBinaries
+
+FIRMWARE_DIR=$ROOT_DIR/firmware
+
+# File with the current pin
+PIN_FILE="$ROOT_DIR/pin.txt"
+# File where public keys will be saved after upgrading is done
+EXPORT_DIR="$ROOT_DIR/export"
+PUBLIC_KEY_FILE="$EXPORT_DIR/public-keys.txt"
+
+function error() {
+    if [ $? -ne 0 ]; then
+        echo -e "\e[1;31m Error comunicating with the dongle. Please check connection and restart the process. \e[0m"
+        cleanBinaries
+        exit 1
+    fi
+}
+
+function checkForPinFile() {
+    if [[ ! -e $PIN_FILE ]]; then
+        echo -e "\e[1;31m Pin file '$(basename $PIN_FILE)' not found. \e[0m"
+        cleanBinaries
+        exit 1
+    fi
+}
+
+function checkFirmware() {
+    # Check for firmware files
+    FILES="$FIRMWARE_DIR/signer.hex $FIRMWARE_DIR/signer.icon.hex $FIRMWARE_DIR/signer.hex.sig"
+    for f in ${FILES}; do
+        if [[ ! -e $f ]]; then
+            echo -e "\e[1;31m Firmware file '$(basename $f)' does not exist. \e[0m"
+            cleanBinaries
+            exit 1
+        fi
+    done
+}
+
+function unlockAndExit() {
+    $ADMIN unlock -p$(cat $PIN_FILE)
+    sleep 1
+    $ADMIN exit
+    error
+}
+
+function removeSigner() {
+    $LBUTILS delete --appName "RSK Sign" --targetId $TARGET_ID > /dev/null 2> /dev/null
+    error
+}
+
+function installSigner() {
+    ICON="$(cat $FIRMWARE_DIR/signer.icon.hex)"
+    SIG="$(cat $FIRMWARE_DIR/signer.hex.sig)"
+    $LBUTILS load --delete --targetId $TARGET_ID --appFlags 0x00 \
+            --fileName $FIRMWARE_DIR/signer.hex \
+            --icon "$ICON" \
+            --appName "RSK Sign" \
+            --appVersion "2.0.0" \
+            --path "" \
+            --signature "$SIG" > /dev/null 2> /dev/null
+    error
+}
+
+function createOutputDir() {
+    rm -rf $EXPORT_DIR
+    mkdir -p $EXPORT_DIR
+}
+
+function keys() {
+    $ADMIN pubkeys -p$(cat $PIN_FILE) -o $PUBLIC_KEY_FILE
+    error
+}
+
+echo -e "\e[1;32mWelcome to the HSM2 Upgrade for RSK \e[0m"
+echo
+checkFirmware
+checkForPinFile
+echo -e "\e[1;33mConnect your ledger.\e[0m"
+echo -e "Press [Enter] to continue"
+read continue
+sleep 2
+unlockAndExit
+sleep 2
+echo
+echo -e "\e[1;32mRemoving the old RSK Signer App...\e[0m"
+removeSigner
+echo -e "\e[1;32mInstalling the new RSK Signer App...\e[0m"
+installSigner
+echo
+echo -e "\e[1;33mApp upgrade complete. Please disconnect and reconnect the device.\e[0m"
+echo -e "Press [Enter] to continue"
+read continue
+sleep 2
+echo
+echo -e "\e[1;32mGathering public keys\e[0m"
+createOutputDir
+keys
+echo
+echo -e "\e[1;32mHSM2 Upgrade complete.\e[0m"
+echo -e "\e[1;33mPlease disconnect the device.\e[0m"
+echo
+cleanBinaries
+exit 0

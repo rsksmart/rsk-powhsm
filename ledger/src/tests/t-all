@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+#test all commands
+echo "    Note:"
+echo "    This command will advance the blockchain and sign a receipt"
+echo "    It requires a specific build of the signer"
+echo "    For details on the required build parameters, see build-params.txt"
+read -n 1 -s -r -p "Press any key to continue"
+python test.py reset
+python test.py advance -b resources/advance.json
+python test.py get
+
+python test.py update -b resources/update-iris.json
+python test.py get
+python test.py sign -d ./resources/sign-iris.json
+
+python test.py update -b resources/update.json
+python test.py get
+python test.py sign -d ./resources/sign.json

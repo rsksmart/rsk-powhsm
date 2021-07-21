@@ -1,0 +1,32 @@
+#!/bin/bash
+
+if [[ -z "$1" ]]; then
+    echo "No main script specified"
+    exit 1
+fi
+
+HIDDENIMPORTS="--hiddenimport _cffi_backend"
+if [[ "$1" == "lbutils" ]]; then
+    HIDDENIMPORTS="--hiddenimport ledgerblue.loadApp --hiddenimport ledgerblue.deleteApp --hiddenimport ledgerblue.setupCustomCA --hiddenimport ledgerblue.resetCustomCA --hiddenimport ledgerblue.genCAPair"
+fi
+
+# Main script name to build (no extension)
+TARGET=$1
+
+# Go to script directory
+pushd $(dirname $0) > /dev/null
+
+# Build seed
+SEED=$(cat seed)
+
+# Bin path
+BINPATH=../bin
+
+# Remove existing build
+rm -rf $BINPATH/$TARGET
+rm -rf $BINPATH/$TARGET.tgz
+
+# Build
+PYTHONHASHSEED=$SEED pyinstaller $HIDDENIMPORTS --clean --distpath $BINPATH ../$TARGET.py 2> /dev/null
+
+popd > /dev/null

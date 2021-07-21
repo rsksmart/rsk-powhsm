@@ -1,0 +1,181 @@
+#!/bin/bash
+
+pushd $(dirname $0)/.. > /dev/null
+ROOT_DIR="$(pwd)"
+popd > /dev/null
+
+TARGET_ID="$(cat $ROOT_DIR/scripts/target.id)"
+
+# Binaries
+LBUTILS_DIR="$ROOT_DIR/bin/lbutils"
+LBUTILS_BUNDLE="$LBUTILS_DIR.tgz"
+LBUTILS="$LBUTILS_DIR/lbutils"
+ADMIN_DIR="$ROOT_DIR/bin/adm"
+ADMIN_BUNDLE="$ADMIN_DIR.tgz"
+ADMIN="$ADMIN_DIR/adm"
+
+function cleanBinaries() {
+    rm -rf $LBUTILS_DIR
+    rm -rf $ADMIN_DIR
+}
+
+function expandBinaries() {
+    cleanBinaries
+
+    mkdir -p $LBUTILS_DIR
+    tar -xzmf $LBUTILS_BUNDLE -C $LBUTILS_DIR
+
+    mkdir -p $ADMIN_DIR
+    tar -xzmf $ADMIN_BUNDLE -C $ADMIN_DIR
+}
+
+expandBinaries
+
+FIRMWARE_DIR=$ROOT_DIR/firmware
+
+# File with the current pin
+PIN_FILE="$ROOT_DIR/pin.txt"
+# File where public keys will be saved after upgrading is done
+EXPORT_DIR="$ROOT_DIR/export"
+PUBLIC_KEY_FILE="$EXPORT_DIR/public-keys.txt"
+
+# Generate a random key to use for the interactions with the device
+# (so that the user only needs to confirm once)
+ROOTKEY=$($LBUTILS genCA | grep Private | sed 's/Private key: //g')
+
+function error() {
+    if [ $? -ne 0 ]; then
+        echo -e "\e[1;31m Error comunicating with the dongle. Please check connection and restart the process. \e[0m"
+        cleanBinaries
+        exit 1
+    fi
+}
+
+function checkForPinFile() {
+    if [[ ! -e $PIN_FILE ]]; then
+        echo -e "\e[1;31m Pin file '$(basename $PIN_FILE)' not found. \e[0m"
+        cleanBinaries
+        exit 1
+    fi
+}
+
+function checkFirmware() {
+    # Check for firmware files
+    FILES="$FIRMWARE_DIR/signer.hex $FIRMWARE_DIR/signer.icon.hex $FIRMWARE_DIR/signer.hex.sig $FIRMWARE_DIR/ui.hex $FIRMWARE_DIR/ui.icon.hex $FIRMWARE_DIR/ui.hex.sig"
+    for f in ${FILES}; do
+        if [[ ! -e $f ]]; then
+            echo -e "\e[1;31m Firmware file '$(basename $f)' does not exist. \e[0m"
+            cleanBinaries
+            exit 1
+        fi
+    done
+}
+
+function setRecoveryPin() {
+    RECOVERY_PIN=$((RANDOM%10))$((RANDOM%10))$((RANDOM%10))$((RANDOM%10))$((RANDOM%10))$((RANDOM%10))$((RANDOM%10))$((RANDOM%10))
+    $ADMIN changepin -p$(cat $PIN_FILE) -n$RECOVERY_PIN -a
+    error
+}
+
+function changePin() {
+    $ADMIN changepin -p$RECOVERY_PIN
+    error
+}
+
+function removeSigner() {
+    $LBUTILS delete --appName "RSK Sign" --targetId $TARGET_ID --rootPrivateKey $ROOTKEY > /dev/null 2> /dev/null
+    error
+}
+
+function removeUI() {
+    $LBUTILS delete --appName "UX" --targetId $TARGET_ID --rootPrivateKey $ROOTKEY > /dev/null 2> /dev/null
+    error
+}
+
+function installSigner() {
+    ICON="$(cat $FIRMWARE_DIR/signer.icon.hex)"
+    SIG="$(cat $FIRMWARE_DIR/signer.hex.sig)"
+    $LBUTILS load --delete --targetId $TARGET_ID --appFlags 0x00 \
+            --fileName $FIRMWARE_DIR/signer.hex \
+            --icon "$ICON" \
+            --appName "RSK Sign" \
+            --appVersion "2.0.0" \
+            --path "" \
+            --signature "$SIG" \
+            --rootPrivateKey $ROOTKEY > /dev/null 2> /dev/null
+    error
+}
+
+function installUI() {
+    ICON="$(cat $FIRMWARE_DIR/ui.icon.hex)"
+    SIG="$(cat $FIRMWARE_DIR/ui.hex.sig)"
+    $LBUTILS load --delete --targetId $TARGET_ID --appFlags 0x248 \
+            --fileName $FIRMWARE_DIR/ui.hex \
+            --icon "$ICON" \
+            --appName "UX" \
+            --appVersion "2.0.0" \
+            --path "" \
+            --signature "$SIG" \
+            --rootPrivateKey $ROOTKEY > /dev/null 2> /dev/null
+    error
+}
+
+function createOutputDir() {
+    rm -rf $EXPORT_DIR
+    mkdir -p $EXPORT_DIR
+}
+
+function keys() {
+    $ADMIN pubkeys -o $PUBLIC_KEY_FILE
+    error
+}
+
+echo -e "\e[1;32mWelcome to the HSM1 -> HSM2 Upgrade for RSK \e[0m"
+echo
+checkFirmware
+checkForPinFile
+echo -e "\e[1;33mConnect your ledger.\e[0m"
+echo -e "Press [Enter] to continue"
+read continue
+sleep 2
+setRecoveryPin
+echo
+echo -e "\e[1;33mDisconnect and reconnect your ledger into recovery mode:\e[0m"
+echo -e "\e[1;33mConnect it while keeping the right button pressed until you see a Recovery message, then\e[0m"
+echo -e "\e[1;33mrelease the right button and wait until the menu appears.\e[0m"
+echo -e "\e[1;33mWhen prompted for the pin, use \e[1;36m$RECOVERY_PIN\e[1;33m.\e[0m"
+echo -e "Press [Enter] to continue"
+read continue
+echo
+echo -e "\e[1;32mRemoving the legacy RSK Signer App...\e[0m"
+echo -e "\e[1;33mThe Ledger will prompt for 'Allow Unknown Manager' and 'Remove app'. Please accept both.\e[0m"
+removeSigner
+echo -e "\e[1;32mRemoving the legacy RSK UI...\e[0m"
+echo -e "\e[1;33mThe Ledger will prompt for 'Remove app'. Please accept it.\e[0m"
+removeUI
+echo -e "\e[1;32mInstalling the new RSK Signer App...\e[0m"
+installSigner
+echo -e "\e[1;32mInstalling the new RSK UI...\e[0m"
+installUI
+echo
+echo -e "\e[1;33mApp upgrade complete. Please disconnect and reconnect the device.\e[0m"
+echo -e "\e[1;33mYou will be prompted to choose a new pin for the device.\e[0m"
+echo -e "Press [Enter] to continue"
+read continue
+sleep 2
+changePin
+echo
+echo -e "\e[1;33mPin change complete. Please disconnect and reconnect the device.\e[0m"
+echo -e "Press [Enter] to continue"
+read continue
+sleep 2
+echo
+echo -e "\e[1;32mGathering public keys\e[0m"
+createOutputDir
+keys
+echo
+echo -e "\e[1;32mHSM2 Upgrade complete.\e[0m"
+echo -e "\e[1;33mPlease disconnect the device.\e[0m"
+echo
+cleanBinaries
+exit 0

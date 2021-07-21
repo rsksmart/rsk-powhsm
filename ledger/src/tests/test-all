@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+# Script directory
+pushd $(dirname $0) > /dev/null
+TEST_ROOT=$(pwd)
+popd > /dev/null
+
+$TEST_ROOT/../../../docker/mware/do /hsm2/ledger/src/tests ./t-all

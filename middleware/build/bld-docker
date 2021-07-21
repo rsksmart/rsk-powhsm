@@ -1,0 +1,29 @@
+#!/bin/bash
+
+if [[ -z "$1" ]]; then
+    echo "No main script specified"
+    exit 1
+fi
+
+if [[ -z "$QUIET" ]]; then
+    echo "Building '$1'..."
+fi
+
+# Script directory
+pushd $(dirname $0) > /dev/null
+BUILD_ROOT=$(pwd)
+popd > /dev/null
+
+# Root directory
+HSM_ROOT=$BUILD_ROOT/../../
+
+$HSM_ROOT/docker/mware/do-notty-nousb /hsm2/middleware/build "./bld $1"
+$HSM_ROOT/docker/packer/do-notty-nousb /hsm2/middleware/build "./pck $1"
+
+BIN_PATH=$(realpath $HSM_ROOT/middleware/bin)
+
+if [[ -z "$QUIET" ]]; then
+    sha256sum $BIN_PATH/$1.tgz
+else
+    printf "."
+fi

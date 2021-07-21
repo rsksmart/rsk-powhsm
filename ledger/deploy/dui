@@ -1,0 +1,16 @@
+#!/bin/bash
+
+pushd $(dirname $0) > /dev/null
+CURDIR=$(pwd)
+popd > /dev/null
+
+export BOLOS_SDK=$CURDIR
+export TARGET_ID=`cat $CURDIR/target.id`
+export ONLY_LOAD=YES
+
+TOPDIR=$CURDIR/../
+BUILDDIR=$TOPDIR/src/ui/
+
+pushd $BUILDDIR > /dev/null
+make load
+popd > /dev/null
