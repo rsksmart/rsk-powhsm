@@ -113,6 +113,9 @@ class Error(IntEnum):
     ANCESTOR_TIP_MISMATCH = auto()
     CB_TXN_HASH_MISMATCH = auto()
 
+    TX_HASH_MISMATCH = 0x6A8D
+    RECEIPT_HASH_MISMATCH = 0x6A94
+
 _errors = {
     Error.APP_NOT_STARTED: "Signer app has not been started",
     Error.PROT_INVALID: "Invalid or unexpected message",
@@ -139,7 +142,10 @@ _errors = {
     Error.BUFFER_OVERFLOW: "Work area buffer overflow",
     Error.CHAIN_MISMATCH: "Block is not parent of previous block",
     Error.TOTAL_DIFF_OVERFLOW: "Total difficulty overflow",
-    Error.ANCESTOR_TIP_MISMATCH: "Ancestor tip mismatch"
+    Error.ANCESTOR_TIP_MISMATCH: "Ancestor tip mismatch",
+
+    Error.TX_HASH_MISMATCH: "Transaction hash mismatch",
+    Error.RECEIPT_HASH_MISMATCH: "Receipt hash mismatch"
 }
 
 # ------------------------------------------------------------------------
@@ -385,7 +391,7 @@ def bip44tobin(path):
     return result
 
 ## Sign transaction and check receipt PoC
-def signTX(dongle, keyId,BTCTran,receipt,MP_tree,input_index):
+def signTX(dongle, keyId,BTCTran,receipt,MP_tree,input_index,failCode):
         argToSend=P1_PATH
         receiptPtr=0
         TXPtr=0
@@ -412,7 +418,9 @@ def signTX(dongle, keyId,BTCTran,receipt,MP_tree,input_index):
             if argToSend==P1_MERKLEPROOF:
                 message=bytearray([argToSend])+MP_tree[MPPtr:MPPtr+txSize]
                 MPPtr+=txSize
-            response = send(dongle, INS_SIGN, "", message)
+            response = send(dongle, INS_SIGN, "", message, failCode=failCode)
+            if not response:
+                return False
             argToSend=response[2]
             txSize=response[TXLEN]
             if response[2]==P1_SUCCESS:
@@ -499,14 +507,15 @@ def sign_json(args, sign_file):
                 info('\033[92m' + "PubKey" + '\x1b[0m')
                 for BTCTran in data["BTCTrans"]:
                         info("--------------------- Transaction len: %s" % len(BTCTran))
-                        signature=signTX(dongle,keyId,binascii.unhexlify(BTCTran),binascii.unhexlify(data["receipt"]),MP_msg,0)
-                        signature=bytearray([0x30])+signature[1:] ### Why Ledger returns 0x31 instead of 0x30?
-                        info("Signature (%d): %s" % (len(signature),repr(signature)))
-                        signatureDeserialized = pubKey.ecdsa_deserialize(bytes(signature))
-                        info("Deserialized Signature: " + str(signatureDeserialized))
-                        info("Verified Sigature: " + '\033[92m' + str(pubKey.ecdsa_verify(bytes(textToSign), signatureDeserialized,raw=True)) + '\x1b[0m')
-                if (failCode>0):
-                    error("Transaction must fail but no error detected.")
+                        signature=signTX(dongle,keyId,binascii.unhexlify(BTCTran),binascii.unhexlify(data["receipt"]),MP_msg,0,failCode=failCode)
+                        if signature:
+                            if failCode>0:
+                                error("Transaction must fail but no error detected.")
+                            signature=bytearray([0x30])+signature[1:] ### Why Ledger returns 0x31 instead of 0x30?
+                            info("Signature (%d): %s" % (len(signature),repr(signature)))
+                            signatureDeserialized = pubKey.ecdsa_deserialize(bytes(signature))
+                            info("Deserialized Signature: " + str(signatureDeserialized))
+                            info("Verified Sigature: " + '\033[92m' + str(pubKey.ecdsa_verify(bytes(textToSign), signatureDeserialized,raw=True)) + '\x1b[0m')
 
     except:
        if (failCode>0):

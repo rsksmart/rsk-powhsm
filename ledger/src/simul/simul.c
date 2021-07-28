@@ -136,8 +136,18 @@ void main(int argc, char** argv) {
         srandom(SEED);
     }
 
+    bool first = true;
+
     while (true) {
-        rx = io_exchange(0, tx);
+        if ((!first && G_io_apdu_buffer[1] == INS_SIGN) &&
+            (G_io_apdu_buffer[TXLEN] == 0) &&
+		    (state!=S_CMD_FINISHED))
+            rx = 3;
+        else
+            rx = io_exchange(0, tx);
+
+        first = false;
+        
         if (fuzzer) {
             // Do mutations
             int mutPos = random() % rx;

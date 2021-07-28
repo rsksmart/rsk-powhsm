@@ -264,6 +264,12 @@ static void hsm_main(void) {
                     THROW(0x6982);
                 }
 
+                // Zero out commonly read APDU buffer offsets, 
+                // to avoid reading uninitialized memory
+                if (rx < MIN_APDU_BYTES) {
+                    explicit_bzero(&G_io_apdu_buffer[rx], MIN_APDU_BYTES - rx);
+                }
+
                 if (G_io_apdu_buffer[0] != CLA) {
                     THROW(0x6E11);
                 }

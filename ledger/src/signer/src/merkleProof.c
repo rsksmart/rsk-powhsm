@@ -85,6 +85,9 @@ void MP_NODE_HDR(MP_CTX *ctx,
     if (ctx->nodeLen == 0) {
         THROW(0x6A87);
     }
+    // Zero out left and right node hashes
+    explicit_bzero(ctx->left_node_hash, sizeof(ctx->left_node_hash));
+    explicit_bzero(ctx->right_node_hash, sizeof(ctx->right_node_hash));
     ctx->offset = 1;
     unsigned char flags = G_io_apdu_buffer[DATA + 1];
     // Parse flags
@@ -267,7 +270,7 @@ void MP_NODE_LEFT(MP_CTX *ctx,
     // Read hash
     if (rx - DATA == HASHLEN) {
         // Copy hash and continue parsing
-        memcpy(&ctx->left_node_hash, &G_io_apdu_buffer[DATA], HASHLEN);
+        memcpy(ctx->left_node_hash, &G_io_apdu_buffer[DATA], HASHLEN);
         G_io_apdu_buffer[TXLEN] = 0;
         *state = S_MP_NODE_HDR2;
         printHex("Left: ", ctx->left_node_hash, HASHLEN);
@@ -340,7 +343,7 @@ void MP_NODE_RIGHT(MP_CTX *ctx,
     // Read hash
     if (rx - DATA == HASHLEN) {
         // Copy hash and continue parsing
-        memcpy(&ctx->right_node_hash, &G_io_apdu_buffer[DATA], HASHLEN);
+        memcpy(ctx->right_node_hash, &G_io_apdu_buffer[DATA], HASHLEN);
         G_io_apdu_buffer[TXLEN] = 0;
         *state = S_MP_NODE_CHILDRENSIZE;
         printHex("Right: ", ctx->right_node_hash, HASHLEN);
@@ -430,6 +433,18 @@ void MP_NODE_VALUE(MP_CTX *ctx,
                    unsigned int rx,
                    unsigned int *tx) {
     printf("MP VALUE rx:%d\n", rx);
+
+    if (!ctx->nodeIndex && !ctx->has_long_value) {
+        // We are reading the first node of the partial merkle
+        // proof, which in a valid proof MUST be the leaf and contain the receipt
+        // as a value. Any receipt is by definition more than 32 bytes in size,
+        // and therefore a merkle proof node that contains it should encode
+        // it as a long value (i.e., containing hash and length only)
+        // Hence, getting here indicates the given proof is INVALID. 
+        // Fail indicating a receipt hash mismatch.
+        THROW(0x6A94);
+    }
+    
     increment_offset(ctx, rx);
     G_io_apdu_buffer[CLAPOS] = CLA;
     G_io_apdu_buffer[CMDPOS] = INS_SIGN;

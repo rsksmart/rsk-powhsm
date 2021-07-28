@@ -225,6 +225,10 @@ void SM_TX_INPUT_READ(TX_CTX *ctx,
             printf(" Creating varint for new script: %u\n", ctx->script_length - pushOffset - 4);
 #endif
             // Now we need to generate a varint with the new size of the script
+            // (Check and fail if the new script size is not positive)
+            if (ctx->script_length <= pushOffset + 4) {
+                THROW(0x6A8D);
+            }
             createVarint(
                 ctx->script_length - pushOffset - 4, tempVarint, &varintLen);
             sha256_update(&ctx->signatureHash,
@@ -239,14 +243,18 @@ void SM_TX_INPUT_READ(TX_CTX *ctx,
             printHex(" DATA after pushOffset: ", &G_io_apdu_buffer[DATA + pushOffset],
                      (rx - DATA) - pushOffset);
 #endif
-            sha256_update(&ctx->signatureHash,
-                          &G_io_apdu_buffer[DATA + pushOffset],
-                          (rx - DATA) -
-                              pushOffset); // Update TX hash minus first 4 OPs
-        } else
+            // Make sure there is actually a script portion
+            // to hash as part of the sighash computation
+            if ((rx - DATA) > pushOffset) {
+                sha256_update(&ctx->signatureHash,
+                    &G_io_apdu_buffer[DATA + pushOffset],
+                    (rx - DATA) - pushOffset); // Update TX hash minus first 4 OPs
+            }
+        } else {
             sha256_update(&ctx->signatureHash,
                           &G_io_apdu_buffer[DATA],
                           (rx - DATA)); // Update signatureHash normally
+        }
     } else if (ctx->script_read ==
                0) { // Update SignatureHash with fake 0-len script and offset
         unsigned char fakeScript[5];

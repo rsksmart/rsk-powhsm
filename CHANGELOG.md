@@ -64,8 +64,12 @@ All notable changes to this project will be documented in this file.
 
 - Set Iris activation block numbers for mainnet and testnet
 
-## [2.1.4-SNAPSHOT] - To be defined
+## [2.1.4] - 27/07/2021
 
 ### Features/enhancements
 
 - Set Iris activation block numbers for mainnet and testnet (reviewed)
+
+### Fixes
+
+- Implements fixes to reported issues on HSM2 July Review Security Report v210723

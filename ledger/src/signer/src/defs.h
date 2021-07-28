@@ -29,6 +29,9 @@
 #define CMDPOS 1
 #define CLAPOS 0
 
+// Minimum arbitrarily readable APDU bytes
+#define MIN_APDU_BYTES 4
+
 // Size constants
 #define HASHLEN 32
 #define KEYLEN 32
