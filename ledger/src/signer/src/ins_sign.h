@@ -5,6 +5,8 @@
 // statement.
 // ******************
 
+while (true) {
+
 // TODO: check input lenghts and correct structure on every state
 
 // Reset all other operations first
@@ -40,7 +42,7 @@ if ((G_io_apdu_buffer[OP] & 0xF) == P1_PATH) {
         tx_ctx.validContract = false;
         tx_ctx.validSignature = false;
         tx = 4;
-        break;
+        goto continue_sign_loop;
     }
     // If path doesn't require authorization, go directly do the signing state
     else if (pathDontRequireAuth(&G_io_apdu_buffer[DATA])) {
@@ -53,13 +55,11 @@ if ((G_io_apdu_buffer[OP] & 0xF) == P1_PATH) {
         memmove(mp_ctx.signatureHash,
                 &G_io_apdu_buffer[DATA + PATHLEN],
                 sizeof(mp_ctx.signatureHash));
-        // Go straight to the merkleproof case, without having to go through the APDU exchange cycle
-        rx = 3;
-    } else {
-        // If no path match, then bail out
-        THROW(0x6a8f); // Invalid Key Path
-       break;
+        tx = 4;
+        goto continue_sign_loop;
     }
+    // If no path match, then bail out
+    THROW(0x6a8f); // Invalid Key Path
 }
 // For testing, we use a hardcoded receipt root TODO: CHANGE THIS ON FINAL
 // RELEASE
@@ -246,11 +246,10 @@ if (G_io_apdu_buffer[OP] & P1_RECEIPT) {
     // Check if we request more than our buffer size
 	if (rlp_ctx.expectedRXBytes > IO_APDU_BUFFER_SIZE)
 		THROW(0x6A89);
-    break;
+    goto continue_sign_loop;
 }
-
 //---------------------- Merkle Proof Parser --------------------------
-if (G_io_apdu_buffer[OP] & P1_MERKLEPROOF) {
+else if (G_io_apdu_buffer[OP] & P1_MERKLEPROOF) {
     unsigned char signatureHashCopy[HASHLEN];
     unsigned char privateKeyData[KEYLEN];
     // Input len check
@@ -317,8 +316,7 @@ if (G_io_apdu_buffer[OP] & P1_MERKLEPROOF) {
         break;
     case S_MP_NODE_REMAINING:
         MP_NODE_REMAINING(&mp_ctx, &state, rx, &tx);
-        if (state != S_SIGN_MESSAGE)
-            break;
+        break;
     case S_SIGN_MESSAGE: {
         // Matching TX found, Contract is valid, Receipt Signature is valid and Merkle
         // Tree passes al verifications. Sign the signatureHash
@@ -358,3 +356,22 @@ if (G_io_apdu_buffer[OP] & P1_MERKLEPROOF) {
 		THROW(0x6A89);
 	}
 }
+
+// Re-run the logic if we are requesting zero bytes and still
+// haven't finished with the signing instruction.
+//
+// Important: this is not only an optimization to avoid 
+// unnecessary APDU exchange cycles,
+// but also some operations (e.g. unauthorized signing)
+// depend upon this logic to function correctly.
+continue_sign_loop:
+
+if (G_io_apdu_buffer[1] == INS_SIGN &&
+    G_io_apdu_buffer[TXLEN] == 0 &&
+    state != S_CMD_FINISHED) {
+    rx = 3;
+} else {
+    break;
+}
+
+} // while (true)
