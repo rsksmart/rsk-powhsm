@@ -8,7 +8,7 @@
 
 /** Print buffer in hex format with prefix */
 void LOG_HEX(const char *prefix, void *buffer, size_t size) {
-    printf("%s: ", prefix);
+    printf("%s ", prefix);
     if (size > 0) {
         for (unsigned int i = 0; i < size; i++) {
             printf("%02x", ((unsigned char*)buffer)[i]);

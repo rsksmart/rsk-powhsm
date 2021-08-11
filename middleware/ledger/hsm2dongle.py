@@ -321,9 +321,11 @@ class HSM2Dongle:
     def __init__(self, debug):
         self.logger = logging.getLogger("dongle")
         self.debug = debug
+        self.last_comm_exception = None
 
     # Send command to device
     def _send_command(self, command, data=b'', timeout=DONGLE_TIMEOUT):
+        self.last_comm_exception = None
         try:
             cmd = struct.pack('BB%ds' % len(data), self.CLA, command, data)
             self.logger.debug("Sending command: 0x%s", cmd.hex())
@@ -333,6 +335,7 @@ class HSM2Dongle:
             # If this is a user-defined error, raise an
             # error result error
             if type(e) == CommException:
+                self.last_comm_exception = e
                 error_code = e.sw
                 if _Error.is_user_defined_error(error_code):
                     self.logger.error("Received error code: %s", hex(error_code))

@@ -1,0 +1,11 @@
+{
+    "name": "Sign unauthorized fails due to invalid path",
+    "operation": "signUnauthorized",
+    "paths": [
+        "m/0'/1'/0'/0/2",
+        "m/44'/1'/55'/55/55",
+        "m/44'/3'/2'/55/55"
+    ],
+    "expected": "0x6a8f",
+    "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+}

@@ -57,7 +57,7 @@ class BIP32Element:
         return "<BIP32Element \"%s\">" % str(self)
 
 class BIP32Path:
-    def __init__(self, spec):
+    def __init__(self, spec, nelements=5):
         if type(spec) != str or len(spec) == 0:
             message = "BIP32Path spec must be a nonempty string"
             _logger.debug(message)
@@ -70,7 +70,7 @@ class BIP32Path:
 
         self._elements = list(map(lambda s: BIP32Element(s), spec[2:].split('/')))
 
-        if len(self._elements) != 5:
+        if nelements is not None and len(self._elements) != nelements:
             message = "BIP32Path spec must have exactly 5 elements, got %d" % len(self._elements)
             _logger.debug(message)
             raise ValueError(message)

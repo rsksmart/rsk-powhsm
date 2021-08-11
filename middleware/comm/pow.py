@@ -130,7 +130,7 @@ def is_valid_merkle_proof(merkle_proof_hex, root_hex, coinbase_tx_hash_hex):
     # Reduce
     current_left = coinbase_tx_hash
     for right in hashes:
-        current_left = _combine_left_right(current_left, right)
+        current_left = combine_left_right(current_left, right)
 
     current_left = bytes(reversed(current_left))
 
@@ -139,7 +139,7 @@ def is_valid_merkle_proof(merkle_proof_hex, root_hex, coinbase_tx_hash_hex):
 
 # Combines two hashes (representing nodes in a merkle tree) to produce a single hash
 # that would be the parent of these two nodes.
-def _combine_left_right(left, right):
+def combine_left_right(left, right):
     to_hash = bytes(reversed(left)) + bytes(reversed(right))
     double_hash = hashlib.sha256(hashlib.sha256(to_hash).digest()).digest()
     return bytes(reversed(double_hash))
