@@ -71,7 +71,7 @@ class BIP32Path:
         self._elements = list(map(lambda s: BIP32Element(s), spec[2:].split('/')))
 
         if nelements is not None and len(self._elements) != nelements:
-            message = "BIP32Path spec must have exactly 5 elements, got %d" % len(self._elements)
+            message = "BIP32Path spec must have exactly %d elements, got %d" % (nelements, len(self._elements))
             _logger.debug(message)
             raise ValueError(message)
 
