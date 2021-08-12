@@ -83,3 +83,4 @@ All notable changes to this project will be documented in this file.
 ### Fixes
 
 - Abort the firmware upgrade process if device is not onboarded
+- Upgrade process for v2 devices without attestation now skip the attestation verification

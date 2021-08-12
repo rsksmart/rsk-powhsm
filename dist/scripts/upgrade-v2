@@ -184,9 +184,13 @@ fi
 echo -e "\e[1;32mGathering public keys\e[0m"
 keys
 echo
-echo -e "\e[1;32mVerifying attestation\e[0m"
-verify_attestation
-echo
+
+if [[ "$DO_ATTESTATION" == "yes" ]]; then
+    echo -e "\e[1;32mVerifying attestation\e[0m"
+    verify_attestation
+    echo
+fi
+
 echo -e "\e[1;32mHSM2 Upgrade complete.\e[0m"
 echo -e "\e[1;33mPlease disconnect the device.\e[0m"
 echo
