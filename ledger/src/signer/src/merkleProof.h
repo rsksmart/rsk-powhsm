@@ -22,7 +22,9 @@ typedef struct {
     SHA3_CTX NodeHash_ctx;
     // Hashes to control
     unsigned char receiptHash[HASHLEN];
+    bool receiptHashChecked;
     unsigned char receiptsRoot[HASHLEN];
+    bool receiptsRootChecked;
     unsigned char nodeCount; // Tree node count
     unsigned char nodeIndex; // Amount of parsed nodes
     unsigned char nodeLen;   // Current node len

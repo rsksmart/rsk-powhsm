@@ -36,6 +36,8 @@ void MP_START(MP_CTX *ctx,
     memset(ctx, 0, sizeof(*ctx));
     ctx->nodeCount = G_io_apdu_buffer[DATA];
     ctx->nodeIndex = 0;
+    ctx->receiptHashChecked = false;
+    ctx->receiptsRootChecked = false;
     // Copy parameters (ReceiptHash and ReceiptsRoot)
     memcpy(ctx->receiptHash, Receipt_Hash, HASHLEN);
     memcpy(ctx->receiptsRoot, receiptsRoot, HASHLEN);
@@ -90,6 +92,12 @@ void MP_NODE_HDR(MP_CTX *ctx,
     // Check node version
     if (ctx->node_version != 1)
         THROW(0x6A92);
+
+    // First node MUST be a leaf node
+    if (!ctx->nodeIndex && (ctx->node_present_left || ctx->node_present_right)) {
+        // Fail indicating a receipt hash mismatch.
+        THROW(0x6A94);
+    }
 
     G_io_apdu_buffer[CLAPOS] = CLA;
     G_io_apdu_buffer[CMDPOS] = INS_SIGN;
@@ -449,10 +457,12 @@ void MP_NODE_VALUE_LEN(MP_CTX *ctx,
     memcpy(&ctx->value_hash, &G_io_apdu_buffer[DATA], HASHLEN);
     // Check Receipt hash, must be equal that the first trie node value
     if (!ctx->nodeIndex) {
-        if (memcmp(ctx->value_hash, ctx->receiptHash, HASHLEN))
+        if (memcmp(ctx->value_hash, ctx->receiptHash, HASHLEN)) {
             THROW(0x6A94);
-        else
+        } else {
+            ctx->receiptHashChecked = true;
             LOG("Receipt Hash MATCH\n");
+        }
     }
     G_io_apdu_buffer[CLAPOS] = CLA;
     G_io_apdu_buffer[CMDPOS] = INS_SIGN;
@@ -493,16 +503,20 @@ void MP_NODE_REMAINING(MP_CTX *ctx,
     LOG_HEX("Node hash: ", ctx->current_node_hash, HASHLEN);
     // Check Node Trie ROOT
     if (!ctx->nodeCount) {
-        if (memcmp(ctx->current_node_hash, ctx->receiptsRoot, HASHLEN))
+        if (memcmp(ctx->current_node_hash, ctx->receiptsRoot, HASHLEN)) {
             THROW(0x6A96);
-        else
+        } else {
+            ctx->receiptsRootChecked = true;
             LOG("Receipt trie root MATCH\n");
+        }
     }
     if (ctx->nodeCount) {
         G_io_apdu_buffer[TXLEN] = 2; // NodeLen+Flags
         *state = S_MP_NODE_HDR;
-    } else { // Finished reading trie
+    } else if (ctx->receiptsRootChecked && ctx->receiptHashChecked) { // Finished reading trie
         G_io_apdu_buffer[TXLEN] = 0;
         *state = S_SIGN_MESSAGE;
+    } else { // Coudln't check trie path
+        THROW(0x6A96);
     }
 }
