@@ -74,13 +74,22 @@ All notable changes to this project will be documented in this file.
 
 - Implements fixes to reported issues on HSM2 July Review Security Report v210723
 
-## [2.2-SNAPSHOT] - dd/mm/yyyy
+## [2.1.5] - 13/08/2021
+
+### Fixes
+
+- Upgrade process for v2 devices without attestation now skip the attestation verification
+
+## [2.2.0] - 13/08/2021
 
 ### Features/enhancements
 
 - Manager is disconnection resistant (it attempts to reconnect upon a hardware disconnection)
+- Implemented x86 TCP-based signer that shares the actual firmware code
+- Replaced firmware testing tools with new tooling based off the existing middleware libraries
+- Signer testing can be ran both on an actual device or on the TCP signer
+- Implemented security audit v210723 recommendations for HSM-029 and HSM-031 findings
 
 ### Fixes
 
 - Abort the firmware upgrade process if device is not onboarded
-- Upgrade process for v2 devices without attestation now skip the attestation verification
