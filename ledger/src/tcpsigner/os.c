@@ -8,11 +8,6 @@
 
 #include "os.h"
 
-/**
- * APDU buffer
- */
-unsigned char G_io_apdu_buffer[IO_APDU_BUFFER_SIZE];
-
 void os_memmove(void *dst, const void *src, unsigned int length) {
     memmove(dst, src, length);
 }

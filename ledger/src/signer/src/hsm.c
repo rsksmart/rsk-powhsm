@@ -48,7 +48,7 @@ static unsigned char curr_cmd;
 /*
  * Initialize signer state.
  */
-void init_signer() {
+static void init_signer() {
     explicit_bzero(ReceiptHashBuf, sizeof(ReceiptHashBuf));
     explicit_bzero(ReceiptsRootBuf, sizeof(ReceiptsRootBuf));
     explicit_bzero(path, sizeof(path));
@@ -59,7 +59,7 @@ void init_signer() {
 /*
  * Reset shared memory state.
  */
-void reset_shared_state() {
+static void reset_shared_state() {
     explicit_bzero(&mem, sizeof(mem));
 }
 
@@ -78,15 +78,6 @@ static void reset_if_starting(unsigned char cmd) {
         bc_init_upd_ancestor();
         curr_cmd = cmd;
     }
-}
-
-void hsm_init() {
-    // Initialize current operation
-    // (0 = no operation being executed)
-    curr_cmd = 0;
-
-    // Blockchain state initialization
-    bc_init_state();
 }
 
 unsigned int hsm_process_apdu(volatile unsigned int rx) {
@@ -226,4 +217,13 @@ unsigned int hsm_process_exception(unsigned short code, unsigned int tx) {
     G_io_apdu_buffer[tx++] = sw;
 
     return tx;
+}
+
+void hsm_init() {
+    // Initialize current operation
+    // (0 = no operation being executed)
+    curr_cmd = 0;
+
+    // Blockchain state initialization
+    bc_init_state();
 }

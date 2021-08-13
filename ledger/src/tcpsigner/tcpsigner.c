@@ -19,6 +19,7 @@
 #include "hsmsim_ecdsa.h"
 
 #include "hsm.h"
+#include "hsm-ledger.h"
 #include "bc_advance.h"
 #include "bc_state.h"
 
@@ -178,41 +179,8 @@ void main(int argc, char** argv) {
     // Start server
     info("Starting TCP server on %s:%i\n", arguments.bind, arguments.port);
     int server = start_server(arguments.port, arguments.bind);
+    os_io_set_server(server);
 
-    int rx, tx;
-
-    while (true) {
-        // Listen for connections
-        int socket = accept_connection(server); 
-        tx = 0;
-        while (true) {
-            BEGIN_TRY {
-                TRY {
-                    // ensure no race in catch_other if io_exchange throws
-                    // an error
-                    rx = tx;
-                    tx = 0; 
-                    rx = io_exchange(rx, socket);
-
-                    tx = hsm_process_apdu(rx);
-                    THROW(0x9000);
-                }
-                CATCH_OTHER(e) {
-                    if (is_hsmsim_exception(e))  {
-                        info("Simulator layer exception: 0x%04x.\n", e);
-                        break;
-                    } else {
-                        tx = hsm_process_exception(e, tx);
-                        if (e == 0x9000) {
-                            info("Command OK.\n");
-                        } else {
-                            info("Signer exception: 0x%04x\n", e);
-                        }
-                    }
-                }
-                FINALLY {
-                }
-            } END_TRY;
-        }
-    }
+    // Run the hsm main loop
+    hsm_ledger_main_loop();
 }

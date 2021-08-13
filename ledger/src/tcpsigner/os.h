@@ -11,14 +11,9 @@
 #include "os_attestation.h"
 #include "os_ecdsa.h"
 #include "os_exceptions.h"
+#include "os_io.h"
 
 #include "hsmsim_explicit_bzero.h"
-
-/**
- * APDU buffer
- */
-#define IO_APDU_BUFFER_SIZE 85
-extern unsigned char G_io_apdu_buffer[IO_APDU_BUFFER_SIZE];
 
 /**
  * Miscellaneous 

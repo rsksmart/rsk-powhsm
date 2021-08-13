@@ -15,12 +15,7 @@
 /* ----------------------------------------------------------------------- */
 /* -                 HSM SIMULATOR SPECIFIC EXCEPTIONS                   - */
 /* ----------------------------------------------------------------------- */
-bool is_hsmsim_exception(exception_t e);
-
-#define HSMSIM_EXC_BASE 0xbb00
-
-#define HSMSIM_EXC_SOCKET 0xbb01
-#define HSMSIM_EXC_INVALID_PATH 0xbb02
-#define HSMSIM_EXC_SECP_ERROR 0xbb03
+#define HSMSIM_EXC_INVALID_PATH 0xbb01
+#define HSMSIM_EXC_SECP_ERROR 0xbb02
 
 #endif // __SIMULATOR_HSMSIM_EXCEPTIONS
