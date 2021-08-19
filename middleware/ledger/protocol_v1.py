@@ -45,7 +45,7 @@ class HSM1ProtocolLedger(HSM1Protocol):
         except HSM2DongleCommError as e:
             # Signal a communication problem and return a device error
             self.protocol_v2.report_comm_issue()
-            self.logger.error("Dongle communication error getting public key")
+            self.logger.error("Dongle communication error signing")
             return (self.ERROR_CODE_DEVICE, )
         except HSM2DongleError as e:
             self._error("Dongle error in sign: %s" % str(e))

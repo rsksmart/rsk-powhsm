@@ -391,7 +391,7 @@ void io_seproxyhal_display(const bagl_element_t *element) {
 
 // Version and patchlevel
 #define VERSION_MAJOR 0x02
-#define VERSION_MINOR 0x01
+#define VERSION_MINOR 0x02
 #define VERSION_PATCH 0x00
 
 // Attestation context shorthand

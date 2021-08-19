@@ -7,9 +7,9 @@ from ledger.hsm2dongle import HSM2Dongle, HSM2DongleBaseError, HSM2DongleError, 
 from comm.bitcoin import get_unsigned_tx, get_tx_hash
 
 class HSM2ProtocolLedger(HSM2Protocol):
-    # Current manager supports HSM UI <= 2.1.0 and HSM APP <= 2.1.0
-    UI_VERSION = HSM2FirmwareVersion(2,1,0)
-    APP_VERSION = HSM2FirmwareVersion(2,1,0)
+    # Current manager supported versions for HSM UI and HSM SIGNER (<=)
+    UI_VERSION = HSM2FirmwareVersion(2,2,0)
+    APP_VERSION = HSM2FirmwareVersion(2,2,0)
 
     # Amount of time to wait to make sure the app is opened
     OPEN_APP_WAIT = 1 #second
