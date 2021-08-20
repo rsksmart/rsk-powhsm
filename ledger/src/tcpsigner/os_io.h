@@ -9,6 +9,8 @@
 #ifndef __SIMULATOR_OS_IO
 #define __SIMULATOR_OS_IO
 
+#include <stdio.h>
+
 /**
  * APDU buffer
  */
@@ -19,17 +21,54 @@ extern unsigned char G_io_apdu_buffer[IO_APDU_BUFFER_SIZE];
 /*
  * Sets the server on which io_exchange will perform
  * the IO operations
- * (This *MUST* be set before using io_exchange)
+ * Either this or os_io_set_input_file must be called before
+ * using io_exchange.
  */
 void os_io_set_server(int svr);
 
+/*
+ * Sets the input file from which io_exchange will
+ * read the input.
+ * Either this or os_io_set_server must be called before
+ * using io_exchange.
+ */
+void os_io_set_input_file(FILE *_input_file);
+
+/*
+ * Sets the replica file to which io_exchange will
+ * write the input. Optional.
+ */
+void os_io_set_replica_file(FILE *_replica_file);
+
 /* 
+ * This function performs the input / output to a simulated dongle,
+ * either via a TCP server of via an input file depending on global state.
+ * @arg[in] channel_and_flags   must be CHANNEL_APDU
+ * @arg[in] tx                  amount of bytes to transmit to the client
+ * @ret                         amount of bytes received from the client
+ */
+unsigned short io_exchange(unsigned char channel_and_flags, unsigned short tx);
+/*
  * This function emulates USB device, writing bytes to tcpsocket instead
  * @arg[in] channel_and_flags   must be CHANNEL_APDU
  * @arg[in] tx                  amount of bytes to transmit to the client
  * @ret                         amount of bytes received from the client
  */
-unsigned short io_exchange(unsigned char channel_and_flags,
-                           unsigned short tx);
+unsigned short io_exchange_server(unsigned char channel_and_flags, unsigned short tx);
+
+/* This function emulates the HOST device, reading bytes to a file instead
+ * @arg[in] channel_and_flags   must be CHANNEL_APDU
+ * @arg[in] tx_len              amount of bytes to transmit to the client
+ * @ret                         amount of bytes received from the client
+ */
+unsigned short io_exchange_file(unsigned char channel_and_flags,
+                           unsigned char tx_len, FILE *inputfd);
+
+/* Append a received command to file
+ * @arg[in] filename        Binary file to append commands
+ * @arg[in] rx              Lenght of the command
+ * @ret number of bytes written
+ */
+unsigned int replicate_to_file(FILE *replica_file, unsigned int rx);
 
 #endif // __SIMULATOR_OS_IO

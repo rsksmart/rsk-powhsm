@@ -1,0 +1,34 @@
+#! /usr/bin/env bash
+
+if [[ $# > 2 || $# == 1 ]]; then
+    echo "Usage: $0 <path to coverage build> <path to output>"
+    exit 1
+fi
+
+pushd $(dirname $0) > /dev/null
+FUZZ_ROOT=$(pwd)
+popd > /dev/null
+
+HSM_ROOT=$(realpath $FUZZ_ROOT/../../)
+DOCKER_IMAGE=hsm:afl
+source $FUZZ_ROOT/../../docker/check-image
+
+
+COVERAGE_DIR="$1"
+if [[ -z "$COVERAGE_DIR" ]]; then
+    COVERAGE_DIR="$HSM_ROOT/ledger/fuzz/.coverage-build"
+fi
+
+OUTPUT="$2"
+if [[ -z "$OUTPUT" ]]; then
+    OUTPUT="$HSM_ROOT/ledger/fuzz/output"
+fi
+
+source $(dirname 0)/env
+DOCKER_USER="$(id -u):$(id -g)"
+CMD='./tcpsigner $CHECKPOINT $DIFFICULTY $NETWORK -i @@'
+FUZZ_CMD="afl-cov -d /output --live  --coverage-cmd \
+    '$CMD' \
+    --code-dir . --lcov-web-all"
+
+docker run -ti --rm --user $DOCKER_USER -w /hsm2-cov/tcpsigner -v ${COVERAGE_DIR}:/hsm2-cov -v ${OUTPUT}:/output -v "$HSM_ROOT":/hsm2 ${DOCKER_IMAGE} /bin/bash -c "$FUZZ_CMD"

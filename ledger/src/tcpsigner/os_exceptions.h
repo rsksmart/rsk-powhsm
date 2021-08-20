@@ -137,7 +137,7 @@ void os_longjmp(jmp_buf b, unsigned int exception);
 */
 
 // Default macros when nesting is not used.
-#define THROW(x) THROW_L(EX, x)
+#define THROW_OS(x) THROW_L(EX, x)
 #define BEGIN_TRY BEGIN_TRY_L(EX)
 #define TRY TRY_L(EX)
 #define CATCH(x) CATCH_L(EX, x)
@@ -147,4 +147,32 @@ void os_longjmp(jmp_buf b, unsigned int exception);
 #define CLOSE_TRY CLOSE_TRY_L(EX)
 #define END_TRY END_TRY_L(EX)
 
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+
+#include <bc_err.h>
+
+#define IGNORE_WHEN_FUZZING(e) (                            \
+        e == MERKLE_PROOF_MISMATCH ||                       \
+        e == CB_TXN_HASH_MISMATCH ||                        \
+        e == MM_HASH_MISMATCH ||                            \
+        e == CHAIN_MISMATCH ||                              \
+        e == ANCESTOR_TIP_MISMATCH ||                       \
+        e == 0x6A94) // Validations in Merkle Proof. Not assigned a name.
+
+#define THROW(e)                             \
+    {                                        \
+        if (!IGNORE_WHEN_FUZZING(e)) {       \
+            THROW_OS(e);                     \
+        }                                    \
+    }
+
+
+#else
+
+#define THROW(e) THROW_OS(e)
+
+
+#endif
+
 #endif // __SIMULATOR_OS_EXCEPTIONS
+
