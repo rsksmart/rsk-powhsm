@@ -1,0 +1,21 @@
+# Ignore private key and path files
+**/*.secp256
+**/*.bip39
+
+# Ignore pin and backup related files
+**/pin.txt
+**/changePIN
+**/seedbackup.bin
+
+
+# Ignore nodeJS modules
+**/node_modules
+
+# Ignore compiled python modules
+**/*.pyc
+
+# Ignore python virtual environment (common name)
+**/venv
+
+# Ignore VS Code cpp settings
+.vscode/

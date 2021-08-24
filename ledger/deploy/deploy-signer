@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+# Script directory
+pushd $(dirname $0) > /dev/null
+DEPLOY_DIR=$(pwd)
+popd > /dev/null
+
+$DEPLOY_DIR/../../docker/mware/do /hsm2/ledger/deploy ./dsig

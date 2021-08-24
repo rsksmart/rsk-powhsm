@@ -1,0 +1,4 @@
+if [[ "$(docker images -q $DOCKER_IMAGE 2> /dev/null)" == "" ]]; then
+    echo "Docker image does not exist: $DOCKER_IMAGE. Have you built it?"
+    exit 1
+fi

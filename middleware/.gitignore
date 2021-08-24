@@ -1,0 +1,12 @@
+*.pyc
+venv
+
+key.secp256
+state.json
+
+bin/
+build/*.spec
+build/build/
+
+pin.txt
+changePIN

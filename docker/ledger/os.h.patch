@@ -1,0 +1,5 @@
+193c193,194
+< #define IO_APDU_BUFFER_SIZE (5 + 255)
+---
+> //#define IO_APDU_BUFFER_SIZE (5 + 255)
+> #define IO_APDU_BUFFER_SIZE (5 + 80)

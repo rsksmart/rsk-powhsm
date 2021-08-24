@@ -1,0 +1,16 @@
+bin/
+debug/
+dep/
+obj/
+
+# Ignore test output
+signer/test/**/*.o
+signer/test/**/test.out
+
+# Simulator
+simul/simul
+simul/objs
+
+# Icons hex
+signer/icon.hex
+ui/icon.hex

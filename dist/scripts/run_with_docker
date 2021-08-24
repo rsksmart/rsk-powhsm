@@ -1,0 +1,18 @@
+#!/bin/bash
+
+pushd $(dirname $0)/.. > /dev/null
+DIST_DIR=$(pwd)
+popd > /dev/null
+DOCKER_IMAGE=hsm2:setup
+
+QUIET=""
+echo -e "\e[96mBuilding docker image $DOCKER_IMAGE (this will take a few minutes)..."
+if [[ "$2" != "-v" ]]; then
+    QUIET="-q"
+    echo -e "Run with '-v' if you want to see progress detail\e[94m"
+fi
+docker build -t $DOCKER_IMAGE $DIST_DIR $QUIET
+echo -e "\e[96mDocker image build done.\e[0m"
+echo
+
+docker run -ti --rm -v $DIST_DIR:/setup -v /dev/bus/usb:/dev/bus/usb --privileged -w /setup $DOCKER_IMAGE ./scripts/$1

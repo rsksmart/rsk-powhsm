@@ -1,0 +1,26 @@
+/*******************************************************************************
+ *   HSM 2.0
+ *   (c) 2020 RSK
+ *   Hardcoded check values
+ ********************************************************************************/
+
+#ifndef CONTRACTVALUES_H
+#define CONTRACTVALUES_H
+
+// Real values
+#define CONTRACTADDRESS_LEN 20
+const char ContractAddress[] = "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+                               "\x00\x00\x00\x00\x00\x01\x00\x00\x06";
+#define CONTRACTSIGNATURE_LEN 32
+const char ContractSignature[] =
+    "\x7a\x7c\x29\x48\x15\x28\xac\x8c\x2b\x2e\x93\xae\xe6\x58\xfd\xdd\x4d\xc1"
+    "\x53\x04\xfa\x72\x3a\x5c\x2b\x88\x51\x45\x57\xbc\xc7\x90";
+
+// Remove this define to use Trie root from PoW verifications
+// #define HARDCODED_RECEIPTROOT
+// const char
+// ReceiptsRootConst[]="\x93\x59\xc7\xe1\xf1\xd8\xd3\xe0\x44\x4b\xad\x4a\x53\xfa\x37\x03\xdd\x52\x7f\xa8\x2b\x56\x67\x2e\xde\xcb\xf9\xee\xdb\x15\x15\xb5";
+const char ReceiptsRootConst[] =
+    "\x57\x0c\x3b\x2d\x73\xe2\x9e\xb0\xe1\x1a\x93\x67\xbe\x94\x2e\x05\x0e\x88"
+    "\x64\xf7\x57\x00\x8a\x09\xba\x82\x97\x4a\xfa\x37\xa0\x5a";
+#endif
