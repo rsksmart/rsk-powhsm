@@ -20,6 +20,9 @@ test_difficulty.o: test_difficulty.c bigdigits.o bc_diff.o
 $(SRCDIR)/bigdigits.c: $(SRCDIR)/bigdigits.h $(SRCDIR)/bigdtypes.h
 $(SRCDIR)/bc_diff.c: $(SRCDIR)/bc_diff.h $(SRCDIR)/bigdigits.h $(SRCDIR)/bigdtypes.h
 
-.PHONY: clean
+.PHONY: clean test
 clean:
-	rm $(PROG) ./*.o
+	rm -f $(PROG) ./*.o
+
+test: all
+	./$(PROG)

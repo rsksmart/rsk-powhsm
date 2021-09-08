@@ -10,4 +10,8 @@ if [[ -n "$@" ]]; then
     CMD="$@"
 fi
 
-$MIDDLEWARE_ROOT/../docker/mware/do /hsm2/middleware "$CMD"
+if [[ ${CI:-false} == true ]]; then
+    $MIDDLEWARE_ROOT/../docker/mware/do-notty-nousb /hsm2/middleware "$CMD"
+else
+    $MIDDLEWARE_ROOT/../docker/mware/do /hsm2/middleware "$CMD"
+fi

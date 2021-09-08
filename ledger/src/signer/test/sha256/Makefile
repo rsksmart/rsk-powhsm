@@ -15,6 +15,9 @@ sha256.o: $(SRCDIR)/sha256.c
 test_sha256.o: test_sha256.c sha256.o
 $(SRCDIR)/sha256.c: $(SRCDIR)/sha256.h
 
-.PHONY: clean
+.PHONY: clean test
 clean:
-	rm $(PROG) ./*.o
+	rm -f $(PROG) ./*.o
+
+test: all
+	./$(PROG)
