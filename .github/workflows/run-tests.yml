@@ -24,5 +24,5 @@ jobs:
         working-directory: ledger/src/signer/test/
         run: |
           for d in difficulty sha256 srlp; do
-            (cd "$d" && make test)
+            (cd "$d" && make clean test)
           done

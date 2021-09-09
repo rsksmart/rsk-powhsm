@@ -1,5 +1,5 @@
 SRCDIR = ../../src
-CFLAGS = -I $(SRCDIR) -Ioverride/ -DFEDHM_EMULATOR -DMAX_RLP_CTX_DEPTH=10
+CFLAGS = -I $(SRCDIR) -Imocks/ -DMAX_RLP_CTX_DEPTH=10
 
 PROG = test.out
 OBJS = srlp.o test_srlp.o
