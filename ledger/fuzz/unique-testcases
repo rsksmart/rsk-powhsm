@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-if [[ $# > 2 || $# == 1 ]]; then
+if [[ $# -gt 2 || $# -eq 1 ]]; then
     echo "Usage: $0 <path to testcases> <path to uniqued (output)>"
     exit 1
 fi

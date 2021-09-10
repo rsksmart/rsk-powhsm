@@ -1,7 +1,7 @@
 #! /usr/bin/env bash
 
-if [[ $# > 2 ]]; then
-    echo "Usage: $0 <path to coverage directory>"
+if [[ $# -gt 2 ]]; then
+    echo "Usage: $0 <path to coverage directory> <optional: --force>"
     exit 1
 fi
 
@@ -16,17 +16,22 @@ if [[ -z "$COVERAGE_DIR" ]]; then
     COVERAGE_DIR="$HSM_ROOT/ledger/fuzz/.coverage-build"
 fi
 
-echo "Coverage build needs a copy of the sources files."
-echo "The destination for that copy is $COVERAGE_DIR"
-echo "That folder will be DELETED and populated with the source files"
-read -p "Are you sure you want to continue? [y/N]" -r
-echo
+if [[ -z "$2" || "$2" != "--force" ]]; then
+    echo "Coverage build needs a copy of the sources files."
+    echo "The destination for that copy is $COVERAGE_DIR"
+    echo "That folder will be DELETED and populated with the source files"
+    read -p "Are you sure you want to continue? [y/N]" -r
+    echo
+else
+    REPLY="Y"
+fi
+
 
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     rm -rf $COVERAGE_DIR
     mkdir -p $COVERAGE_DIR
     cp -rf $HSM_ROOT/ledger/src/tcpsigner/ $COVERAGE_DIR/tcpsigner
-    cp -rf $HSM_ROOT/ledger/src/s*igner $COVERAGE_DIR/signer
+    cp -rf $HSM_ROOT/ledger/src/signer $COVERAGE_DIR/signer
 else
     exit 1
 fi

@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-if [[ $# > 2 || $# == 1 ]]; then
+if [[ $# -ne 0 && $# -ne 2 ]]; then
     echo "Usage: $0 <path to coverage build> <path to output>"
     exit 1
 fi
@@ -24,7 +24,7 @@ if [[ -z "$OUTPUT" ]]; then
     OUTPUT="$HSM_ROOT/ledger/fuzz/output"
 fi
 
-source $(dirname 0)/env
+source $(dirname $0)/env
 DOCKER_USER="$(id -u):$(id -g)"
 CMD='./tcpsigner $CHECKPOINT $DIFFICULTY $NETWORK -i @@'
 FUZZ_CMD="afl-cov -d /output --live  --coverage-cmd \

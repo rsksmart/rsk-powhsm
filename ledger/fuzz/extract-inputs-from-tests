@@ -1,10 +1,7 @@
 #!/usr/bin/env bash
 
-if [[ "@#" == "help" ]]; then
+if [[ $# -ne 0 ]]; then
     echo "Usage: $0"
-    exit 1
-elif [[ "$1" != "" ]]; then
-    echo -e "\e[1;31mInvalid or unknown option '$1'. Issue '$0 help' for help.\e[0m"
     exit 1
 fi
 

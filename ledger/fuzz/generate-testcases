@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
-if [[ "@#" == "help" ]]; then
-    echo "Usage: $0"
+if [[ "$1" == "help" ]]; then
+    echo "Usage: $0 <optional: 'big' to skip minimizing>"
     exit 1
-elif [ "$1" != "" -a "$1" != "big" ]; then
+elif [ -n "$1" && "$1" != "big" ]; then
     echo -e "\e[1;31mInvalid or unknown option '$1'. Issue '$0 help' for help.\e[0m"
     exit 1
 fi
@@ -16,7 +16,6 @@ popd > /dev/null
 # First extract the inputs with a non instrumented version
 # of the singer
 $FUZZ_ROOT/extract-inputs-from-tests
-exit 0
 
 # Compile the instrumented version now.
 $FUZZ_ROOT/../build/build-tcpsigner-afl
