@@ -7,20 +7,20 @@
 #ifndef DEFS_H
 #define DEFS_H
 
+#include "apdu.h"
+
 // Version and patchlevel
 #define VERSION_MAJOR 0x02
 #define VERSION_MINOR 0x02
 #define VERSION_PATCH 0x00
 
-// Ledger commands and protocol constants
-#define CLA 0x80
-
+// Instructions
 #define INS_SIGN 0x02
 #define INS_GET_PUBLIC_KEY 0x04
 #define RSK_IS_ONBOARD 0x06
 #define RSK_MODE_CMD 0x43
-#define RSK_MODE_APP 0x03
 
+// Operations within instructions
 #define P1_PATH 0x01
 #define P1_BTC 0x02
 #define P1_RECEIPT 0x04
@@ -28,17 +28,11 @@
 #define P1_LAST 0x80
 #define P1_SUCCESS 0x81
 
+// App mode response for the mode command
+#define RSK_MODE_APP 0x03
+
+// Max USB transfer size
 #define MAX_USB_TRANSFER 50
-
-// Offsets inside USB Command
-#define TXLEN 3
-#define DATA 3
-#define OP 2
-#define CMDPOS 1
-#define CLAPOS 0
-
-// Minimum arbitrarily readable APDU bytes
-#define MIN_APDU_BYTES 4
 
 // Size constants
 #define HASHLEN 32
@@ -47,34 +41,6 @@
 #define INPUTINDEXLEN 4
 #define RSK_PATH_LEN 5
 #define MAX_SIGNATURE_LENGTH 72
-
-// Number of bytes to transmit for data payload with size s
-#define TX_FOR_DATA_SIZE(s) (DATA + (s))
-
-// Number of bytes to transmit when sending no data payload
-#define TX_NO_DATA() (DATA)
-
-// APDU buffer getters
-#define APDU_CLA() (G_io_apdu_buffer[CLAPOS])
-#define APDU_CMD() (G_io_apdu_buffer[CMDPOS])
-#define APDU_OP() (G_io_apdu_buffer[OP])
-#define APDU_TXLEN() (G_io_apdu_buffer[TXLEN])
-
-// APDU buffer stters
-#define SET_APDU_CLA(cla) (G_io_apdu_buffer[CLAPOS] = (cla))
-#define SET_APDU_CMD(cmd) (G_io_apdu_buffer[CMDPOS] = (cmd))
-#define SET_APDU_OP(op) (G_io_apdu_buffer[OP] = (op))
-#define SET_APDU_TXLEN(len) (G_io_apdu_buffer[TXLEN] = (len))
-
-// Get pointer to payload within APDU buffer.
-// No args, so it can be treated like an array pointer.
-#define APDU_DATA_PTR (G_io_apdu_buffer + DATA)
-
-// Total size of APDU data part
-#define APDU_TOTAL_DATA_SIZE (sizeof(G_io_apdu_buffer)-DATA)
-
-// Size of payload in APDU
-#define APDU_DATA_SIZE(rx) ((rx) >= DATA ? (rx)-DATA : 0)
 
 // Parser state machine:
 typedef enum {

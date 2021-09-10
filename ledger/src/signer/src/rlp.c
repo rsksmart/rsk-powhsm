@@ -12,6 +12,7 @@
 #include <string.h>
 #include "defs.h"
 #include "rlp.h"
+#include "memutil.h"
 
 /* Check if enough data to decode a header in buffer. Returns valid if can
  * decode, false if not enough data in buffer */
@@ -128,7 +129,7 @@ void SM_RLP_FIELD(RLP_CTX *ctx,
     LOG("[I] Remaining bytes: %d. ", ctx->remainingFieldBytes);
     if (ctx->remainingFieldBytes == 0) { // Field transfer complete
         *state = S_RLP_HDR;
-        G_io_apdu_buffer[TXLEN] = 1; // Return 1 byte
+        SET_APDU_TXLEN(1); // Return 1 byte
         LOG("Field complete\n");
         // Check if the current list is completely tranferred
         if (ctx->listLevel > 0) {
@@ -143,15 +144,14 @@ void SM_RLP_FIELD(RLP_CTX *ctx,
     } else { // Field incomplete
         LOG("Partial field.\n");
         if (ctx->remainingFieldBytes <= RLP_MAX_TRANSFER)
-            G_io_apdu_buffer[TXLEN] =
-                ctx->remainingFieldBytes; // Return whole field
+            SET_APDU_TXLEN(ctx->remainingFieldBytes); // Return whole field
         else
-            G_io_apdu_buffer[TXLEN] = RLP_MAX_TRANSFER; // Return whole field
+            SET_APDU_TXLEN(RLP_MAX_TRANSFER); // Return whole field
     }
-    G_io_apdu_buffer[0] = CLA;
-    G_io_apdu_buffer[1] = INS_SIGN;
-    G_io_apdu_buffer[OP] = P1_RECEIPT;
-    *tx = G_io_apdu_buffer[TXLEN] + 3;
+    SET_APDU_CLA();
+    SET_APDU_CMD(INS_SIGN);
+    SET_APDU_OP(P1_RECEIPT);
+    *tx = TX_FOR_DATA_SIZE(1);
 }
 
 // parsing field header
@@ -165,7 +165,11 @@ void SM_RLP_HDR(RLP_CTX *ctx,
         LOG("RLP decode buffer would overflow\n");
         THROW(0x6A8A);
     }
-    memcpy(ctx->decodeBuffer + ctx->decodeOffset, &G_io_apdu_buffer[TXLEN], 1);
+    SAFE_MEMMOVE(
+        ctx->decodeBuffer + ctx->decodeOffset, sizeof(ctx->decodeBuffer) - ctx->decodeOffset,
+        APDU_DATA_PTR, APDU_TOTAL_DATA_SIZE,
+        1,
+        THROW(0x6A8A));
     ctx->decodeOffset++;
     ctx->listRemaining[ctx->listLevel] -= 1;
     if (rlpCanDecode(ctx->decodeBuffer, ctx->decodeOffset, &valid)) {
@@ -191,10 +195,10 @@ void SM_RLP_HDR(RLP_CTX *ctx,
                 currentFieldIsList);
 
             ctx->decodeOffset = 0;
-            G_io_apdu_buffer[0] = CLA;
-            G_io_apdu_buffer[1] = INS_SIGN;
-            G_io_apdu_buffer[OP] = P1_RECEIPT;
-            *tx = 4;
+            SET_APDU_CLA();
+            SET_APDU_CMD(INS_SIGN);
+            SET_APDU_OP(P1_RECEIPT);
+            *tx = TX_FOR_TXLEN();
             if (currentFieldIsList) // List field
             {
                 if (++ctx->listLevel == (sizeof(ctx->listSize) / sizeof(ctx->listSize[0])))
@@ -203,21 +207,19 @@ void SM_RLP_HDR(RLP_CTX *ctx,
                 ctx->listSize[ctx->listLevel] =
                     ctx->listRemaining[ctx->listLevel] =
                         ctx->currentFieldLength;
-                G_io_apdu_buffer[TXLEN] = 1; // Return 1 byte
+                SET_APDU_TXLEN(1); // Return 1 byte
                 *state = S_RLP_HDR;
             } else { // Regular field
                 ctx->fieldCount++;
                 if (ctx->offset == 0) // Single-encoded byte
                 {
-                    G_io_apdu_buffer[TXLEN] = 1; // Return 1 byte
+                    SET_APDU_TXLEN(1); // Return 1 byte
                     *state = S_RLP_HDR;
                 } else {
                     if (ctx->currentFieldLength <= RLP_MAX_TRANSFER)
-                        G_io_apdu_buffer[TXLEN] =
-                            ctx->currentFieldLength; // Return whole field
+                        SET_APDU_TXLEN(ctx->currentFieldLength); // Return whole field
                     else
-                        G_io_apdu_buffer[TXLEN] =
-                            RLP_MAX_TRANSFER; // Return max amount possible
+                        SET_APDU_TXLEN(RLP_MAX_TRANSFER); // Return max amount possible
                     ctx->remainingFieldBytes = ctx->currentFieldLength;
                     *state = S_RLP_FIELD;
                 }
@@ -225,12 +227,11 @@ void SM_RLP_HDR(RLP_CTX *ctx,
         }
     } else // cannot decode
     {
-        G_io_apdu_buffer[0] = CLA;
-        G_io_apdu_buffer[1] = INS_SIGN;
-        G_io_apdu_buffer[OP] = P1_RECEIPT;
-        G_io_apdu_buffer[TXLEN] =
-            1; // Return 1 additional byte until we can decode
-        *tx = 4;
+        SET_APDU_CLA();
+        SET_APDU_CMD(INS_SIGN);
+        SET_APDU_OP(P1_RECEIPT);
+        SET_APDU_TXLEN(1); // Return 1 additional byte until we can decode
+        *tx = TX_FOR_DATA_SIZE(1);
     }
 }
 
@@ -242,10 +243,10 @@ void SM_RLP_START(RLP_CTX *ctx,
     LOG("[I] Starting RLP parsing\n");
 
     memset(ctx, 0, sizeof(RLP_CTX));
-    G_io_apdu_buffer[0] = CLA;
-    G_io_apdu_buffer[1] = INS_SIGN;
-    G_io_apdu_buffer[OP] = P1_RECEIPT;
-    G_io_apdu_buffer[TXLEN] = 1; // Return TXLen + Version + in-counter
-    *tx = G_io_apdu_buffer[TXLEN] + 3;
+    SET_APDU_CLA();
+    SET_APDU_CMD(INS_SIGN);
+    SET_APDU_OP(P1_RECEIPT);
+    SET_APDU_TXLEN(1); // Return TXLen + Version + in-counter
+    *tx = TX_FOR_DATA_SIZE(1);
     *state = S_RLP_HDR;
 }

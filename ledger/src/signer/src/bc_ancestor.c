@@ -8,6 +8,7 @@
 #include "ints.h"
 #include "mem.h"
 #include "srlp.h"
+#include "memutil.h"
 
 #include "bc_block.h"
 #include "bc_blockutils.h"
@@ -38,10 +39,12 @@ static uint8_t expected_state;
  * @arg[in] size buffer size in bytes
  */
 static void wa_store(const uint8_t* buf, uint16_t size) {
-    if (block.wa_off + size > WA_SIZE) {
-        FAIL(BUFFER_OVERFLOW);
-    }
-    memcpy(block.wa_buf + block.wa_off, buf, size);
+    SAFE_MEMMOVE(
+        block.wa_buf + block.wa_off, sizeof(block.wa_buf) - block.wa_off,
+        buf, size,
+        size,
+        FAIL(BUFFER_OVERFLOW));
+
     block.wa_off += size;
 }
 

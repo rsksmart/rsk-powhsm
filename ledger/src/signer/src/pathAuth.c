@@ -12,7 +12,7 @@
     m/44'/0'/0'/0/0 (BTC)
     m/44'/1'/0'/0/0 (tBTC)
 */
-const char authPaths[][SINGLE_PATH_BYTES] = {
+const char authPaths[][SINGLE_PATH_SIZE_BYTES] = {
     "\x05\x2c\x00\x00\x80\x00\x00\x00\x80\x00\x00\x00\x80\x00\x00\x00\x00\x00\x00\x00\x00", // BTC
     "\x05\x2c\x00\x00\x80\x01\x00\x00\x80\x00\x00\x00\x80\x00\x00\x00\x00\x00\x00\x00\x00"  // tBTC
 };
@@ -26,7 +26,7 @@ const char authPaths[][SINGLE_PATH_BYTES] = {
     m/44'/1'/2'/0/0 (tMST)
     m/44'/1'/0'/0/2 (deprecated tMST)
 */
-const char noAuthPaths[][SINGLE_PATH_BYTES] = {
+const char noAuthPaths[][SINGLE_PATH_SIZE_BYTES] = {
     "\x05\x2c\x00\x00\x80\x89\x00\x00\x80\x00\x00\x00\x80\x00\x00\x00\x00\x00\x00\x00\x00", // RSK
     "\x05\x2c\x00\x00\x80\x89\x00\x00\x80\x01\x00\x00\x80\x00\x00\x00\x00\x00\x00\x00\x00", // MST
     "\x05\x2c\x00\x00\x80\x89\x00\x00\x80\x00\x00\x00\x80\x00\x00\x00\x00\x01\x00\x00\x00", // deprecated MST
@@ -59,7 +59,7 @@ bool pathRequireAuth(char *path) {
     char cmpbuf[sizeof(authPaths[0])];
     for (unsigned int i = 0; i < sizeof(authPaths) / sizeof(authPaths[0]); i++) {
         // Dont memcmp flash to RAM
-        memmove(cmpbuf, authPaths[i], sizeof(cmpbuf));
+        memcpy(cmpbuf, authPaths[i], sizeof(cmpbuf));
         if (!memcmp(path, cmpbuf, sizeof(cmpbuf)))
             return true;
     }
@@ -73,7 +73,7 @@ bool pathDontRequireAuth(char *path) {
     char cmpbuf[sizeof(noAuthPaths[0])];
     for (unsigned int i = 0; i < sizeof(noAuthPaths) / sizeof(noAuthPaths[0]); i++) {
         // Dont memcmp flash to RAM
-        memmove(cmpbuf, noAuthPaths[i], sizeof(cmpbuf));
+        memcpy(cmpbuf, noAuthPaths[i], sizeof(cmpbuf));
         if (!memcmp(path, cmpbuf, sizeof(cmpbuf)))
             return true;
     }

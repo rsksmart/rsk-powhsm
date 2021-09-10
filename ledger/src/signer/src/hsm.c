@@ -32,6 +32,8 @@
 
 #include "attestation.h"
 
+#include "memutil.h"
+
 // Make state variables used by signer global static, so they can be reset
 static PARSE_STM state;
 // Receipt keccak256 hash
@@ -91,29 +93,30 @@ unsigned int hsm_process_apdu(volatile unsigned int rx) {
     // Zero out commonly read APDU buffer offsets, 
     // to avoid reading uninitialized memory
     if (rx < MIN_APDU_BYTES) {
-        explicit_bzero(&G_io_apdu_buffer[rx], MIN_APDU_BYTES - rx);
+        explicit_bzero(G_io_apdu_buffer+rx, MIN_APDU_BYTES - rx);
     }
 
     // Invalid CLA
-    if (G_io_apdu_buffer[0] != CLA) {
+    if (APDU_CLA() != CLA) {
         THROW(0x6E11);
     }
 
-    switch (G_io_apdu_buffer[1]) {
+    switch (APDU_CMD()) {
         // Reports the current mode (i.e., always reports app aka signer mode)
         case RSK_MODE_CMD:
             reset_if_starting(RSK_MODE_CMD);
-            G_io_apdu_buffer[1] = RSK_MODE_APP;
+            SET_APDU_CMD(RSK_MODE_APP);
             tx = 2;
             break;
 
         // Reports wheter the device is onboarded and the current signer version
         case RSK_IS_ONBOARD: 
             reset_if_starting(RSK_IS_ONBOARD);
-            G_io_apdu_buffer[1] = os_perso_isonboarded();
-            G_io_apdu_buffer[2] = VERSION_MAJOR;
-            G_io_apdu_buffer[3] = VERSION_MINOR;
-            G_io_apdu_buffer[4] = VERSION_PATCH;
+            uint8_t output_index = CMDPOS;
+            SET_APDU_AT(output_index++, os_perso_isonboarded());
+            SET_APDU_AT(output_index++, VERSION_MAJOR);
+            SET_APDU_AT(output_index++, VERSION_MINOR);
+            SET_APDU_AT(output_index++, VERSION_PATCH);
             tx = 5;
             break;
 
@@ -126,14 +129,22 @@ unsigned int hsm_process_apdu(volatile unsigned int rx) {
                 THROW(0x6A87); // Wrong buffer size
 
             // Check for path validity before returning the public key
-            if (!(pathRequireAuth(G_io_apdu_buffer+2) ||
-                pathDontRequireAuth(G_io_apdu_buffer+2))) {
+            // Actual path starts at normal data pointer, but
+            // is prepended by a single byte indicating the path length
+            // (all paths have the same length in practice, so this should
+            // be refactored in the future)
+            if (!(pathRequireAuth(APDU_DATA_PTR-1) ||
+                pathDontRequireAuth(APDU_DATA_PTR-1))) {
                 // If no path match, then bail out
                 THROW(0x6A8F); // Invalid Key Path
             }
 
             // Derive the public key
-            os_memmove(path, G_io_apdu_buffer+3, RSK_PATH_LEN * sizeof(uint32_t));
+            SAFE_MEMMOVE(
+                path, sizeof(path),
+                APDU_DATA_PTR, APDU_TOTAL_DATA_SIZE,
+                RSK_PATH_LEN * sizeof(uint32_t),
+                THROW(0x6A8F));
             tx = do_pubkey(
                 path, RSK_PATH_LEN,
                 G_io_apdu_buffer, sizeof(G_io_apdu_buffer));
@@ -213,8 +224,8 @@ unsigned int hsm_process_exception(unsigned short code, unsigned int tx) {
     }
 
     // Append resulting code to APDU
-    G_io_apdu_buffer[tx++] = sw >> 8;
-    G_io_apdu_buffer[tx++] = sw;
+    SET_APDU_AT(tx++, sw >> 8);
+    SET_APDU_AT(tx++, sw);
 
     return tx;
 }

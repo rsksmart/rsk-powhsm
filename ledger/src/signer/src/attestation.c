@@ -4,6 +4,7 @@
 #include "pathAuth.h"
 #include "bc_hash.h"
 #include "mem.h"
+#include "memutil.h"
 
 // Attestation message prefix
 #define ATT_MSG_PREFIX_LENGTH 14
@@ -13,11 +14,18 @@ const char ATT_MSG_PREFIX[ATT_MSG_PREFIX_LENGTH] = "HSM:SIGNER:2.1";
 // Protocol implementation
 // -----------------------------------------------------------------------
 
-static void hash_public_key(const char* path, att_t* att_ctx) {
+static void hash_public_key(const char* path, size_t path_size, att_t* att_ctx) {
     BEGIN_TRY {
         TRY {
             // Derive public key
-            os_memmove(att_ctx->path, (unsigned int*) (&path[1]), sizeof(att_ctx->path)); // Skip first byte of path (size)
+
+            // Skip first byte of path when copying (path size byte)
+            SAFE_MEMMOVE(
+                att_ctx->path, sizeof(att_ctx->path),
+                (unsigned int*) (path+1), path_size-1,
+                sizeof(att_ctx->path),
+                THROW(ATT_INTERNAL));
+
             // Derive and init private key
             os_perso_derive_node_bip32(CX_CURVE_256K1, att_ctx->path, RSK_PATH_LEN, att_ctx->priv_key_data, NULL);
             cx_ecdsa_init_private_key(CX_CURVE_256K1, att_ctx->priv_key_data, KEYLEN, &att_ctx->priv_key);
@@ -58,14 +66,18 @@ static unsigned int generate_message_to_sign(att_t* att_ctx) {
     explicit_bzero(att_ctx->msg, sizeof(att_ctx->msg));
     
     // Copy the message prefix
-    memcpy(att_ctx->msg, PIC(ATT_MSG_PREFIX), ATT_MSG_PREFIX_LENGTH);
+    SAFE_MEMMOVE(
+        att_ctx->msg, sizeof(att_ctx->msg),
+        PIC(ATT_MSG_PREFIX), ATT_MSG_PREFIX_LENGTH, 
+        ATT_MSG_PREFIX_LENGTH, 
+        THROW(ATT_INTERNAL));
 
     // Prepare the digest
     SHA256_INIT(&att_ctx->hash_ctx);
 
     // Retrieve and hash the public keys in order
     for (int i = 0; i < KEY_PATH_COUNT(); i++) {
-        hash_public_key(get_ordered_path(i), att_ctx);
+        hash_public_key(get_ordered_path(i), SINGLE_PATH_SIZE_BYTES, att_ctx);
     }
 
     SHA256_FINAL(&att_ctx->hash_ctx, &att_ctx->msg[ATT_MSG_PREFIX_LENGTH]);
@@ -96,7 +108,12 @@ unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx) {
         case OP_GET_MESSAGE:
             // Generate and output the message to sign
             message_size = generate_message_to_sign(att_ctx);
-            memcpy(APDU_DATA_PTR, att_ctx->msg, message_size);
+
+            SAFE_MEMMOVE(
+                APDU_DATA_PTR, APDU_TOTAL_DATA_SIZE,
+                att_ctx->msg, sizeof(att_ctx->msg),
+                message_size,
+                THROW(ATT_INTERNAL));
 
             return TX_FOR_DATA_SIZE(message_size);
         case OP_APP_HASH:

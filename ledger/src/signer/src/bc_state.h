@@ -40,11 +40,6 @@ extern const bc_state_t N_bc_state_var;
 extern uint8_t INITIAL_BLOCK_HASH[HASHLEN];
 #endif
 
-// #ifdef FEDHM_EMULATOR
-// #define N_bc_state N_bc_state_var
-// #else
-// #endif
-
 // -----------------------------------------------------------------------
 // Get/Reset blockchain state protocol
 // -----------------------------------------------------------------------
