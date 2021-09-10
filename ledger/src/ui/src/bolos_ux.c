@@ -26,6 +26,7 @@
 #include "defs.h"
 #include "err.h"
 #include "attestation.h"
+#include "memutil.h"
 
 // Signer hash blacklist
 #define SIGNER_LOG_SIZE 100
@@ -37,13 +38,10 @@ const unsigned char N_onboarded_ui[1] = { 0 };
 #ifdef OS_IO_SEPROXYHAL
 
 #define ARRAYLEN(array) (sizeof(array) / sizeof(array[0]))
-//#define BOLOS_AUTOSTART_FIRST
 static char autoexec; // autoexec signature app
 bolos_ux_context_t G_bolos_ux_context;
 
 // USB message waiting screen
-
-
 static const bagl_element_t bagl_ui_idle_nanos[] = {
     {
         {BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000,
@@ -69,45 +67,6 @@ static const bagl_element_t bagl_ui_idle_nanos[] = {
     }
 };
 
-/*
-
-static const bagl_element_t bagl_ui_idle_nanos[] = {
-    // {
-    //     {type, userid, x, y, width, height, stroke, radius, fill, fgcolor,
-    //      bgcolor, font_id, icon_id},
-    //     text,
-    //     touch_area_brim,
-    //     overfgcolor,
-    //     overbgcolor,
-    //     tap,
-    //     out,
-    //     over,
-    // },
-    {
-        {BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000,
-         0xFFFFFF, 0, 0},
-        NULL,
-        0,
-        0,
-        0,
-        NULL,
-        NULL,
-        NULL,
-    },
-    {
-        {BAGL_LABELINE, 0x02, 0, 12, 128, 11, 0, 0, 0, 0xFFFFFF, 0x000000,
-         BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
-        "RSK - Waiting messages",
-        0,
-        0,
-        0,
-        NULL,
-        NULL,
-        NULL,
-    }
-};
-*/
-
 unsigned short io_timeout(unsigned short last_timeout) {
     UNUSED(last_timeout);
     // infinite timeout
@@ -120,16 +79,6 @@ void screen_hex_identifier_string_buffer(const unsigned char *buffer,
             BOLOS_UX_HASH_LENGTH / 2, buffer, BOLOS_UX_HASH_LENGTH / 2,
             buffer + total - BOLOS_UX_HASH_LENGTH / 2);
 }
-
-/*
-unsigned char rng_u8_modulo(unsigned char modulo) {
-  unsigned int rng_max = 256 % modulo;
-  unsigned int rng_limit = 256 - rng_max;
-  unsigned char candidate;
-  while ((candidate = cx_rng_u8()) > rng_limit);
-  return (candidate % modulo);
-}
-*/
 
 // common code for all screens
 void screen_state_init(unsigned int stack_slot) {
@@ -214,6 +163,7 @@ screen_stack_is_element_array_present(const bagl_element_t *element_array) {
     }
     return 0;
 }
+
 unsigned int screen_stack_push(void) {
     // only push if an available slot exists
     if (G_bolos_ux_context.screen_stack_count <
@@ -226,6 +176,7 @@ unsigned int screen_stack_push(void) {
     // return the stack top index
     return G_bolos_ux_context.screen_stack_count - 1;
 }
+
 unsigned int screen_stack_pop(void) {
     unsigned int exit_code = BOLOS_UX_OK;
     // only pop if more than two stack entry (0 and 1,top is an index not a
@@ -373,27 +324,6 @@ void io_seproxyhal_display(const bagl_element_t *element) {
     io_seproxyhal_display_default((bagl_element_t *)element);
 }
 
-#define RSK_MSG 0x80
-#define RSK_PIN_CMD 0x41
-#define RSK_SEED_CMD 0x44
-#define RSK_ECHO_CMD 0x02
-#define RSK_IS_ONBOARD 0x06
-#define RSK_WIPE 0x7
-#define RSK_NEWPIN 0x8
-#define RSK_END_CMD 0xff
-#define RSK_END_CMD_NOSIG 0xfa
-#define RSK_UNLOCK_CMD 0xfe
-#define RSK_RETRIES 0x45
-#define RSK_MODE_CMD 0x43
-#define RSK_MODE_BOOTLOADER 0x02
-
-#define RSK_META_CMD_UIOP 0x66
-
-// Version and patchlevel
-#define VERSION_MAJOR 0x02
-#define VERSION_MINOR 0x02
-#define VERSION_PATCH 0x00
-
 // Attestation context shorthand
 #define attestation_ctx (G_bolos_ux_context.attestation)
 
@@ -445,7 +375,6 @@ static void sample_main(void) {
     volatile unsigned int flags = 0;
     volatile unsigned char pin = 0;
     int i=0;
-    char validpin;
     unsigned char aux;
 
     // Initialize current operation
@@ -475,32 +404,33 @@ static void sample_main(void) {
                     THROW(0x6982);
                 }
 
-                if (G_io_apdu_buffer[0] != RSK_MSG) {
+                if (APDU_CLA() != CLA) {
                     THROW(0x6E22);
                 }
 
                 // unauthenticated instruction
-                switch (G_io_apdu_buffer[1]) {
+                switch (APDU_CMD()) {
                 case RSK_SEED_CMD: // Send wordlist
                     reset_if_starting(RSK_META_CMD_UIOP);
-                    pin=G_io_apdu_buffer[2];
+                    pin=APDU_AT(2);
                     if ( (pin>=0) && (pin <=sizeof(G_bolos_ux_context.words_buffer)))
-                        G_bolos_ux_context.words_buffer[pin]=G_io_apdu_buffer[3];
+                        G_bolos_ux_context.words_buffer[pin]=APDU_AT(3);
                     THROW(0x9000);
                     break;
                 case RSK_PIN_CMD: // Send pin_buffer
                     reset_if_starting(RSK_META_CMD_UIOP);
-                    pin=G_io_apdu_buffer[2];
+                    pin=APDU_AT(2);
                     if ( (pin>=0) && (pin <=MAX_PIN_LENGTH))
-                        G_bolos_ux_context.pin_buffer[pin]=G_io_apdu_buffer[3];
+                        G_bolos_ux_context.pin_buffer[pin]=APDU_AT(3);
                     THROW(0x9000);
                     break;
                 case RSK_IS_ONBOARD: // Wheter it's onboarded or not
                     reset_if_starting(RSK_IS_ONBOARD);
-                    G_io_apdu_buffer[1]=os_perso_isonboarded();
-                    G_io_apdu_buffer[2]=VERSION_MAJOR;
-                    G_io_apdu_buffer[3]=VERSION_MINOR;
-                    G_io_apdu_buffer[4]=VERSION_PATCH;
+                    uint8_t output_index = CMDPOS;
+                    SET_APDU_AT(output_index++, os_perso_isonboarded());
+                    SET_APDU_AT(output_index++, VERSION_MAJOR);
+                    SET_APDU_AT(output_index++, VERSION_MINOR);
+                    SET_APDU_AT(output_index++, VERSION_PATCH);
                     tx=5;
                     THROW(0x9000);
                     break;
@@ -543,11 +473,11 @@ static void sample_main(void) {
                         G_bolos_ux_context.pin_buffer[0]);
                     // Finalize onboarding
                     os_perso_finalize();
-                    G_io_apdu_buffer[1]=2;
                     os_global_pin_invalidate();
-                    G_io_apdu_buffer[2] = os_global_pin_check(
+                    SET_APDU_AT(1, 2);
+                    SET_APDU_AT(2, os_global_pin_check(
                         (unsigned char *)G_bolos_ux_context.pin_buffer + 1,
-                        G_bolos_ux_context.pin_buffer[0]);
+                        G_bolos_ux_context.pin_buffer[0]));
                     // Clear pin buffer
                     explicit_bzero(G_bolos_ux_context.pin_buffer, sizeof(G_bolos_ux_context.pin_buffer));
                     // Clear app hash blacklist
@@ -572,9 +502,11 @@ static void sample_main(void) {
                     // Set PIN
                     os_perso_set_pin(0, (unsigned char *)G_bolos_ux_context.pin_buffer + 1, G_bolos_ux_context.pin_buffer[0]);
                     // check PIN
-                    G_io_apdu_buffer[1]=2;
                     os_global_pin_invalidate();
-                    G_io_apdu_buffer[2]=os_global_pin_check((unsigned char *)G_bolos_ux_context.pin_buffer + 1,G_bolos_ux_context.pin_buffer[0]);
+                    SET_APDU_AT(1, 2);
+                    SET_APDU_AT(2, os_global_pin_check(
+                        (unsigned char *)G_bolos_ux_context.pin_buffer + 1,
+                        G_bolos_ux_context.pin_buffer[0]));
                     tx=3;
                     THROW(0x9000);
                     break;
@@ -585,7 +517,7 @@ static void sample_main(void) {
                     break;
                 case RSK_MODE_CMD: // print mode
                     reset_if_starting(RSK_MODE_CMD);
-                    G_io_apdu_buffer[1]=RSK_MODE_BOOTLOADER;
+                    SET_APDU_AT(1, RSK_MODE_BOOTLOADER);
                     tx=2;
                     THROW(0x9000);
                     break;
@@ -596,14 +528,15 @@ static void sample_main(void) {
                     break;
                 case RSK_RETRIES:
                     reset_if_starting(RSK_RETRIES);
-                    G_io_apdu_buffer[2] = (unsigned char) os_global_pin_retries();
+                    SET_APDU_AT(2, (unsigned char) os_global_pin_retries());
                     tx = 3;
                     THROW(0x9000);
                     break;
                 case RSK_UNLOCK_CMD: // Unlock
                     reset_if_starting(RSK_META_CMD_UIOP);
-                    validpin=os_global_pin_check((unsigned char *)G_bolos_ux_context.pin_buffer,strlen(G_bolos_ux_context.pin_buffer));
-                    G_io_apdu_buffer[2]=validpin;
+                    SET_APDU_AT(2, os_global_pin_check(
+                        (unsigned char *)G_bolos_ux_context.pin_buffer,
+                        strlen(G_bolos_ux_context.pin_buffer)));
                     tx=5;
                     THROW(0x9000);
                     break;
@@ -635,9 +568,8 @@ static void sample_main(void) {
                     break;
                 }
                 // Unexpected exception => report
-                G_io_apdu_buffer[tx] = sw >> 8;
-                G_io_apdu_buffer[tx + 1] = sw;
-                tx += 2;
+                SET_APDU_AT(tx++, sw >> 8);
+                SET_APDU_AT(tx++, sw);
             }
             FINALLY {
             }
@@ -655,35 +587,51 @@ return_to_dashboard:
 //
 // Reuse string_buffer because of lack of stack memory
 #define cmpbuf G_bolos_ux_context.string_buffer
-int is_app_version_allowed(unsigned char *SIGNER_HASH)
+int is_app_version_allowed(application_t *app)
 	{
 	unsigned char *currentHash;
 	unsigned char *oldHash;
 	int i;
 	// Check is app is latest version
 	currentHash=(unsigned char *)PIC(N_SignerHashList[0]);
-	memcpy(cmpbuf,currentHash,COMPRESSEDHASHSIZE);
+    SAFE_MEMMOVE(
+        cmpbuf, sizeof(cmpbuf),
+        currentHash, sizeof(N_SignerHashList[0]),
+        COMPRESSEDHASHSIZE,
+        { return 0; });
 	// Compare the first COMPRESSEDHASHSIZE bytes
-	if (!memcmp(SIGNER_HASH,cmpbuf,COMPRESSEDHASHSIZE))
+	if (!memcmp(app->hash,cmpbuf,COMPRESSEDHASHSIZE))
 		return 1; // Latest app detected, allow.
 	// App is not latest. Check if it's on the blacklist.
 	for(i=1;i<SIGNER_LOG_SIZE;i++) {
 		currentHash=(unsigned char *)PIC(N_SignerHashList[i]);
-		memmove(cmpbuf,currentHash,COMPRESSEDHASHSIZE);
+        SAFE_MEMMOVE(
+            cmpbuf, sizeof(cmpbuf),
+            currentHash, sizeof(N_SignerHashList[i]),
+            COMPRESSEDHASHSIZE,
+            { return 0; })
 		// Compare the first COMPRESSEDHASHSIZE bytes
-		if (!memcmp(SIGNER_HASH,cmpbuf,COMPRESSEDHASHSIZE))
+		if (!memcmp(app->hash,cmpbuf,COMPRESSEDHASHSIZE))
 			return 0;// App in blacklist! deny execution
 		}
 	// App is not in blacklist, new app detected
 	for(i=SIGNER_LOG_SIZE-1;i>0;i--) { // make space for current app hash
 		currentHash=(unsigned char *)PIC(N_SignerHashList[i]);
 		oldHash=(unsigned char *)PIC(N_SignerHashList[i-1]);
-		memcpy(cmpbuf,oldHash,COMPRESSEDHASHSIZE);
+        SAFE_MEMMOVE(
+            cmpbuf, sizeof(cmpbuf),
+            oldHash, sizeof(N_SignerHashList[i-1]),
+            COMPRESSEDHASHSIZE,
+            { return 0; });
 		nvm_write(currentHash,cmpbuf,COMPRESSEDHASHSIZE);
 		}
 	// Write new hash in current app hash
 	currentHash=(unsigned char *)PIC(N_SignerHashList[0]);
-	memcpy(cmpbuf,SIGNER_HASH,HASHSIZE);
+    SAFE_MEMMOVE(
+        cmpbuf, sizeof(cmpbuf),
+        app->hash, sizeof(app->hash),
+        HASHSIZE,
+        { return 0; });
 	nvm_write((void *)currentHash,cmpbuf,COMPRESSEDHASHSIZE);
 	return 1; // New app detected, allow.
 	}
@@ -700,7 +648,7 @@ void run_first_app(void) {
 		return;
 #endif
            if (!(app.flags & APPLICATION_FLAG_BOLOS_UX)) {
-		if (is_app_version_allowed(app.hash)) {
+		if (is_app_version_allowed(&app)) {
 			G_bolos_ux_context.app_auto_started = 1;
 			screen_stack_pop();
 			io_seproxyhal_disable_io();

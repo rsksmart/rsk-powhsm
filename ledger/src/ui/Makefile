@@ -59,7 +59,7 @@ CONFIG_PRODUCTIONS := bin/$(PROG)
 # Nano S
 ifeq ($(TARGET_ID)$(ONLY_LOAD),0x31100002)
 DEFINES   += BOLOS_APP_ICON_SIZE_B=\(9+32\)
-SOURCE_PATH   := src src_common $(BOLOS_SDK)/src
+SOURCE_PATH   := src src_common $(BOLOS_SDK)/src ../common
 SOURCE_PATH += $(BOLOS_SDK)/lib_stusb $(BOLOS_SDK)/lib_stusb_impl
 SOURCE_PATH += $(BOLOS_SDK)/lib_stusb/STM32_USB_Device_Library/Class/HID/Src
 else ifeq ($(TARGET_ID),0x31000002)
