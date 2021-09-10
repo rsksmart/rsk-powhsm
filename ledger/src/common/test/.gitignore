@@ -1,0 +1,3 @@
+# Ignore generated artifacts
+**/*.o
+**/*.out

@@ -30,8 +30,9 @@ fi
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     rm -rf $COVERAGE_DIR
     mkdir -p $COVERAGE_DIR
-    cp -rf $HSM_ROOT/ledger/src/tcpsigner/ $COVERAGE_DIR/tcpsigner
+    cp -rf $HSM_ROOT/ledger/src/tcpsigner $COVERAGE_DIR/tcpsigner
     cp -rf $HSM_ROOT/ledger/src/signer $COVERAGE_DIR/signer
+    cp -rf $HSM_ROOT/ledger/src/common $COVERAGE_DIR/common
 else
     exit 1
 fi

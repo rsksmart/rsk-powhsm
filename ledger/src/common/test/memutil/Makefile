@@ -1,4 +1,4 @@
-SRCDIR = ../../
+SRCDIR = ../../src
 CFLAGS = -I $(SRCDIR) -I ./
 
 PROG = test.out

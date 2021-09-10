@@ -118,7 +118,7 @@ uint8_t dump_difficulty() {
     uint8_t buf[sizeof(N_bc_state.updating.total_difficulty)];
     dump_bigint(buf, N_bc_state.updating.total_difficulty, BIGINT_LEN);
     unsigned int start = 0;
-    for (; start < sizeof(buf) && buf[start] == 0; start++);
+    for (; start < sizeof(buf) && buf[start] == 0; start++) continue;
     SAFE_MEMMOVE(
         APDU_DATA_PTR, APDU_TOTAL_DATA_SIZE,
         buf + start, sizeof(buf) - start,

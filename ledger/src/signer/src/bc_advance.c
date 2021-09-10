@@ -489,7 +489,7 @@ static void str_start(const uint16_t size) {
             block.merkle_proof_left, sizeof(block.merkle_proof_left),
             block.cb_txn_hash, sizeof(block.cb_txn_hash),
             sizeof(block.cb_txn_hash),
-            ABORT(MERKLE_PROOF_INVALID));
+            FAIL(MERKLE_PROOF_INVALID));
     }
 
     if (block.field == F_COINBASE_TXN) {
@@ -600,7 +600,7 @@ static void str_end() {
                 block.umm_root, sizeof(block.umm_root),
                 block.wa_buf, sizeof(block.wa_buf),
                 block.wa_off,
-                ABORT(UMM_ROOT_INVALID));
+                FAIL(UMM_ROOT_INVALID));
         }
     }
 
@@ -715,7 +715,7 @@ unsigned int bc_advance(volatile unsigned int rx) {
             aux_bc_st.total_difficulty, sizeof(aux_bc_st.total_difficulty),
             N_bc_state.updating.total_difficulty, sizeof(N_bc_state.updating.total_difficulty),
             sizeof(aux_bc_st.total_difficulty),
-            ABORT(PROT_INVALID));
+            FAIL(PROT_INVALID));
 
         curr_block = 0;
         BIGENDIAN_FROM(APDU_DATA_PTR, expected_blocks);
@@ -748,7 +748,7 @@ unsigned int bc_advance(volatile unsigned int rx) {
             block.cb_txn_hash, sizeof(block.cb_txn_hash),
             APDU_DATA_PTR + sizeof(block.mm_rlp_len), APDU_TOTAL_DATA_SIZE - sizeof(block.mm_rlp_len),
             sizeof(block.cb_txn_hash),
-            ABORT(PROT_INVALID));
+            FAIL(PROT_INVALID));
 
         // Block hash computation: encode and hash payload len
         
