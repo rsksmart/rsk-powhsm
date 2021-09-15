@@ -1,0 +1,52 @@
+#! /usr/bin/env bash
+
+function usage {
+    echo "Usage: $0 <primary|secondary> <opt: path to testcases> <opt: path to output> <opt: path to dictionary>"
+    exit 1
+}
+
+if [[ $# -gt 4 || $# -lt 1 ]]; then
+    usage
+fi
+
+if [[ "$1" != "primary" && "$1" != "secondary" ]]; then
+    usage
+fi
+
+pushd $(dirname $0) > /dev/null
+FUZZ_ROOT=$(pwd)
+popd > /dev/null
+
+HSM_ROOT=$(realpath $FUZZ_ROOT/../../)
+DOCKER_IMAGE=hsm:afl
+source $FUZZ_ROOT/../../docker/check-image
+
+DOCKER_USER="$(id -u):$(id -g)"
+
+source $(dirname $0)/env
+CMD='./tcpsigner $CHECKPOINT $DIFFICULTY $NETWORK -i @@'
+if [[ "$1" == "primary" ]]; then
+    FUZZ_CMD="afl-fuzz -x /dict -D -M main-$(echo $HOSTNAME | cut -c -16) -i /testcases -o /output $CMD"
+else
+    FUZZ_CMD="AFL_IMPORT_FIRST=1 afl-fuzz -x /dict -S secondary-$RANDOM -i /testcases -o /output $CMD"
+fi
+
+TESTCASES="$2"
+if [[ -z "$TESTCASES" ]]; then
+    TESTCASES="$HSM_ROOT/ledger/fuzz/testcases"
+fi
+
+OUTPUT="$3"
+if [[ -z "$OUTPUT" ]]; then
+    OUTPUT="$HSM_ROOT/ledger/fuzz/output"
+fi
+
+DICT="$4"
+if [[ -z "$DICT" ]]; then
+    DICT="$HSM_ROOT/ledger/fuzz/dict"
+fi
+
+
+docker run -ti --rm --env AFL_AUTORESUME=1 --env AFL_TESTCACHE_SIZE=500 --user $DOCKER_USER \
+    -w /hsm2/ledger/src/tcpsigner -v "$DICT":/dict -v "$TESTCASES":/testcases -v "$OUTPUT":/output \
+    -v "$HSM_ROOT":/hsm2 ${DOCKER_IMAGE} /bin/bash -c "$FUZZ_CMD"

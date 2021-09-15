@@ -1,0 +1,3 @@
+#!/bin/bash
+
+docker build -t hsm:afl --no-cache $(dirname $0)

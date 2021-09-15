@@ -1,0 +1,31 @@
+#! /usr/bin/env bash
+
+if [[ $# -gt 2 || $# -eq 1 ]]; then
+    echo "Usage: $0 <path to testcases> <path to uniqued (output)>"
+    exit 1
+fi
+
+# First build AFL with the built binary included in the repository.
+pushd $(dirname $0) > /dev/null
+FUZZ_ROOT=$(pwd)
+popd > /dev/null
+
+HSM_ROOT=$(realpath $FUZZ_ROOT/../../)
+DOCKER_IMAGE=hsm:afl
+source $FUZZ_ROOT/../../docker/check-image
+
+DOCKER_USER="$(id -u):$(id -g)"
+CMD="afl-cmin -i /testcases-raw -o /testcases-unique ./tcpsigner -i @@"
+
+TESTCASES="$1"
+if [[ -z "$TESTCASES" ]]; then
+    TESTCASES="$HSM_ROOT/ledger/fuzz/testcases-raw"
+fi
+
+TESTCASESUNIQ="$2"
+if [[ -z "$TESTCASESUNIQ" ]]; then
+    TESTCASESUNIQ="$HSM_ROOT/ledger/fuzz/testcases-unique"
+fi
+
+
+docker run -ti --rm --user $DOCKER_USER -w /hsm2/ledger/src/tcpsigner -v ${HSM_ROOT}:/hsm2 -v "$TESTCASES":/testcases-raw -v "$TESTCASESUNIQ":/testcases-unique ${DOCKER_IMAGE} /bin/bash -c "$CMD"

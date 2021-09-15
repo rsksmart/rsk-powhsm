@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+
+if [[ "$1" == "help" ]]; then
+    echo "Usage: $0 <optional: 'big' to skip minimizing>"
+    exit 1
+elif [[ -n "$1" && "$1" != "big" ]]; then
+    echo -e "\e[1;31mInvalid or unknown option '$1'. Issue '$0 help' for help.\e[0m"
+    exit 1
+fi
+
+# Get the script's dir.
+pushd $(dirname $0) > /dev/null
+FUZZ_ROOT=$(pwd)
+popd > /dev/null
+
+# First extract the inputs with a non instrumented version
+# of the singer
+$FUZZ_ROOT/extract-inputs-from-tests
+
+# Compile the instrumented version now.
+$FUZZ_ROOT/../build/build-tcpsigner-afl
+$FUZZ_ROOT/unique-testcases
+
+# If skipping the minimizing, then 
+# copy from the unique folder to the final
+# one directly and exit 
+if [[ "$1" == "big" ]]; then
+    cp $FUZZ_ROOT/testcases-unique/* $FUZZ_ROOT/testcases
+    exit 0
+fi
+
+$FUZZ_ROOT/min-testcases

@@ -31,12 +31,6 @@ static uint32_t curr_block;
 // Expected OP for next message
 static uint8_t expected_state;
 
-#define ABORT(errcode)                         \
-    {                                          \
-        expected_state = OP_UPD_ANCESTOR_INIT; \
-        FAIL(errcode);                         \
-    }
-
 /*
  * Store the given buffer in the block's work area.
  *
@@ -45,7 +39,7 @@ static uint8_t expected_state;
  */
 static void wa_store(const uint8_t* buf, uint16_t size) {
     if (block.wa_off + size > WA_SIZE) {
-        ABORT(BUFFER_OVERFLOW);
+        FAIL(BUFFER_OVERFLOW);
     }
     memcpy(block.wa_buf + block.wa_off, buf, size);
     block.wa_off += size;
@@ -61,7 +55,7 @@ static void wa_store(const uint8_t* buf, uint16_t size) {
 static void bc_upd_ancestor_prologue() {
     if (HNEQ(block.block_hash, N_bc_state.ancestor_block) &&
         HNEQ(block.block_hash, N_bc_state.best_block)) {
-        ABORT(ANCESTOR_TIP_MISMATCH);
+        FAIL(ANCESTOR_TIP_MISMATCH);
     }
 }
 
@@ -85,7 +79,7 @@ static void bc_upd_ancestor_success() {
 static void list_start(const uint16_t size) {
     ++block.depth;
     if (block.depth != 1) {
-        ABORT(RLP_INVALID);
+        FAIL(RLP_INVALID);
     }
 
     block.size = size;
@@ -100,12 +94,12 @@ static void list_start(const uint16_t size) {
 static void list_end() {
     --block.depth;
     if (block.depth != 0 || block.size != block.recv) {
-        ABORT(RLP_INVALID);
+        FAIL(RLP_INVALID);
     }
 
     // Block can end at the BTC mm header or anywhere past it
     if (block.field < F_MM_HEADER) {
-        ABORT(BLOCK_TOO_SHORT);
+        FAIL(BLOCK_TOO_SHORT);
     }
 }
 
@@ -116,7 +110,7 @@ static void list_end() {
  */
 static void str_start(const uint16_t size) {
     if (block.depth != 1) {
-        ABORT(RLP_INVALID);
+        FAIL(RLP_INVALID);
     }
 
     block.wa_off = 0;
@@ -135,11 +129,11 @@ static void str_start(const uint16_t size) {
     ++block.field;
 
     if (block.field == F_PARENT_HASH && size != HASH_SIZE) {
-        ABORT(PARENT_HASH_INVALID);
+        FAIL(PARENT_HASH_INVALID);
     }
 
     if (block.field == F_RECEIPT_ROOT && size != HASH_SIZE) {
-        ABORT(RECEIPT_ROOT_INVALID);
+        FAIL(RECEIPT_ROOT_INVALID);
     }
 
     if (SHOULD_COMPUTE_BLOCK_HASH) {
@@ -152,7 +146,7 @@ static void str_start(const uint16_t size) {
     }
 
     if (block.field == F_MM_HEADER && size != BTC_HEADER_SIZE) {
-        ABORT(BTC_HEADER_INVALID);
+        FAIL(BTC_HEADER_INVALID);
     }
 }
 
@@ -214,19 +208,19 @@ static void str_end() {
     // Store for computing mm_hash and determine network upgrade
     if (block.field == F_BLOCK_NUM) {
         if (block.wa_off > sizeof(block.number)) {
-            ABORT(BLOCK_NUM_INVALID);
+            FAIL(BLOCK_NUM_INVALID);
         }
         VAR_BIGENDIAN_FROM(block.wa_buf, block.number, block.wa_off);
         SET_NETWORK_UPGRADE(block.number, &block.network_upgrade);
         if (block.network_upgrade == NU_ANCIENT) {
-            ABORT(BLOCK_TOO_OLD);
+            FAIL(BLOCK_TOO_OLD);
         }
     }
 
     // Verify that we got valid mm_rlp_len in OP_UPD_ANCESTOR_HEADER_META
     if (block.field == MM_HASH_LAST_FIELD) {
         if (block.recv != block.mm_rlp_len) {
-            ABORT(MM_RLP_LEN_MISMATCH);
+            FAIL(MM_RLP_LEN_MISMATCH);
         }
     }
 
@@ -276,23 +270,23 @@ unsigned int bc_upd_ancestor(volatile unsigned int rx) {
 
     // Check we are getting expected OP
     if (op != OP_UPD_ANCESTOR_INIT && op != expected_state) {
-        ABORT(PROT_INVALID);
+        FAIL(PROT_INVALID);
     }
 
     // Check we are getting the expected amount of data
     if (op == OP_UPD_ANCESTOR_INIT && APDU_DATA_SIZE(rx) != sizeof(uint32_t)) {
-        ABORT(PROT_INVALID);
+        FAIL(PROT_INVALID);
     }
     if (op == OP_UPD_ANCESTOR_HEADER_META &&
         APDU_DATA_SIZE(rx) != sizeof(block.mm_rlp_len)) {
-        ABORT(PROT_INVALID);
+        FAIL(PROT_INVALID);
     }
     if (op == OP_UPD_ANCESTOR_HEADER_CHUNK) {
         uint16_t expected_txlen =
             block.size > 0 ? min(block.size - block.recv, MAX_CHUNK_SIZE)
                            : MAX_CHUNK_SIZE;
         if (APDU_DATA_SIZE(rx) != expected_txlen) {
-            ABORT(PROT_INVALID);
+            FAIL(PROT_INVALID);
         }
     }
 
@@ -307,7 +301,7 @@ unsigned int bc_upd_ancestor(volatile unsigned int rx) {
         curr_block = 0;
         BIGENDIAN_FROM(APDU_DATA_PTR, expected_blocks);
         if (expected_blocks == 0) {
-            ABORT(PROT_INVALID);
+            FAIL(PROT_INVALID);
         }
 
         SET_APDU_OP(OP_UPD_ANCESTOR_HEADER_META);
@@ -332,7 +326,7 @@ unsigned int bc_upd_ancestor(volatile unsigned int rx) {
         // Sanity check: make sure given mm_rlp_len plus BTC_HEADER_RLP_LEN does not overflow
         if ((uint16_t)(block.mm_rlp_len + BTC_HEADER_RLP_LEN) < block.mm_rlp_len) {
             LOG("Given MM RLP list length too large, would overflow: %u\n", block.mm_rlp_len);
-            ABORT(PROT_INVALID);
+            FAIL(PROT_INVALID);
         }
 
         KECCAK_INIT(&block.block_ctx);
@@ -352,7 +346,7 @@ unsigned int bc_upd_ancestor(volatile unsigned int rx) {
     // -------------------------------------------------------------------
     if (op == OP_UPD_ANCESTOR_HEADER_CHUNK) {
         if (rlp_consume(APDU_DATA_PTR, APDU_DATA_SIZE(rx)) < 0) {
-            ABORT(RLP_INVALID);
+            FAIL(RLP_INVALID);
         }
 
         // We have received the whole BTC merge mining header.
@@ -369,7 +363,7 @@ unsigned int bc_upd_ancestor(volatile unsigned int rx) {
             if (curr_block == 0) {
                 bc_upd_ancestor_prologue();
             } else if (HNEQ(aux_bc_st.prev_parent_hash, block.block_hash)) {
-                ABORT(CHAIN_MISMATCH);
+                FAIL(CHAIN_MISMATCH);
             }
             // Store parent hash to validate chaining for next block
             // (next block hash must match this block's parent hash)
@@ -399,10 +393,10 @@ unsigned int bc_upd_ancestor(volatile unsigned int rx) {
         }
 
         // Reached end of block and haven't seen BTC mm header? That's bad!
-        ABORT(RLP_INVALID);
+        FAIL(RLP_INVALID);
     }
 
     // You shouldn't be here
-    ABORT(PROT_INVALID);
+    FAIL(PROT_INVALID);
     return 0;
 }

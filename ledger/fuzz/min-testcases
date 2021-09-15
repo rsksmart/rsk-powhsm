@@ -1,0 +1,33 @@
+#! /usr/bin/env bash
+
+if [[ $# -gt 2 || $# -eq 1 ]]; then
+    echo "Usage: $0 <path to uniqued testcases> <path to minimized (output)>"
+    exit 1
+fi
+
+# First build AFL with the built binary included in the repository.
+pushd $(dirname $0) > /dev/null
+FUZZ_ROOT=$(pwd)
+popd > /dev/null
+
+HSM_ROOT=$(realpath $FUZZ_ROOT/../../)
+DOCKER_IMAGE=hsm:afl
+source $FUZZ_ROOT/../../docker/check-image
+
+DOCKER_USER="$(id -u):$(id -g)"
+
+TESTCASESUNIQUE="$1"
+if [[ -z "$TESTCASESUNIQUE" ]]; then
+    TESTCASESUNIQUE="$HSM_ROOT/ledger/fuzz/testcases-unique"
+fi
+
+TESTCASES="$2"
+if [[ -z "$TESTCASES" ]]; then
+    TESTCASES="$HSM_ROOT/ledger/fuzz/testcases"
+fi
+
+cd $TESTCASESUNIQUE;
+for i in *; do
+    CMD="afl-tmin -i /testcases-unique/$i -o /testcases/$i -- ./tcpsigner -i @@"
+    docker run -t --rm --user $DOCKER_USER -w /hsm2/ledger/src/tcpsigner -v "$HSM_ROOT":/hsm2 -v "$TESTCASESUNIQUE":/testcases-unique -v "$TESTCASES":/testcases ${DOCKER_IMAGE} /bin/bash -c "$CMD"
+done

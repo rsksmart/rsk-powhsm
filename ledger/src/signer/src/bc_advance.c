@@ -52,13 +52,6 @@ static uint32_t curr_block;
 // Expected OP for next message
 static uint8_t expected_state;
 
-#define ABORT(errcode)                    \
-    {                                     \
-        expected_state = OP_ADVANCE_INIT; \
-        RESET_BC_STATE();                 \
-        FAIL(errcode);                    \
-    }
-
 // -----------------------------------------------------------------------
 // Storage utilities
 // -----------------------------------------------------------------------
@@ -71,7 +64,7 @@ static uint8_t expected_state;
  */
 static void wa_store(const uint8_t* buf, uint16_t size) {
     if (block.wa_off + size > WA_SIZE) {
-        ABORT(BUFFER_OVERFLOW);
+        FAIL(BUFFER_OVERFLOW);
     }
     memcpy(block.wa_buf + block.wa_off, buf, size);
     block.wa_off += size;
@@ -87,7 +80,7 @@ static void process_merkle_proof(const uint8_t* chunk, uint16_t size) {
     // Size limit established from Iris network upgrade onwards 
     if (block.network_upgrade >= NU_IRIS && 
         block.merkle_off + size > MAX_MERKLE_PROOF_SIZE) {
-        ABORT(MERKLE_PROOF_OVERFLOW);
+        FAIL(MERKLE_PROOF_OVERFLOW);
     }
 
     // Record the additional bytes on the merkle proof (for size tracking)
@@ -119,7 +112,7 @@ static void process_merkle_proof(const uint8_t* chunk, uint16_t size) {
  */
 static void store_cb_txn_bytes(const uint8_t* chunk, uint16_t size) {
     if (block.cb_off+size > sizeof(block.cb_txn)) {
-        ABORT(CB_TXN_OVERFLOW);
+        FAIL(CB_TXN_OVERFLOW);
     }
     memcpy(block.cb_txn + block.cb_off, chunk, size);
     block.cb_off += size;
@@ -160,7 +153,7 @@ static void validate_merkle_proof() {
     REV_HASH(block.merkle_proof_left);
 
     if (HNEQ(block.merkle_root, block.merkle_proof_left)) {
-        ABORT(MERKLE_PROOF_MISMATCH);
+        FAIL(MERKLE_PROOF_MISMATCH);
     }
 }
 
@@ -193,7 +186,7 @@ static void compute_cb_txn_hash() {
  */
 static void validate_cb_txn_hash() {
     if (HNEQ(block.wa_buf, block.cb_txn_hash)) {
-        ABORT(CB_TXN_HASH_MISMATCH);
+        FAIL(CB_TXN_HASH_MISMATCH);
     }
 }
 
@@ -219,25 +212,25 @@ static void validate_mm_hash() {
     }
 
     if (ptr < tail) {
-        ABORT(BTC_CB_TXN_INVALID);
+        FAIL(BTC_CB_TXN_INVALID);
     }
 
     if (ptr - tail > CB_MAX_RSK_TAG_POSITION) {
-        ABORT(BTC_CB_TXN_INVALID);
+        FAIL(BTC_CB_TXN_INVALID);
     }
 
     if (ptr + RSK_TAG_LEN + HASH_SIZE > last) {
-        ABORT(BTC_CB_TXN_INVALID);
+        FAIL(BTC_CB_TXN_INVALID);
     }
 
     if (last - (ptr + RSK_TAG_LEN + HASH_SIZE) + 1 > CB_MAX_AFTER_MM_HASH) {
-        ABORT(BTC_CB_TXN_INVALID);
+        FAIL(BTC_CB_TXN_INVALID);
     }
 
     uint64_t n;
     BIGENDIAN_FROM(block.cb_txn, n);
     if (n + (last - tail) + 1 <= CB_MIN_TX_SIZE) {
-        ABORT(BTC_CB_TXN_INVALID);
+        FAIL(BTC_CB_TXN_INVALID);
     }
 
     uint8_t size =
@@ -247,7 +240,7 @@ static void validate_mm_hash() {
     }
 
     if (HNEQ(ptr + RSK_TAG_LEN, block.hash_for_mm)) {
-        ABORT(MM_HASH_MISMATCH);
+        FAIL(MM_HASH_MISMATCH);
     }
 }
 
@@ -257,7 +250,7 @@ static void validate_mm_hash() {
 static void bc_adv_prologue() {
     if (N_bc_state.updating.in_progress &&
         HNEQ(block.block_hash, N_bc_state.updating.next_expected_block)) {
-        ABORT(CHAIN_MISMATCH);
+        FAIL(CHAIN_MISMATCH);
     }
 
     if (!N_bc_state.updating.in_progress) {
@@ -289,7 +282,7 @@ static void bc_adv_accum_diff() {
     DIGIT_T carry =
         accum_difficulty(block.difficulty, aux_bc_st.total_difficulty);
     if (carry) {
-        ABORT(TOTAL_DIFF_OVERFLOW);
+        FAIL(TOTAL_DIFF_OVERFLOW);
     }
 
     LOG_BIGD_HEX("Min required difficulty = ",
@@ -349,7 +342,7 @@ static void bc_mm_header_received() {
     if (curr_block == 0) {
         bc_adv_prologue();
     } else if (HNEQ(aux_bc_st.prev_parent_hash, block.block_hash)) {
-        ABORT(CHAIN_MISMATCH);
+        FAIL(CHAIN_MISMATCH);
     }
     // Store parent hash to validate chaining for next block
     // (next block hash must match this block's parent hash)
@@ -369,10 +362,10 @@ static void bc_mm_header_received() {
         diff_result r =
             check_difficulty(block.difficulty, block.mm_hdr_hash);
         if (r == DIFF_ZERO) {
-            ABORT(BLOCK_DIFF_INVALID);
+            FAIL(BLOCK_DIFF_INVALID);
         }
         if (r == DIFF_MISMATCH) {
-            ABORT(BTC_DIFF_MISMATCH);
+            FAIL(BTC_DIFF_MISMATCH);
         }
 
         // Finish hash for merge mining computation
@@ -396,7 +389,7 @@ static void bc_mm_header_received() {
 static void list_start(const uint16_t size) {
     ++block.depth;
     if (block.depth != 1) {
-        ABORT(RLP_INVALID);
+        FAIL(RLP_INVALID);
     }
 
     block.size = size;
@@ -411,11 +404,11 @@ static void list_start(const uint16_t size) {
 static void list_end() {
     --block.depth;
     if (block.depth != 0 || block.size != block.recv) {
-        ABORT(RLP_INVALID);
+        FAIL(RLP_INVALID);
     }
 
     if (block.field != F_COINBASE_TXN) {
-        ABORT(BLOCK_TOO_SHORT);
+        FAIL(BLOCK_TOO_SHORT);
     }
 }
 
@@ -426,7 +419,7 @@ static void list_end() {
  */
 static void str_start(const uint16_t size) {
     if (block.depth != 1) {
-        ABORT(RLP_INVALID);
+        FAIL(RLP_INVALID);
     }
 
     block.wa_off = 0;
@@ -445,7 +438,7 @@ static void str_start(const uint16_t size) {
     ++block.field;
 
     if (block.field == F_PARENT_HASH && size != HASH_SIZE) {
-        ABORT(PARENT_HASH_INVALID);
+        FAIL(PARENT_HASH_INVALID);
     }
 
     // UMM root field and papyrus active?
@@ -453,7 +446,7 @@ static void str_start(const uint16_t size) {
     // mark whether it's present so that we save it when we get the data.
     if (block.network_upgrade >= NU_PAPYRUS && block.field == F_UMM_ROOT) {
         if (size != 0 && size != UMM_ROOT_SIZE) {
-            ABORT(UMM_ROOT_INVALID);
+            FAIL(UMM_ROOT_INVALID);
         }
         if (size != 0) {
             SET_FLAG(block.flags, HAS_UMM_ROOT);
@@ -471,7 +464,7 @@ static void str_start(const uint16_t size) {
     }
 
     if (block.field == F_MM_HEADER && size != BTC_HEADER_SIZE) {
-        ABORT(BTC_HEADER_INVALID);
+        FAIL(BTC_HEADER_INVALID);
     }
 
     // Prepare for the processing of the merkle proof
@@ -480,7 +473,7 @@ static void str_start(const uint16_t size) {
         !HAS_FLAG(block.flags, HEADER_VALID) && 
         !N_bc_state.updating.already_validated) {
         if (size % HASH_SIZE != 0) {
-            ABORT(MERKLE_PROOF_INVALID);
+            FAIL(MERKLE_PROOF_INVALID);
         }
         block.merkle_off = 0;
 
@@ -493,7 +486,7 @@ static void str_start(const uint16_t size) {
     if (block.field == F_COINBASE_TXN) {
         // size <= CB_MIDSTATE_DATA: txn has no tail
         if (size <= CB_MIDSTATE_DATA || size > MAX_CB_TXN_SIZE) {
-            ABORT(BTC_CB_TXN_INVALID);
+            FAIL(BTC_CB_TXN_INVALID);
         }
         block.cb_off = 0;
     }
@@ -565,7 +558,7 @@ static void str_end() {
 
     if (block.field == F_BLOCK_DIFF) {
         if (block.wa_off > MAX_DIFFICULTY_SIZE) {
-            ABORT(BLOCK_DIFF_INVALID);
+            FAIL(BLOCK_DIFF_INVALID);
         }
         store_difficulty(block.wa_buf, block.wa_off, block.difficulty);
     }
@@ -574,24 +567,24 @@ static void str_end() {
     // Store for computing mm_hash and determine network upgrade
     if (block.field == F_BLOCK_NUM) {
         if (block.wa_off > sizeof(block.number)) {
-            ABORT(BLOCK_NUM_INVALID);
+            FAIL(BLOCK_NUM_INVALID);
         }
         VAR_BIGENDIAN_FROM(block.wa_buf, block.number, block.wa_off);
         SET_NETWORK_UPGRADE(block.number, &block.network_upgrade);
         if (block.network_upgrade == NU_ANCIENT) {
-            ABORT(BLOCK_TOO_OLD);
+            FAIL(BLOCK_TOO_OLD);
         }
     }
 
     if (block.field == MM_HASH_LAST_FIELD) {
         if (block.recv != block.mm_rlp_len) {
-            ABORT(MM_RLP_LEN_MISMATCH);
+            FAIL(MM_RLP_LEN_MISMATCH);
         }
 
         // If there's a umm_root, we now have it in block.wa_buf. Store it.
         if (HAS_FLAG(block.flags, HAS_UMM_ROOT)) {
             if (block.wa_off != UMM_ROOT_SIZE) {
-                ABORT(UMM_ROOT_INVALID);
+                FAIL(UMM_ROOT_INVALID);
             }
             memcpy(block.umm_root, block.wa_buf, block.wa_off);
         }
@@ -659,6 +652,8 @@ static const rlp_callbacks_t callbacks = {
  * Initialize Blockchain advance protocol state.
  */
 void bc_init_advance() {
+    RESET_BC_STATE();
+
     expected_blocks = 0;
     curr_block = 0;
     expected_state = OP_ADVANCE_INIT;
@@ -675,23 +670,23 @@ unsigned int bc_advance(volatile unsigned int rx) {
 
     // Check we are getting expected OP
     if (op != OP_ADVANCE_INIT && op != expected_state) {
-        ABORT(PROT_INVALID);
+        FAIL(PROT_INVALID);
     }
 
     // Check we are getting the expected amount of data
     if (op == OP_ADVANCE_INIT && APDU_DATA_SIZE(rx) != sizeof(uint32_t)) {
-        ABORT(PROT_INVALID);
+        FAIL(PROT_INVALID);
     }
     if (op == OP_ADVANCE_HEADER_META &&
         APDU_DATA_SIZE(rx) != (sizeof(block.mm_rlp_len) + sizeof(block.cb_txn_hash))) {
-        ABORT(PROT_INVALID);
+        FAIL(PROT_INVALID);
     }
     if (op == OP_ADVANCE_HEADER_CHUNK) {
         uint16_t expected_txlen =
             block.size > 0 ? min(block.size - block.recv, MAX_CHUNK_SIZE)
                            : MAX_CHUNK_SIZE;
         if (APDU_DATA_SIZE(rx) != expected_txlen) {
-            ABORT(PROT_INVALID);
+            FAIL(PROT_INVALID);
         }
     }
 
@@ -709,7 +704,7 @@ unsigned int bc_advance(volatile unsigned int rx) {
         curr_block = 0;
         BIGENDIAN_FROM(APDU_DATA_PTR, expected_blocks);
         if (expected_blocks == 0) {
-            ABORT(PROT_INVALID);
+            FAIL(PROT_INVALID);
         }
 
         SET_APDU_OP(OP_ADVANCE_HEADER_META);
@@ -740,7 +735,7 @@ unsigned int bc_advance(volatile unsigned int rx) {
         // Sanity check: make sure given mm_rlp_len plus BTC_HEADER_RLP_LEN does not overflow
         if ((uint16_t)(block.mm_rlp_len + BTC_HEADER_RLP_LEN) < block.mm_rlp_len) {
             LOG("Given MM RLP list length too large, would overflow: %u\n", block.mm_rlp_len);
-            ABORT(PROT_INVALID);
+            FAIL(PROT_INVALID);
         }
 
         KECCAK_INIT(&block.block_ctx);
@@ -764,7 +759,7 @@ unsigned int bc_advance(volatile unsigned int rx) {
     // -------------------------------------------------------------------
     if (op == OP_ADVANCE_HEADER_CHUNK) {
         if (rlp_consume(APDU_DATA_PTR, APDU_DATA_SIZE(rx)) < 0) {
-            ABORT(RLP_INVALID);
+            FAIL(RLP_INVALID);
         }
 
         // Check flags. Don't forget to reset them, or they
@@ -832,7 +827,7 @@ unsigned int bc_advance(volatile unsigned int rx) {
     }
 
     // You shouldn't be here
-    ABORT(PROT_INVALID);
+    FAIL(PROT_INVALID);
     return 0;
 }
 
@@ -852,7 +847,7 @@ unsigned int bc_advance(volatile unsigned int rx) {
 static uint8_t dump_min_req_difficulty(int offset) {
     // Make sure the minimum required difficulty fits into the output buffer
     if (APDU_TOTAL_DATA_SIZE < sizeof(MIN_REQUIRED_DIFFICULTY)+offset)
-        THROW(BUFFER_OVERFLOW);
+        FAIL(BUFFER_OVERFLOW);
     dump_bigint(APDU_DATA_PTR + offset, MIN_REQUIRED_DIFFICULTY, BIGINT_LEN);
     return sizeof(MIN_REQUIRED_DIFFICULTY);
 }

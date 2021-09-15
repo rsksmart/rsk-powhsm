@@ -24,4 +24,8 @@ source $DOCKER_ROOT/../check-image
 
 DOCKER_USER="$(id -u):$(id -g)"
 
-docker run -t --rm --name hsm-mware-notty --user $DOCKER_USER -v $HSM_ROOT:/hsm2 -w $1 $DOCKER_IMAGE $2
+WORKDIR=$1; shift
+BINARY=$1; shift
+ARGS=$@
+
+docker run -t --rm --name hsm-mware-notty --user $DOCKER_USER -v $HSM_ROOT:/hsm2 -w $WORKDIR $DOCKER_IMAGE $BINARY $ARGS
