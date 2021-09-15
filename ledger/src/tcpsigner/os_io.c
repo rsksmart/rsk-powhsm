@@ -190,6 +190,7 @@ unsigned short io_exchange_server(unsigned char channel_and_flags,
  */
 unsigned short io_exchange_file(unsigned char channel_and_flags,
                            unsigned char tx, FILE *input_file) {
+    // File input format: |1 byte length| |len bytes data|
     static unsigned long file_index = 0;
     info_hex("Dongle => ", G_io_apdu_buffer, tx);
 
@@ -203,27 +204,33 @@ unsigned short io_exchange_file(unsigned char channel_and_flags,
         exit(1);
     }
 
-    info("Server: reading %d bytes at index: %d\n", tx, file_index);
-    unsigned short rx;
-    if (announced_rx > MAX_FUZZ_TRANSFER) {
-        rx = fread(G_io_apdu_buffer, sizeof(char), MAX_FUZZ_TRANSFER, input_file);
+    // Read a capped amount of bytes to keep it reasonably realistic
+    unsigned short capped_rx;
+    if (announced_rx <= MAX_FUZZ_TRANSFER) {
+        capped_rx = announced_rx;
     } else {
-        rx = fread(G_io_apdu_buffer, sizeof(char), announced_rx, input_file);
+        capped_rx = MAX_FUZZ_TRANSFER;
     }
 
+    info("Server: reading %d (announced: %d) bytes at index: %d\n", capped_rx, announced_rx, file_index);
+    unsigned short rx = fread(G_io_apdu_buffer, sizeof(char), capped_rx, input_file);
 
-    if (rx != announced_rx) {
+    if (rx != capped_rx) {
         // if we reach EOF while reading the data portion it means
-        // the announced size did not match the data
+        // the announced size did not match the file
         if (feof(input_file)) {
-            info("Server: malformed input, announced size %d but reached EOF after %d\n", announced_rx, rx);
+            info("Server: malformed input, tried reading %d bytes but reached EOF after %d\n", capped_rx, rx);
             exit(1);
         }
-        info("Server: Could not read %d bytes (only: %d) from input file\n", announced_rx, rx);
+        info("Server: Could not read %d bytes (only: %d) from input file\n", capped_rx, rx);
         exit(1);
     }
 
-    unsigned long index_offset = rx + 1;
+    // Move the offset to wherever the input said it should be,
+    // even if we actually did not read the whole data.
+    // If not, this would lead the file_index
+    // interpreting data as the length.
+    unsigned long index_offset = announced_rx + 1;
     if (file_index > (ULONG_MAX - index_offset)) {
         info("Server: input file too big, can't store offset.");
         exit(1);
@@ -231,7 +238,7 @@ unsigned short io_exchange_file(unsigned char channel_and_flags,
 
     file_index += index_offset;
     info_hex("Dongle <= ", G_io_apdu_buffer, rx);
-    return rx;
+    return capped_rx;
 }
 
 /* Append a received command to file
@@ -240,7 +247,8 @@ unsigned short io_exchange_file(unsigned char channel_and_flags,
  * @ret number of bytes written
  */
 unsigned int replicate_to_file(FILE *replica_file, unsigned int rx) {
-   int written = fwrite(&rx, sizeof(char), 1, replica_file);
-   written += fwrite(G_io_apdu_buffer, sizeof(char), rx, replica_file);
-   return written;
+    unsigned char rx_byte = rx;
+    int written = fwrite(&rx_byte, sizeof(char), 1, replica_file);
+    written += fwrite(G_io_apdu_buffer, sizeof(char), rx, replica_file);
+    return written;
 }
