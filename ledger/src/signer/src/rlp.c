@@ -14,6 +14,12 @@
 #include "rlp.h"
 #include "memutil.h"
 
+#define SET_APDU_FOR_RECEIPT() \
+    SET_APDU_CLA(); \
+    SET_APDU_CMD(INS_SIGN); \
+    SET_APDU_OP(P1_RECEIPT);
+
+
 /* Check if enough data to decode a header in buffer. Returns valid if can
  * decode, false if not enough data in buffer */
 
@@ -148,9 +154,7 @@ void SM_RLP_FIELD(RLP_CTX *ctx,
         else
             SET_APDU_TXLEN(RLP_MAX_TRANSFER); // Return whole field
     }
-    SET_APDU_CLA();
-    SET_APDU_CMD(INS_SIGN);
-    SET_APDU_OP(P1_RECEIPT);
+    SET_APDU_FOR_RECEIPT();
     *tx = TX_FOR_DATA_SIZE(1);
 }
 
@@ -195,9 +199,7 @@ void SM_RLP_HDR(RLP_CTX *ctx,
                 currentFieldIsList);
 
             ctx->decodeOffset = 0;
-            SET_APDU_CLA();
-            SET_APDU_CMD(INS_SIGN);
-            SET_APDU_OP(P1_RECEIPT);
+            SET_APDU_FOR_RECEIPT();
             *tx = TX_FOR_TXLEN();
             if (currentFieldIsList) // List field
             {
@@ -227,9 +229,7 @@ void SM_RLP_HDR(RLP_CTX *ctx,
         }
     } else // cannot decode
     {
-        SET_APDU_CLA();
-        SET_APDU_CMD(INS_SIGN);
-        SET_APDU_OP(P1_RECEIPT);
+        SET_APDU_FOR_RECEIPT();
         SET_APDU_TXLEN(1); // Return 1 additional byte until we can decode
         *tx = TX_FOR_DATA_SIZE(1);
     }
@@ -243,9 +243,7 @@ void SM_RLP_START(RLP_CTX *ctx,
     LOG("[I] Starting RLP parsing\n");
 
     memset(ctx, 0, sizeof(RLP_CTX));
-    SET_APDU_CLA();
-    SET_APDU_CMD(INS_SIGN);
-    SET_APDU_OP(P1_RECEIPT);
+    SET_APDU_FOR_RECEIPT();
     SET_APDU_TXLEN(1); // Return TXLen + Version + in-counter
     *tx = TX_FOR_DATA_SIZE(1);
     *state = S_RLP_HDR;
