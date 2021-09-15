@@ -1,2 +1,8 @@
 #!/bin/bash
-$(dirname $0)/term "python -m unittest discover"
+
+# Script directory
+pushd $(dirname $0) > /dev/null
+MIDDLEWARE_ROOT=$(pwd)
+popd > /dev/null
+
+$MIDDLEWARE_ROOT/../docker/mware/do-notty-nousb /hsm2/middleware "python -m unittest discover"

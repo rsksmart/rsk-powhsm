@@ -1,0 +1,28 @@
+name: Run tests
+
+on: [push]
+
+jobs:
+  run-unit-tests:
+    name: Unit tests
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v2
+
+      - name: Build the middleware docker image
+        run: docker/mware/build
+
+      - name: Middleware tests
+        run: middleware/test-all
+
+      - name: Ledger tests for TCPSigner
+        run: ledger/test/test-all
+
+      - name: Ledger Signer's tests
+        working-directory: ledger/src/signer/test/
+        run: |
+          for d in difficulty sha256 srlp; do
+            (cd "$d" && make clean test)
+          done
