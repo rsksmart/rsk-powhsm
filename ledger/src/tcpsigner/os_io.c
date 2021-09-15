@@ -246,9 +246,16 @@ unsigned short io_exchange_file(unsigned char channel_and_flags,
  * @arg[in] rx              Lenght of the command
  * @ret number of bytes written
  */
-unsigned int replicate_to_file(FILE *replica_file, unsigned int rx) {
+unsigned int replicate_to_file(FILE *replica_file, unsigned short rx) {
     unsigned char rx_byte = rx;
-    int written = fwrite(&rx_byte, sizeof(char), 1, replica_file);
-    written += fwrite(G_io_apdu_buffer, sizeof(char), rx, replica_file);
+    info_hex("Replica =>", G_io_apdu_buffer, rx_byte);
+    unsigned int written = fwrite(&rx_byte, sizeof(char), 1, replica_file);
+    written += fwrite(G_io_apdu_buffer, sizeof(char), rx_byte, replica_file);
+
+    // XXX: This should not be necessary. We are correctly closing the file
+    // at the end of the process. But for whatever reason, this does not seem
+    // to work for small inputs. Force flushing after every input to avoid
+    // corrupted replica files.
+    fflush(replica_file);
     return written;
 }

@@ -219,7 +219,7 @@ void main(int argc, char** argv) {
         FILE *replicafd;
         if (strlen(arguments.replicafile) > 0) {
             info("Using file %s as replica\n", arguments.replicafile);
-            if ((replicafd=fopen(arguments.replicafile,"a")) == NULL) {
+            if ((replicafd=fopen(arguments.replicafile, "ab")) == NULL) {
                 info("Error opening file %s as replica\n", arguments.replicafile);
                 exit(1);
             };

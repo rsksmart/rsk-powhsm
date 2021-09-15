@@ -69,6 +69,6 @@ unsigned short io_exchange_file(unsigned char channel_and_flags,
  * @arg[in] rx              Lenght of the command
  * @ret number of bytes written
  */
-unsigned int replicate_to_file(FILE *replica_file, unsigned int rx);
+unsigned int replicate_to_file(FILE *replica_file, unsigned short rx);
 
 #endif // __SIMULATOR_OS_IO
