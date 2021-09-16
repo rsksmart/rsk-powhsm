@@ -1,5 +1,6 @@
 from .case import TestCase, TestCaseError
 
+
 class ResetAdvanceBlockchain(TestCase):
     @classmethod
     def op_name(cls):

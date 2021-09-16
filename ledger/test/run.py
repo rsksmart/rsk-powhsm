@@ -6,9 +6,11 @@ from ledger.hsm2dongle_tcp import HSM2DongleTCP
 import output
 
 import logging
+
 logging.disable(logging.CRITICAL)
 
 _exchange_fn = None
+
 
 def debug_dongle_exchange(dongle, bs, timeout):
     sys.stdout.write("\n")
@@ -16,6 +18,7 @@ def debug_dongle_exchange(dongle, bs, timeout):
     result = _exchange_fn(bs, timeout=timeout)
     sys.stdout.write(output.Color.END)
     return result
+
 
 if __name__ == "__main__":
     options = OptionParser("Run the signer tests").parse()
@@ -43,7 +46,8 @@ if __name__ == "__main__":
 
         if options.dongle_verbose:
             _exchange_fn = dongle.dongle.exchange
-            dongle.dongle.exchange = debug_dongle_exchange.__get__(dongle.dongle, dongle.dongle.__class__)
+            dongle.dongle.exchange = debug_dongle_exchange.__get__(
+                dongle.dongle, dongle.dongle.__class__)
 
         output.info("Getting version")
         version = dongle.get_version()

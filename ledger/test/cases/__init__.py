@@ -1,3 +1,5 @@
+# flake8: noqa
+
 from .case import TestCase
 from .suite import TestSuite
 from .get import GetBlockchainState

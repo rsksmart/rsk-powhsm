@@ -1,5 +1,6 @@
 from .case import TestCase, TestCaseError
 
+
 class GetBlockchainState(TestCase):
     @classmethod
     def op_name(cls):
@@ -16,6 +17,7 @@ class GetBlockchainState(TestCase):
             if type(self.expected) == dict:
                 for key in self.expected:
                     if state.get(key) != self.expected[key]:
-                        raise TestCaseError(f"Expected {key} to be {self.expected[key]} but got {state.get(key)}")
+                        raise TestCaseError(f"Expected {key} to be {self.expected[key]} "
+                                            "but got {state.get(key)}")
         except RuntimeError as e:
             raise TestCaseError(str(e))
