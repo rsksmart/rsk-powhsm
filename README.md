@@ -1,6 +1,7 @@
 # HSM 2.X
 
 ![Tests](https://github.com/rsksmart/rsk-powhsm/actions/workflows/run-tests.yml/badge.svg)
+![Python linter](https://github.com/rsksmart/rsk-powhsm/actions/workflows/lint-python.yml/badge.svg)
 
 This repository hosts the HSM 2 project. Refer to the following documents for details on specifics:
 
