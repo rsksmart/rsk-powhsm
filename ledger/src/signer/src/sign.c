@@ -3,6 +3,7 @@
 
 #include "sign.h"
 #include "defs.h"
+#include "memutil.h"
 
 /*
  * Derive the public key for a given path.
@@ -37,14 +38,13 @@ int do_pubkey(
             cx_ecfp_generate_pair(CX_CURVE_256K1, &public_key, &private_key, 1);
             // Cleanup private key
             explicit_bzero(&private_key, sizeof(private_key));
-            // Check the destination buffer won't be overflowed by the public key
-            if (dest_size < public_key.W_len) {
-                pubkey_size = DO_PUBKEY_ERROR;
-            } else {
-                // Output public key
-                os_memmove(dest, public_key.W, public_key.W_len);
-                pubkey_size = public_key.W_len;
-            }
+            // Output the public key
+            pubkey_size = public_key.W_len;
+            SAFE_MEMMOVE(
+                dest, dest_size,
+                public_key.W, public_key.W_len,
+                public_key.W_len,
+                { pubkey_size = DO_PUBKEY_ERROR; })
             // Cleanup public key
             explicit_bzero(&public_key, sizeof(public_key));
         }

@@ -26,3 +26,10 @@ jobs:
           for d in difficulty sha256 srlp; do
             (cd "$d" && make clean test)
           done
+
+      - name: Ledger common lib tests
+        working-directory: ledger/src/common/test/
+        run: |
+          for d in memutil; do
+            (cd "$d" && make clean test)
+          done

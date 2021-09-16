@@ -5,6 +5,7 @@
 #include "defs.h"
 #include "dbg.h"
 #include "nvm.h"
+#include "memutil.h"
 
 #include "bc_state.h"
 #include "bc_err.h"
@@ -61,7 +62,7 @@ void bc_init_state() {
 // Blockchain state operations
 // -----------------------------------------------------------------------
 
-// Non-volatile blockchain validaton state
+// Non-volatile blockchain validation state
 const bc_state_t N_bc_state_var;
 
 /*
@@ -95,8 +96,14 @@ uint8_t dump_hash(uint8_t hash_code) {
     default:
         FAIL(PROT_INVALID);
     }
+
     APDU_DATA_PTR[0] = hash_code;
-    memcpy(APDU_DATA_PTR + 1, h, HASH_SIZE);
+    SAFE_MEMMOVE(
+        APDU_DATA_PTR + 1, APDU_TOTAL_DATA_SIZE - 1,
+        h, HASH_SIZE,
+        HASH_SIZE,
+        FAIL(PROT_INVALID));
+
     return 1 + HASH_SIZE;
 }
 
@@ -111,9 +118,12 @@ uint8_t dump_difficulty() {
     uint8_t buf[sizeof(N_bc_state.updating.total_difficulty)];
     dump_bigint(buf, N_bc_state.updating.total_difficulty, BIGINT_LEN);
     unsigned int start = 0;
-    for (; start < sizeof(buf) && buf[start] == 0; start++)
-        ;
-    memcpy(APDU_DATA_PTR, buf + start, sizeof(buf) - start);
+    for (; start < sizeof(buf) && buf[start] == 0; start++) continue;
+    SAFE_MEMMOVE(
+        APDU_DATA_PTR, APDU_TOTAL_DATA_SIZE,
+        buf + start, sizeof(buf) - start,
+        sizeof(buf) - start,
+        FAIL(PROT_INVALID));
     return sizeof(buf) - start;
 }
 
@@ -124,7 +134,11 @@ uint8_t dump_difficulty() {
  * @ret number of bytes dumped to APDU buffer
  */
 uint8_t bc_dump_initial_block_hash(int offset) {
-    memcpy(APDU_DATA_PTR + offset, INITIAL_BLOCK_HASH, sizeof(INITIAL_BLOCK_HASH));
+    SAFE_MEMMOVE(
+        APDU_DATA_PTR + offset, APDU_TOTAL_DATA_SIZE - offset,
+        INITIAL_BLOCK_HASH, sizeof(INITIAL_BLOCK_HASH),
+        sizeof(INITIAL_BLOCK_HASH),
+        FAIL(PROT_INVALID));
     return sizeof(INITIAL_BLOCK_HASH);
 }
 

@@ -171,7 +171,7 @@ bool hsmsim_ecdsa_get_key(unsigned char* path, unsigned char* dest) {
     bool found = false;
     for (int i = 0; i < TOTAL_AUTHORIZED_PATHS; i++) {
         // Compare paths, skip first byte of stored path (length, not included in the path parameter)
-        if (!memcmp(path, private_keys[i].path+1, SINGLE_PATH_BYTES-1)) {
+        if (!memcmp(path, private_keys[i].path+1, SINGLE_PATH_SIZE_BYTES-1)) {
             found = true;
             memmove(dest, private_keys[i].key, sizeof(private_keys[i].key));
             break;

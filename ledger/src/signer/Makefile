@@ -15,7 +15,7 @@ APP_LOAD_PARAMS = --appFlags 0x00 $(COMMON_LOAD_PARAMS)
 PROG = "app"
 
 # Build configuration
-APP_SOURCE_PATH += src
+APP_SOURCE_PATH += src ../common/src
 SDK_SOURCE_PATH += lib_stusb lib_stusb_impl
 
 DEFINES += APPVERSION=\"$(APPVERSION)\"

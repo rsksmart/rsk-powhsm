@@ -9,6 +9,7 @@
 #include "mem.h"
 #include "srlp.h"
 #include "bigdigits.h"
+#include "memutil.h"
 
 #include "bc_block.h"
 #include "bc_blockutils.h"
@@ -63,10 +64,12 @@ static uint8_t expected_state;
  * @arg[in] size buffer size in bytes
  */
 static void wa_store(const uint8_t* buf, uint16_t size) {
-    if (block.wa_off + size > WA_SIZE) {
-        FAIL(BUFFER_OVERFLOW);
-    }
-    memcpy(block.wa_buf + block.wa_off, buf, size);
+    SAFE_MEMMOVE(
+        block.wa_buf + block.wa_off, sizeof(block.wa_buf) - block.wa_off,
+        buf, size,
+        size,
+        FAIL(BUFFER_OVERFLOW));
+
     block.wa_off += size;
 }
 
@@ -111,10 +114,12 @@ static void process_merkle_proof(const uint8_t* chunk, uint16_t size) {
  * @arg[in] size  chunk size in bytes
  */
 static void store_cb_txn_bytes(const uint8_t* chunk, uint16_t size) {
-    if (block.cb_off+size > sizeof(block.cb_txn)) {
-        FAIL(CB_TXN_OVERFLOW);
-    }
-    memcpy(block.cb_txn + block.cb_off, chunk, size);
+    SAFE_MEMMOVE(
+        block.cb_txn + block.cb_off, sizeof(block.cb_txn) - block.cb_off,
+        chunk, size,
+        size,
+        FAIL(CB_TXN_OVERFLOW));
+
     block.cb_off += size;
 }
 
@@ -480,7 +485,11 @@ static void str_start(const uint16_t size) {
         // In preparation for the reduction of the merkle proof to the
         // merkle root, copy the coinbase transaction hash to the
         // reduction area
-        memcpy(block.merkle_proof_left, block.cb_txn_hash, sizeof(block.cb_txn_hash));
+        SAFE_MEMMOVE(
+            block.merkle_proof_left, sizeof(block.merkle_proof_left),
+            block.cb_txn_hash, sizeof(block.cb_txn_hash),
+            sizeof(block.cb_txn_hash),
+            FAIL(MERKLE_PROOF_INVALID));
     }
 
     if (block.field == F_COINBASE_TXN) {
@@ -586,7 +595,12 @@ static void str_end() {
             if (block.wa_off != UMM_ROOT_SIZE) {
                 FAIL(UMM_ROOT_INVALID);
             }
-            memcpy(block.umm_root, block.wa_buf, block.wa_off);
+
+            SAFE_MEMMOVE(
+                block.umm_root, sizeof(block.umm_root),
+                block.wa_buf, sizeof(block.wa_buf),
+                block.wa_off,
+                FAIL(UMM_ROOT_INVALID));
         }
     }
 
@@ -697,9 +711,11 @@ unsigned int bc_advance(volatile unsigned int rx) {
         expected_state = OP_ADVANCE_HEADER_META;
 
         memset(aux_bc_st.prev_parent_hash, 0, HASH_SIZE);
-        memcpy(aux_bc_st.total_difficulty,
-               N_bc_state.updating.total_difficulty,
-               sizeof(aux_bc_st.total_difficulty));
+        SAFE_MEMMOVE(
+            aux_bc_st.total_difficulty, sizeof(aux_bc_st.total_difficulty),
+            N_bc_state.updating.total_difficulty, sizeof(N_bc_state.updating.total_difficulty),
+            sizeof(aux_bc_st.total_difficulty),
+            FAIL(PROT_INVALID));
 
         curr_block = 0;
         BIGENDIAN_FROM(APDU_DATA_PTR, expected_blocks);
@@ -728,7 +744,11 @@ unsigned int bc_advance(volatile unsigned int rx) {
         BIGENDIAN_FROM(APDU_DATA_PTR, block.mm_rlp_len);
 
         // Read the coinbase transaction hash
-        memcpy(block.cb_txn_hash, APDU_DATA_PTR + sizeof(block.mm_rlp_len), sizeof(block.cb_txn_hash));
+        SAFE_MEMMOVE(
+            block.cb_txn_hash, sizeof(block.cb_txn_hash),
+            APDU_DATA_PTR + sizeof(block.mm_rlp_len), APDU_TOTAL_DATA_SIZE - sizeof(block.mm_rlp_len),
+            sizeof(block.cb_txn_hash),
+            FAIL(PROT_INVALID));
 
         // Block hash computation: encode and hash payload len
         

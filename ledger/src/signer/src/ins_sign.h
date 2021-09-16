@@ -2,77 +2,88 @@
 // All this code is included in the context
 // of a:
 // case INS_SIGN:
-// statement.
+// statement within hsm.c.
 // ******************
 
-while (true) {
+#define SET_APDU_FOR_SIGN() \
+    SET_APDU_CLA(); \
+    SET_APDU_CMD(INS_SIGN);
 
-// TODO: check input lenghts and correct structure on every state
+while (true) {
 
 // Reset all other operations first
 reset_if_starting(INS_SIGN);
 
 // Check for a valid OP, otherwise throw an error
-if ((G_io_apdu_buffer[OP] & 0xF) != P1_PATH &&
-    (G_io_apdu_buffer[OP] & 0xF) != P1_BTC &&
-    (G_io_apdu_buffer[OP] & 0xF) != P1_RECEIPT &&
-    (G_io_apdu_buffer[OP] & 0xF) != P1_MERKLEPROOF) {
+if ((APDU_OP() & 0xF) != P1_PATH &&
+    (APDU_OP() & 0xF) != P1_BTC &&
+    (APDU_OP() & 0xF) != P1_RECEIPT &&
+    (APDU_OP() & 0xF) != P1_MERKLEPROOF) {
     THROW(0x6A87);
 }
 
 //---------------------- PATH Parser --------------------------
 // Generate key with path
-if ((G_io_apdu_buffer[OP] & 0xF) == P1_PATH) {
+if ((APDU_OP() & 0xF) == P1_PATH) {
     if ((rx != DATA + PATHLEN + INPUTINDEXLEN) &&
         (rx != DATA + PATHLEN + HASHLEN))
         THROW(0x6A87); // Wrong buffer size, has to be either 28
                      // (DATA+PATHLEN+INPUTINDEXLEN) or 56 (DATA+PATHLEN+HASHEN)
-    memmove(path, &G_io_apdu_buffer[DATA + 1], RSK_PATH_LEN * sizeof(int));
+    SAFE_MEMMOVE(
+        path, sizeof(path),
+        APDU_DATA_PTR + 1, APDU_TOTAL_DATA_SIZE - 1,
+        RSK_PATH_LEN * sizeof(int),
+        THROW(0x6A87));
     // If path requires authorization, continue with authorization and
     // validation state machine
-    if (pathRequireAuth(&G_io_apdu_buffer[DATA])) {
+    if (pathRequireAuth(APDU_DATA_PTR)) {
         if (rx != DATA + PATHLEN + INPUTINDEXLEN)
             THROW(0x6A90); // Wrong buffer size for authorized sign
-        memmove(&tx_ctx.tx_input_index_to_sign,
-                &G_io_apdu_buffer[DATA + PATHLEN],
-                INPUTINDEXLEN);
-        G_io_apdu_buffer[OP] = P1_BTC;
-        tx_ctx.expectedRXBytes = G_io_apdu_buffer[TXLEN] = 0;
+        SAFE_MEMMOVE(
+            &tx_ctx.tx_input_index_to_sign, sizeof(tx_ctx.tx_input_index_to_sign),
+            APDU_DATA_PTR + PATHLEN, APDU_TOTAL_DATA_SIZE - PATHLEN,
+            INPUTINDEXLEN,
+            THROW(0x6A87));
+        SET_APDU_OP(P1_BTC);
+        SET_APDU_TXLEN(0);
+        tx_ctx.expectedRXBytes = APDU_TXLEN();
         state = S_CMD_START;
         tx_ctx.validContract = false;
         tx_ctx.validSignature = false;
-        tx = 4;
+        tx = TX_FOR_TXLEN();
         goto continue_sign_loop;
     }
     // If path doesn't require authorization, go directly do the signing state
-    else if (pathDontRequireAuth(&G_io_apdu_buffer[DATA])) {
+    else if (pathDontRequireAuth(APDU_DATA_PTR)) {
         if (rx != DATA + PATHLEN + HASHLEN)
             THROW(0x6A91); // Wrong buffer size for unauthorized sign
-        G_io_apdu_buffer[OP] = P1_MERKLEPROOF;
-        mp_ctx.expectedRXBytes = G_io_apdu_buffer[TXLEN] = 0;
+        SET_APDU_OP(P1_MERKLEPROOF);
+        SET_APDU_TXLEN(0);
+        mp_ctx.expectedRXBytes = APDU_TXLEN();
         state = S_SIGN_MESSAGE;
         // Skip validations
-        memmove(mp_ctx.signatureHash,
-                &G_io_apdu_buffer[DATA + PATHLEN],
-                sizeof(mp_ctx.signatureHash));
-        tx = 4;
+        SAFE_MEMMOVE(
+            mp_ctx.signatureHash, sizeof(mp_ctx.signatureHash),
+            APDU_DATA_PTR + PATHLEN, APDU_TOTAL_DATA_SIZE - PATHLEN,
+            sizeof(mp_ctx.signatureHash),
+            THROW(0x6A87));
+        tx = TX_FOR_TXLEN();
         goto continue_sign_loop;
     }
     // If no path match, then bail out
     THROW(0x6a8f); // Invalid Key Path
 }
-// For testing, we use a hardcoded receipt root TODO: CHANGE THIS ON FINAL
-// RELEASE
-#ifdef HARDCODED_RECEIPTROOT
-memmove(ReceiptsRootBuf, ReceiptsRootConst, sizeof(ReceiptsRootBuf));
-#else
-memmove(ReceiptsRootBuf,
-        N_bc_state.ancestor_receipt_root,
-        sizeof(ReceiptsRootBuf));
-#endif
+
+// Copy the ancestor receipts root from the current
+// blockchain state
+SAFE_MEMMOVE(
+    ReceiptsRootBuf, sizeof(ReceiptsRootBuf),
+    N_bc_state.ancestor_receipt_root, sizeof(N_bc_state.ancestor_receipt_root),
+    sizeof(ReceiptsRootBuf),
+    THROW(0x6A87));
 
 //---------------------- BTC TX Parser --------------------------
-if (G_io_apdu_buffer[OP] & P1_BTC) {
+if (APDU_OP() & P1_BTC) {
     // Input len check
     if ((state != S_TX_REMAINING && (rx - DATA) != tx_ctx.expectedRXBytes) ||
         (state == S_TX_REMAINING && rx < DATA)) {
@@ -101,7 +112,7 @@ if (G_io_apdu_buffer[OP] & P1_BTC) {
         break;
     case S_TX_END:
         SM_TX_END(&tx_ctx, &state, rx, &tx);
-        rlp_ctx.expectedRXBytes = G_io_apdu_buffer[TXLEN];
+        rlp_ctx.expectedRXBytes = APDU_TXLEN();
         // Check if we request more than our buffer size
         if (rlp_ctx.expectedRXBytes > IO_APDU_BUFFER_SIZE)
             THROW(0x6A89);
@@ -110,14 +121,14 @@ if (G_io_apdu_buffer[OP] & P1_BTC) {
         THROW(0x6A89);
     }
     // Save the amount of bytes we request, to check at RX
-    tx_ctx.expectedRXBytes = G_io_apdu_buffer[TXLEN];
+    tx_ctx.expectedRXBytes = APDU_TXLEN();
     // Check if we request more than our buffer size
 	if (tx_ctx.expectedRXBytes > IO_APDU_BUFFER_SIZE)
 		THROW(0x6A89);
 }
 
 //---------------------- Receipt RLP Parser --------------------------
-if (G_io_apdu_buffer[OP] & P1_RECEIPT) {
+if (APDU_OP() & P1_RECEIPT) {
     static unsigned int oldListLevel = 0;
     // Input len check
     if ((state != S_RLP_FINISH && (rx - DATA) != rlp_ctx.expectedRXBytes) ||
@@ -136,7 +147,7 @@ if (G_io_apdu_buffer[OP] & P1_RECEIPT) {
     // parsing field body
     case S_RLP_FIELD:
         keccak_update(&ReceiptHash,
-                      &G_io_apdu_buffer[DATA],
+                      APDU_DATA_PTR,
                       rx - DATA); // Update Receipt hash
         // If parsing another event, automatically invalidate the contract.
         if (rlp_ctx.listLevel < 3) {
@@ -154,7 +165,7 @@ if (G_io_apdu_buffer[OP] & P1_RECEIPT) {
             // Check input size
             if (rx != CONTRACTADDRESS_LEN + DATA)
                 THROW(0x6A87);
-            if (!memcmp(&G_io_apdu_buffer[DATA],
+            if (!memcmp(APDU_DATA_PTR,
                         ContractAddress,
                         CONTRACTADDRESS_LEN))
                 tx_ctx.validContract = true;
@@ -165,7 +176,7 @@ if (G_io_apdu_buffer[OP] & P1_RECEIPT) {
             // Check input size
             if (rx != CONTRACTSIGNATURE_LEN + DATA)
                 THROW(0x6A87);
-            if (!memcmp(&G_io_apdu_buffer[DATA],
+            if (!memcmp(APDU_DATA_PTR,
                         ContractSignature,
                         CONTRACTSIGNATURE_LEN))
                 if (tx_ctx.validContract == true)
@@ -182,7 +193,7 @@ if (G_io_apdu_buffer[OP] & P1_RECEIPT) {
             // TX hash == receipt TX hash check
             if (!memcmp(
                     tx_ctx.TXHashBuf,
-                    &G_io_apdu_buffer[DATA],
+                    APDU_DATA_PTR,
                     sizeof(
                         tx_ctx.TXHashBuf))) { // Matching TX found, Contract is
                                               // valid and Receipt Signature is
@@ -194,11 +205,10 @@ if (G_io_apdu_buffer[OP] & P1_RECEIPT) {
                     tx_ctx.validSignature ? "true" : "false",
                     tx_ctx.validHashes ? "true" : "false");
 
-                G_io_apdu_buffer[CLAPOS] = CLA;
-                G_io_apdu_buffer[CMDPOS] = INS_SIGN;
-                G_io_apdu_buffer[OP] = P1_RECEIPT;
-                G_io_apdu_buffer[TXLEN] = RLP_MAX_TRANSFER;
-                tx = 4;
+                SET_APDU_FOR_SIGN();
+                SET_APDU_OP(P1_RECEIPT);
+                SET_APDU_TXLEN(RLP_MAX_TRANSFER);
+                tx = TX_FOR_TXLEN();
                 state = S_RLP_FINISH;
             } else
                 SM_RLP_FIELD(&rlp_ctx, &state, rx, &tx);
@@ -208,7 +218,7 @@ if (G_io_apdu_buffer[OP] & P1_RECEIPT) {
     // parsing field header
     case S_RLP_HDR:
         keccak_update(&ReceiptHash,
-                      &G_io_apdu_buffer[DATA],
+                      APDU_DATA_PTR,
                       rx - DATA); // Update Receipt hash
         SM_RLP_HDR(&rlp_ctx, &state, rx, &tx);
         break;
@@ -216,25 +226,23 @@ if (G_io_apdu_buffer[OP] & P1_RECEIPT) {
     case S_RLP_FINISH:
         if (rx > DATA) {
             keccak_update(&ReceiptHash,
-                        &G_io_apdu_buffer[DATA],
+                        APDU_DATA_PTR,
                         rx - DATA); // Update Receipt hash
         }
         if (rx - DATA == RLP_MAX_TRANSFER) { // Data still remains
-            G_io_apdu_buffer[CLAPOS] = CLA;
-            G_io_apdu_buffer[CMDPOS] = INS_SIGN;
-            G_io_apdu_buffer[OP] = P1_RECEIPT;
-            G_io_apdu_buffer[TXLEN] = RLP_MAX_TRANSFER;
-            tx = 4;
+            SET_APDU_FOR_SIGN();
+            SET_APDU_OP(P1_RECEIPT);
+            SET_APDU_TXLEN(RLP_MAX_TRANSFER);
+            tx = TX_FOR_TXLEN();
             state = S_RLP_FINISH;
         } else { // Last chunk transmitted
             keccak_final(&ReceiptHash, ReceiptHashBuf);
             LOG_HEX("LAST CHUNK, RLP Keccak256: ", ReceiptHashBuf, sizeof(ReceiptHashBuf));
-            G_io_apdu_buffer[CLAPOS] = CLA;
-            G_io_apdu_buffer[CMDPOS] = INS_SIGN;
-            G_io_apdu_buffer[OP] = P1_MERKLEPROOF;
-            G_io_apdu_buffer[TXLEN] = 1; // Return trie merkle tree NodeCount
+            SET_APDU_FOR_SIGN();
+            SET_APDU_OP(P1_MERKLEPROOF);
+            SET_APDU_TXLEN(1); // Return trie merkle tree NodeCount
             state = S_MP_START;
-            tx = 4;
+            tx = TX_FOR_TXLEN();
         }
         break;
         
@@ -242,14 +250,14 @@ if (G_io_apdu_buffer[OP] & P1_RECEIPT) {
         THROW(0x6A89);
     }
     // Save the amount of bytes we request, to check at RX
-    rlp_ctx.expectedRXBytes = G_io_apdu_buffer[TXLEN];
+    rlp_ctx.expectedRXBytes = APDU_TXLEN();
     // Check if we request more than our buffer size
 	if (rlp_ctx.expectedRXBytes > IO_APDU_BUFFER_SIZE)
 		THROW(0x6A89);
     goto continue_sign_loop;
 }
 //---------------------- Merkle Proof Parser --------------------------
-else if (G_io_apdu_buffer[OP] & P1_MERKLEPROOF) {
+else if (APDU_OP() & P1_MERKLEPROOF) {
     unsigned char signatureHashCopy[HASHLEN];
     unsigned char privateKeyData[KEYLEN];
     // Input len check
@@ -258,9 +266,11 @@ else if (G_io_apdu_buffer[OP] & P1_MERKLEPROOF) {
             THROW(0x6A87);
     switch (state) {
     case S_MP_START:
-        memmove(signatureHashCopy,
-                tx_ctx.signatureHashBuf,
-                sizeof(signatureHashCopy));
+        SAFE_MEMMOVE(
+            signatureHashCopy, sizeof(signatureHashCopy),
+            tx_ctx.signatureHashBuf, sizeof(tx_ctx.signatureHashBuf),
+            sizeof(signatureHashCopy),
+            THROW(0x6A87));
         MP_START(&mp_ctx,
                  &state,
                  rx,
@@ -329,7 +339,7 @@ else if (G_io_apdu_buffer[OP] & P1_MERKLEPROOF) {
         tx = do_sign(
             path, RSK_PATH_LEN, 
             mp_ctx.signatureHash, sizeof(mp_ctx.signatureHash), 
-            G_io_apdu_buffer+DATA, sizeof(G_io_apdu_buffer)-DATA);
+            APDU_DATA_PTR, APDU_TOTAL_DATA_SIZE);
 
         // Error signing?
         if (tx == DO_SIGN_ERROR) {
@@ -337,9 +347,8 @@ else if (G_io_apdu_buffer[OP] & P1_MERKLEPROOF) {
         }
 
         tx += DATA;
-        G_io_apdu_buffer[CLAPOS] = CLA;
-        G_io_apdu_buffer[CMDPOS] = INS_SIGN;
-        G_io_apdu_buffer[OP] = P1_SUCCESS; // Command finished
+        SET_APDU_FOR_SIGN();
+        SET_APDU_OP(P1_SUCCESS); // Command finished
         state = S_CMD_FINISHED;
         break;
     }
@@ -350,7 +359,7 @@ else if (G_io_apdu_buffer[OP] & P1_MERKLEPROOF) {
     if (state!=S_CMD_FINISHED)
 	{
 	// Save the amount of bytes we request, to check at RX
-	mp_ctx.expectedRXBytes = G_io_apdu_buffer[TXLEN];
+	mp_ctx.expectedRXBytes = APDU_TXLEN();
 	// Check if we request more than our buffer size
 	if (mp_ctx.expectedRXBytes > IO_APDU_BUFFER_SIZE)
 		THROW(0x6A89);
@@ -366,8 +375,8 @@ else if (G_io_apdu_buffer[OP] & P1_MERKLEPROOF) {
 // depend upon this logic to function correctly.
 continue_sign_loop:
 
-if (G_io_apdu_buffer[1] == INS_SIGN &&
-    G_io_apdu_buffer[TXLEN] == 0 &&
+if (APDU_CMD() == INS_SIGN &&
+    APDU_TXLEN() == 0 &&
     state != S_CMD_FINISHED) {
     rx = 3;
 } else {

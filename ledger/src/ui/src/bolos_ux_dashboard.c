@@ -327,7 +327,7 @@ screen_dashboard_unsigned_app_button(unsigned int button_mask,
         } while (db.app.flags & APPLICATION_FLAG_BOLOS_UX);
 
 
-	if (is_app_version_allowed(db.app.hash))
+	if (is_app_version_allowed(&db.app))
 		{
 		screen_dashboard_disable_bolos_before_app();
 		os_sched_exec(db.os_index); // no return
@@ -430,7 +430,7 @@ unsigned int screen_dashboard_button(unsigned int button_mask,
                     screen_dashboard_unsigned_app_button;
             } else {
                 // delegate boot
-		if (is_app_version_allowed(db.app.hash))
+		if (is_app_version_allowed(&db.app))
 			{
 			screen_dashboard_disable_bolos_before_app();
 			os_sched_exec(db.os_index); // no return

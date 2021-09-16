@@ -264,7 +264,7 @@ void bolos_ux_electrum_mnemonic_to_seed(unsigned char *mnemonic,
 void bolos_ux_main(void);
 
 // Check if app is allowed, and manage app blacklist
-int is_app_version_allowed(unsigned char *SIGNER_HASH);
+int is_app_version_allowed(application_t *app);
 
 #endif // HAVE_BOLOS_UX
 
