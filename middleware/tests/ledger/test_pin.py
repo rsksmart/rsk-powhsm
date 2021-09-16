@@ -1,8 +1,9 @@
 import string
 from unittest import TestCase
-from unittest.mock import MagicMock, Mock, call, patch
+from unittest.mock import MagicMock, call, patch
 from parameterized import parameterized
 import ledger.pin as pin
+
 
 class TestBasePin(TestCase):
     def test_generate_pin(self):
@@ -10,7 +11,8 @@ class TestBasePin(TestCase):
             p = pin.BasePin.generate_pin()
             self.assertEqual(8, len(p))
             self.assertEqual(bytes, type(p))
-            self.assertTrue(all(map(lambda c: chr(c) in string.ascii_letters + string.digits, p)))
+            self.assertTrue(
+                all(map(lambda c: chr(c) in string.ascii_letters + string.digits, p)))
             self.assertTrue(any(map(lambda c: chr(c) in string.ascii_letters, p)))
 
     @parameterized.expand([
@@ -85,16 +87,18 @@ class TestBasePin(TestCase):
         ("(),./;']", False),
     ])
     def test_is_valid_not_require_alpha(self, p, expected_validity):
-        self.assertEqual(pin.BasePin.is_valid(p.encode(), require_alpha=False), expected_validity)
+        self.assertEqual(pin.BasePin.is_valid(p.encode(), require_alpha=False),
+                         expected_validity)
+
 
 class TestFileBasedPin(TestCase):
     @patch("ledger.pin.open")
     def test_new(self, mock_open):
         mock_file = MagicMock()
         mock_open.return_value = mock_file
-        p = pin.FileBasedPin.new('a-path')
+        p = pin.FileBasedPin.new("a-path")
         self.assertTrue(pin.BasePin.is_valid(p))
-        self.assertEqual([call('a-path', 'wb')], mock_open.call_args_list)
+        self.assertEqual([call("a-path", "wb")], mock_open.call_args_list)
         self.assertEqual([call(p)], mock_file.__enter__().write.call_args_list)
         self.assertTrue(mock_file.__exit__.called)
 

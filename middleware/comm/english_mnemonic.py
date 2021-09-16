@@ -3,6 +3,7 @@
 
 from mnemonic import Mnemonic
 
+
 class EnglishMnemonic(Mnemonic):
     @classmethod
     def detect_language(cls, code):
@@ -10,6 +11,7 @@ class EnglishMnemonic(Mnemonic):
 
     def __init__(self):
         self.wordlist = _ENGLISH_WORDLIST
+
 
 _ENGLISH_WORDLIST = [
     "abandon",

@@ -1,6 +1,16 @@
 from ledger.hsm2dongle import HSM2Dongle
 from ledger.pin import BasePin
-from .misc import info, head, bls, get_hsm, dispose_hsm, PIN_ERROR_MESSAGE_ANYCHARS, AdminError, ask_for_pin
+from .misc import (
+    info,
+    head,
+    bls,
+    get_hsm,
+    dispose_hsm,
+    PIN_ERROR_MESSAGE_ANYCHARS,
+    AdminError,
+    ask_for_pin,
+)
+
 
 def do_unlock(options, exit=True, no_exec=False, label=True):
     if label:
@@ -33,7 +43,8 @@ def do_unlock(options, exit=True, no_exec=False, label=True):
 
     # Modes for which we can't unlock
     if mode == HSM2Dongle.MODE.UNKNOWN:
-        raise AdminError("Device mode unknown. Already unlocked? Otherwise disconnect and re-connect the ledger and try again")
+        raise AdminError("Device mode unknown. Already unlocked? Otherwise disconnect "
+                         "and re-connect the ledger and try again")
     if mode == HSM2Dongle.MODE.APP:
         raise AdminError("Device already unlocked and in app mode")
 
@@ -57,10 +68,13 @@ def do_unlock(options, exit=True, no_exec=False, label=True):
     # Exit the bootloader, go into menu (or, if app is properly signed, into
     # the app)
     if exit:
-        autoexec=not(options.no_exec or no_exec)
-        info(f"Exiting to menu/app (execute signer: {bls(autoexec)})... ", options.verbose)
-        try: hsm.exit_menu(autoexec=autoexec)
-        except: pass
+        autoexec = not (options.no_exec or no_exec)
+        info(f"Exiting to menu/app (execute signer: {bls(autoexec)})... ",
+             options.verbose)
+        try:
+            hsm.exit_menu(autoexec=autoexec)
+        except Exception:
+            pass
         info("Exit OK")
 
     dispose_hsm(hsm)

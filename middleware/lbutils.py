@@ -3,11 +3,11 @@ if __name__ == "__main__":
     import sys
 
     utilities = {
-        'load': 'loadApp',
-        'delete': 'deleteApp',
-        'setupCA': 'setupCustomCA',
-        'resetCA': 'resetCustomCA',
-        'genCA': 'genCAPair',
+        "load": "loadApp",
+        "delete": "deleteApp",
+        "setupCA": "setupCustomCA",
+        "resetCA": "resetCustomCA",
+        "genCA": "genCAPair",
     }
 
     if len(sys.argv) < 2 or sys.argv[1] not in utilities:

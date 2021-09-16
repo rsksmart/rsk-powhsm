@@ -4,13 +4,22 @@ from parameterized import parameterized
 import rlp
 import ledger.block_utils as bu
 
+
 class TestBlockUtils(TestCase):
     def test_rlp_first_element_list_payload_length_ok(self):
-        elements = [b"hello", b"abcd", b"10"*10000, b"", b"a",
-                    [b"another", b"", b"list", b"1"*9999]]
+        elements = [
+            b"hello",
+            b"abcd",
+            b"10"*10000,
+            b"",
+            b"a",
+            [b"another", b"", b"list", b"1"*9999],
+        ]
         expected_payload_length = sum(map(lambda e: len(rlp.encode(e)), elements))
-        self.assertEqual(expected_payload_length,
-                         bu.rlp_first_element_list_payload_length(rlp.encode(elements)))
+        self.assertEqual(
+            expected_payload_length,
+            bu.rlp_first_element_list_payload_length(rlp.encode(elements)),
+        )
 
     def test_rlp_first_element_list_payload_length_ok_emptylist(self):
         self.assertEqual(0, bu.rlp_first_element_list_payload_length(rlp.encode([])))
@@ -30,8 +39,10 @@ class TestBlockUtils(TestCase):
         block = self._makeblock(num_fields)
 
         self.assertEqual("what-i-wanted", bu.rlp_mm_payload_size(rlp.encode(block).hex()))
-        self.assertEqual([call(rlp.encode(block[:-num_fields_to_exclude]))],
-                         bu.rlp_first_element_list_payload_length.call_args_list)
+        self.assertEqual(
+            [call(rlp.encode(block[:-num_fields_to_exclude]))],
+            bu.rlp_first_element_list_payload_length.call_args_list,
+        )
 
     def test_rlp_mm_payload_size_wrong_list_size(self):
         with self.assertRaises(ValueError):
@@ -65,10 +76,13 @@ class TestBlockUtils(TestCase):
         ("19 elements, leave BTC block, hex", 19, True, 17, True),
         ("20 elements, leave BTC block, hex", 20, True, 18, True),
     ])
-    def test_remove_mm_fields_if_present_ok(self, _, num_fields, leave_btcblock, expected_fields, hex_result):
+    def test_remove_mm_fields_if_present_ok(self, _, num_fields, leave_btcblock,
+                                            expected_fields, hex_result):
         block = self._makeblock(num_fields)
 
-        result_bytes = bu.remove_mm_fields_if_present(rlp.encode(block).hex(), leave_btcblock=leave_btcblock, hex=hex_result)
+        result_bytes = bu.remove_mm_fields_if_present(rlp.encode(block).hex(),
+                                                      leave_btcblock=leave_btcblock,
+                                                      hex=hex_result)
 
         if hex_result:
             result_bytes = bytes.fromhex(result_bytes)

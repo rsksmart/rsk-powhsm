@@ -10,12 +10,56 @@ DEFAULT_VERBOSE = False
 CHUNK_PLACEHOLDER = "<CHUNK>"
 
 parser = ArgumentParser(description="Send a request to the HSM2 manager")
-parser.add_argument("-a", "--host", dest="host", help="destination host (default %s)" % DEFAULT_HOST, type=str, default=DEFAULT_HOST)
-parser.add_argument("-p", "--port", dest="port", help="destination port (default %d)" % DEFAULT_PORT, type=int, default=DEFAULT_PORT)
-parser.add_argument("-v", "--verbose", dest="verbose", help="print server address and sent data (default %s)" % DEFAULT_VERBOSE, default=DEFAULT_VERBOSE, action='store_const', const=True)
-parser.add_argument("-c", "--command", dest="command", help="command blueprint to send. used to send data in chunks. use chunk placeholder '%s'. when using this, the 'data' parameter is the path to a JSON file containing the data to send." % CHUNK_PLACEHOLDER)
-parser.add_argument("-s", "--chunksize", dest="chunksize", help="size of the chunks to send. must be used alongside '-c'", type=int)
-parser.add_argument("-o", "--chunkoverlap", dest="chunkoverlap", help="send the last block of the previous chunk as the first block of the next one. must be used alongside '-c'", action='store_const', const=True)
+parser.add_argument(
+    "-a",
+    "--host",
+    dest="host",
+    help="destination host (default %s)" % DEFAULT_HOST,
+    type=str,
+    default=DEFAULT_HOST,
+)
+parser.add_argument(
+    "-p",
+    "--port",
+    dest="port",
+    help="destination port (default %d)" % DEFAULT_PORT,
+    type=int,
+    default=DEFAULT_PORT,
+)
+parser.add_argument(
+    "-v",
+    "--verbose",
+    dest="verbose",
+    help="print server address and sent data (default %s)" % DEFAULT_VERBOSE,
+    default=DEFAULT_VERBOSE,
+    action="store_const",
+    const=True,
+)
+parser.add_argument(
+    "-c",
+    "--command",
+    dest="command",
+    help="command blueprint to send. used to send data in chunks. use chunk placeholder "
+         "'%s'. when using this, the 'data' parameter is the path to a JSON file "
+         "containing the data to send."
+    % CHUNK_PLACEHOLDER,
+)
+parser.add_argument(
+    "-s",
+    "--chunksize",
+    dest="chunksize",
+    help="size of the chunks to send. must be used alongside '-c'",
+    type=int,
+)
+parser.add_argument(
+    "-o",
+    "--chunkoverlap",
+    dest="chunkoverlap",
+    help="send the last block of the previous chunk as the first block of the next one. "
+         "must be used alongside '-c'",
+    action="store_const",
+    const=True,
+)
 parser.add_argument("data", type=str, help="the data to send (only when not using '-c')")
 options = parser.parse_args()
 
@@ -39,11 +83,13 @@ if options.command is not None:
 
     # Calculate chunks
     chunks = []
-    for chunk_index in range(ceil(len(data) / options.chunksize)):
+    for chunk_index in range(ceil(len(data)/options.chunksize)):
         start_offset = -1 if options.chunkoverlap and chunk_index > 0 else 0
-        chunk_data = data[chunk_index*options.chunksize+start_offset:chunk_index*options.chunksize+options.chunksize]
+        chunk_data = data[chunk_index*options.chunksize +
+                          start_offset:chunk_index*options.chunksize + options.chunksize]
         chunks.append(options.command.replace(CHUNK_PLACEHOLDER, json.dumps(chunk_data)))
-    print("Data size: %d; total chunks: %d; chunk size: %d" % (len(data), len(chunks), options.chunksize))
+    print("Data size: %d; total chunks: %d; chunk size: %d" %
+          (len(data), len(chunks), options.chunksize))
 
 else:
     chunks = [options.data]
@@ -54,9 +100,9 @@ if options.verbose:
 total_chunks = len(chunks)
 for chunk_index, chunk in enumerate(chunks):
     if options.verbose:
-        print("Sending chunk %d/%d:     %s" % (chunk_index+1, total_chunks, chunk))
+        print("Sending chunk %d/%d:     %s" % (chunk_index + 1, total_chunks, chunk))
     else:
-        print("Sending chunk %d/%d..." % (chunk_index+1, total_chunks))
+        print("Sending chunk %d/%d..." % (chunk_index + 1, total_chunks))
 
     # Connect to server and send chunk
     # (protocol is in the HTTP/1.0 style - one command per connection,

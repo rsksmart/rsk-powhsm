@@ -2,6 +2,7 @@ import sha3
 from .utils import rlp_decode_list_of_expected_length
 import logging
 
+
 class RskTransactionReceipt:
     def __init__(self, raw_hex_string):
         self.logger = logging.getLogger("rsktransactionreceipt")
@@ -14,7 +15,8 @@ class RskTransactionReceipt:
         # to the receipt logs, which is itself another list.
         self.logger.debug("Decoding from %s", self.__raw.hex())
 
-        rlp_items = rlp_decode_list_of_expected_length(self.__raw, 6, "transaction receipt")
+        rlp_items = rlp_decode_list_of_expected_length(self.__raw, 6,
+                                                       "transaction receipt")
 
         self.__logs = list(map(lambda raw_log: RskReceiptLog(raw_log), rlp_items[3]))
 
@@ -35,6 +37,7 @@ class RskTransactionReceipt:
     def __repr__(self):
         return str(self)
 
+
 class RskReceiptLog:
     def __init__(self, rlp_items):
         # An RSK transaction receipt log is expected to be given as a list of 3 elements.
@@ -47,7 +50,10 @@ class RskReceiptLog:
         EXPECTED_ITEMS = 3
 
         if len(rlp_items) != EXPECTED_ITEMS:
-            message = "Invalid list length (expected %d got %d)" % (EXPECTED_ITEMS, len(rlp_items))
+            message = "Invalid list length (expected %d got %d)" % (
+                EXPECTED_ITEMS,
+                len(rlp_items),
+            )
             self.logger.debug(message)
             raise ValueError("Error building an RskReceiptLog: %s", message)
 

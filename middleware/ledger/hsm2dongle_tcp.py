@@ -2,6 +2,7 @@ from ledgerblue.commTCP import getDongle
 from ledgerblue.commException import CommException
 from .hsm2dongle import HSM2Dongle, HSM2DongleCommError
 
+
 class HSM2DongleTCP(HSM2Dongle):
     def __init__(self, host, port, debug):
         self.host = host

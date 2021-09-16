@@ -6,24 +6,30 @@ import hid
 from .signature import HSM2DongleSignature
 from .version import HSM2FirmwareVersion
 from .parameters import HSM2FirmwareParameters
-from .block_utils import rlp_mm_payload_size, remove_mm_fields_if_present, get_coinbase_txn
+from .block_utils import (
+    rlp_mm_payload_size,
+    remove_mm_fields_if_present,
+    get_coinbase_txn,
+)
 from comm.pow import coinbase_tx_get_hash
 import logging
 
-#### Enumerations ####
+# Enumerations
 
 # Dongle commands
+
+
 class _Command(IntEnum):
     IS_ONBOARD = 0x06
-    ECHO = 0x02 # UI command
-    SIGN = 0x02 # Signer command
+    ECHO = 0x02  # UI command
+    SIGN = 0x02  # Signer command
     GET_PUBLIC_KEY = 0x04
     SEND_PIN = 0x41
-    UNLOCK = 0xfe
+    UNLOCK = 0xFE
     CHANGE_PIN = 0x08
     GET_MODE = 0x43
-    EXIT_MENU = 0xff
-    EXIT_MENU_NO_AUTOEXEC = 0xfa
+    EXIT_MENU = 0xFF
+    EXIT_MENU_NO_AUTOEXEC = 0xFA
     GET_STATE = 0x20
     RESET_AB = 0x21
     ADVANCE = 0x10
@@ -35,6 +41,7 @@ class _Command(IntEnum):
     SIGNER_ATT = 0x50
     RETRIES = 0x45
 
+
 # Sign command OPs
 class _SignOps(IntEnum):
     PATH = 0x01
@@ -43,16 +50,19 @@ class _SignOps(IntEnum):
     MERKLE_PROOF = 0x08
     SUCCESS = 0x81
 
+
 # Get blockchain state command OPs
 class _GetStateOps(IntEnum):
     HASH = 0x01
     DIFF = 0x02
     FLAGS = 0x03
 
+
 # Reset advance blockchain command OPs
 class _ResetAdvanceOps(IntEnum):
     INIT = 0x01
     DONE = 0x02
+
 
 # Advance blockchain command OPs
 class _AdvanceOps(IntEnum):
@@ -62,12 +72,14 @@ class _AdvanceOps(IntEnum):
     PARTIAL = 0x05
     SUCCESS = 0x06
 
+
 # Update ancestor command OPs
 class _UpdateAncestorOps(IntEnum):
     INIT = 0x02
     HEADER_META = 0x03
     HEADER_CHUNK = 0x04
     SUCCESS = 0x05
+
 
 # UI attestation OPs
 class _UIAttestationOps(IntEnum):
@@ -79,11 +91,13 @@ class _UIAttestationOps(IntEnum):
     OP_GET = 0x06
     OP_APP_HASH = 0x07
 
+
 # Signer attestation OPs
 class _SignerAttestationOps(IntEnum):
     OP_GET = 0x01
     OP_GET_MESSAGE = 0x02
     OP_APP_HASH = 0x03
+
 
 # Command Ops
 class _Ops:
@@ -95,6 +109,7 @@ class _Ops:
     UI_ATT = _UIAttestationOps
     SIGNER_ATT = _SignerAttestationOps
 
+
 # Protocol offsets
 class _Offset(IntEnum):
     CLA = 0
@@ -102,17 +117,20 @@ class _Offset(IntEnum):
     OP = 2
     DATA = 3
 
+
 # Device modes
 class _Mode(IntEnum):
     BOOTLOADER = 0x02
     APP = 0x03
-    UNKNOWN = 0xff
+    UNKNOWN = 0xFF
+
 
 # Get blockchain state flag indexes
 class _GetStateFlagOffset(IntEnum):
     IN_PROGRESS = 0
     ALREADY_VALIDATED = 1
     FOUND_BEST_BLOCK = 2
+
 
 # Get blockchain state constants
 class _GetState:
@@ -127,9 +145,10 @@ class _GetState:
         "updating.next_expected_block": 0x84,
     }
 
+
 # Sign command errors
 class _SignError(IntEnum):
-    DATA_SIZE = 0x6a87
+    DATA_SIZE = 0x6A87
     INPUT = auto()
     STATE = auto()
     RLP = auto()
@@ -146,14 +165,16 @@ class _SignError(IntEnum):
     NODE_CHAINING_MISMATCH = auto()
     RECEIPT_ROOT_MISMATCH = auto()
 
+
 # Get public key command errors
 class _GetPubKeyError(IntEnum):
     DATA_SIZE = 0x6A87
 
+
 # Advance blockchain and update ancestor command errors
 class _AdvanceUpdateError(IntEnum):
     UNKNOWN = 0
-    PROT_INVALID = 0x6b87
+    PROT_INVALID = 0x6B87
     RLP_INVALID = auto()
     BLOCK_TOO_OLD = auto()
     BLOCK_TOO_SHORT = auto()
@@ -177,18 +198,22 @@ class _AdvanceUpdateError(IntEnum):
     ANCESTOR_TIP_MISMATCH = auto()
     CB_TXN_HASH_MISMATCH = auto()
 
+
 class _UIError(IntEnum):
-    INVALID_PIN = 0x69a0
+    INVALID_PIN = 0x69A0
+
 
 class _UIAttestationError(IntEnum):
-    PROT_INVALID = 0x6a01
-    CA_MISMATCH = 0x6a02
-    NO_ONBOARD   = 0x6a03
-    INTERNAL = 0x6b04
+    PROT_INVALID = 0x6A01
+    CA_MISMATCH = 0x6A02
+    NO_ONBOARD = 0x6A03
+    INTERNAL = 0x6B04
+
 
 class _SignerAttestationError(IntEnum):
-    PROT_INVALID = 0x6b00
-    INTERNAL = 0x6b01
+    PROT_INVALID = 0x6B00
+    INTERNAL = 0x6B01
+
 
 # Error codes
 class _Error:
@@ -204,7 +229,8 @@ class _Error:
     # user-defined (RSK firmware) specific error code range
     @staticmethod
     def is_user_defined_error(code):
-        return code >= 0x69a0 and code <= 0x6bff
+        return code >= 0x69A0 and code <= 0x6BFF
+
 
 # Sign command responses to the user
 class _SignResponse(IntEnum):
@@ -214,6 +240,7 @@ class _SignResponse(IntEnum):
     ERROR_MERKLE_PROOF = -4
     ERROR_HASH = -5
     ERROR_UNEXPECTED = -10
+
 
 # Advance blockchain responses to the user
 class _AdvanceResponse(IntEnum):
@@ -230,6 +257,7 @@ class _AdvanceResponse(IntEnum):
     ERROR_UNSUPPORTED_CHAIN = -8
     ERROR_UNEXPECTED = -10
 
+
 # Update ancestor responses to the user
 class _UpdateAncestorResponse(IntEnum):
     OK_TOTAL = 1
@@ -244,16 +272,19 @@ class _UpdateAncestorResponse(IntEnum):
     ERROR_REMOVE_MM_FIELDS = -8
     ERROR_UNEXPECTED = -10
 
+
 # Responses
 class _Response:
     SIGN = _SignResponse
     ADVANCE = _AdvanceResponse
     UPD_ANCESTOR = _UpdateAncestorResponse
 
+
 # Onboarding constants
 class _Onboarding(IntEnum):
     SEED_LENGTH = 32
     TIMEOUT = 10
+
 
 class HSM2DongleBaseError(RuntimeError):
     @property
@@ -262,36 +293,40 @@ class HSM2DongleBaseError(RuntimeError):
             return None
         return self.args[0]
 
+
 class HSM2DongleError(HSM2DongleBaseError):
     pass
+
 
 class HSM2DongleTimeoutError(HSM2DongleBaseError):
     @staticmethod
     def is_timeout(exc):
-        if type(exc) == CommException and \
-            exc.sw == 0x6f00 and \
-            exc.message == "Timeout":
+        if type(exc) == CommException and exc.sw == 0x6F00 and exc.message == "Timeout":
             return True
         return False
+
 
 class HSM2DongleCommError(HSM2DongleBaseError):
     @staticmethod
     def is_comm_error(exc):
-        if (type(exc) == BaseException and \
-            len(exc.args) == 1 and \
-            exc.args[0] == "Error while writing") or \
-            isinstance(exc, HSM2DongleCommError):
+        if (
+            type(exc) == BaseException
+            and len(exc.args) == 1
+            and exc.args[0] == "Error while writing"
+        ) or isinstance(exc, HSM2DongleCommError):
             return True
         return False
+
 
 class HSM2DongleErrorResult(HSM2DongleBaseError):
     @property
     def error_code(self):
         return self.args[0]
 
+
 # Handles low-level communication with an HSM2 dongle
 class HSM2Dongle:
-    #### Ledger constants ####
+    # Ledger constants
     HASH_SIZE = 32
 
     # APDU prefix
@@ -308,12 +343,12 @@ class HSM2Dongle:
     ONBOARDING = _Onboarding
 
     # Dongle exchange timeout
-    DONGLE_TIMEOUT = 10 # seconds
+    DONGLE_TIMEOUT = 10  # seconds
 
     # Protocol version dependent features
-    MIN_VERSION_META_CBTXHASH = HSM2FirmwareVersion(2,1,0)
-    MIN_VERSION_UI_GET_RETRIES = HSM2FirmwareVersion(2,1,0)
-    MAX_VERSION_SIGNER_EXIT = HSM2FirmwareVersion(2,1,0)
+    MIN_VERSION_META_CBTXHASH = HSM2FirmwareVersion(2, 1, 0)
+    MIN_VERSION_UI_GET_RETRIES = HSM2FirmwareVersion(2, 1, 0)
+    MAX_VERSION_SIGNER_EXIT = HSM2FirmwareVersion(2, 1, 0)
 
     # Maximum pages expected to conform the UI attestation message
     MAX_PAGES_UI_ATT_MESSAGE = 4
@@ -324,10 +359,10 @@ class HSM2Dongle:
         self.last_comm_exception = None
 
     # Send command to device
-    def _send_command(self, command, data=b'', timeout=DONGLE_TIMEOUT):
+    def _send_command(self, command, data=b"", timeout=DONGLE_TIMEOUT):
         self.last_comm_exception = None
         try:
-            cmd = struct.pack('BB%ds' % len(data), self.CLA, command, data)
+            cmd = struct.pack("BB%ds" % len(data), self.CLA, command, data)
             self.logger.debug("Sending command: 0x%s", cmd.hex())
             result = self.dongle.exchange(cmd, timeout=timeout)
             self.logger.debug("Received: 0x%s", result.hex())
@@ -376,7 +411,7 @@ class HSM2Dongle:
             self.logger.info("Disconnecting")
             if self.dongle and self.dongle.opened:
                 self.dongle.close()
-            #### Begin hack ####
+            # **** Begin hack ****
             # When running within a docker container,
             # the hidapi library fails to detect a physical
             # usb device reconnection. This will "hard reset" the
@@ -384,9 +419,9 @@ class HSM2Dongle:
             # can be detected.
             try:
                 hid.hidapi_exit()
-            except:
+            except Exception:
                 pass
-            #### End hack ####
+            # **** End hack ****
             self.logger.info("Disconnected")
         except CommException as e:
             msg = "Error disconnecting: %s" % e.message
@@ -413,7 +448,7 @@ class HSM2Dongle:
     def is_onboarded(self):
         self.logger.info("Sending isOnboarded")
         apdu_rcv = self._send_command(self.CMD.IS_ONBOARD)
-        is_onboard = apdu_rcv[1]==1
+        is_onboard = apdu_rcv[1] == 1
         self.logger.info("isOnboarded: %s", "yes" if is_onboard else "no")
         return is_onboard
 
@@ -445,13 +480,13 @@ class HSM2Dongle:
             final_pin = bytes([len(pin)]) + final_pin
 
         for i in range(len(final_pin)):
-            self._send_command(self.CMD.SEND_PIN,bytes([i,final_pin[i]]))
+            self._send_command(self.CMD.SEND_PIN, bytes([i, final_pin[i]]))
 
     # unlock the device with the PIN sent
     def unlock(self, pin):
         # Send the pin, then send the unlock command per se
         self._send_pin(pin, prepend_length=False)
-        apdu_rcv = self._send_command(self.CMD.UNLOCK, bytes([0x00,0x00]))
+        apdu_rcv = self._send_command(self.CMD.UNLOCK, bytes([0x00, 0x00]))
 
         # Zero indicates wrong pin. Nonzero indicates device unlocked
         return apdu_rcv[2] != 0
@@ -497,8 +532,10 @@ class HSM2Dongle:
 
     # exit the ledger nano S menu
     def exit_menu(self, autoexec=True):
-        self._send_command(self.CMD.EXIT_MENU if autoexec else self.CMD.EXIT_MENU_NO_AUTOEXEC, \
-            bytes([0x00,0x00]))
+        self._send_command(
+            self.CMD.EXIT_MENU if autoexec else self.CMD.EXIT_MENU_NO_AUTOEXEC,
+            bytes([0x00, 0x00]),
+        )
 
     # get the public key for a bip32 path
     # key_id: BIP32Path
@@ -513,8 +550,9 @@ class HSM2Dongle:
     # btc_tx: hex string
     # receipt_merkle_proof: list
     # input_index: int
-    def sign_authorized(self, key_id, rsk_tx_receipt, receipt_merkle_proof,
-                        btc_tx, input_index):
+    def sign_authorized(
+        self, key_id, rsk_tx_receipt, receipt_merkle_proof, btc_tx, input_index
+    ):
         # *** Signing protocol ***
         # The order in which things are required and then sent is:
         # 1. BIP32 path & BTC tx input index (single message)
@@ -527,14 +565,15 @@ class HSM2Dongle:
         # the data, and use that order to validate it as we go.)
         #
         # During these exchanges, an exception can be raised at any moment, which
-        # would signal failure signing. Specific error codes come with HSM2DongleErrorResult
+        # would signal failure signing.
+        # Specific error codes come with HSM2DongleErrorResult
         # exception instances and are handled accordingly. Anything else
         # is treated as an unexpected error and is let for the calling layer
         # to handle.
 
         # Step 1. Send path and input index
         key_id_bytes = key_id.to_binary()
-        input_index_bytes = input_index.to_bytes(4, byteorder='little', signed=False)
+        input_index_bytes = input_index.to_bytes(4, byteorder="little", signed=False)
         data = bytes([self.OP.SIGN.PATH]) + key_id_bytes + input_index_bytes
         try:
             self.logger.debug("Sign: sending path - %s", data.hex())
@@ -550,8 +589,11 @@ class HSM2Dongle:
             bytes_requested = response[self.OFF.DATA]
         except HSM2DongleErrorResult as e:
             self.logger.error("Sign returned: %s", hex(e.error_code))
-            if e.error_code in [self.ERR.SIGN.DATA_SIZE, self.ERR.SIGN.DATA_SIZE_AUTH, \
-                                self.ERR.SIGN.DATA_SIZE_NOAUTH]:
+            if e.error_code in [
+                self.ERR.SIGN.DATA_SIZE,
+                self.ERR.SIGN.DATA_SIZE_AUTH,
+                self.ERR.SIGN.DATA_SIZE_NOAUTH,
+            ]:
                 return (False, self.RESPONSE.SIGN.ERROR_PATH)
             return (False, self.RESPONSE.SIGN.ERROR_UNEXPECTED)
 
@@ -563,10 +605,11 @@ class HSM2Dongle:
             LENGTH_PREFIX_IN_BYTES = 4
 
             btc_tx_bytes = bytes.fromhex(btc_tx)
-            length_prefix_bytes = (len(btc_tx_bytes)+LENGTH_PREFIX_IN_BYTES).\
-                        to_bytes(LENGTH_PREFIX_IN_BYTES, byteorder='little', signed=False)
+            length_prefix_bytes = (len(btc_tx_bytes) + LENGTH_PREFIX_IN_BYTES).to_bytes(
+                LENGTH_PREFIX_IN_BYTES, byteorder="little", signed=False
+            )
 
-            data =  length_prefix_bytes + btc_tx_bytes
+            data = length_prefix_bytes + btc_tx_bytes
 
             response = self._send_data_in_chunks(
                 command=self.CMD.SIGN,
@@ -575,7 +618,7 @@ class HSM2Dongle:
                 data=data,
                 initial_bytes=bytes_requested,
                 operation_name="sign",
-                data_description="BTC tx"
+                data_description="BTC tx",
             )
 
             if not response[0]:
@@ -584,10 +627,12 @@ class HSM2Dongle:
             bytes_requested = response[1][self.OFF.DATA]
         except HSM2DongleErrorResult as e:
             self.logger.error("Sign returned: %s", hex(e.error_code))
-            if e.error_code in [self.ERR.SIGN.INPUT, \
-                self.ERR.SIGN.DATA_SIZE, \
-                self.ERR.SIGN.TX_HASH_MISMATCH, \
-                self.ERR.SIGN.TX_VERSION]:
+            if e.error_code in [
+                self.ERR.SIGN.INPUT,
+                self.ERR.SIGN.DATA_SIZE,
+                self.ERR.SIGN.TX_HASH_MISMATCH,
+                self.ERR.SIGN.TX_VERSION,
+            ]:
                 return (False, self.RESPONSE.SIGN.ERROR_BTC_TX)
             return (False, self.RESPONSE.SIGN.ERROR_UNEXPECTED)
 
@@ -600,7 +645,7 @@ class HSM2Dongle:
                 data=bytes.fromhex(rsk_tx_receipt),
                 initial_bytes=bytes_requested,
                 operation_name="sign",
-                data_description="tx receipt"
+                data_description="tx receipt",
             )
 
             if not response[0]:
@@ -609,9 +654,13 @@ class HSM2Dongle:
             bytes_requested = response[1][self.OFF.DATA]
         except HSM2DongleErrorResult as e:
             self.logger.error("Sign returned: %s", hex(e.error_code))
-            if e.error_code in [self.ERR.SIGN.STATE, self.ERR.SIGN.RLP, \
-                                self.ERR.SIGN.RLP_INT, self.ERR.SIGN.RLP_DEPTH, \
-                                self.ERR.SIGN.DATA_SIZE]:
+            if e.error_code in [
+                self.ERR.SIGN.STATE,
+                self.ERR.SIGN.RLP,
+                self.ERR.SIGN.RLP_INT,
+                self.ERR.SIGN.RLP_DEPTH,
+                self.ERR.SIGN.DATA_SIZE,
+            ]:
                 return (False, self.RESPONSE.SIGN.ERROR_TX_RECEIPT)
             return (False, self.RESPONSE.SIGN.ERROR_UNEXPECTED)
 
@@ -628,7 +677,9 @@ class HSM2Dongle:
                 node_bytes = bytes.fromhex(node)
                 if len(node_bytes) > 255:
                     raise ValueError("Node too big: %s" % node)
-                merkle_proof_bytes = merkle_proof_bytes + bytes([len(node_bytes)]) + node_bytes
+                merkle_proof_bytes = (
+                    merkle_proof_bytes + bytes([len(node_bytes)]) + node_bytes
+                )
         except ValueError as e:
             self.logger.error("Sign: invalid receipts merkle proof: %s", str(e))
             return (False, self.RESPONSE.SIGN.ERROR_MERKLE_PROOF)
@@ -641,20 +692,22 @@ class HSM2Dongle:
                 data=merkle_proof_bytes,
                 initial_bytes=bytes_requested,
                 operation_name="sign",
-                data_description="receipts merkle proof"
+                data_description="receipts merkle proof",
             )
 
             if not response[0]:
                 return (False, self.RESPONSE.SIGN.ERROR_UNEXPECTED)
         except HSM2DongleErrorResult as e:
             self.logger.error("Sign returned: %s", hex(e.error_code))
-            if e.error_code in [self.ERR.SIGN.DATA_SIZE, \
-                                self.ERR.SIGN.STATE, \
-                                self.ERR.SIGN.NODE_VERSION, \
-                                self.ERR.SIGN.SHARED_PREFIX_TOO_BIG, \
-                                self.ERR.SIGN.RECEIPT_HASH_MISMATCH, \
-                                self.ERR.SIGN.NODE_CHAINING_MISMATCH,
-                                self.ERR.SIGN.RECEIPT_ROOT_MISMATCH]:
+            if e.error_code in [
+                self.ERR.SIGN.DATA_SIZE,
+                self.ERR.SIGN.STATE,
+                self.ERR.SIGN.NODE_VERSION,
+                self.ERR.SIGN.SHARED_PREFIX_TOO_BIG,
+                self.ERR.SIGN.RECEIPT_HASH_MISMATCH,
+                self.ERR.SIGN.NODE_CHAINING_MISMATCH,
+                self.ERR.SIGN.RECEIPT_ROOT_MISMATCH,
+            ]:
                 return (False, self.RESPONSE.SIGN.ERROR_MERKLE_PROOF)
             return (False, self.RESPONSE.SIGN.ERROR_UNEXPECTED)
 
@@ -675,14 +728,15 @@ class HSM2Dongle:
         # BIP32 path & hash to sign.
         #
         # An exception can be raised, which
-        # would signal failure signing. Specific error codes come with HSM2DongleErrorResult
+        # would signal failure signing. Specific error codes
+        # come with HSM2DongleErrorResult
         # exception instances and are handled accordingly. Anything else
         # is treated as an unexpected error and is let for the calling layer
         # to handle.
 
         try:
             hash_bytes = bytes.fromhex(hash)
-        except ValueError as e:
+        except ValueError:
             self.logger.error("Sign: invalid hash - %s", hash)
             return (False, self.RESPONSE.SIGN.ERROR_HASH)
 
@@ -707,7 +761,10 @@ class HSM2Dongle:
             self.logger.error("Sign returned: %s", hex(e.error_code))
             if e.error_code in [self.ERR.SIGN.DATA_SIZE, self.ERR.SIGN.DATA_SIZE_NOAUTH]:
                 return (False, self.RESPONSE.SIGN.ERROR_HASH)
-            elif e.error_code in [self.ERR.SIGN.INVALID_PATH, self.ERR.SIGN.DATA_SIZE_AUTH]:
+            elif e.error_code in [
+                self.ERR.SIGN.INVALID_PATH,
+                self.ERR.SIGN.DATA_SIZE_AUTH,
+            ]:
                 return (False, self.RESPONSE.SIGN.ERROR_PATH)
             return (False, self.RESPONSE.SIGN.ERROR_UNEXPECTED)
 
@@ -725,17 +782,21 @@ class HSM2Dongle:
         # Get hashes
         for (key, hash_cmd) in self.GST.HASH_VALUES.items():
             self.logger.info("Getting hash value for '%s'", key)
-            result = self._send_command(self.CMD.GET_STATE, bytes([self.OP.GST.HASH, hash_cmd]))
+            result = self._send_command(
+                self.CMD.GET_STATE, bytes([self.OP.GST.HASH, hash_cmd])
+            )
 
             # Validate result
-            if result[self.OFF.OP] != self.OP.GST.HASH or \
-                result[self.OFF.DATA] != hash_cmd or \
-                len(result[self.OFF.DATA+1:]) != self.HASH_SIZE:
+            if (
+                result[self.OFF.OP] != self.OP.GST.HASH
+                or result[self.OFF.DATA] != hash_cmd
+                or len(result[self.OFF.DATA + 1:]) != self.HASH_SIZE
+            ):
                 msg = "Invalid response for hash: %s" % result.hex()
                 self.logger.error(msg)
                 raise HSM2DongleError(msg)
 
-            state[key] = result[self.OFF.DATA+1:].hex()
+            state[key] = result[self.OFF.DATA + 1:].hex()
 
         # Get difficulty
         self.logger.info("Getting difficulty")
@@ -745,21 +806,27 @@ class HSM2Dongle:
             self.logger.error(msg)
             raise HSM2DongleError(msg)
 
-        state["updating.total_difficulty"] = int.from_bytes(\
-                    result[self.OFF.DATA:], byteorder="big", signed=False)
+        state["updating.total_difficulty"] = int.from_bytes(
+            result[self.OFF.DATA:], byteorder="big", signed=False
+        )
 
         # Get flags
         self.logger.info("Getting flags")
         result = self._send_command(self.CMD.GET_STATE, bytes([self.OP.GST.FLAGS]))
-        if result[self.OFF.OP] != self.OP.GST.FLAGS or \
-            len(result[self.OFF.DATA:]) != 3:
+        if result[self.OFF.OP] != self.OP.GST.FLAGS or len(result[self.OFF.DATA:]) != 3:
             msg = "Invalid response for flags: %s" % result.hex()
             self.logger.error(msg)
             raise HSM2DongleError(msg)
 
-        state["updating.in_progress"] = bool(result[self.OFF.DATA + self.GST.FLAG_OFFSET.IN_PROGRESS])
-        state["updating.already_validated"] = bool(result[self.OFF.DATA + self.GST.FLAG_OFFSET.ALREADY_VALIDATED])
-        state["updating.found_best_block"] = bool(result[self.OFF.DATA + self.GST.FLAG_OFFSET.FOUND_BEST_BLOCK])
+        state["updating.in_progress"] = bool(
+            result[self.OFF.DATA + self.GST.FLAG_OFFSET.IN_PROGRESS]
+        )
+        state["updating.already_validated"] = bool(
+            result[self.OFF.DATA + self.GST.FLAG_OFFSET.ALREADY_VALIDATED]
+        )
+        state["updating.found_best_block"] = bool(
+            result[self.OFF.DATA + self.GST.FLAG_OFFSET.FOUND_BEST_BLOCK]
+        )
 
         return state
 
@@ -782,8 +849,14 @@ class HSM2Dongle:
         # Convenient shorthands
         err = self.ERR.ADVANCE
         response = self.RESPONSE.ADVANCE
-        return self._do_block_operation("advance", blocks, self.CMD.ADVANCE,
-            self.OP.ADVANCE, err, response, {
+        return self._do_block_operation(
+            "advance",
+            blocks,
+            self.CMD.ADVANCE,
+            self.OP.ADVANCE,
+            err,
+            response,
+            {
                 err.BUFFER_OVERFLOW: response.ERROR_INVALID_BLOCK,
                 err.MERKLE_PROOF_OVERFLOW: response.ERROR_INVALID_BLOCK,
                 err.CB_TXN_OVERFLOW: response.ERROR_INVALID_BLOCK,
@@ -805,7 +878,9 @@ class HSM2Dongle:
                 err.CHAIN_MISMATCH: response.ERROR_CHAINING_MISMATCH,
                 err.TOTAL_DIFF_OVERFLOW: response.ERROR_UNSUPPORTED_CHAIN,
                 err.PROT_INVALID: response.ERROR_BLOCK_DATA,
-            }, version)
+            },
+            version,
+        )
 
     # Ask the device to update its ancestor block and ancestor receipts root
     # references by processing a given set of blocks.
@@ -827,9 +902,14 @@ class HSM2Dongle:
             self.logger.error("While removing merge mining fields: %s", str(e))
             return (False, response.ERROR_REMOVE_MM_FIELDS)
 
-        return self._do_block_operation("updancestor",
-            optimized_blocks, self.CMD.UPD_ANCESTOR,
-            self.OP.UPD_ANCESTOR, err, response, {
+        return self._do_block_operation(
+            "updancestor",
+            optimized_blocks,
+            self.CMD.UPD_ANCESTOR,
+            self.OP.UPD_ANCESTOR,
+            err,
+            response,
+            {
                 err.BUFFER_OVERFLOW: response.ERROR_INVALID_BLOCK,
                 err.RLP_INVALID: response.ERROR_INVALID_BLOCK,
                 err.BLOCK_TOO_SHORT: response.ERROR_INVALID_BLOCK,
@@ -842,9 +922,13 @@ class HSM2Dongle:
                 err.ANCESTOR_TIP_MISMATCH: response.ERROR_TIP_MISMATCH,
                 err.CHAIN_MISMATCH: response.ERROR_CHAINING_MISMATCH,
                 err.PROT_INVALID: response.ERROR_BLOCK_DATA,
-            }, version)
+            },
+            version,
+        )
 
-    def get_ui_attestation(self, ud_value_hex, ca_pubkey_hex, ca_hash_hex, ca_signature_hex):
+    def get_ui_attestation(
+        self, ud_value_hex, ca_pubkey_hex, ca_hash_hex, ca_signature_hex
+    ):
         # Parse hexadecimal values
         ud_value = bytes.fromhex(ud_value_hex)
         ca_pubkey = bytes.fromhex(ca_pubkey_hex)
@@ -852,7 +936,9 @@ class HSM2Dongle:
         ca_signature = bytes.fromhex(ca_signature_hex)
 
         # Get UI hash
-        ui_hash = self._send_command(self.CMD.UI_ATT, bytes([self.OP.UI_ATT.OP_APP_HASH]))[self.OFF.DATA:]
+        ui_hash = self._send_command(
+            self.CMD.UI_ATT, bytes([self.OP.UI_ATT.OP_APP_HASH])
+        )[self.OFF.DATA:]
 
         # Send UD value
         data = bytes([self.OP.UI_ATT.OP_UD_VALUE]) + ud_value
@@ -875,18 +961,21 @@ class HSM2Dongle:
         message = b""
         while True:
             if page == self.MAX_PAGES_UI_ATT_MESSAGE:
-                msg = "Maximum number of UI attestation pages exceeded ()" % self.MAX_PAGES_UI_ATT_MESSAGE
+                msg = (
+                    "Maximum number of UI attestation pages exceeded ()"
+                    % self.MAX_PAGES_UI_ATT_MESSAGE
+                )
                 self.logger.error(msg)
                 raise HSM2DongleError(msg)
             data = bytes([self.OP.UI_ATT.OP_GET_MSG, page])
             response = self._send_command(self.CMD.UI_ATT, data)
             page += 1
-            message += response[self.OFF.DATA+1:]
+            message += response[self.OFF.DATA + 1:]
             if response[self.OFF.DATA] == 0:
                 break
 
         # Retrieve attestation
-        attestation = self._send_command(self.CMD.UI_ATT, bytes([self.OP.UI_ATT.OP_GET]))[self.OFF.DATA:]
+        attestation = self._send_command(self.CMD.UI_ATT, bytes([self.OP.UI_ATT.OP_GET]))[self.OFF.DATA:] # noqa E501
 
         return {
             "app_hash": ui_hash.hex(),
@@ -896,13 +985,19 @@ class HSM2Dongle:
 
     def get_signer_attestation(self):
         # Get signer hash
-        signer_hash = self._send_command(self.CMD.SIGNER_ATT, bytes([self.OP.SIGNER_ATT.OP_APP_HASH]))[self.OFF.DATA:]
+        signer_hash = self._send_command(
+            self.CMD.SIGNER_ATT, bytes([self.OP.SIGNER_ATT.OP_APP_HASH])
+        )[self.OFF.DATA:]
 
         # Retrieve attestation
-        attestation = self._send_command(self.CMD.SIGNER_ATT, bytes([self.OP.SIGNER_ATT.OP_GET]))[self.OFF.DATA:]
+        attestation = self._send_command(
+            self.CMD.SIGNER_ATT, bytes([self.OP.SIGNER_ATT.OP_GET])
+        )[self.OFF.DATA:]
 
         # Retrieve message
-        message = self._send_command(self.CMD.SIGNER_ATT, bytes([self.OP.SIGNER_ATT.OP_GET_MESSAGE]))[self.OFF.DATA:]
+        message = self._send_command(
+            self.CMD.SIGNER_ATT, bytes([self.OP.SIGNER_ATT.OP_GET_MESSAGE])
+        )[self.OFF.DATA:]
 
         return {
             "app_hash": signer_hash.hex(),
@@ -912,8 +1007,17 @@ class HSM2Dongle:
 
     # Used both for advance blockchain and update ancestor given the protocol
     # is the same
-    def _do_block_operation(self, operation_name, blocks, command, ops,
-                            errors, responses, chunk_error_mapping, version):
+    def _do_block_operation(
+        self,
+        operation_name,
+        blocks,
+        command,
+        ops,
+        errors,
+        responses,
+        chunk_error_mapping,
+        version,
+    ):
         # *** Block operation protocol ***
         # The order in which things are required and then sent is:
         # 1. Initialization, where the total number of blocks to send is sent.
@@ -921,8 +1025,9 @@ class HSM2Dongle:
         # 2.1. Block metadata (single message):
         #   - MM payload size in bytes
         #   (see the block_utils.rlp_mm_payload_size method for details on this)
-        #   - (only for >=2.1.0) In case of an advance blockchain operation, coinbase transaction hash
-        #   (see the block_utils.coinbase_tx_get_hash for details on this)
+        #   - (only for >=2.1.0) In case of an advance blockchain operation,
+        #   coinbase transaction hash (see the block_utils.coinbase_tx_get_hash
+        #   for details on this)
         # 2.2. Block chunks: block header pieces as requested by the ledger.
         #
         # During these exchanges, an exception can be raised at any moment, which
@@ -932,19 +1037,27 @@ class HSM2Dongle:
         # to handle.
 
         # Step 1. Send initialization
-        num_blocks_bytes = len(blocks).to_bytes(4, byteorder='big', signed=False)
+        num_blocks_bytes = len(blocks).to_bytes(4, byteorder="big", signed=False)
         data = bytes([ops.INIT]) + num_blocks_bytes
         try:
-            self.logger.info("%s: sending initialization - %s", operation_name.capitalize(), data.hex())
+            self.logger.info(
+                "%s: sending initialization - %s", operation_name.capitalize(), data.hex()
+            )
             response = self._send_command(command, data)
 
             # We expect the device to ask for block metadata next.
             # If this doesn't happen, error out
             if response[self.OFF.OP] != ops.HEADER_META:
-                self.logger.error("%s: unexpected response %s", operation_name.capitalize(), response.hex())
+                self.logger.error(
+                    "%s: unexpected response %s",
+                    operation_name.capitalize(),
+                    response.hex(),
+                )
                 return (False, responses.ERROR_UNEXPECTED)
         except HSM2DongleErrorResult as e:
-            self.logger.error("%s returned: %s", operation_name.capitalize(), hex(e.error_code))
+            self.logger.error(
+                "%s returned: %s", operation_name.capitalize(), hex(e.error_code)
+            )
             if e.error_code in [errors.PROT_INVALID]:
                 return (False, responses.ERROR_INIT)
             return (False, responses.ERROR_UNEXPECTED)
@@ -952,7 +1065,12 @@ class HSM2Dongle:
         # Step 2. Send blocks
         total_blocks = len(blocks)
         for block_number, block in enumerate(blocks, 1):
-            self.logger.info("%s: sending block #%d/%d", operation_name.capitalize(), block_number, total_blocks)
+            self.logger.info(
+                "%s: sending block #%d/%d",
+                operation_name.capitalize(),
+                block_number,
+                total_blocks,
+            )
 
             # Step 2.1. Compute and send block metadata
             # (this will also validate that the block is a valid RLP-encoded list
@@ -960,19 +1078,32 @@ class HSM2Dongle:
             try:
                 mm_payload_size = rlp_mm_payload_size(block)
                 self.logger.debug("Metadata: MM payload length %d", mm_payload_size)
-                mm_payload_size_bytes = mm_payload_size.to_bytes(2, byteorder='big', signed=False)
+                mm_payload_size_bytes = mm_payload_size.to_bytes(
+                    2, byteorder="big", signed=False
+                )
                 cb_txn_hash = bytes([])
-                if command == self.CMD.ADVANCE and version >= self.MIN_VERSION_META_CBTXHASH:
-                    cb_txn_hash = bytes.fromhex(coinbase_tx_get_hash(get_coinbase_txn(block)))
+                if (
+                    command == self.CMD.ADVANCE
+                    and version >= self.MIN_VERSION_META_CBTXHASH
+                ):
+                    cb_txn_hash = bytes.fromhex(
+                        coinbase_tx_get_hash(get_coinbase_txn(block))
+                    )
                     self.logger.debug("Metadata: CB txn hash: %s", cb_txn_hash.hex())
                 data = bytes([ops.HEADER_META]) + mm_payload_size_bytes + cb_txn_hash
-                self.logger.info("%s: sending metadata - %s", operation_name.capitalize(), data.hex())
+                self.logger.info(
+                    "%s: sending metadata - %s", operation_name.capitalize(), data.hex()
+                )
                 response = self._send_command(command, data)
 
                 # We expect the device to ask for a block chunk next.
                 # If this doesn't happen, error out
                 if response[self.OFF.OP] != ops.HEADER_CHUNK:
-                    self.logger.error("%s: unexpected response %s", operation_name.capitalize(), response.hex())
+                    self.logger.error(
+                        "%s: unexpected response %s",
+                        operation_name.capitalize(),
+                        response.hex(),
+                    )
                     return (False, responses.ERROR_UNEXPECTED)
 
                 # How many bytes to send as the first block chunk
@@ -981,7 +1112,9 @@ class HSM2Dongle:
                 self.logger.error("Computing block metadata: %s", str(e))
                 return (False, responses.ERROR_COMPUTE_METADATA)
             except HSM2DongleErrorResult as e:
-                self.logger.error("%s returned: %s", operation_name.capitalize(), hex(e.error_code))
+                self.logger.error(
+                    "%s returned: %s", operation_name.capitalize(), hex(e.error_code)
+                )
                 if e.error_code in [errors.PROT_INVALID]:
                     return (False, responses.ERROR_METADATA)
                 return (False, responses.ERROR_UNEXPECTED)
@@ -1001,14 +1134,19 @@ class HSM2Dongle:
                     data=bytes.fromhex(block),
                     initial_bytes=bytes_requested,
                     operation_name=operation_name,
-                    data_description="block"
+                    data_description="block",
                 )
 
                 if not response[0]:
                     return (False, responses.ERROR_UNEXPECTED)
             except HSM2DongleErrorResult as e:
-                self.logger.error("%s returned: %s", operation_name.capitalize(), hex(e.error_code))
-                return (False, chunk_error_mapping.get(e.error_code, responses.ERROR_UNEXPECTED))
+                self.logger.error(
+                    "%s returned: %s", operation_name.capitalize(), hex(e.error_code)
+                )
+                return (
+                    False,
+                    chunk_error_mapping.get(e.error_code, responses.ERROR_UNEXPECTED),
+                )
 
             # Partial success?
             if command == self.CMD.ADVANCE and response[1][self.OFF.OP] == ops.PARTIAL:
@@ -1029,18 +1167,31 @@ class HSM2Dongle:
     # as the device requests bytes from it.
     # Validate responses wrt current operation and next possible expected operations
     # Exceptions are to be handled by the caller
-    def _send_data_in_chunks(self, command, operation, next_operations,
-                             data, initial_bytes, operation_name, data_description):
+    def _send_data_in_chunks(
+        self,
+        command,
+        operation,
+        next_operations,
+        data,
+        initial_bytes,
+        operation_name,
+        data_description,
+    ):
         offset = 0
         bytes_requested = initial_bytes
         total_bytes_sent = 0
         finished = False
         while not finished:
-            to_send = data[offset:offset+bytes_requested]
+            to_send = data[offset:offset + bytes_requested]
             to_send_length = len(to_send)
-            self.logger.debug("%s: sending %s chunk [%d:%d] - %s",
-                              operation_name.capitalize(), data_description,
-                              offset, offset+to_send_length, to_send.hex())
+            self.logger.debug(
+                "%s: sending %s chunk [%d:%d] - %s",
+                operation_name.capitalize(),
+                data_description,
+                offset,
+                offset + to_send_length,
+                to_send.hex(),
+            )
             response = self._send_command(command, bytes([operation]) + to_send)
 
             # Increase count and buffer pointer
@@ -1050,13 +1201,18 @@ class HSM2Dongle:
             # We expect the device to either ask for the current or for the
             # next operation.
             # If none of this happens, error out
-            if  response[self.OFF.OP] not in ([operation] + next_operations):
-                self.logger.debug("Current operation %s, next operations %s, ledger requesting %s", \
-                                  hex(operation),
-                                  str(list(map(lambda op: hex(op), next_operations))),
-                                  hex(response[2]))
-                self.logger.error("%s: unexpected response %s",
-                                  operation_name.capitalize(), response.hex())
+            if response[self.OFF.OP] not in ([operation] + next_operations):
+                self.logger.debug(
+                    "Current operation %s, next operations %s, ledger requesting %s",
+                    hex(operation),
+                    str(list(map(lambda op: hex(op), next_operations))),
+                    hex(response[2]),
+                )
+                self.logger.error(
+                    "%s: unexpected response %s",
+                    operation_name.capitalize(),
+                    response.hex(),
+                )
                 return (False, response)
 
             # We finish when the device requests the next piece of data

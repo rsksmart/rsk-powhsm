@@ -1,13 +1,11 @@
-from ledger.hsm2dongle import HSM2Dongle
 from .misc import info, head, get_hsm, dispose_hsm, AdminError, wait_for_reconnection
 from .utils import is_nonempty_hex_string, is_hex_string_of_length, normalize_hex_string
-from .dongle_admin import DongleAdmin
 from .unlock import do_unlock
-from .exit import do_exit
 from .certificate import HSMCertificate, HSMCertificateElement
 from .rsk_client import RskClient, RskClientError
 
 UD_VALUE_LENGTH = 32
+
 
 def do_attestation(options):
     head("### -> Get UI and Signer attestations", fill="#")
@@ -33,7 +31,7 @@ def do_attestation(options):
     ca_fields = options.ca.split(":")
     if len(ca_fields) != 3:
         raise AdminError("Invalid CA info given")
-    
+
     ca_pubkey = ca_fields[0]
     if not is_nonempty_hex_string(ca_pubkey):
         raise AdminError("Invalid CA public key given")
@@ -47,12 +45,17 @@ def do_attestation(options):
         raise AdminError("Invalid CA signature given")
 
     # Get the UD value for the UI attestation
-    if is_hex_string_of_length(options.attestation_ud_source, UD_VALUE_LENGTH, allow_prefix=True):
+    info("Gathering user-defined UI attestation value... ", options.verbose)
+
+    if is_hex_string_of_length(options.attestation_ud_source,
+                               UD_VALUE_LENGTH,
+                               allow_prefix=True):
         ud_value = normalize_hex_string(options.attestation_ud_source)
     else:
         try:
             rsk_client = RskClient(options.attestation_ud_source)
-            best_block = rsk_client.get_block_by_number(rsk_client.get_best_block_number())
+            best_block = rsk_client.get_block_by_number(
+                rsk_client.get_best_block_number())
             ud_value = best_block["hash"][2:]
             if not is_hex_string_of_length(ud_value, UD_VALUE_LENGTH):
                 raise ValueError(f"Got invalid best block from RSK server: {ud_value}")
@@ -73,15 +76,18 @@ def do_attestation(options):
     # UI Attestation
     info("Gathering UI attestation... ", options.verbose)
     try:
-        ui_attestation = hsm.get_ui_attestation(ud_value, ca_pubkey, ca_hash, ca_signature)
+        ui_attestation = hsm.get_ui_attestation(ud_value, ca_pubkey, ca_hash,
+                                                ca_signature)
     except Exception as e:
         raise AdminError(f"Failed to gather UI attestation: {str(e)}")
     info("UI attestation gathered")
 
     # Exit the UI and reconnect
     info("Exiting UI... ", options.verbose)
-    try: hsm.exit_menu()
-    except: pass
+    try:
+        hsm.exit_menu()
+    except Exception:
+        pass
     info("Exit OK")
     dispose_hsm(hsm)
     wait_for_reconnection()
@@ -98,24 +104,26 @@ def do_attestation(options):
     # Augment and save the attestation certificate
     info("Generating the attestation certificate... ", options.verbose)
 
-    att_cert.add_element(HSMCertificateElement({
-        "name": "ui",
-        "message": ui_attestation["message"],
-        "extract": ":",
-        "digest": HSMCertificateElement.DIGEST.NONE,
-        "signature": ui_attestation["signature"],
-        "signed_by": "attestation",
-        "tweak": ui_attestation["app_hash"],
-    }))
-    att_cert.add_element(HSMCertificateElement({
-        "name": "signer",
-        "message": signer_attestation["message"],
-        "extract": ":",
-        "digest": HSMCertificateElement.DIGEST.NONE,
-        "signature": signer_attestation["signature"],
-        "signed_by": "attestation",
-        "tweak": signer_attestation["app_hash"],
-    }))
+    att_cert.add_element(
+        HSMCertificateElement({
+            "name": "ui",
+            "message": ui_attestation["message"],
+            "extract": ":",
+            "digest": HSMCertificateElement.DIGEST.NONE,
+            "signature": ui_attestation["signature"],
+            "signed_by": "attestation",
+            "tweak": ui_attestation["app_hash"],
+        }))
+    att_cert.add_element(
+        HSMCertificateElement({
+            "name": "signer",
+            "message": signer_attestation["message"],
+            "extract": ":",
+            "digest": HSMCertificateElement.DIGEST.NONE,
+            "signature": signer_attestation["signature"],
+            "signed_by": "attestation",
+            "tweak": signer_attestation["app_hash"],
+        }))
     att_cert.clear_targets()
     att_cert.add_target("ui")
     att_cert.add_target("signer")

@@ -1,9 +1,10 @@
 import json
 
+
 class NetworkUpgrades:
-    wasabi = 'wasabi'
-    papyrus = 'papyrus'
-    iris = 'iris'
+    wasabi = "wasabi"
+    papyrus = "papyrus"
+    iris = "iris"
 
     @staticmethod
     def from_dict(dict):
@@ -21,6 +22,7 @@ class NetworkUpgrades:
     def is_active(self, upgrade_name, block_number):
         abn = self.get(upgrade_name)
         return abn <= block_number if abn is not None else False
+
 
 NetworkUpgrades.MAINNET = NetworkUpgrades(
     wasabi=1_591_000,
@@ -40,6 +42,7 @@ NetworkUpgrades.REGTEST = NetworkUpgrades(
     iris=0,
 )
 
+
 class NetworkParameters:
     @staticmethod
     def from_string(s):
@@ -56,8 +59,7 @@ class NetworkParameters:
     @staticmethod
     def from_dict(dict):
         return NetworkParameters(
-            network_upgrades=NetworkUpgrades.from_dict(dict['network_upgrades'])
-        )
+            network_upgrades=NetworkUpgrades.from_dict(dict["network_upgrades"]))
 
     @staticmethod
     def by_name(name):
@@ -68,7 +70,8 @@ class NetworkParameters:
 
     def __init__(self, network_upgrades, name=None):
         if type(network_upgrades) != NetworkUpgrades:
-            raise TypeError("Expected an instance of NetworkUpgrades but got a '%s'" % type(network_upgrades).__name__)
+            raise TypeError("Expected an instance of NetworkUpgrades but got a '%s'" %
+                            type(network_upgrades).__name__)
         self._network_upgrades = network_upgrades
         self._name = name
 
@@ -77,9 +80,7 @@ class NetworkParameters:
         return self._name
 
     def to_dict(self):
-        return {
-            "network_upgrades": self._network_upgrades.to_dict()
-        }
+        return {"network_upgrades": self._network_upgrades.to_dict()}
 
     @property
     def network_upgrades(self):
@@ -88,11 +89,15 @@ class NetworkParameters:
     def __str__(self):
         return json.dumps(self.to_dict(), indent=2)
 
-NetworkParameters.MAINNET = NetworkParameters(name="mainnet", network_upgrades=NetworkUpgrades.MAINNET)
-NetworkParameters.TESTNET = NetworkParameters(name="testnet", network_upgrades=NetworkUpgrades.TESTNET)
-NetworkParameters.REGTEST = NetworkParameters(name="regtest", network_upgrades=NetworkUpgrades.REGTEST)
+
+NetworkParameters.MAINNET = NetworkParameters(name="mainnet",
+                                              network_upgrades=NetworkUpgrades.MAINNET)
+NetworkParameters.TESTNET = NetworkParameters(name="testnet",
+                                              network_upgrades=NetworkUpgrades.TESTNET)
+NetworkParameters.REGTEST = NetworkParameters(name="regtest",
+                                              network_upgrades=NetworkUpgrades.REGTEST)
 NetworkParameters.BY_NAME = {
-    'mainnet': NetworkParameters.MAINNET,
-    'testnet': NetworkParameters.TESTNET,
-    'regtest': NetworkParameters.REGTEST,
+    "mainnet": NetworkParameters.MAINNET,
+    "testnet": NetworkParameters.TESTNET,
+    "regtest": NetworkParameters.REGTEST,
 }

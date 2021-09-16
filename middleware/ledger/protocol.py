@@ -1,18 +1,24 @@
-import struct
 import time
 from comm.protocol import HSM2Protocol, HSM2ProtocolError, HSM2ProtocolInterrupt
-from ledger.hsm2dongle import HSM2Dongle, HSM2DongleBaseError, HSM2DongleError, \
-                              HSM2DongleErrorResult, HSM2DongleTimeoutError, \
-                              HSM2DongleCommError, HSM2FirmwareVersion
+from ledger.hsm2dongle import (
+    HSM2Dongle,
+    HSM2DongleBaseError,
+    HSM2DongleError,
+    HSM2DongleErrorResult,
+    HSM2DongleTimeoutError,
+    HSM2DongleCommError,
+    HSM2FirmwareVersion,
+)
 from comm.bitcoin import get_unsigned_tx, get_tx_hash
+
 
 class HSM2ProtocolLedger(HSM2Protocol):
     # Current manager supported versions for HSM UI and HSM SIGNER (<=)
-    UI_VERSION = HSM2FirmwareVersion(2,2,0)
-    APP_VERSION = HSM2FirmwareVersion(2,2,0)
+    UI_VERSION = HSM2FirmwareVersion(2, 2, 0)
+    APP_VERSION = HSM2FirmwareVersion(2, 2, 0)
 
     # Amount of time to wait to make sure the app is opened
-    OPEN_APP_WAIT = 1 #second
+    OPEN_APP_WAIT = 1  # second
 
     # Required minimum number of pin retries available to proceed with unlocking
     MIN_AVAILABLE_RETRIES = 2
@@ -40,10 +46,12 @@ class HSM2ProtocolLedger(HSM2Protocol):
             if not is_onboarded:
                 self.logger.error("Dongle not onboarded, exiting")
                 raise HSM2ProtocolError("Dongle not onboarded")
-        except HSM2DongleBaseError as e:
-            self.logger.info("Could not determine onboarded status. If unlocked, "+\
-                             "please enter the signing app and rerun the manager. Otherwise,"+\
-                             "disconnect and reconnect the ledger nano and try again")
+        except HSM2DongleBaseError:
+            self.logger.info(
+                "Could not determine onboarded status. If unlocked, "
+                + "please enter the signing app and rerun the manager. Otherwise,"
+                + "disconnect and reconnect the ledger nano and try again"
+            )
             raise HSM2ProtocolInterrupt()
 
         # Mode check
@@ -64,7 +72,10 @@ class HSM2ProtocolLedger(HSM2Protocol):
         # Otherwise, we tell the user to manually enter the app and run
         # the manager again
         if current_mode != HSM2Dongle.MODE.APP:
-            self.logger.info("Dongle mode unknown. Please manually enter the signing app and re-run the manager")
+            self.logger.info(
+                "Dongle mode unknown. Please manually enter the signing app "
+                "and re-run the manager"
+            )
             raise HSM2ProtocolInterrupt()
 
         self.logger.info("Mode: Signing App")
@@ -77,7 +88,10 @@ class HSM2ProtocolLedger(HSM2Protocol):
         signer_parameters = self.hsm2dongle.get_signer_parameters()
         self.logger.info("Gathered signer parameters")
         self.logger.info("Checkpoint 0x%s", signer_parameters.checkpoint)
-        self.logger.info("Minimum required difficulty %s", hex(signer_parameters.min_required_difficulty))
+        self.logger.info(
+            "Minimum required difficulty %s",
+            hex(signer_parameters.min_required_difficulty),
+        )
         self.logger.info("Network %s", signer_parameters.network.name)
 
     def report_comm_issue(self):
@@ -95,8 +109,8 @@ class HSM2ProtocolLedger(HSM2Protocol):
             self._comm_issue = False
             self.logger.info("Reconnection successful")
         except HSM2ProtocolError as e:
-            # Capture any initialization issues 
-            # (which would include communication problems, 
+            # Capture any initialization issues
+            # (which would include communication problems,
             # such as failure to connect) and bubble them
             # as a dongle communication error, so that
             # the reply to the client will be appropiate and
@@ -132,11 +146,17 @@ class HSM2ProtocolLedger(HSM2Protocol):
                 self.logger.info("Retrieving available pin retries")
                 retries = self.hsm2dongle.get_retries()
                 self.logger.info("Available pin retries: %d", retries)
-                if (retries < self.MIN_AVAILABLE_RETRIES):
-                    self.logger.error("Available number of pin retries (%d) not enough to attempt a device unlock. Aborting.", retries)
+                if retries < self.MIN_AVAILABLE_RETRIES:
+                    self.logger.error(
+                        "Available number of pin retries (%d) not enough "
+                        "to attempt a device unlock. Aborting.",
+                        retries,
+                    )
                     raise HSM2ProtocolInterrupt()
             except HSM2DongleBaseError as e:
-                self.logger.error("While trying to get number of pin retries: %s. Aborting.", str(e))
+                self.logger.error(
+                    "While trying to get number of pin retries: %s. Aborting.", str(e)
+                )
                 raise HSM2ProtocolInterrupt()
 
         # Unlock device with PIN
@@ -154,10 +174,16 @@ class HSM2ProtocolLedger(HSM2Protocol):
                 if not self.hsm2dongle.new_pin(self.pin.get_new_pin()):
                     raise Exception("Dongle reported fail to change pin. Pin invalid?")
                 self.pin.commit_change()
-                self.logger.info("PIN changed. Please disconnect and reconnect the ledger nano")
+                self.logger.info(
+                    "PIN changed. Please disconnect and reconnect the ledger nano"
+                )
             except Exception as e:
                 self.pin.abort_change()
-                self.logger.error("Error changing PIN: %s. Please disconnect and reconnect the ledger nano and try again", format(e))
+                self.logger.error(
+                    "Error changing PIN: %s. Please disconnect and "
+                    "reconnect the ledger nano and try again",
+                    format(e),
+                )
             finally:
                 raise HSM2ProtocolInterrupt()
 
@@ -166,8 +192,10 @@ class HSM2ProtocolLedger(HSM2Protocol):
         # what happens is that when opening the app,
         # the ledger disconnects from usb and reconnects
         self.logger.info("Loading Signing app")
-        try: self.hsm2dongle.exit_menu()
-        except: pass
+        try:
+            self.hsm2dongle.exit_menu()
+        except Exception:
+            pass
 
         # Wait a little bit to make sure the app is loaded
         # and then reconnect to the dongle
@@ -175,11 +203,15 @@ class HSM2ProtocolLedger(HSM2Protocol):
         self.hsm2dongle.disconnect()
         self.hsm2dongle.connect()
 
-
     def _check_version(self, fware_version, mware_version, name):
-        self.logger.info("%s version: %s (supported <= %s)", name, fware_version, mware_version)
+        self.logger.info(
+            "%s version: %s (supported <= %s)", name, fware_version, mware_version
+        )
         if not mware_version.supports(fware_version):
-            self._error("Unsupported %s version: Dongle reports %s, Node needs <= %s" % (name, fware_version, mware_version))
+            self._error(
+                "Unsupported %s version: Dongle reports %s, Node needs <= %s"
+                % (name, fware_version, mware_version)
+            )
 
     def _error(self, msg):
         self.logger.error(msg)
@@ -188,46 +220,48 @@ class HSM2ProtocolLedger(HSM2Protocol):
     def _get_pubkey(self, request):
         try:
             self.ensure_connection()
-            return (self.ERROR_CODE_OK, {
-                "pubKey":  self.hsm2dongle.get_public_key(request["keyId"])
-                })
-        except HSM2DongleErrorResult as e:
-            return (self.ERROR_CODE_INVALID_KEYID, )
-        except HSM2DongleTimeoutError as e:
+            return (
+                self.ERROR_CODE_OK,
+                {"pubKey": self.hsm2dongle.get_public_key(request["keyId"])},
+            )
+        except HSM2DongleErrorResult:
+            return (self.ERROR_CODE_INVALID_KEYID,)
+        except HSM2DongleTimeoutError:
             self.logger.error("Dongle timeout getting public key")
-            return (self.ERROR_CODE_DEVICE, )
-        except HSM2DongleCommError as e:
+            return (self.ERROR_CODE_DEVICE,)
+        except HSM2DongleCommError:
             # Signal a communication problem and return a device error
             self._comm_issue = True
             self.logger.error("Dongle communication error getting public key")
-            return (self.ERROR_CODE_DEVICE, )
+            return (self.ERROR_CODE_DEVICE,)
         except HSM2DongleError as e:
             self._error("Dongle error in get_pubkey: %s" % str(e))
 
     def _sign(self, request):
         # First validate the required fields are OK
         if "message" in request and "hash" in request["message"]:
-            #### Unauthorized signing ####
+            # Unauthorized signing
             message_validation = self._validate_message(request, what="hash")
             if message_validation < self.ERROR_CODE_OK:
                 return (message_validation,)
 
             try:
                 self.ensure_connection()
-                sign_result = self.hsm2dongle.sign_unauthorized(key_id=request["keyId"],
-                    hash=request["message"]["hash"])
-            except HSM2DongleTimeoutError as e:
+                sign_result = self.hsm2dongle.sign_unauthorized(
+                    key_id=request["keyId"], hash=request["message"]["hash"]
+                )
+            except HSM2DongleTimeoutError:
                 self.logger.error("Dongle timeout signing")
-                return (self.ERROR_CODE_DEVICE, )
-            except HSM2DongleCommError as e:
+                return (self.ERROR_CODE_DEVICE,)
+            except HSM2DongleCommError:
                 # Signal a communication problem and return a device error
                 self._comm_issue = True
                 self.logger.error("Dongle communication error signing")
-                return (self.ERROR_CODE_DEVICE, )
+                return (self.ERROR_CODE_DEVICE,)
             except HSM2DongleError as e:
                 self._error("Dongle error in sign: %s" % str(e))
         else:
-            #### Authorized signing ####
+            # Authorized signing
             auth_validation = self._validate_auth(request, mandatory=True)
             if auth_validation < self.ERROR_CODE_OK:
                 return (auth_validation,)
@@ -243,23 +277,25 @@ class HSM2ProtocolLedger(HSM2Protocol):
                 self.logger.debug("Unsigned BTC tx: %s", get_tx_hash(unsigned_btc_tx))
             except Exception as e:
                 self.logger.error("Error unsigning BTC tx: %s", str(e))
-                return (self.ERROR_CODE_INVALID_MESSAGE, )
+                return (self.ERROR_CODE_INVALID_MESSAGE,)
 
             try:
                 self.ensure_connection()
-                sign_result = self.hsm2dongle.sign_authorized(key_id=request["keyId"],
+                sign_result = self.hsm2dongle.sign_authorized(
+                    key_id=request["keyId"],
                     rsk_tx_receipt=request["auth"]["receipt"],
                     receipt_merkle_proof=request["auth"]["receipt_merkle_proof"],
                     btc_tx=unsigned_btc_tx,
-                    input_index=request["message"]["input"])
-            except HSM2DongleTimeoutError as e:
+                    input_index=request["message"]["input"],
+                )
+            except HSM2DongleTimeoutError:
                 self.logger.error("Dongle timeout signing")
-                return (self.ERROR_CODE_DEVICE, )
-            except HSM2DongleCommError as e:
+                return (self.ERROR_CODE_DEVICE,)
+            except HSM2DongleCommError:
                 # Signal a communication problem and return a device error
                 self._comm_issue = True
                 self.logger.error("Dongle communication error signing")
-                return (self.ERROR_CODE_DEVICE, )
+                return (self.ERROR_CODE_DEVICE,)
             except HSM2DongleError as e:
                 self._error("Dongle error in sign: %s" % str(e))
 
@@ -268,22 +304,19 @@ class HSM2ProtocolLedger(HSM2Protocol):
             return (self._translate_sign_error(sign_result[1]),)
         signature = sign_result[1]
 
-        return (self.ERROR_CODE_OK, {
-            "signature": {
-                "r": signature.r,
-                "s": signature.s
-            }
-        })
+        return (self.ERROR_CODE_OK, {"signature": {"r": signature.r, "s": signature.s}})
 
     def _translate_sign_error(self, error_code):
-        return ({
-            HSM2Dongle.RESPONSE.SIGN.ERROR_PATH: self.ERROR_CODE_INVALID_KEYID,
-            HSM2Dongle.RESPONSE.SIGN.ERROR_BTC_TX: self.ERROR_CODE_INVALID_MESSAGE,
-            HSM2Dongle.RESPONSE.SIGN.ERROR_TX_RECEIPT: self.ERROR_CODE_INVALID_AUTH,
-            HSM2Dongle.RESPONSE.SIGN.ERROR_MERKLE_PROOF: self.ERROR_CODE_INVALID_AUTH,
-            HSM2Dongle.RESPONSE.SIGN.ERROR_HASH: self.ERROR_CODE_INVALID_MESSAGE,
-            HSM2Dongle.RESPONSE.SIGN.ERROR_UNEXPECTED: self.ERROR_CODE_DEVICE
-        }).get(error_code, self.ERROR_CODE_UNKNOWN)
+        return (
+            {
+                HSM2Dongle.RESPONSE.SIGN.ERROR_PATH: self.ERROR_CODE_INVALID_KEYID,
+                HSM2Dongle.RESPONSE.SIGN.ERROR_BTC_TX: self.ERROR_CODE_INVALID_MESSAGE,
+                HSM2Dongle.RESPONSE.SIGN.ERROR_TX_RECEIPT: self.ERROR_CODE_INVALID_AUTH,
+                HSM2Dongle.RESPONSE.SIGN.ERROR_MERKLE_PROOF: self.ERROR_CODE_INVALID_AUTH,
+                HSM2Dongle.RESPONSE.SIGN.ERROR_HASH: self.ERROR_CODE_INVALID_MESSAGE,
+                HSM2Dongle.RESPONSE.SIGN.ERROR_UNEXPECTED: self.ERROR_CODE_DEVICE,
+            }
+        ).get(error_code, self.ERROR_CODE_UNKNOWN)
 
     def _blockchain_state(self, request):
         try:
@@ -292,11 +325,11 @@ class HSM2ProtocolLedger(HSM2Protocol):
         except (HSM2DongleError, HSM2DongleTimeoutError) as e:
             self.logger.error("Dongle error getting blockchain state: %s", str(e))
             return (self.ERROR_CODE_DEVICE,)
-        except HSM2DongleCommError as e:
+        except HSM2DongleCommError:
             # Signal a communication problem and return a device error
             self._comm_issue = True
             self.logger.error("Dongle communication error getting blockchain state")
-            return (self.ERROR_CODE_DEVICE, )
+            return (self.ERROR_CODE_DEVICE,)
 
         state_result = {
             "best_block": state["best_block"],
@@ -311,10 +344,10 @@ class HSM2ProtocolLedger(HSM2Protocol):
                 "in_progress": state["updating.in_progress"],
                 "already_validated": state["updating.already_validated"],
                 "found_best_block": state["updating.found_best_block"],
-            }
+            },
         }
 
-        return (self.ERROR_CODE_OK, { "state": state_result })
+        return (self.ERROR_CODE_OK, {"state": state_result})
 
     def _reset_advance_blockchain(self, request):
         try:
@@ -323,24 +356,26 @@ class HSM2ProtocolLedger(HSM2Protocol):
         except (HSM2DongleError, HSM2DongleTimeoutError) as e:
             self.logger.error("Dongle error resetting advance blockchain: %s", str(e))
             return (self.ERROR_CODE_DEVICE,)
-        except HSM2DongleCommError as e:
+        except HSM2DongleCommError:
             # Signal a communication problem and return a device error
             self._comm_issue = True
             self.logger.error("Dongle communication error resetting advance blockchain")
-            return (self.ERROR_CODE_DEVICE, )
+            return (self.ERROR_CODE_DEVICE,)
 
         return (self.ERROR_CODE_OK, {})
 
     def _advance_blockchain(self, request):
         try:
             self.ensure_connection()
-            advance_result = self.hsm2dongle.advance_blockchain(request["blocks"], self._dongle_app_version)
+            advance_result = self.hsm2dongle.advance_blockchain(
+                request["blocks"], self._dongle_app_version
+            )
 
             return (self._translate_advance_result(advance_result[1]), {})
         except (HSM2DongleError, HSM2DongleTimeoutError) as e:
             self.logger.error("Dongle error in advance blockchain: %s", str(e))
             return (self.ERROR_CODE_DEVICE,)
-        except HSM2DongleCommError as e:
+        except HSM2DongleCommError:
             # Signal a communication problem and return a device error
             self._comm_issue = True
             self.logger.error("Dongle communication error in advance blockchain")
@@ -351,26 +386,28 @@ class HSM2ProtocolLedger(HSM2Protocol):
             HSM2Dongle.RESPONSE.ADVANCE.OK_TOTAL: self.ERROR_CODE_OK,
             HSM2Dongle.RESPONSE.ADVANCE.OK_PARTIAL: self.ERROR_CODE_OK_PARTIAL,
             HSM2Dongle.RESPONSE.ADVANCE.ERROR_INIT: self.ERROR_CODE_DEVICE,
-            HSM2Dongle.RESPONSE.ADVANCE.ERROR_COMPUTE_METADATA: self.ERROR_CODE_INVALID_INPUT_BLOCKS,
+            HSM2Dongle.RESPONSE.ADVANCE.ERROR_COMPUTE_METADATA: self.ERROR_CODE_INVALID_INPUT_BLOCKS,  # noqa E501
             HSM2Dongle.RESPONSE.ADVANCE.ERROR_METADATA: self.ERROR_CODE_DEVICE,
             HSM2Dongle.RESPONSE.ADVANCE.ERROR_BLOCK_DATA: self.ERROR_CODE_DEVICE,
-            HSM2Dongle.RESPONSE.ADVANCE.ERROR_INVALID_BLOCK: self.ERROR_CODE_INVALID_INPUT_BLOCKS,
+            HSM2Dongle.RESPONSE.ADVANCE.ERROR_INVALID_BLOCK: self.ERROR_CODE_INVALID_INPUT_BLOCKS, # noqa E501
             HSM2Dongle.RESPONSE.ADVANCE.ERROR_POW_INVALID: self.ERROR_CODE_POW_INVALID,
-            HSM2Dongle.RESPONSE.ADVANCE.ERROR_CHAINING_MISMATCH: self.ERROR_CODE_CHAINING_MISMATCH,
-            HSM2Dongle.RESPONSE.ADVANCE.ERROR_UNSUPPORTED_CHAIN: self.ERROR_CODE_INVALID_INPUT_BLOCKS,
+            HSM2Dongle.RESPONSE.ADVANCE.ERROR_CHAINING_MISMATCH: self.ERROR_CODE_CHAINING_MISMATCH,  # noqa E501
+            HSM2Dongle.RESPONSE.ADVANCE.ERROR_UNSUPPORTED_CHAIN: self.ERROR_CODE_INVALID_INPUT_BLOCKS,  # noqa E501
             HSM2Dongle.RESPONSE.ADVANCE.ERROR_UNEXPECTED: self.ERROR_CODE_UNKNOWN,
         }).get(result, self.ERROR_CODE_UNKNOWN)
 
     def _update_ancestor_block(self, request):
         try:
             self.ensure_connection()
-            update_result = self.hsm2dongle.update_ancestor(request["blocks"], self._dongle_app_version)
+            update_result = self.hsm2dongle.update_ancestor(
+                request["blocks"], self._dongle_app_version
+            )
 
             return (self._translate_update_ancestor_result(update_result[1]), {})
         except (HSM2DongleError, HSM2DongleTimeoutError) as e:
             self.logger.error("Dongle error in update ancestor: %s", str(e))
             return (self.ERROR_CODE_DEVICE,)
-        except HSM2DongleCommError as e:
+        except HSM2DongleCommError:
             # Signal a communication problem and return a device error
             self._comm_issue = True
             self.logger.error("Dongle communication error in update ancestor")
@@ -380,12 +417,12 @@ class HSM2ProtocolLedger(HSM2Protocol):
         return ({
             HSM2Dongle.RESPONSE.UPD_ANCESTOR.OK_TOTAL: self.ERROR_CODE_OK,
             HSM2Dongle.RESPONSE.UPD_ANCESTOR.ERROR_INIT: self.ERROR_CODE_DEVICE,
-            HSM2Dongle.RESPONSE.UPD_ANCESTOR.ERROR_COMPUTE_METADATA: self.ERROR_CODE_INVALID_INPUT_BLOCKS,
+            HSM2Dongle.RESPONSE.UPD_ANCESTOR.ERROR_COMPUTE_METADATA: self.ERROR_CODE_INVALID_INPUT_BLOCKS,  # noqa E501
             HSM2Dongle.RESPONSE.UPD_ANCESTOR.ERROR_METADATA: self.ERROR_CODE_DEVICE,
             HSM2Dongle.RESPONSE.UPD_ANCESTOR.ERROR_BLOCK_DATA: self.ERROR_CODE_DEVICE,
-            HSM2Dongle.RESPONSE.UPD_ANCESTOR.ERROR_INVALID_BLOCK: self.ERROR_CODE_INVALID_INPUT_BLOCKS,
-            HSM2Dongle.RESPONSE.UPD_ANCESTOR.ERROR_CHAINING_MISMATCH: self.ERROR_CODE_CHAINING_MISMATCH,
-            HSM2Dongle.RESPONSE.UPD_ANCESTOR.ERROR_TIP_MISMATCH: self.ERROR_CODE_TIP_MISMATCH,
-            HSM2Dongle.RESPONSE.UPD_ANCESTOR.ERROR_REMOVE_MM_FIELDS: self.ERROR_CODE_INVALID_INPUT_BLOCKS,
+            HSM2Dongle.RESPONSE.UPD_ANCESTOR.ERROR_INVALID_BLOCK: self.ERROR_CODE_INVALID_INPUT_BLOCKS,  # noqa E501
+            HSM2Dongle.RESPONSE.UPD_ANCESTOR.ERROR_CHAINING_MISMATCH: self.ERROR_CODE_CHAINING_MISMATCH,  # noqa E501
+            HSM2Dongle.RESPONSE.UPD_ANCESTOR.ERROR_TIP_MISMATCH: self.ERROR_CODE_TIP_MISMATCH,  # noqa E501
+            HSM2Dongle.RESPONSE.UPD_ANCESTOR.ERROR_REMOVE_MM_FIELDS: self.ERROR_CODE_INVALID_INPUT_BLOCKS,  # noqa E501
             HSM2Dongle.RESPONSE.UPD_ANCESTOR.ERROR_UNEXPECTED: self.ERROR_CODE_UNKNOWN,
         }).get(result, self.ERROR_CODE_UNKNOWN)

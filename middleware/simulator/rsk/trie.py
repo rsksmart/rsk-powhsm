@@ -1,9 +1,10 @@
 import sha3
-import math
 import logging
+
 
 class RskTrieError(RuntimeError):
     pass
+
 
 # Represents a (binary) trie, of the kind
 # used in RSK. Each trie consists of a mandatory key,
@@ -29,7 +30,6 @@ class RskTrie:
 
         return node.get_root()
 
-
     def __init__(self, encoded, parent):
         self.logger = logging.getLogger("rsktrie")
         self._encoded = encoded
@@ -42,7 +42,9 @@ class RskTrie:
 
         # Encoded should be bytes now
         if type(self._encoded) != bytes:
-            raise RskTrieError("Cannot decode type %s. Must provide either bytes or hex-encoded string" % type(self._encoded))
+            raise RskTrieError(
+                "Cannot decode type %s. Must provide either bytes or hex-encoded string" %
+                type(self._encoded))
 
         # Calculate hash
         self._hash = sha3.keccak_256(self._encoded).digest().hex()
@@ -78,12 +80,12 @@ class RskTrie:
 
         # Parse flags
         flags = bs[0]
-        node_version           = (flags & 0b11000000) >> 6
-        has_long_value         = (flags & 0b00100000) > 0
-        shared_prefix_present  = (flags & 0b00010000) > 0
-        node_present_left      = (flags & 0b00001000) > 0
-        node_present_right     = (flags & 0b00000100) > 0
-        node_is_embedded_left  = (flags & 0b00000010) > 0
+        node_version = (flags & 0b11000000) >> 6
+        has_long_value = (flags & 0b00100000) > 0
+        shared_prefix_present = (flags & 0b00010000) > 0
+        node_present_left = (flags & 0b00001000) > 0
+        node_present_right = (flags & 0b00000100) > 0
+        node_is_embedded_left = (flags & 0b00000010) > 0
         node_is_embedded_right = (flags & 0b00000001) > 0
         bs = bs[1:]
 
@@ -116,7 +118,7 @@ class RskTrie:
         if node_present_left or node_present_right:
             try:
                 (children_size, read_length) = _read_var_int(bs)
-            except ValueError as e:
+            except ValueError:
                 raise RskTrieError("Can't read children size")
             bs = bs[read_length:]
 
@@ -176,9 +178,9 @@ class RskTrie:
             read_bytes = 32
             hash = bs[0:32].hex()
         else:
-            size = min(self.MAX_EMBEDDED_SIZE, bs[0], len(bs)-1)
-            hash = sha3.keccak_256(bs[1:1+size]).digest().hex()
-            read_bytes = size+1
+            size = min(self.MAX_EMBEDDED_SIZE, bs[0], len(bs) - 1)
+            hash = sha3.keccak_256(bs[1:1 + size]).digest().hex()
+            read_bytes = size + 1
 
         return (RskTrieHash(hash), read_bytes)
 
@@ -251,7 +253,8 @@ class RskTrie:
             elif type(current.right) == RskTrie:
                 current = current.right
             else:
-                raise RskTrieError("Cannot find a leaf. Missing either full left or right trie node")
+                raise RskTrieError(
+                    "Cannot find a leaf. Missing either full left or right trie node")
         return current
 
     def __str__(self):
@@ -259,6 +262,7 @@ class RskTrie:
 
     def __repr__(self):
         return str(self)
+
 
 class RskTrieHash:
     def __init__(self, hash):
@@ -274,7 +278,9 @@ class RskTrieHash:
     def __repr__(self):
         return str(self)
 
+
 # *** Utility functions *** #
+
 
 # Reads a variable-length integer
 # Returns a tuple (V, L) where V is the read
@@ -286,15 +292,15 @@ def _read_var_int(bs):
 
     first_byte = bs[0]
 
-    if first_byte < 0xfd:
+    if first_byte < 0xFD:
         value = int(first_byte)
         read_bytes = 1
-    elif first_byte == 0xfd:
+    elif first_byte == 0xFD:
         if len(bs) < 3:
             raise ValueError("Not enough bytes to read var int")
         value = int(bs[1]) + (int(bs[2]) << 8)
         read_bytes = 3
-    elif first_byte == 0xfe:
+    elif first_byte == 0xFE:
         if len(bs) < 5:
             raise ValueError("Not enough bytes to read var int")
         value = int(bs[1]) + (int(bs[2]) << 8) + (int(bs[3]) << 16) + (int(bs[4]) << 24)
@@ -302,11 +308,13 @@ def _read_var_int(bs):
     else:
         if len(bs) < 9:
             raise ValueError("Not enough bytes to read var int")
-        value = int(bs[1]      ) + (int(bs[2]) << 8 ) + (int(bs[3]) << 16) + (int(bs[4]) << 24) + \
-                int(bs[5] << 32) + (int(bs[6]) << 40) + (int(bs[7]) << 48) + (int(bs[8]) << 56)
+        value = (int(bs[1]) + (int(bs[2]) << 8) + (int(bs[3]) << 16) +
+                 (int(bs[4]) << 24) + int(bs[5] << 32) + (int(bs[6]) << 40) +
+                 (int(bs[7]) << 48) + (int(bs[8]) << 56))
         read_bytes = 9
 
     return (value, read_bytes)
+
 
 # Reads an unsigned 24-bit integer
 # stored in big-endian
@@ -315,6 +323,7 @@ def _read_uint24(bs):
         raise ValueError("Not enough bytes to read uint24")
     value = int(bs[0] << 16) + (int(bs[1]) << 8) + int(bs[2])
     return (value, 3)
+
 
 # Reads a shared prefix serialized as per
 # this RSKIP: https://github.com/rsksmart/RSKIPs/blob/master/IPs/RSKIP107.md
@@ -343,11 +352,11 @@ def _read_shared_prefix(bs):
         size_bytes = length//8 + 1
         if len(bs[offset:]) < size_bytes:
             raise ValueError("Not enough bytes to read in shared prefix")
-        encoded_path = bs[offset:offset+size_bytes]
+        encoded_path = bs[offset:offset + size_bytes]
         # First bit is most significant
         for index in range(0, length):
             byte = index//8
             bit = 7 - index
             shared_prefix.append((encoded_path[byte] & (1 << bit)) >> bit)
 
-    return (shared_prefix, offset+size_bytes)
+    return (shared_prefix, offset + size_bytes)
