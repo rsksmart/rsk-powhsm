@@ -1,0 +1,4 @@
+#!/bin/bash
+
+$(dirname $0)/docker/mware/do-notty-nousb /hsm2 \
+    "flake8 --config=setup.cfg ."

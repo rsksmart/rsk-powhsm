@@ -1,0 +1,4 @@
+#!/bin/bash
+
+$(dirname $0)/docker/mware/do-notty-nousb /hsm2 \
+    "yapf --in --style setup.cfg -r $@"
