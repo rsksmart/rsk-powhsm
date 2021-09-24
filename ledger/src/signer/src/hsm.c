@@ -209,7 +209,6 @@ unsigned int hsm_process_exception(unsigned short code, unsigned int tx) {
 
     // Always reset the full state when an error occurs
     if (code != 0x9000) {
-        RESET_BC_STATE();
         reset_if_starting(0);
     }
 

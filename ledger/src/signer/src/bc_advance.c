@@ -666,6 +666,8 @@ static const rlp_callbacks_t callbacks = {
  * Initialize Blockchain advance protocol state.
  */
 void bc_init_advance() {
+    RESET_BC_STATE();
+
     expected_blocks = 0;
     curr_block = 0;
     expected_state = OP_ADVANCE_INIT;
