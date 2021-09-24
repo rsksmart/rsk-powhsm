@@ -1,10 +1,16 @@
-import ecdsa
-import time
 from ledger.hsm2dongle import HSM2Dongle
 from ledger.pin import BasePin
-from .misc import info, get_hsm, dispose_hsm, ask_for_pin, PIN_ERROR_MESSAGE, PIN_ERROR_MESSAGE_ANYCHARS, AdminError
+from .misc import (
+    info,
+    get_hsm,
+    dispose_hsm,
+    ask_for_pin,
+    PIN_ERROR_MESSAGE,
+    PIN_ERROR_MESSAGE_ANYCHARS,
+    AdminError,
+)
 from .unlock import do_unlock
-from comm.bip32 import BIP32Path
+
 
 def do_changepin(options):
     info("### -> Change pin")
@@ -13,8 +19,10 @@ def do_changepin(options):
     # Validate new pin (if given)
     new_pin = None
     if options.new_pin is not None:
-        if not BasePin.is_valid(options.new_pin.encode(), require_alpha=not options.any_pin):
-            raise AdminError(PIN_ERROR_MESSAGE if not options.any_pin else PIN_ERROR_MESSAGE_ANYCHARS)
+        if not BasePin.is_valid(options.new_pin.encode(),
+                                require_alpha=not options.any_pin):
+            raise AdminError(
+                PIN_ERROR_MESSAGE if not options.any_pin else PIN_ERROR_MESSAGE_ANYCHARS)
         new_pin = options.new_pin.encode()
 
     # Attempt to unlock without exiting to menu/app
@@ -34,7 +42,8 @@ def do_changepin(options):
 
     # We can only change the pin while in bootloader mode
     if mode != HSM2Dongle.MODE.BOOTLOADER:
-        raise AdminError("Device not in bootloader mode. Disconnect and re-connect the ledger and try again")
+        raise AdminError("Device not in bootloader mode. Disconnect and re-connect the "
+                         "ledger and try again")
 
     # Ask the user for a new pin if one has not been given
     if new_pin is None:

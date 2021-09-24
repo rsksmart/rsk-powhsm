@@ -4,13 +4,17 @@ import socket
 import json
 import logging
 from comm.protocol import HSM2ProtocolError, HSM2ProtocolInterrupt
+
 LOGGER_NAME = "srver"
+
 
 class RequestHandlerError(RuntimeError):
     pass
 
+
 class RequestHandlerShutdown(RuntimeError):
     pass
+
 
 class _RequestHandler:
     ENCODING = "utf-8"
@@ -25,7 +29,9 @@ class _RequestHandler:
             data = line.decode(self.ENCODING)
         except UnicodeDecodeError:
             output = json.dumps(self.protocol.format_error(), sort_keys=True)
-            self.logger.info("<= [%s]: invalid encoding input - 0x%s", client_address, line.hex())
+            self.logger.info(
+                "<= [%s]: invalid encoding input - 0x%s", client_address, line.hex()
+            )
             self.logger.info("=> [%s]: %s", client_address, output)
             self._reply(wfile, output)
             return
@@ -63,6 +69,7 @@ class _RequestHandler:
         except Exception as e:
             self.logger.warning("Error replying: %s", str(e))
 
+
 class _TCPServerRequestHandler(socketserver.StreamRequestHandler):
     def handle(self):
         try:
@@ -82,14 +89,18 @@ class _TCPServerRequestHandler(socketserver.StreamRequestHandler):
             self.shutdown()
 
     def shutdown(self):
-        tgt = lambda: self._do_shutdown()
+        def tgt():
+            return self._do_shutdown()
+
         threading.Thread(target=tgt).start()
 
     def _do_shutdown(self):
         self.server.shutdown()
 
+
 class TCPServerError(RuntimeError):
     pass
+
 
 class TCPServer:
     def __init__(self, host, port, protocol):
@@ -105,7 +116,9 @@ class TCPServer:
             self.protocol.initialize_device()
             self.logger.info("Initializing server")
             socketserver.TCPServer.allow_reuse_address = True
-            self.server = socketserver.TCPServer((self.host, self.port), _TCPServerRequestHandler)
+            self.server = socketserver.TCPServer(
+                (self.host, self.port), _TCPServerRequestHandler
+            )
             self.server.protocol = self.protocol
             self.server.logger = self.logger
             self.logger.info("Listening on %s:%d" % (self.host, self.port))

@@ -1,6 +1,6 @@
 import sys
 
-HASH_LENGTH = 32 # Bytes
+HASH_LENGTH = 32  # Bytes
 
 if len(sys.argv) < 2:
     print("No hash specified")

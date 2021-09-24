@@ -20,9 +20,11 @@ if __name__ == "__main__":
         env_pin = os.environ.get("PIN", None)
         if env_pin is not None:
             env_pin = env_pin.encode()
-        pin = FileBasedPin(user_options.pin_file, \
-                           default_pin=env_pin, \
-                           force_change=user_options.force_pin_change)
+        pin = FileBasedPin(
+            user_options.pin_file,
+            default_pin=env_pin,
+            force_change=user_options.force_pin_change,
+        )
         dongle = HSM2Dongle(user_options.dongle_debug)
         # Init protocol depending on the required version
         if user_options.version_one:

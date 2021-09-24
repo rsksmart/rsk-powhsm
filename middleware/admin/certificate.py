@@ -5,8 +5,9 @@ import hashlib
 from .utils import is_nonempty_hex_string, is_slice_str, slice_from_str
 from enum import Enum
 
+
 class HSMCertificate:
-    VERSION = 1 # Only supported version
+    VERSION = 1  # Only supported version
     ROOT_ELEMENT = "root"
 
     @staticmethod
@@ -16,11 +17,13 @@ class HSMCertificate:
                 certificate_map = json.loads(file.read())
 
             if type(certificate_map) != dict:
-                raise ValueError("JSON file must contain an object as a top level element")
+                raise ValueError(
+                    "JSON file must contain an object as a top level element")
 
             return HSMCertificate(certificate_map)
         except (ValueError, json.JSONDecodeError) as e:
-            raise ValueError("Unable to read HSM certificate from \"%s\": %s" % (path, str(e)))
+            raise ValueError('Unable to read HSM certificate from "%s": %s' %
+                             (path, str(e)))
 
     def __init__(self, certificate_map=None):
         self._targets = []
@@ -37,7 +40,8 @@ class HSMCertificate:
         try:
             root_pubkey = ec.PublicKey(bytes.fromhex(raw_root_pubkey_hex), raw=True)
         except Exception:
-            return dict([(target, (False, self.ROOT_ELEMENT)) for target in self._targets])
+            return dict([(target, (False, self.ROOT_ELEMENT))
+                         for target in self._targets])
 
         result = {}
         for target in self._targets:
@@ -48,11 +52,12 @@ class HSMCertificate:
                 if current.signed_by == self.ROOT_ELEMENT:
                     break
                 chain.append(current)
-                current = self._elements[current.signed_by] 
+                current = self._elements[current.signed_by]
 
             # Validate the chain from root to leaf
             # If valid, return True and the value of the leaf
-            # If not valid, return False and the name of the element that failed the validation
+            # If not valid, return False and the name of the element that
+            # failed the validation
             current_pubkey = root_pubkey
             while True:
                 # Validate this element
@@ -64,16 +69,18 @@ class HSMCertificate:
                     result[target] = (True, current.get_value(), current.tweak)
                     break
 
-                current_pubkey = ec.PublicKey(bytes.fromhex(current.get_value()), raw=True)
+                current_pubkey = ec.PublicKey(bytes.fromhex(current.get_value()),
+                                              raw=True)
                 current = chain.pop()
-        
+
         return result
 
     def add_element(self, element):
         if type(element) != HSMCertificateElement:
-            raise ValueError(f"Expected an HSMCertificateElement but got a {type(element)}")
+            raise ValueError(
+                f"Expected an HSMCertificateElement but got a {type(element)}")
         self._elements[element.name] = element
-    
+
     def clear_targets(self):
         self._targets = []
 
@@ -82,7 +89,6 @@ class HSMCertificate:
             raise ValueError(f"Target {target} not in elements")
         self._targets.append(target)
 
-
     def to_dict(self):
         if not self.is_complete():
             raise ValueError("HSMCertificate is incomplete")
@@ -90,7 +96,7 @@ class HSMCertificate:
         return {
             "version": self.VERSION,
             "targets": self._targets,
-            "elements": list(map(lambda e: e.to_dict(), self._elements.values()))
+            "elements": list(map(lambda e: e.to_dict(), self._elements.values())),
         }
 
     def save_to_jsonfile(self, path):
@@ -98,9 +104,11 @@ class HSMCertificate:
             file.write("%s\n" % json.dumps(self.to_dict(), indent=2))
 
     def _parse(self, certificate_map):
-        if not "version" in certificate_map or \
-            certificate_map["version"] != self.VERSION:
-            raise ValueError(f"Invalid or unsupported HSM certificate version (current version is {self.VERSION})")
+        if "version" not in certificate_map or certificate_map["version"] != self.VERSION:
+            raise ValueError(
+                "Invalid or unsupported HSM certificate version "
+                f"(current version is {self.VERSION})"
+            )
 
         if "targets" not in certificate_map or type(certificate_map["targets"]) != list:
             raise ValueError("Missing or invalid targets")
@@ -123,7 +131,8 @@ class HSMCertificate:
             current = self._elements[target]
             while True:
                 if current.name in visited:
-                    raise ValueError(f"Target {target} has not got a path to the root authority")
+                    raise ValueError(
+                        f"Target {target} has not got a path to the root authority")
                 if current.signed_by == self.ROOT_ELEMENT:
                     break
                 if current.signed_by not in self._elements:
@@ -131,13 +140,15 @@ class HSMCertificate:
                 visited.append(current.name)
                 current = self._elements[current.signed_by]
 
+
 class HSMCertificateElement:
     class DIGEST(Enum):
         NONE = "none"
         SHA256 = "sha256"
 
     def __init__(self, element_map):
-        if "name" not in element_map or element_map["name"] == HSMCertificate.ROOT_ELEMENT:
+        if ("name" not in element_map
+                or element_map["name"] == HSMCertificate.ROOT_ELEMENT):
             raise ValueError("Missing or invalid name for HSM certificate element")
         self._name = element_map["name"]
 
@@ -148,24 +159,32 @@ class HSMCertificateElement:
         self._tweak = None
         if "tweak" in element_map:
             if not is_nonempty_hex_string(element_map["tweak"]):
-                raise ValueError(f"Invalid signer tweak for HSM certificate element {self.name}")
+                raise ValueError(
+                    f"Invalid signer tweak for HSM certificate element {self.name}")
             self._tweak = element_map["tweak"]
 
-        if "message" not in element_map or not is_nonempty_hex_string(element_map["message"]):
-            raise ValueError(f"Missing or invalid message for HSM certificate element {self.name}")
+        if "message" not in element_map or not is_nonempty_hex_string(
+                element_map["message"]):
+            raise ValueError(
+                f"Missing or invalid message for HSM certificate element {self.name}")
         self._message = element_map["message"]
 
-        if "digest" not in element_map or \
-            (element_map["digest"] not in self.DIGEST and element_map["digest"] not in map(lambda e: e.value, self.DIGEST)):
-            raise ValueError(f"Missing or invalid digest for HSM certificate element {self.name}")
+        if "digest" not in element_map or (element_map["digest"] not in self.DIGEST
+                                           and element_map["digest"] not in map(
+                                               lambda e: e.value, self.DIGEST)):
+            raise ValueError(
+                f"Missing or invalid digest for HSM certificate element {self.name}")
         self._digest = self.DIGEST(element_map["digest"])
 
         if "extract" not in element_map or not is_slice_str(element_map["extract"]):
-            raise ValueError(f"Missing or invalid extract for HSM certificate element {self.name}")
+            raise ValueError(
+                f"Missing or invalid extract for HSM certificate element {self.name}")
         self._extract = element_map["extract"]
 
-        if "signature" not in element_map or not is_nonempty_hex_string(element_map["signature"]):
-            raise ValueError(f"Missing or invalid signature for HSM certificate element {self.name}")
+        if "signature" not in element_map or not is_nonempty_hex_string(
+                element_map["signature"]):
+            raise ValueError(
+                f"Missing or invalid signature for HSM certificate element {self.name}")
         self._signature = element_map["signature"]
 
     @property
@@ -215,26 +234,22 @@ class HSMCertificateElement:
         try:
             message = bytes.fromhex(self.message)
             if self.digest == self.DIGEST.SHA256:
-                m = hashlib.sha256(message).digest()
+                message = hashlib.sha256(message).digest()
 
             verifier_pubkey = certifier_pubkey
             if self.tweak is not None:
-                tweak = hmac.new(\
-                    bytes.fromhex(self.tweak), \
-                    certifier_pubkey.serialize(compressed=False), \
-                    hashlib.sha256
+                tweak = hmac.new(
+                    bytes.fromhex(self.tweak),
+                    certifier_pubkey.serialize(compressed=False),
+                    hashlib.sha256,
                 ).digest()
 
                 verifier_pubkey = verifier_pubkey.tweak_add(tweak)
 
-            return verifier_pubkey.ecdsa_verify( \
-                message, \
-                verifier_pubkey.ecdsa_deserialize(bytes.fromhex(self.signature))
-            )
+            return verifier_pubkey.ecdsa_verify(
+                message, verifier_pubkey.ecdsa_deserialize(bytes.fromhex(self.signature)))
         except Exception:
-            print("evieja")
             return False
 
     def get_value(self):
         return bytes.fromhex(self.message)[slice_from_str(self.extract)].hex()
-

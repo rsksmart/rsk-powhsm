@@ -2,6 +2,7 @@ from .case import TestCase, TestCaseError
 from .sign_helpers import assert_signature
 from comm.bip32 import BIP32Path
 
+
 class SignUnauthorized(TestCase):
 
     PATHS = {
@@ -13,13 +14,13 @@ class SignUnauthorized(TestCase):
         "tmst": BIP32Path("m/44'/1'/2'/0/0"),
         "dep_tmst": BIP32Path("m/44'/1'/0'/0/2"),
     }
-    
+
     @classmethod
     def op_name(cls):
         return "signUnauthorized"
 
     def __init__(self, spec):
-        self.hash = spec['hash']
+        self.hash = spec["hash"]
         return super().__init__(spec)
 
     def run(self, dongle, version, debug):
@@ -32,23 +33,28 @@ class SignUnauthorized(TestCase):
                 try:
                     pubkey = dongle.get_public_key(path)
                     debug(f"Got public key for {path}: {pubkey}")
-                except RuntimeError as e:
+                except RuntimeError:
                     pubkey = None
 
                 # Sign
                 debug(f"Signing with {path}")
                 signature = dongle.sign_unauthorized(path, self.hash)
                 debug(f"Dongle replied with {signature}")
-                if not(signature[0]):
-                    error_code = dongle.last_comm_exception.sw if dongle.last_comm_exception is not None else signature[1]
-                    if self.expected == True:
-                        raise TestCaseError(f"Expected success signing but got error code {error_code}")
+                if not signature[0]:
+                    error_code = (dongle.last_comm_exception.sw
+                                  if dongle.last_comm_exception is not None else
+                                  signature[1])
+                    if self.expected is True:
+                        raise TestCaseError(
+                            f"Expected success signing but got error code {error_code}")
                     elif self.expected != error_code:
-                        raise TestCaseError(f"Expected error code {self.expected} but got {error_code}")
+                        raise TestCaseError(
+                            f"Expected error code {self.expected} but got {error_code}")
                     # All good, expected failure
                     continue
-                elif self.expected != True:
-                    raise TestCaseError(f"Expected error code {self.expected} signing but got a successful signature")
+                elif self.expected is not True:
+                    raise TestCaseError(f"Expected error code {self.expected} "
+                                        "signing but got a successful signature")
 
                 # Validate the signature
                 assert_signature(pubkey, self.hash, signature[1])

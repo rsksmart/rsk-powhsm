@@ -1,8 +1,12 @@
-import os,random,string
+import os
+import random
+import string
 import logging
+
 
 class PinError(RuntimeError):
     pass
+
 
 class BasePin:
     PIN_LENGTH = 8
@@ -34,6 +38,7 @@ class BasePin:
             return True
 
         return any(map(lambda c: chr(c) in cls.ALPHA_CHARS, pin))
+
 
 # Handles PIN initialization and loading
 class FileBasedPin(BasePin):

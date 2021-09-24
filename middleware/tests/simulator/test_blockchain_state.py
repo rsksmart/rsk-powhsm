@@ -1,11 +1,13 @@
 import json
 from unittest import TestCase
-from unittest.mock import Mock, MagicMock, call, ANY, patch
+from unittest.mock import Mock, MagicMock, call, patch
 
 import simulator.blockchain_state
 
 import logging
+
 logging.disable(logging.CRITICAL)
+
 
 class TestBlockchainState(TestCase):
     def setUp(self):
@@ -22,7 +24,7 @@ class TestBlockchainState(TestCase):
                 "best_block": "44"*32,
                 "newest_valid_block": "55"*32,
                 "next_expected_block": "66"*32,
-            }
+            },
         }
 
     def test_construction_ok(self):
@@ -59,8 +61,14 @@ class TestBlockchainState(TestCase):
             simulator.blockchain_state.BlockchainState(self.params)
 
     def test_invalid_updating_values(self):
-        for key in ["best_block", "newest_valid_block", "next_expected_block",
-                    "in_progress", "already_validated", "found_best_block"]:
+        for key in [
+                "best_block",
+                "newest_valid_block",
+                "next_expected_block",
+                "in_progress",
+                "already_validated",
+                "found_best_block",
+        ]:
             self.setUp()
             for value in ["jj"*32, None, 555, "aa"]:
                 with self.assertRaises(ValueError):
@@ -140,7 +148,8 @@ class TestBlockchainState(TestCase):
         mock_open.return_value = mock_file
         mock_file.__enter__().read.return_value = json.dumps(self.params)
 
-        state = simulator.blockchain_state.BlockchainState.from_jsonfile("a-path-to-a-json-file")
+        state = simulator.blockchain_state.BlockchainState.from_jsonfile(
+            "a-path-to-a-json-file")
 
         self.assertEqual(state.to_dict(), self.params)
         self.assertEqual(mock_open.call_args_list, [call("a-path-to-a-json-file", "r")])
@@ -152,7 +161,8 @@ class TestBlockchainState(TestCase):
         mock_open.side_effect = FileNotFoundError()
 
         with self.assertRaises(FileNotFoundError):
-            simulator.blockchain_state.BlockchainState.from_jsonfile("a-path-to-a-json-file")
+            simulator.blockchain_state.BlockchainState.from_jsonfile(
+                "a-path-to-a-json-file")
 
         self.assertEqual(mock_open.call_args_list, [call("a-path-to-a-json-file", "r")])
 
@@ -163,7 +173,8 @@ class TestBlockchainState(TestCase):
         mock_file.__enter__().read.return_value = "im-not-json\n"
 
         with self.assertRaises(ValueError):
-            simulator.blockchain_state.BlockchainState.from_jsonfile("a-path-to-a-json-file")
+            simulator.blockchain_state.BlockchainState.from_jsonfile(
+                "a-path-to-a-json-file")
 
         self.assertEqual(mock_open.call_args_list, [call("a-path-to-a-json-file", "r")])
         self.assertEqual(mock_file.__enter__().read.call_args_list, [call()])
@@ -174,13 +185,17 @@ class TestBlockchainState(TestCase):
         mock_file = MagicMock()
         mock_open.return_value = mock_file
         mock_file.__enter__().read.return_value = json.dumps({
-                                                                "best_block": "invalid",
-                                                                "best_block_number": 555,
-                                                                "newest_valid_block": "33"*32
-                                                             })
+            "best_block":
+            "invalid",
+            "best_block_number":
+            555,
+            "newest_valid_block":
+            "33"*32,
+        })
 
         with self.assertRaises(ValueError):
-            simulator.blockchain_state.BlockchainState.from_jsonfile("a-path-to-a-json-file")
+            simulator.blockchain_state.BlockchainState.from_jsonfile(
+                "a-path-to-a-json-file")
 
         self.assertEqual(mock_open.call_args_list, [call("a-path-to-a-json-file", "r")])
         self.assertEqual(mock_file.__enter__().read.call_args_list, [call()])
@@ -191,13 +206,17 @@ class TestBlockchainState(TestCase):
         mock_file = MagicMock()
         mock_open.return_value = mock_file
         mock_file.__enter__().read.return_value = json.dumps({
-                                                                "best_block": "11"*32,
-                                                                "best_block_number": 555,
-                                                                "newest_valid_block": "invalid"
-                                                             })
+            "best_block":
+            "11"*32,
+            "best_block_number":
+            555,
+            "newest_valid_block":
+            "invalid",
+        })
 
         with self.assertRaises(ValueError):
-            simulator.blockchain_state.BlockchainState.from_jsonfile("a-path-to-a-json-file")
+            simulator.blockchain_state.BlockchainState.from_jsonfile(
+                "a-path-to-a-json-file")
 
         self.assertEqual(mock_open.call_args_list, [call("a-path-to-a-json-file", "r")])
         self.assertEqual(mock_file.__enter__().read.call_args_list, [call()])
@@ -208,13 +227,17 @@ class TestBlockchainState(TestCase):
         mock_file = MagicMock()
         mock_open.return_value = mock_file
         mock_file.__enter__().read.return_value = json.dumps({
-                                                                "best_block": "11"*32,
-                                                                "best_block_number": "not-a-number",
-                                                                "newest_valid_block": "33"*32
-                                                             })
+            "best_block":
+            "11"*32,
+            "best_block_number":
+            "not-a-number",
+            "newest_valid_block":
+            "33"*32,
+        })
 
         with self.assertRaises(ValueError):
-            simulator.blockchain_state.BlockchainState.from_jsonfile("a-path-to-a-json-file")
+            simulator.blockchain_state.BlockchainState.from_jsonfile(
+                "a-path-to-a-json-file")
 
         self.assertEqual(mock_open.call_args_list, [call("a-path-to-a-json-file", "r")])
         self.assertEqual(mock_file.__enter__().read.call_args_list, [call()])
@@ -240,9 +263,10 @@ class TestBlockchainState(TestCase):
 
     def test_in_blockchain(self):
         state = simulator.blockchain_state.BlockchainState(self.params)
-        self.assertFalse(state.in_blockchain(Mock(hash='aa'*32)))
-        self.assertTrue(state.in_blockchain(Mock(hash='11'*32)))
-        self.assertTrue(state.in_blockchain(Mock(hash='33'*32)))
+        self.assertFalse(state.in_blockchain(Mock(hash="aa"*32)))
+        self.assertTrue(state.in_blockchain(Mock(hash="11"*32)))
+        self.assertTrue(state.in_blockchain(Mock(hash="33"*32)))
+
 
 class TestLoadOrCreateBlockchainState(TestCase):
     @patch("simulator.blockchain_state.BlockchainState")
@@ -250,8 +274,13 @@ class TestLoadOrCreateBlockchainState(TestCase):
         state = Mock()
         BlockchainStateMock.from_jsonfile.return_value = state
 
-        self.assertEqual(simulator.blockchain_state.load_or_create_blockchain_state("an-existing-path", "doesnt-matter", Mock()), state)
-        self.assertEqual(BlockchainStateMock.from_jsonfile.call_args_list, [call("an-existing-path")])
+        self.assertEqual(
+            simulator.blockchain_state.load_or_create_blockchain_state(
+                "an-existing-path", "doesnt-matter", Mock()),
+            state,
+        )
+        self.assertEqual(BlockchainStateMock.from_jsonfile.call_args_list,
+                         [call("an-existing-path")])
         self.assertFalse(BlockchainStateMock.checkpoint.called)
 
     @patch("simulator.blockchain_state.BlockchainState")
@@ -260,23 +289,39 @@ class TestLoadOrCreateBlockchainState(TestCase):
         state = Mock()
         BlockchainStateMock.checkpoint.return_value = state
 
-        self.assertEqual(simulator.blockchain_state.load_or_create_blockchain_state("a-non-existing-path", \
-            "44"*32+":123", Mock()), state)
-        self.assertEqual(BlockchainStateMock.from_jsonfile.call_args_list, [call("a-non-existing-path")])
-        self.assertEqual(BlockchainStateMock.checkpoint.call_args_list, [call("44"*32+":123")])
+        self.assertEqual(
+            simulator.blockchain_state.load_or_create_blockchain_state(
+                "a-non-existing-path", "44"*32 + ":123", Mock()),
+            state,
+        )
+        self.assertEqual(
+            BlockchainStateMock.from_jsonfile.call_args_list,
+            [call("a-non-existing-path")],
+        )
+        self.assertEqual(BlockchainStateMock.checkpoint.call_args_list,
+                         [call("44"*32 + ":123")])
+
 
 # Mock hash
 def hs(n):
-    return n.to_bytes(32, byteorder='big', signed=False).hex()
+    return n.to_bytes(32, byteorder="big", signed=False).hex()
+
 
 # Mock Block
 def mb(hash, parent=None, number=None, difficulty=None, pow=True):
-    parent = parent if parent is not None else hash-1
+    parent = parent if parent is not None else hash - 1
     number = number if number is not None else hash
     difficulty = difficulty if difficulty is not None else hash
-    result = Mock(hash=hs(hash), receipts_trie_root=hs(hash+100), parent_hash=hs(parent), number=number, difficulty=difficulty)
+    result = Mock(
+        hash=hs(hash),
+        receipts_trie_root=hs(hash + 100),
+        parent_hash=hs(parent),
+        number=number,
+        difficulty=difficulty,
+    )
     result.pow_is_valid.return_value = pow
     return result
+
 
 class TestBlockchainStateAdvance(TestCase):
     def setUp(self):
@@ -293,7 +338,7 @@ class TestBlockchainStateAdvance(TestCase):
                 "best_block": hs(0),
                 "newest_valid_block": hs(0),
                 "next_expected_block": hs(0),
-            }
+            },
         }
         self.state = simulator.blockchain_state.BlockchainState(self.params)
         self.change_handler = Mock()
@@ -326,8 +371,8 @@ class TestBlockchainStateAdvance(TestCase):
         bs = [
             mb(9),
             mb(8),
-            mb(7), # 7+8+9 = 24 < 28
-            mb(6), # 6+7+8+9 = 30 >= 28
+            mb(7),  # 7+8+9 = 24 < 28
+            mb(6),  # 6+7+8+9 = 30 >= 28
             mb(5, 123),
             mb(4),
             mb(3),
@@ -349,8 +394,8 @@ class TestBlockchainStateAdvance(TestCase):
         bs = [
             mb(9),
             mb(8),
-            mb(7), # 7+8+9 = 24 < 28
-            mb(6), # 6+7+8+9 = 30 >= 28
+            mb(7),  # 7+8+9 = 24 < 28
+            mb(6),  # 6+7+8+9 = 30 >= 28
             mb(5),
             mb(4, pow=False),
             mb(3),
@@ -372,8 +417,8 @@ class TestBlockchainStateAdvance(TestCase):
         bs = [
             mb(9),
             mb(8),
-            mb(7), # 7+8+9 = 24 < 28
-            mb(6), # 6+7+8+9 = 30 >= 28
+            mb(7),  # 7+8+9 = 24 < 28
+            mb(6),  # 6+7+8+9 = 30 >= 28
             mb(5),
             mb(4),
             mb(3),
@@ -396,8 +441,8 @@ class TestBlockchainStateAdvance(TestCase):
         self.state.minimum_cumulative_difficulty = 28
         bs = [
             mb(12),
-            mb(11), # 11+12 = 23 < 28
-            mb(10), # 10+11+12 = 33 >= 28
+            mb(11),  # 11+12 = 23 < 28
+            mb(10),  # 10+11+12 = 33 >= 28
             mb(9),
             mb(8),
             mb(7),
@@ -425,8 +470,8 @@ class TestBlockchainStateAdvance(TestCase):
         bs = [
             mb(10),
             mb(9),
-            mb(8), # 27
-            mb(7), # 34
+            mb(8),  # 27
+            mb(7),  # 34
             mb(6),
             mb(5),
             mb(4),
@@ -449,8 +494,8 @@ class TestBlockchainStateAdvance(TestCase):
         bs = [
             mb(9),
             mb(8),
-            mb(7), # 7+8+9 = 24 < 28
-            mb(6), # 6+7+8+9 = 30 >= 28
+            mb(7),  # 7+8+9 = 24 < 28
+            mb(6),  # 6+7+8+9 = 30 >= 28
             mb(5),
             mb(4),
         ]
@@ -586,8 +631,8 @@ class TestBlockchainStateAdvance(TestCase):
         bs = [
             mb(9),
             mb(8),
-            mb(7), # 7+8+9 = 24 < 28
-            mb(6), # 6+7+8+9 = 30 >= 28
+            mb(7),  # 7+8+9 = 24 < 28
+            mb(6),  # 6+7+8+9 = 30 >= 28
             mb(5),
             mb(4),
         ]
@@ -633,6 +678,7 @@ class TestBlockchainStateAdvance(TestCase):
             self.assertFalse(b.pow_is_valid.called)
         self.assertTrue(self.change_handler.called)
 
+
 class TestBlockchainStateUpdateAncestor(TestCase):
     def setUp(self):
         self.params = {
@@ -648,7 +694,7 @@ class TestBlockchainStateUpdateAncestor(TestCase):
                 "best_block": hs(0),
                 "newest_valid_block": hs(0),
                 "next_expected_block": hs(0),
-            }
+            },
         }
         self.state = simulator.blockchain_state.BlockchainState(self.params)
         self.change_handler = Mock()

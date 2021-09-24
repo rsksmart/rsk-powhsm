@@ -19,18 +19,28 @@ KEY_LENGTH = 32
 #   ECDH shared secret public key point computed from:
 #     - RSK key (held by RSK)
 #     - HSM key (generated randomly at onboarding)
-# * bytes 32-64 (33 bytes): Compressed HSM's public key (used for ECDH shared secret computation).
+# * bytes 32-64 (33 bytes): Compressed HSM's public key
+# (used for ECDH shared secret computation).
 BACKUP_LENGTH = 65
 SEPARATOR_OFFSET = 32
 AES_KEY_LENGTH = 16
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = ArgumentParser(description="HSM 2 Restore tool")
-    parser.add_argument("-k", "--key", dest="key", \
-                        help=f"Backup private key (in hex format).", required=True)
-    parser.add_argument("-b", "--backup", dest="seed_backup_file", \
-                        help=f"Seed backup file. (default '{DEFAULT_SEED_BACKUP_FILE}')", \
-                        default=DEFAULT_SEED_BACKUP_FILE)
+    parser.add_argument(
+        "-k",
+        "--key",
+        dest="key",
+        help="Backup private key (in hex format).",
+        required=True,
+    )
+    parser.add_argument(
+        "-b",
+        "--backup",
+        dest="seed_backup_file",
+        help=f"Seed backup file. (default '{DEFAULT_SEED_BACKUP_FILE}')",
+        default=DEFAULT_SEED_BACKUP_FILE,
+    )
     options = parser.parse_args()
 
     if not os.path.isfile(options.seed_backup_file):
@@ -45,18 +55,20 @@ if __name__ == '__main__':
         backup_bytes = backup.read()
 
     if len(backup_bytes) != BACKUP_LENGTH:
-        print(f"Invalid backup: expected {BACKUP_LENGTH} bytes but got {len(backup_bytes)}")
+        print(
+            f"Invalid backup: expected {BACKUP_LENGTH} bytes but got {len(backup_bytes)}")
         sys.exit(1)
 
     # Decrypt the backup
     encrypted_seed = backup_bytes[:SEPARATOR_OFFSET]
     hsm_key_bytes = backup_bytes[SEPARATOR_OFFSET:]
-    rsk_key = ecdsa.SigningKey.from_string(bytes.fromhex(options.key), curve=ecdsa.SECP256k1)
+    rsk_key = ecdsa.SigningKey.from_string(bytes.fromhex(options.key),
+                                           curve=ecdsa.SECP256k1)
     hsm_key = ecdsa.VerifyingKey.from_string(hsm_key_bytes, curve=ecdsa.SECP256k1)
     dh_point = hsm_key.pubkey.point * rsk_key.privkey.secret_multiplier
     dh_pub = ecdsa.VerifyingKey.from_public_point(dh_point, curve=ecdsa.SECP256k1)
     aes_key = ecdsa.util.sha256(dh_pub.to_string("compressed")).digest()[:AES_KEY_LENGTH]
-    aes = AES.new(aes_key, AES.MODE_CBC, b'\x00'*16)
+    aes = AES.new(aes_key, AES.MODE_CBC, b"\x00" * 16)
     seed = aes.decrypt(encrypted_seed)
     seed_mnemonic = EnglishMnemonic().to_mnemonic(seed)
     words = seed_mnemonic.split(" ")

@@ -1,14 +1,14 @@
 from .protocol import HSM2Protocol
 from .utils import is_hex_string_of_length
 
+
 class HSM1Protocol(HSM2Protocol):
     # Auth-related error codes
     ERROR_CODE_INVALID_AUTH = -2
     ERROR_CODE_INVALID_MESSAGE = -2
     ERROR_CODE_INVALID_KEYID = -2
 
-    # Generic error codes 
-    # (taken from v1 server @ https://gitlab.rsklabs.io/federation/ledger-signer/-/blob/master/ledger/hsm-server/app/server.py)
+    # Generic error codes (taken from the original v1 server)
     ERROR_CODE_FORMAT_ERROR = -2
     ERROR_CODE_INVALID_REQUEST = -2
     ERROR_CODE_COMMAND_UNKNOWN = -2
@@ -31,9 +31,14 @@ class HSM1Protocol(HSM2Protocol):
 
         # Validate message field
         # It must always be present and a string that must be a 32-byte hex
-        if "message" not in request or type(request["message"]) != str or \
-            not is_hex_string_of_length(request["message"], 32):
-            self.logger.info("Message field not present, not a string or not a 32-byte hex")
+        if (
+            "message" not in request
+            or type(request["message"]) != str
+            or not is_hex_string_of_length(request["message"], 32)
+        ):
+            self.logger.info(
+                "Message field not present, not a string or not a 32-byte hex"
+            )
             return self.ERROR_CODE_INVALID_MESSAGE
 
         return self.ERROR_CODE_OK

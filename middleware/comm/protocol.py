@@ -4,11 +4,14 @@ from .utils import is_nonempty_hex_string, is_hex_string_of_length
 
 LOGGER_NAME = "protocol"
 
+
 class HSM2ProtocolError(RuntimeError):
     pass
 
+
 class HSM2ProtocolInterrupt(Exception):
     pass
+
 
 class HSM2Protocol:
     # Request/Response keys
@@ -71,12 +74,13 @@ class HSM2Protocol:
         if self.COMMAND_KEY not in request:
             return self._invalid_request()
 
-        if request[self.COMMAND_KEY] != self.VERSION_COMMAND and \
-            self.VERSION_KEY not in request:
+        if (
+            request[self.COMMAND_KEY] != self.VERSION_COMMAND
+            and self.VERSION_KEY not in request
+        ):
             return self._invalid_request()
 
-        if self.VERSION_KEY in request and \
-            request[self.VERSION_KEY] != self.VERSION:
+        if self.VERSION_KEY in request and request[self.VERSION_KEY] != self.VERSION:
             return self._wrong_version()
 
         command = request[self.COMMAND_KEY]
@@ -87,19 +91,22 @@ class HSM2Protocol:
         # Perform generic input validation
         validation_result = self._validation_mappings[command](request)
         if validation_result < 0:
-            return { self.ERROR_CODE_KEY: validation_result }
+            return {self.ERROR_CODE_KEY: validation_result}
 
         # Operations MUST return a tuple with TWO elements.
         # First element MUST be an integer representing the outcome of the operation.
-        # Second element MUST be a dictionary with the result (if the operation is successful)
+        # Second element MUST be a dictionary with the result (if the operation is
+        # successful)
         # or None if the operation failed.
-        # In the first element, a nonnegative integer indicates success, and then the result is the second
-        # element of the tuple with added protocol overhead. A negative integer indicates failure.
+        # In the first element, a nonnegative integer indicates success, and then
+        # the result is the second
+        # element of the tuple with added protocol overhead.
+        # A negative integer indicates failure.
 
         operation_result = self._mappings[command](request)
         result = operation_result[0]
         if result < 0:
-            return { self.ERROR_CODE_KEY: result }
+            return {self.ERROR_CODE_KEY: result}
 
         output = operation_result[1]
         output[self.ERROR_CODE_KEY] = result
@@ -110,36 +117,38 @@ class HSM2Protocol:
 
     def device_error(self):
         self.logger.debug("Generic error")
-        return { self.ERROR_CODE_KEY: self.ERROR_CODE_DEVICE }
+        return {self.ERROR_CODE_KEY: self.ERROR_CODE_DEVICE}
 
     def unknown_error(self):
         self.logger.debug("Generic error")
-        return { self.ERROR_CODE_KEY: self.ERROR_CODE_UNKNOWN }
+        return {self.ERROR_CODE_KEY: self.ERROR_CODE_UNKNOWN}
 
     def format_error(self):
         self.logger.debug("Format error")
-        return { self.ERROR_CODE_KEY: self.ERROR_CODE_FORMAT_ERROR }
+        return {self.ERROR_CODE_KEY: self.ERROR_CODE_FORMAT_ERROR}
 
     def _invalid_request(self):
         self.logger.debug("Invalid request")
-        return { self.ERROR_CODE_KEY: self.ERROR_CODE_INVALID_REQUEST }
+        return {self.ERROR_CODE_KEY: self.ERROR_CODE_INVALID_REQUEST}
 
     def _wrong_version(self):
         self.logger.debug("Invalid version")
-        return { self.ERROR_CODE_KEY: self.ERROR_CODE_WRONG_VERSION }
+        return {self.ERROR_CODE_KEY: self.ERROR_CODE_WRONG_VERSION}
 
     def _command_unknown(self):
         self.logger.debug("Command unknown")
-        return { self.ERROR_CODE_KEY: self.ERROR_CODE_COMMAND_UNKNOWN }
+        return {self.ERROR_CODE_KEY: self.ERROR_CODE_COMMAND_UNKNOWN}
 
     def _version(self, request):
-        return (0, {
-            self.VERSION_KEY: self.VERSION
-        })
+        return (0, {self.VERSION_KEY: self.VERSION})
 
     def _validate_advance_blockchain(self, request):
         # Validate blocks presence, type and minimum length
-        if "blocks" not in request or type(request["blocks"]) != list or len(request["blocks"]) == 0:
+        if (
+            "blocks" not in request
+            or type(request["blocks"]) != list
+            or len(request["blocks"]) == 0
+        ):
             self.logger.info("Blocks field not present, not an array or empty")
             return self.ERROR_CODE_INVALID_INPUT_BLOCKS
 
@@ -161,9 +170,15 @@ class HSM2Protocol:
 
     def _validate_update_ancestor_block(self, request):
         # Validate blocks presence, type and minimum length
-        if "blocks" not in request or type(request["blocks"]) != list or \
-           len(request["blocks"]) < self.MINIMUM_UPDATE_ANCESTOR_BLOCKS:
-            self.logger.info("Blocks field not present, not an array or shorter than the minimum (%d blocks)" % self.MINIMUM_UPDATE_ANCESTOR_BLOCKS)
+        if (
+            "blocks" not in request
+            or type(request["blocks"]) != list
+            or len(request["blocks"]) < self.MINIMUM_UPDATE_ANCESTOR_BLOCKS
+        ):
+            self.logger.info(
+                "Blocks field not present, not an array or shorter than the minimum "
+                "(%d blocks)" % self.MINIMUM_UPDATE_ANCESTOR_BLOCKS
+            )
             return self.ERROR_CODE_INVALID_INPUT_BLOCKS
 
         # Validate blocks elements are strings
@@ -211,21 +226,35 @@ class HSM2Protocol:
             return self.ERROR_CODE_INVALID_AUTH
 
         # Validate receipt presence and type
-        if "receipt" not in auth or type(auth["receipt"]) != str or \
-            not is_nonempty_hex_string(auth["receipt"]):
-            self.logger.info("Transaction receipt field not present or not a nonempty hex string")
+        if (
+            "receipt" not in auth
+            or type(auth["receipt"]) != str
+            or not is_nonempty_hex_string(auth["receipt"])
+        ):
+            self.logger.info(
+                "Transaction receipt field not present or not a nonempty hex string"
+            )
             return self.ERROR_CODE_INVALID_AUTH
 
         # Validate receipt merkle proof inclusion presence, type and minimum length
-        if "receipt_merkle_proof" not in auth or \
-            type(auth["receipt_merkle_proof"]) != list or \
-            len(auth["receipt_merkle_proof"]) == 0:
-            self.logger.info("Receipt merkle proof field not present or not a nonempty array")
+        if (
+            "receipt_merkle_proof" not in auth
+            or type(auth["receipt_merkle_proof"]) != list
+            or len(auth["receipt_merkle_proof"]) == 0
+        ):
+            self.logger.info(
+                "Receipt merkle proof field not present or not a nonempty array"
+            )
             return self.ERROR_CODE_INVALID_AUTH
 
         # Validate merkle proof elements are nonempty hex strings
-        if not all(type(item) == str and is_nonempty_hex_string(item) for item in auth["receipt_merkle_proof"]):
-            self.logger.info("Some of the receipt merkle proof elements are not nonempty hex strings")
+        if not all(
+            type(item) == str and is_nonempty_hex_string(item)
+            for item in auth["receipt_merkle_proof"]
+        ):
+            self.logger.info(
+                "Some of the receipt merkle proof elements are not nonempty hex strings"
+            )
             return self.ERROR_CODE_INVALID_AUTH
 
         return self.ERROR_CODE_OK
@@ -247,14 +276,25 @@ class HSM2Protocol:
         message = request["message"]
 
         # (1)?
-        if what in ["any", "hash"] and len(message) == 1 and "hash" in message and \
-            type(message["hash"]) == str and is_hex_string_of_length(message["hash"], 32):
+        if (
+            what in ["any", "hash"]
+            and len(message) == 1
+            and "hash" in message
+            and type(message["hash"]) == str
+            and is_hex_string_of_length(message["hash"], 32)
+        ):
             return self.ERROR_CODE_OK
 
         # (2)?
-        if what in ["any", "tx"] and len(message) == 2 and "tx" in message and \
-            "input" in message and type(message["tx"]) == str and \
-            is_nonempty_hex_string(message["tx"]) and type(message["input"]) == int:
+        if (
+            what in ["any", "tx"]
+            and len(message) == 2
+            and "tx" in message
+            and "input" in message
+            and type(message["tx"]) == str
+            and is_nonempty_hex_string(message["tx"])
+            and type(message["input"]) == int
+        ):
             return self.ERROR_CODE_OK
 
         self.logger.info("Message field for expected message of type '%s' invalid", what)

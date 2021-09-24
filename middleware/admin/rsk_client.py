@@ -2,8 +2,10 @@ import os
 import requests
 import json
 
+
 class RskClientError(RuntimeError):
     pass
+
 
 class RskClient:
     def __init__(self, url):
@@ -28,13 +30,16 @@ class RskClient:
     def _request(self, method, params):
         try:
             request_id = int.from_bytes(os.urandom(2), byteorder="big", signed=False)
-            response = requests.post(\
-                self.url, headers={"content-type": "application/json"}, \
-                data=json.dumps({\
-                    "jsonrpc": "2.0", \
-                    "id": request_id, \
-                    "method": method, \
-                    "params": params}))
+            response = requests.post(
+                self.url,
+                headers={"content-type": "application/json"},
+                data=json.dumps({
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "method": method,
+                    "params": params,
+                }),
+            )
 
             if response.status_code != 200:
                 raise ValueError(f"Got {response.status_code} response from the server")
@@ -42,7 +47,8 @@ class RskClient:
             result = json.loads(response.text)
 
             if result["id"] != request_id:
-                raise ValueError(f"Unexpected response id {result['id']} (expecting {request_id})")
+                raise ValueError(
+                    f"Unexpected response id {result['id']} (expecting {request_id})")
 
             return result["result"]
         except Exception as e:

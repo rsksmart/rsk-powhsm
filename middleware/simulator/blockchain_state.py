@@ -1,8 +1,15 @@
 import json
 import logging
 from pyee import BaseEventEmitter
-from comm.utils import is_hex_string_of_length, normalize_hex_string, \
-                   assert_int, assert_bool, assert_dict, assert_hex_hash
+from comm.utils import (
+    is_hex_string_of_length,
+    normalize_hex_string,
+    assert_int,
+    assert_bool,
+    assert_dict,
+    assert_hex_hash,
+)
+
 
 class BlockchainState:
     # Error codes for the advance operation
@@ -15,16 +22,17 @@ class BlockchainState:
     UPDATE_ANCESTOR_CHAINING_MISMATCH = ADVANCE_CHAINING_MISMATCH
     UPDATE_ANCESTOR_TIP_MISMATCH = -203
 
-    CHANGED_EVENT = 'changed'
+    CHANGED_EVENT = "changed"
 
     @staticmethod
     def from_jsonfile(path):
         try:
-            with open(path, 'r') as file:
+            with open(path, "r") as file:
                 state = json.loads(file.read())
 
             if type(state) != dict:
-                raise ValueError("JSON file must contain an object as a top level element")
+                raise ValueError(
+                    "JSON file must contain an object as a top level element")
 
             return BlockchainState(state)
         except (ValueError, json.JSONDecodeError) as e:
@@ -43,7 +51,7 @@ class BlockchainState:
             "newest_valid_block": hash,
             "ancestor_block": "00"*32,
             "ancestor_receipts_root": "00"*32,
-            "updating": _UpdatingState.pristine().to_dict()
+            "updating": _UpdatingState.pristine().to_dict(),
         })
 
     def __init__(self, state):
@@ -92,9 +100,11 @@ class BlockchainState:
 
         # Blocks come in newest to oldest order (the first element is the newest)
         # The first block must match the next expected block
-        if self.updating.in_progress and blocks[0].hash != self.updating.next_expected_block:
-            self.logger.error("Next expected block hash (%s) doesn't match first block hash (%s)" % \
-                             (self.updating.next_expected_block, blocks[0].hash))
+        if (self.updating.in_progress
+                and blocks[0].hash != self.updating.next_expected_block):
+            self.logger.error(
+                "Next expected block hash (%s) doesn't match first block hash (%s)" %
+                (self.updating.next_expected_block, blocks[0].hash))
             self.reset_advance()
             return self.ADVANCE_CHAINING_MISMATCH
 
@@ -103,17 +113,20 @@ class BlockchainState:
         if not self.updating.in_progress:
             self.updating.in_progress = True
             self.updating.newest_valid_block = blocks[0].hash
-            self.logger.debug("Starting a new update process, candidate newest block is %s",
-                             self.updating.newest_valid_block)
+            self.logger.debug(
+                "Starting a new update process, candidate newest block is %s",
+                self.updating.newest_valid_block,
+            )
 
         # Run through the given blocks
         for i in range(len(blocks)):
             block = blocks[i]
 
             # Verify chaining
-            if i < len(blocks)-1 and block.parent_hash != blocks[i+1].hash:
-                self.logger.error("Chaining mismatch: block %s has parent %s and next block on list is %s" % \
-                                 (block.hash, block.parent_hash, blocks[i+1].hash))
+            if i < len(blocks) - 1 and block.parent_hash != blocks[i + 1].hash:
+                self.logger.error("Chaining mismatch: block %s has parent %s and next "
+                                  "block on list is %s" %
+                                  (block.hash, block.parent_hash, blocks[i + 1].hash))
                 self.reset_advance()
                 return self.ADVANCE_CHAINING_MISMATCH
 
@@ -129,20 +142,23 @@ class BlockchainState:
             if not self.updating.already_validated:
                 # PoW
                 if not block.pow_is_valid():
-                    self.logger.error("PoW invalid for block %s (at index %d)" % (block.hash, i))
+                    self.logger.error("PoW invalid for block %s (at index %d)" %
+                                      (block.hash, i))
                     self.reset_advance()
                     return self.ADVANCE_POW_INVALID
 
             if not self.updating.found_best_block:
                 # Accumulate difficulty
                 self.updating.total_difficulty += block.difficulty
-                self.logger.debug("Cumulative difficulty is now %d", self.updating.total_difficulty)
+                self.logger.debug("Cumulative difficulty is now %d",
+                                  self.updating.total_difficulty)
 
                 # Enough accumulated difficulty? Mark the new candidate best
                 if self.updating.total_difficulty >= self.minimum_cumulative_difficulty:
                     self.updating.found_best_block = True
                     self.updating.best_block = block.hash
-                    self.logger.debug("Candidate best block found: %s", self.updating.best_block)
+                    self.logger.debug("Candidate best block found: %s",
+                                      self.updating.best_block)
 
             # Have we reached the current best block with a valid chain?
             # Update the best confirmed block and newest valid block in the HSM state
@@ -150,19 +166,24 @@ class BlockchainState:
                 self.best_block = self.updating.best_block
                 self.newest_valid_block = self.updating.newest_valid_block
                 # Success!
-                self.logger.info("Advance success: new best block is now %s, newest valid block is %s",
-                                self.best_block, self.newest_valid_block)
+                self.logger.info(
+                    "Advance success: new best block is now %s, newest valid block is %s",
+                    self.best_block,
+                    self.newest_valid_block,
+                )
                 self.reset_advance()
                 return self.ADVANCE_OK
 
         # If we get to this point, then we haven't yet reached the current best block.
         # Update the oldest block within the process and ask for more blocks.
         self.updating.next_expected_block = blocks[-1].parent_hash
-        self.logger.info("Partial advance success: next expected block is %s",
-                         self.updating.next_expected_block)
+        self.logger.info(
+            "Partial advance success: next expected block is %s",
+            self.updating.next_expected_block,
+        )
 
         # Success, but we need more blocks
-        self._do_change() # Signal state change
+        self._do_change()  # Signal state change
         return self.ADVANCE_OK_PARTIAL
 
     # Attempts to update the current ancestor block by processing the given blocks
@@ -176,23 +197,33 @@ class BlockchainState:
         tip = blocks[0].hash
 
         if tip not in [self.ancestor_block, self.best_block]:
-            self.logger.error("Tip mismatch. Expected %s or %s but got %s",
-                              self.ancestor_block, self.best_block, tip)
+            self.logger.error(
+                "Tip mismatch. Expected %s or %s but got %s",
+                self.ancestor_block,
+                self.best_block,
+                tip,
+            )
             return self.UPDATE_ANCESTOR_TIP_MISMATCH
 
-        for i in range(len(blocks)-1):
-            if blocks[i].parent_hash != blocks[i+1].hash:
-                self.logger.error("Chaining mismatch. Expected %s but got %s",
-                                  blocks[i].parent_hash, blocks[i+1].hash)
+        for i in range(len(blocks) - 1):
+            if blocks[i].parent_hash != blocks[i + 1].hash:
+                self.logger.error(
+                    "Chaining mismatch. Expected %s but got %s",
+                    blocks[i].parent_hash,
+                    blocks[i + 1].hash,
+                )
                 return self.UPDATE_ANCESTOR_CHAINING_MISMATCH
 
         self.ancestor_block = blocks[-1].hash
         self.ancestor_receipts_root = blocks[-1].receipts_trie_root
-        self.logger.info("Ancestor block updated to %s, receipts trie root updated to %s", \
-                         self.ancestor_block, self.ancestor_receipts_root)
+        self.logger.info(
+            "Ancestor block updated to %s, receipts trie root updated to %s",
+            self.ancestor_block,
+            self.ancestor_receipts_root,
+        )
 
         # Success
-        self._do_change() # Signal state change
+        self._do_change()  # Signal state change
         return self.UPDATE_ANCESTOR_OK
 
     # Given a block (instance of RskBlockHeader),
@@ -200,8 +231,12 @@ class BlockchainState:
     # the current best block or the current ancestor block
     def in_blockchain(self, block):
         hash = block.hash
-        self.logger.debug("Verifying inclusion of block %s. Best block: %s; ancestor block: %s",
-                          hash, self.best_block, self.ancestor_block)
+        self.logger.debug(
+            "Verifying inclusion of block %s. Best block: %s; ancestor block: %s",
+            hash,
+            self.best_block,
+            self.ancestor_block,
+        )
         return hash in [self.best_block, self.ancestor_block]
 
     def to_dict(self):
@@ -210,13 +245,14 @@ class BlockchainState:
             "newest_valid_block": self.newest_valid_block,
             "ancestor_block": self.ancestor_block,
             "ancestor_receipts_root": self.ancestor_receipts_root,
-            "updating": self.updating.to_dict()
+            "updating": self.updating.to_dict(),
         }
 
     def save_to_jsonfile(self, path):
-        with open(path, 'w') as file:
-            file.write('%s\n' % json.dumps(self.to_dict(), indent=2))
+        with open(path, "w") as file:
+            file.write("%s\n" % json.dumps(self.to_dict(), indent=2))
         self.logger.info("State saved to %s", path)
+
 
 def load_or_create_blockchain_state(statefile_path, checkpoint, logger):
     try:
@@ -224,7 +260,8 @@ def load_or_create_blockchain_state(statefile_path, checkpoint, logger):
         logger.info("Using checkpoint %s", checkpoint)
         state = BlockchainState.from_jsonfile(statefile_path)
     except (FileNotFoundError, ValueError):
-        logger.info("State file not found or format incorrect. Creating with the default initial state")
+        logger.info("State file not found or format incorrect. Creating with "
+                    "the default initial state")
         state = BlockchainState.checkpoint(checkpoint)
         state.save_to_jsonfile(statefile_path)
         logger.info("State created and saved to '%s'", statefile_path)
@@ -235,6 +272,7 @@ def load_or_create_blockchain_state(statefile_path, checkpoint, logger):
 
     logger.info("State loaded: best block 0x%s", state.best_block)
     return state
+
 
 class _UpdatingState:
     @staticmethod

@@ -9,57 +9,115 @@ from admin.pubkeys import do_get_pubkeys
 from admin.exit import do_exit
 from admin.changepin import do_changepin
 from admin.attestation import do_attestation
-from admin.verify_attestation import do_verify_attestation, DEFAULT_ROOT_AUTHORITY
+from admin.verify_attestation import do_verify_attestation
 
 DEFAULT_PIN_FILE = "pin.txt"
 DEFAULT_PIN_CHANGE_FILE = "changePIN"
 DEFAULT_ATT_UD_SOURCE = "https://public-node.rsk.co"
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     logging.disable(logging.CRITICAL)
 
     actions = {
-        'unlock': do_unlock,
-        'onboard': do_onboard,
-        'pubkeys': do_get_pubkeys,
-        'exit': do_exit,
-        'changepin': do_changepin,
-        'attestation': do_attestation,
-        'verify_attestation': do_verify_attestation,
+        "unlock": do_unlock,
+        "onboard": do_onboard,
+        "pubkeys": do_get_pubkeys,
+        "exit": do_exit,
+        "changepin": do_changepin,
+        "attestation": do_attestation,
+        "verify_attestation": do_verify_attestation,
     }
 
     parser = ArgumentParser(description="HSM 2 Administrative tool")
-    parser.add_argument('operation', choices=list(actions.keys()))
-    parser.add_argument("-p","--pin", dest="pin", \
-                        help=f"PIN.")
-    parser.add_argument("-n","--newpin", dest="new_pin", \
-                        help=f"New PIN (only valid for 'changepin' operation).")
-    parser.add_argument("-a","--anypin", dest="any_pin", action="store_const", \
-                        help="Allow any pin (only valid for 'changepin' operation).", \
-                        default=False, const=True)
-    parser.add_argument("-o","--output", dest="output_file_path", \
-                        help=f"Output file (only valid for 'onboard', 'pubkeys' and 'attestation' operations).")
-    parser.add_argument("-u","--nounlock", dest="no_unlock", action="store_const", \
-                        help=f"Do not attempt to unlock (only valid for 'changepin' and 'pubkeys' operations).", \
-                        default=False, const=True)
-    parser.add_argument("-e","--noexec", dest="no_exec", action="store_const", \
-                        help=f"Do not attempt to execute the signer after unlocking (only valid for the 'unlock' operation).", \
-                        default=False, const=True)
-    parser.add_argument("-c","--ca", dest="ca", \
-                        help=f"CA info in the <pubkey>:<hash>:<signature> format (only valid for 'attestation' operation).")
-    parser.add_argument("-t","--attcert", dest="attestation_certificate_file_path", \
-                        help=f"Attestation key certificate file (only valid for 'attestation' and 'verify_attestation' operations).")
-    parser.add_argument("-r","--root", dest="root_authority", \
-                        help=f"Root attestation authority (only valid for 'verify_attestation' operation). Defaults to Ledger's root authority.")
-    parser.add_argument("-b","--pubkeys", dest="pubkeys_file_path", \
-                        help=f"Public keys file (only valid for 'verify_attestation' operation).")
-    parser.add_argument("--attudsource", dest="attestation_ud_source", \
-                        default=DEFAULT_ATT_UD_SOURCE, \
-                        help=f"JSON-RPC endpoint used to retrieve the latest RSK block hash used "+
-                               f"as the user defined value for the attestation (defaults to {DEFAULT_ATT_UD_SOURCE}). "+\
-                               "Can also specify a 32-byte hex string to use as the value.")
-    parser.add_argument("-v","--verbose", dest="verbose", action="store_const", \
-                        help="Enable verbose mode", default=False, const=True)
+    parser.add_argument("operation", choices=list(actions.keys()))
+    parser.add_argument("-p", "--pin", dest="pin", help="PIN.")
+    parser.add_argument(
+        "-n",
+        "--newpin",
+        dest="new_pin",
+        help="New PIN (only valid for 'changepin' operation).",
+    )
+    parser.add_argument(
+        "-a",
+        "--anypin",
+        dest="any_pin",
+        action="store_const",
+        help="Allow any pin (only valid for 'changepin' operation).",
+        default=False,
+        const=True,
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        dest="output_file_path",
+        help="Output file (only valid for 'onboard', 'pubkeys' and 'attestation' "
+             "operations).",
+    )
+    parser.add_argument(
+        "-u",
+        "--nounlock",
+        dest="no_unlock",
+        action="store_const",
+        help="Do not attempt to unlock (only valid for 'changepin' and 'pubkeys' "
+             "operations).",
+        default=False,
+        const=True,
+    )
+    parser.add_argument(
+        "-e",
+        "--noexec",
+        dest="no_exec",
+        action="store_const",
+        help="Do not attempt to execute the signer after unlocking (only valid for the "
+             "'unlock' operation).",
+        default=False,
+        const=True,
+    )
+    parser.add_argument(
+        "-c",
+        "--ca",
+        dest="ca",
+        help="CA info in the <pubkey>:<hash>:<signature> format (only valid for "
+             "'attestation' operation).",
+    )
+    parser.add_argument(
+        "-t",
+        "--attcert",
+        dest="attestation_certificate_file_path",
+        help="Attestation key certificate file (only valid for 'attestation' and "
+             "'verify_attestation' operations).",
+    )
+    parser.add_argument(
+        "-r",
+        "--root",
+        dest="root_authority",
+        help="Root attestation authority (only valid for 'verify_attestation' "
+             "operation). Defaults to Ledger's root authority.",
+    )
+    parser.add_argument(
+        "-b",
+        "--pubkeys",
+        dest="pubkeys_file_path",
+        help="Public keys file (only valid for 'verify_attestation' operation).",
+    )
+    parser.add_argument(
+        "--attudsource",
+        dest="attestation_ud_source",
+        default=DEFAULT_ATT_UD_SOURCE,
+        help="JSON-RPC endpoint used to retrieve the latest RSK block hash used "
+             "as the user defined value for the attestation (defaults to "
+             f"{DEFAULT_ATT_UD_SOURCE}). Can also specify a 32-byte hex string to use as"
+             " the value.",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        dest="verbose",
+        action="store_const",
+        help="Enable verbose mode",
+        default=False,
+        const=True,
+    )
     options = parser.parse_args()
 
     try:
@@ -71,7 +129,7 @@ if __name__ == '__main__':
     except HSM2DongleError as e:
         info(str(e))
         sys.exit(2)
-    except KeyboardInterrupt as e:
+    except KeyboardInterrupt:
         info("Interrupted by user!")
         sys.exit(3)
     except Exception as e:

@@ -2,10 +2,11 @@ import json
 import secp256k1
 import logging
 
+
 class SingleKeyWallet:
     @staticmethod
     def from_hexfile(path):
-        with open(path, 'r') as file:
+        with open(path, "r") as file:
             key_hex = file.readline().strip()
 
         return SingleKeyWallet(key_hex)
@@ -31,26 +32,29 @@ class SingleKeyWallet:
         serialized_signature = self._key.ecdsa_serialize_compact(signature)
         return {
             "r": serialized_signature[0:32].hex(),
-            "s": serialized_signature[32:].hex()
+            "s": serialized_signature[32:].hex(),
         }
 
     def save(self, path):
-        with open(path, 'w') as file:
-            file.write('%s\n' % self.private_key())
+        with open(path, "w") as file:
+            file.write("%s\n" % self.private_key())
+
 
 class NamedKeysWallet:
     @staticmethod
     def from_jsonfile(path):
         try:
-            with open(path, 'r') as file:
+            with open(path, "r") as file:
                 keys_map = json.loads(file.read())
 
             if type(keys_map) != dict:
-                raise ValueError("JSON file must contain an object as a top level element")
+                raise ValueError(
+                    "JSON file must contain an object as a top level element")
 
             return NamedKeysWallet(keys_map)
         except (ValueError, json.JSONDecodeError) as e:
-            raise ValueError("Unable to read named keys wallet from '%s': %s" % (path, str(e)))
+            raise ValueError("Unable to read named keys wallet from '%s': %s" %
+                             (path, str(e)))
 
     @staticmethod
     def generate(key_ids):
@@ -80,8 +84,9 @@ class NamedKeysWallet:
         return result
 
     def save_to_jsonfile(self, path):
-        with open(path, 'w') as file:
-            file.write('%s\n' % json.dumps(self.to_dict(), indent=2))
+        with open(path, "w") as file:
+            file.write("%s\n" % json.dumps(self.to_dict(), indent=2))
+
 
 def load_or_create_wallet(keyfile_path, key_ids):
     logger = logging.getLogger("wallet")
@@ -89,7 +94,8 @@ def load_or_create_wallet(keyfile_path, key_ids):
         logger.info("Loading keyfile '%s'", keyfile_path)
         wallet = NamedKeysWallet.from_jsonfile(keyfile_path)
     except (FileNotFoundError, ValueError):
-        logger.info("Keyfile not found or file format incorrect. Creating a new random set of keys")
+        logger.info("Keyfile not found or file format incorrect. Creating a new "
+                    "random set of keys")
         wallet = NamedKeysWallet.generate(key_ids)
         wallet.save_to_jsonfile(keyfile_path)
         logger.info("Keys created and saved to '%s'", keyfile_path)

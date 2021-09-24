@@ -5,21 +5,24 @@ import rlp
 import sha3
 
 import logging
+
 logging.disable(logging.CRITICAL)
+
 
 class TestRskTransactionReceipt(TestCase):
     def setUp(self):
         receipt_list = [0]*6
-        receipt_list[3] = ["these","are","the","logs"]
+        receipt_list[3] = ["these", "are", "the", "logs"]
         self.mocked_receipt = rlp.encode(receipt_list).hex()
-        self.mocked_receipt_hash = sha3.keccak_256(bytes.fromhex(self.mocked_receipt)).digest().hex()
+        self.mocked_receipt_hash = (sha3.keccak_256(bytes.fromhex(
+            self.mocked_receipt)).digest().hex())
 
-    @patch('simulator.rsk.receipt.RskReceiptLog')
+    @patch("simulator.rsk.receipt.RskReceiptLog")
     def test_decoding_ok_noprefix(self, RskReceiptLogMock):
-        RskReceiptLogMock.side_effect = lambda s: "*%s*" % s.decode('utf-8')
+        RskReceiptLogMock.side_effect = lambda s: "*%s*" % s.decode("utf-8")
 
         tx_receipt = RskTransactionReceipt(self.mocked_receipt)
-        self.assertEqual(tx_receipt.logs, ["*these*","*are*","*the*","*logs*"])
+        self.assertEqual(tx_receipt.logs, ["*these*", "*are*", "*the*", "*logs*"])
         self.assertEqual(tx_receipt.hash, self.mocked_receipt_hash)
 
     def test_decoding_nonhex(self):
@@ -31,25 +34,28 @@ class TestRskTransactionReceipt(TestCase):
             RskTransactionReceipt("aabbccddeeff")
 
     def test_decoding_list_length_invalid(self):
-        mocked_receipt = rlp.encode([1,2,3]).hex()
+        mocked_receipt = rlp.encode([1, 2, 3]).hex()
         with self.assertRaises(ValueError):
             RskTransactionReceipt(mocked_receipt)
 
     class TestError(Exception):
         pass
 
-    @patch('simulator.rsk.receipt.RskReceiptLog')
+    @patch("simulator.rsk.receipt.RskReceiptLog")
     def test_decoding_list_length_invalid_logs(self, RskReceiptLogMock):
         RskReceiptLogMock.side_effect = TestRskTransactionReceipt.TestError
-        mocked_receipt = rlp.encode([1,2,3,[1],5,6]).hex()
+        mocked_receipt = rlp.encode([1, 2, 3, [1], 5, 6]).hex()
         with self.assertRaises(TestRskTransactionReceipt.TestError):
             RskTransactionReceipt(mocked_receipt)
 
+
 class TestRskReceiptLog(TestCase):
     def setUp(self):
-        self.log = RskReceiptLog([bytes.fromhex("aabbcc"), \
-                               [bytes.fromhex("11"), bytes.fromhex("22")], \
-                               bytes.fromhex("ddeeff")])
+        self.log = RskReceiptLog([
+            bytes.fromhex("aabbcc"),
+            [bytes.fromhex("11"), bytes.fromhex("22")],
+            bytes.fromhex("ddeeff"),
+        ])
 
     def test_address(self):
         self.assertEqual(self.log.address, "aabbcc")
@@ -65,11 +71,11 @@ class TestRskReceiptLog(TestCase):
 
     def test_invalid_list_length(self):
         with self.assertRaises(ValueError):
-            RskReceiptLog([1,2])
+            RskReceiptLog([1, 2])
 
     def test_invalid_topics(self):
         with self.assertRaises(AttributeError):
-            RskReceiptLog([bytes.fromhex("aabbcc"), [1,2,3], bytes.fromhex("ddeeff")])
+            RskReceiptLog([bytes.fromhex("aabbcc"), [1, 2, 3], bytes.fromhex("ddeeff")])
 
     def test_no_signature(self):
         log = RskReceiptLog([bytes.fromhex("aabbcc"), [], bytes.fromhex("ddeeff")])

@@ -1,8 +1,8 @@
 import sys
 
-DIGIT_SIZE = 4 # In bytes
+DIGIT_SIZE = 4  # In bytes
 NUM_DIGITS = 9
-MAX_BYTES = NUM_DIGITS*DIGIT_SIZE # Difficulty length is in terms of number of ints
+MAX_BYTES = NUM_DIGITS*DIGIT_SIZE  # Difficulty length is in terms of number of ints
 
 if len(sys.argv) < 2:
     print("No difficulty specified")

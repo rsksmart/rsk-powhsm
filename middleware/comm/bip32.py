@@ -3,6 +3,7 @@ import logging
 
 _logger = logging.getLogger("bip44")
 
+
 class BIP32Element:
     def __init__(self, spec):
         if type(spec) != str or len(spec) == 0:
@@ -13,23 +14,26 @@ class BIP32Element:
         index = 0
         sindex = spec
         if spec[-1] == "'":
-            index = (1<<31)
+            index = 1 << 31
             sindex = spec[:-1]
 
         if not str.isdecimal(sindex):
-            message = "BIP32Element must be a decimal number optionally followed by a single quote (got %s)" % sindex
+            message = (
+                "BIP32Element must be a decimal number optionally followed by "
+                "a single quote (got %s)" % sindex
+            )
             _logger.debug(message)
             raise ValueError(message)
 
         val = int(sindex)
-        if val >= (1<<31):
+        if val >= (1 << 31):
             message = "BIP32Element must be specified with an integer between 0 and 2^31"
             _logger.debug(message)
             raise ValueError(message)
 
         index += val
 
-        if index < 0 or index > (1<<32):
+        if index < 0 or index > (1 << 32):
             message = "Invalid index for BIP32 element"
             _logger.debug(message)
             raise ValueError(message)
@@ -38,12 +42,12 @@ class BIP32Element:
 
     @property
     def is_hardened(self):
-        return self._index >= (1<<31)
+        return self._index >= (1 << 31)
 
     @property
     def spec_index(self):
         if self.is_hardened:
-            return self._index - (1<<31)
+            return self._index - (1 << 31)
         return self._index
 
     @property
@@ -54,7 +58,8 @@ class BIP32Element:
         return "%d%s" % (self.spec_index, "'" if self.is_hardened else "")
 
     def __repr__(self):
-        return "<BIP32Element \"%s\">" % str(self)
+        return '<BIP32Element "%s">' % str(self)
+
 
 class BIP32Path:
     def __init__(self, spec, nelements=5):
@@ -68,10 +73,13 @@ class BIP32Path:
             _logger.debug(message)
             raise ValueError(message)
 
-        self._elements = list(map(lambda s: BIP32Element(s), spec[2:].split('/')))
+        self._elements = list(map(lambda s: BIP32Element(s), spec[2:].split("/")))
 
         if nelements is not None and len(self._elements) != nelements:
-            message = "BIP32Path spec must have exactly %d elements, got %d" % (nelements, len(self._elements))
+            message = "BIP32Path spec must have exactly %d elements, got %d" % (
+                nelements,
+                len(self._elements),
+            )
             _logger.debug(message)
             raise ValueError(message)
 
@@ -80,16 +88,16 @@ class BIP32Path:
         return self._elements
 
     def to_binary(self):
-        binary = struct.pack('<B', len(self._elements))
+        binary = struct.pack("<B", len(self._elements))
         for element in self.elements:
-            binary += struct.pack('<I', element.index)
+            binary += struct.pack("<I", element.index)
         return binary
 
     def __str__(self):
-        return 'm/%s' % "/".join(map(lambda e: str(e), self._elements))
+        return "m/%s" % "/".join(map(lambda e: str(e), self._elements))
 
     def __repr__(self):
-        return "<BIP32Path \"%s\">" % str(self)
+        return '<BIP32Path "%s">' % str(self)
 
     def __eq__(self, other):
         return str(self) == str(other)

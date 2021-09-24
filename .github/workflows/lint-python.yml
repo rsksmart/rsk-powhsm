@@ -1,0 +1,19 @@
+name: Lint Python code
+
+on: [push]
+
+jobs:
+  run-python-linter:
+    name: Run Python linter
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v2
+
+      - name: Build the middleware docker image
+        run: docker/mware/build
+
+      - name: Lint
+        run: ./lint-python
+

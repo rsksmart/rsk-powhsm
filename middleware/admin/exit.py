@@ -1,6 +1,7 @@
 from ledger.hsm2dongle import HSM2Dongle
 from .misc import info, bls, get_hsm, dispose_hsm, AdminError
 
+
 def do_exit(options, label=True):
     if label:
         info("### -> Exit")
@@ -20,8 +21,11 @@ def do_exit(options, label=True):
     # Get version (this feature is version-dependent)
     version = hsm.get_version()
     info(f"Signer version: {version}")
-    if (version >= HSM2Dongle.MAX_VERSION_SIGNER_EXIT):
-        raise AdminError(f"Exit command not supported from {HSM2Dongle.MAX_VERSION_SIGNER_EXIT} onwards")
+    if version >= HSM2Dongle.MAX_VERSION_SIGNER_EXIT:
+        raise AdminError(
+            f"Exit command not supported from {HSM2Dongle.MAX_VERSION_SIGNER_EXIT} "
+            "onwards"
+        )
 
     # Onboard check
     info("Is device onboarded? ... ", options.verbose)
@@ -32,8 +36,10 @@ def do_exit(options, label=True):
 
     # Exit the app, go into menu
     info("Exiting app... ", options.verbose)
-    try: hsm.exit_menu()
-    except: pass
+    try:
+        hsm.exit_menu()
+    except Exception:
+        pass
     info("Exit OK")
 
     dispose_hsm(hsm)

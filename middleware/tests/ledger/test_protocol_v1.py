@@ -1,14 +1,21 @@
 from unittest import TestCase
 from unittest.mock import Mock, call, patch
 from parameterized import parameterized
-from comm.bip32 import BIP32Path
 from comm.protocol import HSM2ProtocolError
 from ledger.protocol_v1 import HSM1ProtocolLedger
-from ledger.hsm2dongle import HSM2Dongle, HSM2FirmwareVersion, HSM2DongleError, \
-                              HSM2DongleErrorResult, HSM2DongleTimeoutError, HSM2DongleCommError
+from ledger.hsm2dongle import (
+    HSM2Dongle,
+    HSM2FirmwareVersion,
+    HSM2DongleError,
+    HSM2DongleErrorResult,
+    HSM2DongleTimeoutError,
+    HSM2DongleCommError,
+)
 
 import logging
+
 logging.disable(logging.CRITICAL)
+
 
 class TestHSM1ProtocolLedger(TestCase):
     def setUp(self):
@@ -19,7 +26,8 @@ class TestHSM1ProtocolLedger(TestCase):
         self.dongle.is_onboarded = Mock(return_value=True)
         self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.APP)
         self.dongle.get_version = Mock(return_value=HSM2FirmwareVersion(2, 1, 0))
-        self.dongle.get_signer_parameters = Mock(return_value=Mock(min_required_difficulty=123))
+        self.dongle.get_signer_parameters = Mock(return_value=Mock(
+            min_required_difficulty=123))
         self.protocol = HSM1ProtocolLedger(self.pin, self.dongle)
         self.protocol.initialize_device()
 
@@ -29,8 +37,16 @@ class TestHSM1ProtocolLedger(TestCase):
         self.dongle.get_public_key.return_value = "this-is-the-public-key"
 
         self.assertEqual(
-            { "errorcode": 0, "pubKey": "this-is-the-public-key" },
-            self.protocol.handle_request({ "version": 1, "command": "getPubKey", "keyId": "m/44'/1'/2'/3/4" }))
+            {
+                "errorcode": 0,
+                "pubKey": "this-is-the-public-key"
+            },
+            self.protocol.handle_request({
+                "version": 1,
+                "command": "getPubKey",
+                "keyId": "m/44'/1'/2'/3/4"
+            }),
+        )
         self.assertEqual([call("the-key-id")], self.dongle.get_public_key.call_args_list)
         self.assertFalse(self.dongle.disconnect.called)
 
@@ -40,8 +56,13 @@ class TestHSM1ProtocolLedger(TestCase):
         self.dongle.get_public_key.side_effect = HSM2DongleErrorResult()
 
         self.assertEqual(
-            { "errorcode": -2 },
-            self.protocol.handle_request({ "version": 1, "command": "getPubKey", "keyId": "m/44'/1'/2'/3/4" }))
+            {"errorcode": -2},
+            self.protocol.handle_request({
+                "version": 1,
+                "command": "getPubKey",
+                "keyId": "m/44'/1'/2'/3/4"
+            }),
+        )
         self.assertEqual([call("the-key-id")], self.dongle.get_public_key.call_args_list)
         self.assertFalse(self.dongle.disconnect.called)
 
@@ -51,19 +72,29 @@ class TestHSM1ProtocolLedger(TestCase):
         self.dongle.get_public_key.side_effect = HSM2DongleTimeoutError()
 
         self.assertEqual(
-            { "errorcode": -2 },
-            self.protocol.handle_request({ "version": 1, "command": "getPubKey", "keyId": "m/44'/1'/2'/3/4" }))
+            {"errorcode": -2},
+            self.protocol.handle_request({
+                "version": 1,
+                "command": "getPubKey",
+                "keyId": "m/44'/1'/2'/3/4"
+            }),
+        )
         self.assertEqual([call("the-key-id")], self.dongle.get_public_key.call_args_list)
         self.assertFalse(self.dongle.disconnect.called)
-    
+
     @patch("comm.protocol.BIP32Path")
     def test_get_pubkey_commerror_reconnection(self, BIP32PathMock):
         BIP32PathMock.return_value = "the-key-id"
         self.dongle.get_public_key.side_effect = HSM2DongleCommError()
 
         self.assertEqual(
-            { "errorcode": -2 },
-            self.protocol.handle_request({ "version": 1, "command": "getPubKey", "keyId": "m/44'/1'/2'/3/4" }))
+            {"errorcode": -2},
+            self.protocol.handle_request({
+                "version": 1,
+                "command": "getPubKey",
+                "keyId": "m/44'/1'/2'/3/4"
+            }),
+        )
         self.assertEqual([call("the-key-id")], self.dongle.get_public_key.call_args_list)
         self.assertFalse(self.dongle.disconnect.called)
 
@@ -72,8 +103,16 @@ class TestHSM1ProtocolLedger(TestCase):
         self.dongle.get_public_key.return_value = "this-is-the-public-key"
 
         self.assertEqual(
-            { "errorcode": 0, "pubKey": "this-is-the-public-key" },
-            self.protocol.handle_request({ "version": 1, "command": "getPubKey", "keyId": "m/44'/1'/2'/3/4" }))
+            {
+                "errorcode": 0,
+                "pubKey": "this-is-the-public-key"
+            },
+            self.protocol.handle_request({
+                "version": 1,
+                "command": "getPubKey",
+                "keyId": "m/44'/1'/2'/3/4"
+            }),
+        )
 
         self._assert_reconnected()
 
@@ -83,7 +122,11 @@ class TestHSM1ProtocolLedger(TestCase):
         self.dongle.get_public_key.side_effect = HSM2DongleError()
 
         with self.assertRaises(HSM2ProtocolError):
-            self.protocol.handle_request({ "version": 1, "command": "getPubKey", "keyId": "m/44'/1'/2'/3/4" })
+            self.protocol.handle_request({
+                "version": 1,
+                "command": "getPubKey",
+                "keyId": "m/44'/1'/2'/3/4"
+            })
 
         self.assertEqual([call("the-key-id")], self.dongle.get_public_key.call_args_list)
         self.assertFalse(self.dongle.disconnect.called)
@@ -95,15 +138,25 @@ class TestHSM1ProtocolLedger(TestCase):
         self.dongle.sign_unauthorized.return_value = (True, signature)
 
         self.assertEqual(
-            { "errorcode": 0, "signature": { "r": "this-is-r", "s": "this-is-s" }},
-            self.protocol.handle_request({ \
-                                          "version": 1, \
-                                          "command": "sign", \
-                                          "keyId": "m/44'/1'/2'/3/4", \
-                                          "message": "aa"*32}))
+            {
+                "errorcode": 0,
+                "signature": {
+                    "r": "this-is-r",
+                    "s": "this-is-s"
+                }
+            },
+            self.protocol.handle_request({
+                "version": 1,
+                "command": "sign",
+                "keyId": "m/44'/1'/2'/3/4",
+                "message": "aa"*32,
+            }),
+        )
 
-        self.assertEqual([call(key_id="the-key-id", hash="aa"*32)], \
-            self.dongle.sign_unauthorized.call_args_list)
+        self.assertEqual(
+            [call(key_id="the-key-id", hash="aa"*32)],
+            self.dongle.sign_unauthorized.call_args_list,
+        )
         self.assertFalse(self.dongle.disconnect.called)
 
     @parameterized.expand([
@@ -118,15 +171,19 @@ class TestHSM1ProtocolLedger(TestCase):
         self.dongle.sign_unauthorized.return_value = (False, dongle_error_code)
 
         self.assertEqual(
-            { "errorcode": protocol_error_code },
-            self.protocol.handle_request({ \
-                                          "version": 1, \
-                                          "command": "sign", \
-                                          "keyId": "m/44'/1'/2'/3/4", \
-                                          "message": "aa"*32 }))
+            {"errorcode": protocol_error_code},
+            self.protocol.handle_request({
+                "version": 1,
+                "command": "sign",
+                "keyId": "m/44'/1'/2'/3/4",
+                "message": "aa"*32,
+            }),
+        )
 
-        self.assertEqual([call(key_id="the-key-id", hash="aa"*32)], \
-            self.dongle.sign_unauthorized.call_args_list)
+        self.assertEqual(
+            [call(key_id="the-key-id", hash="aa"*32)],
+            self.dongle.sign_unauthorized.call_args_list,
+        )
         self.assertFalse(self.dongle.disconnect.called)
 
     @patch("comm.protocol.BIP32Path")
@@ -135,15 +192,19 @@ class TestHSM1ProtocolLedger(TestCase):
         self.dongle.sign_unauthorized.side_effect = HSM2DongleTimeoutError()
 
         self.assertEqual(
-            { "errorcode": -2 },
-            self.protocol.handle_request({ \
-                                          "version": 1, \
-                                          "command": "sign", \
-                                          "keyId": "m/44'/1'/2'/3/4", \
-                                          "message": "aa"*32 }))
+            {"errorcode": -2},
+            self.protocol.handle_request({
+                "version": 1,
+                "command": "sign",
+                "keyId": "m/44'/1'/2'/3/4",
+                "message": "aa"*32,
+            }),
+        )
 
-        self.assertEqual([call(key_id="the-key-id", hash="aa"*32)], \
-            self.dongle.sign_unauthorized.call_args_list)
+        self.assertEqual(
+            [call(key_id="the-key-id", hash="aa"*32)],
+            self.dongle.sign_unauthorized.call_args_list,
+        )
         self.assertFalse(self.dongle.disconnect.called)
 
     @patch("comm.protocol.BIP32Path")
@@ -152,15 +213,19 @@ class TestHSM1ProtocolLedger(TestCase):
         self.dongle.sign_unauthorized.side_effect = HSM2DongleCommError()
 
         self.assertEqual(
-            { "errorcode": -2 },
-            self.protocol.handle_request({ \
-                                          "version": 1, \
-                                          "command": "sign", \
-                                          "keyId": "m/44'/1'/2'/3/4", \
-                                          "message": "aa"*32 }))
+            {"errorcode": -2},
+            self.protocol.handle_request({
+                "version": 1,
+                "command": "sign",
+                "keyId": "m/44'/1'/2'/3/4",
+                "message": "aa"*32,
+            }),
+        )
 
-        self.assertEqual([call(key_id="the-key-id", hash="aa"*32)], \
-            self.dongle.sign_unauthorized.call_args_list)
+        self.assertEqual(
+            [call(key_id="the-key-id", hash="aa"*32)],
+            self.dongle.sign_unauthorized.call_args_list,
+        )
         self.assertFalse(self.dongle.disconnect.called)
 
         # Reconnection logic
@@ -169,12 +234,20 @@ class TestHSM1ProtocolLedger(TestCase):
         self.dongle.sign_unauthorized.return_value = (True, signature)
 
         self.assertEqual(
-            { "errorcode": 0, "signature": { "r": "this-is-r", "s": "this-is-s" }},
-            self.protocol.handle_request({ \
-                                          "version": 1, \
-                                          "command": "sign", \
-                                          "keyId": "m/44'/1'/2'/3/4", \
-                                          "message": "aa"*32}))
+            {
+                "errorcode": 0,
+                "signature": {
+                    "r": "this-is-r",
+                    "s": "this-is-s"
+                }
+            },
+            self.protocol.handle_request({
+                "version": 1,
+                "command": "sign",
+                "keyId": "m/44'/1'/2'/3/4",
+                "message": "aa"*32,
+            }),
+        )
 
         self._assert_reconnected()
 
@@ -184,14 +257,17 @@ class TestHSM1ProtocolLedger(TestCase):
         self.dongle.sign_unauthorized.side_effect = HSM2DongleError()
 
         with self.assertRaises(HSM2ProtocolError):
-            self.protocol.handle_request({ \
-                                          "version": 1, \
-                                          "command": "sign", \
-                                          "keyId": "m/44'/1'/2'/3/4", \
-                                          "message": "aa"*32 })
+            self.protocol.handle_request({
+                "version": 1,
+                "command": "sign",
+                "keyId": "m/44'/1'/2'/3/4",
+                "message": "aa"*32,
+            })
 
-        self.assertEqual([call(key_id="the-key-id", hash="aa"*32)], \
-            self.dongle.sign_unauthorized.call_args_list)
+        self.assertEqual(
+            [call(key_id="the-key-id", hash="aa"*32)],
+            self.dongle.sign_unauthorized.call_args_list,
+        )
         self.assertFalse(self.dongle.disconnect.called)
 
     @patch("comm.protocol.BIP32Path")
@@ -199,12 +275,14 @@ class TestHSM1ProtocolLedger(TestCase):
         BIP32PathMock.return_value = "the-key-id"
 
         self.assertEqual(
-            { "errorcode": -2 },
-            self.protocol.handle_request({ \
-                                          "version": 1, \
-                                          "command": "sign", \
-                                          "keyId": "m/44'/1'/2'/3/4", \
-                                          "message": "not-a-hexadecimal-string" }))
+            {"errorcode": -2},
+            self.protocol.handle_request({
+                "version": 1,
+                "command": "sign",
+                "keyId": "m/44'/1'/2'/3/4",
+                "message": "not-a-hexadecimal-string",
+            }),
+        )
 
         self.assertFalse(self.dongle.sign_unauthorized.called)
         self.assertFalse(self.dongle.disconnect.called)
