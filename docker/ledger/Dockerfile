@@ -13,6 +13,7 @@ RUN curl -L -o gcc-arm-none-eabi-9-2020-q2-update-x86_64-linux.tar.bz2 \
     rm -f gcc-arm-none-eabi-9-2020-q2-update-x86_64-linux.tar.bz2
 
 RUN apt-get install -y clang-10=1:10.0.0-4ubuntu1 && \
+    apt-get install -y clang-format-10=1:10.0.0-4ubuntu1 && \
     apt-get install -y gcc-multilib=4:9.3.0-1ubuntu2 g++-multilib=4:9.3.0-1ubuntu2 && \
     ln -s /usr/bin/clang-10 /usr/bin/clang
 
