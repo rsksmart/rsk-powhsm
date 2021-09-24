@@ -29,7 +29,7 @@ class UpdateAncestor(TestCase):
                               if dongle.last_comm_exception is not None else result[1])
 
                 if self.expected is True:
-                    if not (result[0]):
+                    if not result[0]:
                         raise TestCaseError(
                             f"Expected success but got failure with code {error_code}")
                     elif error_code != dongle.RESPONSE.UPD_ANCESTOR.OK_TOTAL:

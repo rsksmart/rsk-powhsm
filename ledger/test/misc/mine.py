@@ -59,10 +59,10 @@ def mine_chain(first_block_hex, np, total_blocks):
         cbo = rsk_block.RskBlockHeader(current_block, np)
         ba[0] = bytes.fromhex(cbo.hash)
         new_number = cbo.number + 1
-        ba[8] = new_number.to_bytes((new_number.bit_length() + 7)//8,
+        ba[8] = new_number.to_bytes((new_number.bit_length() + 7) // 8,
                                     byteorder="big",
                                     signed=False)
-        ba[5] = bytes.fromhex("00"*32)  # Receipts root does not matter
+        ba[5] = bytes.fromhex("00" * 32)  # Receipts root does not matter
         current_block = mine(rlp.encode(ba).hex(), np)
         blocks.insert(0, current_block)
 

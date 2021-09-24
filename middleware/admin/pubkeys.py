@@ -72,7 +72,7 @@ def do_get_pubkeys(options):
             def do_output(s):
                 return info(s)
 
-        do_output("*"*80)
+        do_output("*" * 80)
         do_output("Name \t\t\t Path \t\t\t\t Pubkey")
         do_output("==== \t\t\t ==== \t\t\t\t ======")
         path_name_padding = max(map(len, PATHS))
@@ -85,7 +85,7 @@ def do_get_pubkeys(options):
             do_output(f"{path_name.ljust(path_name_padding)} \t\t {path} \t\t {pubkey}")
             if save_to_json:
                 json_dict[str(path)] = pk.to_string("uncompressed").hex()
-        do_output("*"*80)
+        do_output("*" * 80)
 
         if output_file is not None:
             output_file.close()

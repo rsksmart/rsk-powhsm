@@ -65,18 +65,18 @@ if __name__ == "__main__":
     rsk_key = ecdsa.SigningKey.from_string(bytes.fromhex(options.key),
                                            curve=ecdsa.SECP256k1)
     hsm_key = ecdsa.VerifyingKey.from_string(hsm_key_bytes, curve=ecdsa.SECP256k1)
-    dh_point = hsm_key.pubkey.point*rsk_key.privkey.secret_multiplier
+    dh_point = hsm_key.pubkey.point * rsk_key.privkey.secret_multiplier
     dh_pub = ecdsa.VerifyingKey.from_public_point(dh_point, curve=ecdsa.SECP256k1)
     aes_key = ecdsa.util.sha256(dh_pub.to_string("compressed")).digest()[:AES_KEY_LENGTH]
-    aes = AES.new(aes_key, AES.MODE_CBC, b"\x00"*16)
+    aes = AES.new(aes_key, AES.MODE_CBC, b"\x00" * 16)
     seed = aes.decrypt(encrypted_seed)
     seed_mnemonic = EnglishMnemonic().to_mnemonic(seed)
     words = seed_mnemonic.split(" ")
 
-    print("*"*78)
+    print("*" * 78)
     print("Backup restored. Mnemonic:")
     for n, word in enumerate(words, 1):
         print(f"Word #{n}: {word}")
-    print("*"*78)
+    print("*" * 78)
 
     sys.exit(0)

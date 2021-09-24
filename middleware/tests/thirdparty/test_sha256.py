@@ -26,7 +26,7 @@ class TestSha256(TestCase):
             self.assertEqual(expected, actual)
 
     def generate_random_testcase(self, multiple_of=1):
-        len = (int(random.uniform(0, self._MAX_MESSAGE_LENGTH//multiple_of + 1)) *
+        len = (int(random.uniform(0, self._MAX_MESSAGE_LENGTH // multiple_of + 1)) *
                multiple_of)
         message = os.urandom(len)
         out = hashlib.sha256(message)

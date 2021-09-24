@@ -40,7 +40,7 @@ class SignUnauthorized(TestCase):
                 debug(f"Signing with {path}")
                 signature = dongle.sign_unauthorized(path, self.hash)
                 debug(f"Dongle replied with {signature}")
-                if not (signature[0]):
+                if not signature[0]:
                     error_code = (dongle.last_comm_exception.sw
                                   if dongle.last_comm_exception is not None else
                                   signature[1])

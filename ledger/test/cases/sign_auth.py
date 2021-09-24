@@ -41,7 +41,7 @@ class SignAuthorized(TestCase):
                 signature = dongle.sign_authorized(path, self.receipt, self.receipt_mp,
                                                    self.btc_tx, self.btc_tx_input)
                 debug(f"Dongle replied with {signature}")
-                if not (signature[0]):
+                if not signature[0]:
                     error_code = (dongle.last_comm_exception.sw
                                   if dongle.last_comm_exception is not None else
                                   signature[1])

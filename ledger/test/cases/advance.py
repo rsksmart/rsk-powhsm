@@ -47,7 +47,7 @@ class AdvanceBlockchain(TestCase):
                     # Change list lengths
                     chunk = list(map(self._change_rlp_list_length, chunk))
 
-                debug(f"Sending blocks {offset} to {offset+len(chunk)-1} "
+                debug(f"Sending blocks {offset} to {offset + len(chunk) - 1} "
                       f"({len(chunk)} blocks)...")
                 result = dongle.advance_blockchain(chunk, version)
                 debug(f"Dongle replied with {result}")
@@ -62,7 +62,7 @@ class AdvanceBlockchain(TestCase):
                 error_code = (dongle.last_comm_exception.sw
                               if dongle.last_comm_exception is not None else result[1])
                 if self.expected is True:
-                    if not (result[0]):
+                    if not result[0]:
                         raise TestCaseError(
                             f"Expected success but got failure with code {error_code}")
                     elif (offset < len(self.blocks)
@@ -70,7 +70,7 @@ class AdvanceBlockchain(TestCase):
                         raise TestCaseError(
                             f"Expected {dongle.RESPONSE.ADVANCE.OK_PARTIAL} (partial "
                             f"success) but got {error_code}")
-                    elif (offset >= len(self.blocks) and not (self.partial)
+                    elif (offset >= len(self.blocks) and not self.partial
                           and error_code != dongle.RESPONSE.ADVANCE.OK_TOTAL):
                         raise TestCaseError(
                             f"Expected {dongle.RESPONSE.ADVANCE.OK_TOTAL} (total "

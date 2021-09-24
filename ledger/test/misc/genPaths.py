@@ -1,6 +1,3 @@
-# flake8: noqa
-
-import binascii
 import struct
 
 # Parse bip44 path, convert to binary representation [len][int][int][int]...
@@ -9,7 +6,7 @@ import struct
 def bip44tobin(path):
     path = path[2:]
     elements = path.split("/")
-    result = ""
+    result = b""
     result = result + struct.pack(">B", len(elements))
     for pathElement in elements:
         element = pathElement.split("'")
@@ -33,5 +30,5 @@ for i in keyIds:
     msg = ""
     path = bip44tobin(i)
     for c in path:
-        msg += "\\x%02x" % ord(c)
-    print msg
+        msg += "\\x%02x" % c
+    print(msg)

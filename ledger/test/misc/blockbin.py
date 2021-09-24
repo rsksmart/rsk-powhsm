@@ -88,5 +88,4 @@ def blockbin(blocks_file, output_file, cutoff):
 
 
 if __name__ == "__main__":
-    # pylint: disable=E1123, E1120
     blockbin()

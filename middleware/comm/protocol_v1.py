@@ -8,8 +8,7 @@ class HSM1Protocol(HSM2Protocol):
     ERROR_CODE_INVALID_MESSAGE = -2
     ERROR_CODE_INVALID_KEYID = -2
 
-    # Generic error codes
-    # (taken from v1 server @ https://gitlab.rsklabs.io/federation/ledger-signer/-/blob/master/ledger/hsm-server/app/server.py) # noqa E501
+    # Generic error codes (taken from the original v1 server)
     ERROR_CODE_FORMAT_ERROR = -2
     ERROR_CODE_INVALID_REQUEST = -2
     ERROR_CODE_COMMAND_UNKNOWN = -2
