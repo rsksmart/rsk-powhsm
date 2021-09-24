@@ -2,7 +2,7 @@
  *   HSM 2.1
  *   (c) 2021 RSK
  *   Ledger Nano S BOLOS simulator layer
- * 
+ *
  *   ECDSA logic for private key keeping
  ********************************************************************************/
 
@@ -37,12 +37,12 @@ static struct private_key_mapping_s private_keys[TOTAL_AUTHORIZED_PATHS];
 // The order is based on the 'ordered_paths' constant defined in 'pathAuth.c'
 // (which means that if that changes, this should be updated accordingly)
 const char bip32_paths[][20] = {
-    "m/44'/0'/0'/0/0", // BTC
-    "m/44'/1'/0'/0/0", // tBTC
-    "m/44'/1'/0'/0/1", // deprecated tRSK
-    "m/44'/1'/0'/0/2", // deprecated tMST
-    "m/44'/1'/1'/0/0", // tRSK
-    "m/44'/1'/2'/0/0", // tMST
+    "m/44'/0'/0'/0/0",   // BTC
+    "m/44'/1'/0'/0/0",   // tBTC
+    "m/44'/1'/0'/0/1",   // deprecated tRSK
+    "m/44'/1'/0'/0/2",   // deprecated tMST
+    "m/44'/1'/1'/0/0",   // tRSK
+    "m/44'/1'/2'/0/0",   // tMST
     "m/44'/137'/0'/0/0", // RSK
     "m/44'/137'/0'/0/1", // deprecated MST
     "m/44'/137'/1'/0/0", // MST
@@ -50,16 +50,16 @@ const char bip32_paths[][20] = {
 
 // Private key file reading
 static cJSON* read_key_file(char* key_file_path) {
-    FILE *key_file;
-    char *buffer;
+    FILE* key_file;
+    char* buffer;
     long file_size;
-    
+
     key_file = fopen(key_file_path, "r");
-    
+
     // File does not exist?
     if (key_file == NULL)
         return NULL;
-    
+
     // Find file size
     fseek(key_file, 0L, SEEK_END);
     file_size = ftell(key_file);
@@ -69,14 +69,14 @@ static cJSON* read_key_file(char* key_file_path) {
     buffer = (char*)malloc(file_size * sizeof(char));
     if (buffer == NULL)
         return NULL;
-    
+
     // Read into buffer and close the file
     fread(buffer, sizeof(char), file_size, key_file);
     fclose(key_file);
 
     // Parse JSON
     cJSON* json = cJSON_ParseWithLength(buffer, file_size * sizeof(char));
-    
+
     // Free buffer
     free(buffer);
 
@@ -88,18 +88,20 @@ static cJSON* read_key_file(char* key_file_path) {
  */
 bool write_key_file(char* key_file_path) {
     cJSON* json = cJSON_CreateObject();
-    char hex_key[sizeof(private_keys[0].key)*2 + 1];
+    char hex_key[sizeof(private_keys[0].key) * 2 + 1];
     char bip32_path[100];
-    
+
     for (int i = 0; i < KEY_PATH_COUNT(); i++) {
-        for (int j = 0; j < sizeof(private_keys[0].key); j++) sprintf(hex_key+j*2, "%02x", private_keys[i].key[j]);
-        hex_key[sizeof(hex_key)-1] = '\0';
+        for (int j = 0; j < sizeof(private_keys[0].key); j++)
+            sprintf(hex_key + j * 2, "%02x", private_keys[i].key[j]);
+        hex_key[sizeof(hex_key) - 1] = '\0';
         cJSON* json_hex_key = cJSON_CreateString(hex_key);
         cJSON_AddStringToObject(json, bip32_paths[i], hex_key);
     }
 
     FILE* key_file = fopen(key_file_path, "w");
-    if (key_file == NULL) return false;
+    if (key_file == NULL)
+        return false;
 
     char* json_s = cJSON_Print(json);
     fputs(json_s, key_file);
@@ -114,13 +116,14 @@ bool write_key_file(char* key_file_path) {
 
 bool hsmsim_ecdsa_initialize(char* key_file_path) {
     info("Loading key file '%s'\n", key_file_path);
-    cJSON *json = read_key_file(key_file_path);
+    cJSON* json = read_key_file(key_file_path);
 
     if (json == NULL) {
-        info("Keyfile not found or file format incorrect. Creating a new random set of keys\n");
+        info("Keyfile not found or file format incorrect. Creating a new "
+             "random set of keys\n");
         // Init new random keys
         for (int i = 0; i < KEY_PATH_COUNT(); i++) {
-            private_keys[i].path = (const unsigned char*) get_ordered_path(i);
+            private_keys[i].path = (const unsigned char*)get_ordered_path(i);
             getrandom(private_keys[i].key, sizeof(private_keys[i].key), 0);
         }
 
@@ -133,17 +136,21 @@ bool hsmsim_ecdsa_initialize(char* key_file_path) {
     } else {
         // Load keys into memory
         if (!cJSON_IsObject(json)) {
-            info("Expected an object as top level element of %s\n", key_file_path);
+            info("Expected an object as top level element of %s\n",
+                 key_file_path);
             return false;
         }
 
         for (int i = 0; i < KEY_PATH_COUNT(); i++) {
-            cJSON* key_entry = cJSON_GetObjectItemCaseSensitive(json, bip32_paths[i]);
+            cJSON* key_entry =
+                cJSON_GetObjectItemCaseSensitive(json, bip32_paths[i]);
             if (key_entry == NULL || !cJSON_IsString(key_entry)) {
-                info("Path '%s' not found in '%s'\n", bip32_paths[i], key_file_path);
+                info("Path '%s' not found in '%s'\n",
+                     bip32_paths[i],
+                     key_file_path);
                 return false;
             }
-            private_keys[i].path = (const unsigned char*) get_ordered_path(i);
+            private_keys[i].path = (const unsigned char*)get_ordered_path(i);
             char* hex_key = cJSON_GetStringValue(key_entry);
             read_hex(hex_key, strlen(hex_key), private_keys[i].key);
         }
@@ -155,12 +162,15 @@ bool hsmsim_ecdsa_initialize(char* key_file_path) {
     unsigned char pubkey[PUBKEYCOMPRESSEDSIZE];
     info("Loaded keys:\n");
     for (int i = 0; i < KEY_PATH_COUNT(); i++) {
-        if (hsmsim_helper_getpubkey_compressed(private_keys[i].key, pubkey, sizeof(pubkey)) != PUBKEYCOMPRESSEDSIZE) {
+        if (hsmsim_helper_getpubkey_compressed(
+                private_keys[i].key, pubkey, sizeof(pubkey)) !=
+            PUBKEYCOMPRESSEDSIZE) {
             info("Error getting public key for key '%s'\n", bip32_paths[i]);
             return false;
         }
         printf("%s: ", bip32_paths[i]);
-        for (int j=0;j<sizeof(pubkey);j++) printf("%02x", pubkey[j]);
+        for (int j = 0; j < sizeof(pubkey); j++)
+            printf("%02x", pubkey[j]);
         printf("\n");
     }
 
@@ -170,8 +180,10 @@ bool hsmsim_ecdsa_initialize(char* key_file_path) {
 bool hsmsim_ecdsa_get_key(unsigned char* path, unsigned char* dest) {
     bool found = false;
     for (int i = 0; i < TOTAL_AUTHORIZED_PATHS; i++) {
-        // Compare paths, skip first byte of stored path (length, not included in the path parameter)
-        if (!memcmp(path, private_keys[i].path+1, SINGLE_PATH_SIZE_BYTES-1)) {
+        // Compare paths, skip first byte of stored path (length, not included
+        // in the path parameter)
+        if (!memcmp(
+                path, private_keys[i].path + 1, SINGLE_PATH_SIZE_BYTES - 1)) {
             found = true;
             memmove(dest, private_keys[i].key, sizeof(private_keys[i].key));
             break;

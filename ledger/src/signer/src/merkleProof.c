@@ -15,7 +15,7 @@
 #include "mem.h"
 #include "memutil.h"
 
-#define SET_APDU_FOR_MP()  \
+#define SET_APDU_FOR_MP()   \
     SET_APDU_CLA();         \
     SET_APDU_CMD(INS_SIGN); \
     SET_APDU_OP(P1_MERKLEPROOF);
@@ -45,21 +45,24 @@ void MP_START(MP_CTX *ctx,
     ctx->receiptHashChecked = false;
     ctx->receiptsRootChecked = false;
     // Copy parameters (ReceiptHash and ReceiptsRoot)
-    SAFE_MEMMOVE(
-        ctx->receiptHash, sizeof(ctx->receiptHash),
-        Receipt_Hash, HASHLEN,
-        HASHLEN,
-        THROW(0x6A87));
-    SAFE_MEMMOVE(
-        ctx->receiptsRoot, sizeof(ctx->receiptsRoot),
-        receiptsRoot, HASHLEN,
-        HASHLEN,
-        THROW(0x6A87));
-    SAFE_MEMMOVE(
-        ctx->signatureHash, sizeof(ctx->signatureHash),
-        signatureHash, HASHLEN,
-        HASHLEN,
-        THROW(0x6A87));
+    SAFE_MEMMOVE(ctx->receiptHash,
+                 sizeof(ctx->receiptHash),
+                 Receipt_Hash,
+                 HASHLEN,
+                 HASHLEN,
+                 THROW(0x6A87));
+    SAFE_MEMMOVE(ctx->receiptsRoot,
+                 sizeof(ctx->receiptsRoot),
+                 receiptsRoot,
+                 HASHLEN,
+                 HASHLEN,
+                 THROW(0x6A87));
+    SAFE_MEMMOVE(ctx->signatureHash,
+                 sizeof(ctx->signatureHash),
+                 signatureHash,
+                 HASHLEN,
+                 HASHLEN,
+                 THROW(0x6A87));
     LOG("MP START rx:%d\n", rx);
     SET_APDU_FOR_MP();
     SET_APDU_TXLEN(2); // NodeLen+Flags
@@ -71,7 +74,8 @@ void MP_NODE_HDR(MP_CTX *ctx,
                  PARSE_STM *state,
                  unsigned int rx,
                  unsigned int *tx) {
-    LOG("---------------- Node start: %d--------------------\n", ctx->nodeIndex);
+    LOG("---------------- Node start: %d--------------------\n",
+        ctx->nodeIndex);
     // Init node hash
     keccak_init(&ctx->NodeHash_ctx);
     // Update node hash
@@ -110,7 +114,8 @@ void MP_NODE_HDR(MP_CTX *ctx,
         THROW(0x6A92);
 
     // First node MUST be a leaf node
-    if (!ctx->nodeIndex && (ctx->node_present_left || ctx->node_present_right)) {
+    if (!ctx->nodeIndex &&
+        (ctx->node_present_left || ctx->node_present_right)) {
         // Fail indicating a receipt hash mismatch.
         THROW(0x6A94);
     }
@@ -157,8 +162,8 @@ void MP_NODE_SHARED_PREFIX_HDR(MP_CTX *ctx,
         length = first_byte + 1;
     if ((first_byte >= 32) && (first_byte <= 254))
         length = first_byte + 128;
-    if (first_byte == 255) {         // Read VARINT
-        SET_APDU_TXLEN(1); // Varint HDR
+    if (first_byte == 255) { // Read VARINT
+        SET_APDU_TXLEN(1);   // Varint HDR
         *state = S_MP_NODE_SHARED_PREFIX_VARINT_HDR;
     } else { // Read directly length in bits
         SET_APDU_TXLEN((length >> 3) + 1);
@@ -206,13 +211,15 @@ void MP_NODE_SHARED_PREFIX_VARINT_BODY(MP_CTX *ctx,
     SET_APDU_FOR_MP();
     unsigned int length = 0;
     // Make sure we got data
-    if (!APDU_DATA_SIZE(rx)) THROW(0x6A87);
+    if (!APDU_DATA_SIZE(rx))
+        THROW(0x6A87);
     // Read length from input
-    SAFE_MEMMOVE(
-        &length, sizeof(length),
-        APDU_DATA_PTR, APDU_TOTAL_DATA_SIZE,
-        APDU_DATA_SIZE(rx),
-        THROW(0x6A87));
+    SAFE_MEMMOVE(&length,
+                 sizeof(length),
+                 APDU_DATA_PTR,
+                 APDU_TOTAL_DATA_SIZE,
+                 APDU_DATA_SIZE(rx),
+                 THROW(0x6A87));
     // Shared prefixes over MAX_MP_TRANSFER_SIZE not supported
     if ((length >> 3) + 1 > MAX_MP_TRANSFER_SIZE)
         THROW(0x6A93);
@@ -262,11 +269,12 @@ void MP_NODE_LEFT(MP_CTX *ctx,
     // Read hash
     if (rx - DATA == HASHLEN) {
         // Copy hash and continue parsing
-        SAFE_MEMMOVE(
-            ctx->left_node_hash, sizeof(ctx->left_node_hash),
-            APDU_DATA_PTR, APDU_TOTAL_DATA_SIZE,
-            HASHLEN,
-            THROW(0x6A87));
+        SAFE_MEMMOVE(ctx->left_node_hash,
+                     sizeof(ctx->left_node_hash),
+                     APDU_DATA_PTR,
+                     APDU_TOTAL_DATA_SIZE,
+                     HASHLEN,
+                     THROW(0x6A87));
         SET_APDU_TXLEN(0);
         *state = S_MP_NODE_HDR2;
         LOG_HEX("Left: ", ctx->left_node_hash, HASHLEN);
@@ -333,11 +341,12 @@ void MP_NODE_RIGHT(MP_CTX *ctx,
     // Read hash
     if (rx - DATA == HASHLEN) {
         // Copy hash and continue parsing
-        SAFE_MEMMOVE(
-            ctx->right_node_hash, sizeof(ctx->right_node_hash),
-            APDU_DATA_PTR, APDU_TOTAL_DATA_SIZE,
-            HASHLEN,
-            THROW(0x6A87));
+        SAFE_MEMMOVE(ctx->right_node_hash,
+                     sizeof(ctx->right_node_hash),
+                     APDU_DATA_PTR,
+                     APDU_TOTAL_DATA_SIZE,
+                     HASHLEN,
+                     THROW(0x6A87));
         SET_APDU_TXLEN(0);
         *state = S_MP_NODE_CHILDRENSIZE;
         LOG_HEX("Right: ", ctx->right_node_hash, HASHLEN);
@@ -423,15 +432,15 @@ void MP_NODE_VALUE(MP_CTX *ctx,
 
     if (!ctx->nodeIndex && !ctx->has_long_value) {
         // We are reading the first node of the partial merkle
-        // proof, which in a valid proof MUST be the leaf and contain the receipt
-        // as a value. Any receipt is by definition more than 32 bytes in size,
-        // and therefore a merkle proof node that contains it should encode
-        // it as a long value (i.e., containing hash and length only)
-        // Hence, getting here indicates the given proof is INVALID. 
+        // proof, which in a valid proof MUST be the leaf and contain the
+        // receipt as a value. Any receipt is by definition more than 32 bytes
+        // in size, and therefore a merkle proof node that contains it should
+        // encode it as a long value (i.e., containing hash and length only)
+        // Hence, getting here indicates the given proof is INVALID.
         // Fail indicating a receipt hash mismatch.
         THROW(0x6A94);
     }
-    
+
     increment_offset(ctx, rx);
     SET_APDU_FOR_MP();
     if (ctx->has_long_value) {
@@ -454,11 +463,12 @@ void MP_NODE_VALUE_LEN(MP_CTX *ctx,
     // Update node hash
     keccak_update(&ctx->NodeHash_ctx, APDU_DATA_PTR, rx - DATA);
     // ValueHash
-    SAFE_MEMMOVE(
-        ctx->value_hash, sizeof(ctx->value_hash),
-        APDU_DATA_PTR, APDU_TOTAL_DATA_SIZE,
-        HASHLEN,
-        THROW(0x6A87));
+    SAFE_MEMMOVE(ctx->value_hash,
+                 sizeof(ctx->value_hash),
+                 APDU_DATA_PTR,
+                 APDU_TOTAL_DATA_SIZE,
+                 HASHLEN,
+                 THROW(0x6A87));
     // Check Receipt hash, must be equal that the first trie node value
     if (!ctx->nodeIndex) {
         if (memcmp(ctx->value_hash, ctx->receiptHash, HASHLEN)) {
@@ -512,7 +522,8 @@ void MP_NODE_REMAINING(MP_CTX *ctx,
     if (ctx->nodeCount) {
         SET_APDU_TXLEN(2); // NodeLen+Flags
         *state = S_MP_NODE_HDR;
-    } else if (ctx->receiptsRootChecked && ctx->receiptHashChecked) { // Finished reading trie
+    } else if (ctx->receiptsRootChecked &&
+               ctx->receiptHashChecked) { // Finished reading trie
         SET_APDU_TXLEN(0);
         *state = S_SIGN_MESSAGE;
     } else { // Coudln't check trie path

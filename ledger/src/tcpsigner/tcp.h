@@ -11,4 +11,3 @@ int start_server(int PORT, const char *HOST);
 
 // Accept connection. Returns connection socket FD
 int accept_connection(int sockfd);
-

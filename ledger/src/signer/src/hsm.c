@@ -90,10 +90,10 @@ unsigned int hsm_process_apdu(volatile unsigned int rx) {
         THROW(0x6982);
     }
 
-    // Zero out commonly read APDU buffer offsets, 
+    // Zero out commonly read APDU buffer offsets,
     // to avoid reading uninitialized memory
     if (rx < MIN_APDU_BYTES) {
-        explicit_bzero(G_io_apdu_buffer+rx, MIN_APDU_BYTES - rx);
+        explicit_bzero(G_io_apdu_buffer + rx, MIN_APDU_BYTES - rx);
     }
 
     // Invalid CLA
@@ -102,103 +102,103 @@ unsigned int hsm_process_apdu(volatile unsigned int rx) {
     }
 
     switch (APDU_CMD()) {
-        // Reports the current mode (i.e., always reports app aka signer mode)
-        case RSK_MODE_CMD:
-            reset_if_starting(RSK_MODE_CMD);
-            SET_APDU_CMD(RSK_MODE_APP);
-            tx = 2;
-            break;
+    // Reports the current mode (i.e., always reports app aka signer mode)
+    case RSK_MODE_CMD:
+        reset_if_starting(RSK_MODE_CMD);
+        SET_APDU_CMD(RSK_MODE_APP);
+        tx = 2;
+        break;
 
-        // Reports wheter the device is onboarded and the current signer version
-        case RSK_IS_ONBOARD: 
-            reset_if_starting(RSK_IS_ONBOARD);
-            uint8_t output_index = CMDPOS;
-            SET_APDU_AT(output_index++, os_perso_isonboarded());
-            SET_APDU_AT(output_index++, VERSION_MAJOR);
-            SET_APDU_AT(output_index++, VERSION_MINOR);
-            SET_APDU_AT(output_index++, VERSION_PATCH);
-            tx = 5;
-            break;
+    // Reports wheter the device is onboarded and the current signer version
+    case RSK_IS_ONBOARD:
+        reset_if_starting(RSK_IS_ONBOARD);
+        uint8_t output_index = CMDPOS;
+        SET_APDU_AT(output_index++, os_perso_isonboarded());
+        SET_APDU_AT(output_index++, VERSION_MAJOR);
+        SET_APDU_AT(output_index++, VERSION_MINOR);
+        SET_APDU_AT(output_index++, VERSION_PATCH);
+        tx = 5;
+        break;
 
-        // Derives and returns the corresponding public key for the given path
-        case INS_GET_PUBLIC_KEY:
-            reset_if_starting(INS_GET_PUBLIC_KEY);
+    // Derives and returns the corresponding public key for the given path
+    case INS_GET_PUBLIC_KEY:
+        reset_if_starting(INS_GET_PUBLIC_KEY);
 
-            // Check the received data size
-            if (rx != DATA + sizeof(uint32_t)*RSK_PATH_LEN)
-                THROW(0x6A87); // Wrong buffer size
+        // Check the received data size
+        if (rx != DATA + sizeof(uint32_t) * RSK_PATH_LEN)
+            THROW(0x6A87); // Wrong buffer size
 
-            // Check for path validity before returning the public key
-            // Actual path starts at normal data pointer, but
-            // is prepended by a single byte indicating the path length
-            // (all paths have the same length in practice, so this should
-            // be refactored in the future)
-            if (!(pathRequireAuth(APDU_DATA_PTR-1) ||
-                pathDontRequireAuth(APDU_DATA_PTR-1))) {
-                // If no path match, then bail out
-                THROW(0x6A8F); // Invalid Key Path
-            }
+        // Check for path validity before returning the public key
+        // Actual path starts at normal data pointer, but
+        // is prepended by a single byte indicating the path length
+        // (all paths have the same length in practice, so this should
+        // be refactored in the future)
+        if (!(pathRequireAuth(APDU_DATA_PTR - 1) ||
+              pathDontRequireAuth(APDU_DATA_PTR - 1))) {
+            // If no path match, then bail out
+            THROW(0x6A8F); // Invalid Key Path
+        }
 
-            // Derive the public key
-            SAFE_MEMMOVE(
-                path, sizeof(path),
-                APDU_DATA_PTR, APDU_TOTAL_DATA_SIZE,
-                RSK_PATH_LEN * sizeof(uint32_t),
-                THROW(0x6A8F));
-            tx = do_pubkey(
-                path, RSK_PATH_LEN,
-                G_io_apdu_buffer, sizeof(G_io_apdu_buffer));
+        // Derive the public key
+        SAFE_MEMMOVE(path,
+                     sizeof(path),
+                     APDU_DATA_PTR,
+                     APDU_TOTAL_DATA_SIZE,
+                     RSK_PATH_LEN * sizeof(uint32_t),
+                     THROW(0x6A8F));
+        tx = do_pubkey(
+            path, RSK_PATH_LEN, G_io_apdu_buffer, sizeof(G_io_apdu_buffer));
 
-            // Error deriving?
-            if (tx == DO_PUBKEY_ERROR) {
-                THROW(0x6A99);
-            }
+        // Error deriving?
+        if (tx == DO_PUBKEY_ERROR) {
+            THROW(0x6A99);
+        }
 
-            break;
+        break;
 
-        case INS_SIGN:
-            // Include INS_SIGN command handling
-            #include "ins_sign.h"
-            break;
+    case INS_SIGN:
+// Include INS_SIGN command handling
+#include "ins_sign.h"
+        break;
 
-        case INS_ATTESTATION:
-            reset_if_starting(INS_ATTESTATION);
-            tx = get_attestation(rx, &attestation);
-            break;
+    case INS_ATTESTATION:
+        reset_if_starting(INS_ATTESTATION);
+        tx = get_attestation(rx, &attestation);
+        break;
 
-        // Get blockchain state
-        case INS_GET_STATE:
-            reset_if_starting(INS_GET_STATE);
-            tx = bc_get_state(rx);
-            break;
+    // Get blockchain state
+    case INS_GET_STATE:
+        reset_if_starting(INS_GET_STATE);
+        tx = bc_get_state(rx);
+        break;
 
-        // Reset blockchain state
-        case INS_RESET_STATE:
-            reset_if_starting(INS_RESET_STATE);
-            tx = bc_reset_state(rx);
-            break;
+    // Reset blockchain state
+    case INS_RESET_STATE:
+        reset_if_starting(INS_RESET_STATE);
+        tx = bc_reset_state(rx);
+        break;
 
-        // Advance blockchain
-        case INS_ADVANCE:
-            reset_if_starting(INS_ADVANCE);
-            tx = bc_advance(rx);
-            break;
+    // Advance blockchain
+    case INS_ADVANCE:
+        reset_if_starting(INS_ADVANCE);
+        tx = bc_advance(rx);
+        break;
 
-        // Advance blockchain precompiled parameters
-        case INS_ADVANCE_PARAMS:
-            reset_if_starting(INS_ADVANCE_PARAMS);
-            tx = bc_advance_get_params();
-            break;
+    // Advance blockchain precompiled parameters
+    case INS_ADVANCE_PARAMS:
+        reset_if_starting(INS_ADVANCE_PARAMS);
+        tx = bc_advance_get_params();
+        break;
 
-        // Update ancestor
-        case INS_UPD_ANCESTOR:
-            reset_if_starting(INS_UPD_ANCESTOR);
-            tx = bc_upd_ancestor(rx);
-            break;
+    // Update ancestor
+    case INS_UPD_ANCESTOR:
+        reset_if_starting(INS_UPD_ANCESTOR);
+        tx = bc_upd_ancestor(rx);
+        break;
 
-        default: // Unknown command
-            THROW(0x6D00);
-            break;
+    default: // Unknown command
+        THROW(0x6D00);
+        break;
     }
 
     return tx;
@@ -215,13 +215,13 @@ unsigned int hsm_process_exception(unsigned short code, unsigned int tx) {
 
     // Apply code transformations
     switch (code & 0xF000) {
-        case 0x6000:
-        case 0x9000:
-            sw = code;
-            break;
-        default:
-            sw = 0x6800 | (code & 0x7FF);
-            break;
+    case 0x6000:
+    case 0x9000:
+        sw = code;
+        break;
+    default:
+        sw = 0x6800 | (code & 0x7FF);
+        break;
     }
 
     // Append resulting code to APDU

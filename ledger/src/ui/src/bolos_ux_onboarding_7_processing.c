@@ -1,19 +1,19 @@
 /*******************************************************************************
-*   Ledger Blue - Secure firmware
-*   (c) 2016, 2017 Ledger
-*
-*  Licensed under the Apache License, Version 2.0 (the "License");
-*  you may not use this file except in compliance with the License.
-*  You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-*  Unless required by applicable law or agreed to in writing, software
-*  distributed under the License is distributed on an "AS IS" BASIS,
-*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*  See the License for the specific language governing permissions and
-*  limitations under the License.
-********************************************************************************/
+ *   Ledger Blue - Secure firmware
+ *   (c) 2016, 2017 Ledger
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ ********************************************************************************/
 
 #include "os.h"
 #include "cx.h"
@@ -29,8 +29,19 @@ char TEMP[20] = "AAAAAA";
 
 const bagl_element_t screen_onboarding_7_processing_1_elements[] = {
     // erase
-    {{BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF,
-      0, 0},
+    {{BAGL_RECTANGLE,
+      0x00,
+      0,
+      0,
+      128,
+      32,
+      0,
+      0,
+      BAGL_FILL,
+      0x000000,
+      0xFFFFFF,
+      0,
+      0},
      NULL,
      0,
      0,
@@ -39,7 +50,18 @@ const bagl_element_t screen_onboarding_7_processing_1_elements[] = {
      NULL,
      NULL},
 
-    {{BAGL_ICON, 0x00, 17, 9, 14, 14, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
+    {{BAGL_ICON,
+      0x00,
+      17,
+      9,
+      14,
+      14,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      0,
       BAGL_GLYPH_ICON_CHECK_BADGE},
      NULL,
      0,
@@ -48,8 +70,19 @@ const bagl_element_t screen_onboarding_7_processing_1_elements[] = {
      NULL,
      NULL,
      NULL},
-    {{BAGL_LABELINE, 0x00, 39, 12, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
-      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px, 0},
+    {{BAGL_LABELINE,
+      0x00,
+      39,
+      12,
+      128,
+      32,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px,
+      0},
      "Your device",
      0,
      0,
@@ -57,9 +90,20 @@ const bagl_element_t screen_onboarding_7_processing_1_elements[] = {
      NULL,
      NULL,
      NULL},
-    {{BAGL_LABELINE, 0x00, 38, 26, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
-      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px, 0},
-//     "is now ready",
+    {{BAGL_LABELINE,
+      0x00,
+      38,
+      26,
+      128,
+      32,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px,
+      0},
+     //     "is now ready",
      TEMP,
      0,
      0,
@@ -69,9 +113,8 @@ const bagl_element_t screen_onboarding_7_processing_1_elements[] = {
      NULL},
 };
 
-unsigned int
-screen_onboarding_7_processing_1_button(unsigned int button_mask,
-                                        unsigned int button_mask_counter) {
+unsigned int screen_onboarding_7_processing_1_button(
+    unsigned int button_mask, unsigned int button_mask_counter) {
     UNUSED(button_mask_counter);
     switch (button_mask) {
     case BUTTON_EVT_RELEASED | BUTTON_LEFT | BUTTON_RIGHT:
@@ -91,18 +134,25 @@ unsigned int screen_onboarding_7_processing_displayed(unsigned int i) {
     // ================================================================================
     // derivation
 
-    os_perso_derive_and_set_seed(0, NULL, 0, NULL, 0,
+    os_perso_derive_and_set_seed(0,
+                                 NULL,
+                                 0,
+                                 NULL,
+                                 0,
                                  G_bolos_ux_context.words_buffer,
                                  G_bolos_ux_context.words_buffer_length);
 
     // store the pin (the pin length has been stored as the first pin char)
-    os_perso_set_pin(0, (unsigned char *)G_bolos_ux_context.pin_buffer + 1,
+    os_perso_set_pin(0,
+                     (unsigned char *)G_bolos_ux_context.pin_buffer + 1,
                      G_bolos_ux_context.pin_buffer[0]);
 
     // wipe passphrase & derivated seed
-    os_memset(G_bolos_ux_context.words_buffer, 0,
+    os_memset(G_bolos_ux_context.words_buffer,
+              0,
               sizeof(G_bolos_ux_context.words_buffer));
-    os_memset(G_bolos_ux_context.string_buffer, 0,
+    os_memset(G_bolos_ux_context.string_buffer,
+              0,
               sizeof(G_bolos_ux_context.string_buffer));
 
     // finalize onboarding
@@ -112,7 +162,8 @@ unsigned int screen_onboarding_7_processing_displayed(unsigned int i) {
     os_global_pin_check((unsigned char *)G_bolos_ux_context.pin_buffer + 1,
                         G_bolos_ux_context.pin_buffer[0]);
     // wipe pin memory; just in case
-    os_memset(G_bolos_ux_context.pin_buffer, 0,
+    os_memset(G_bolos_ux_context.pin_buffer,
+              0,
               sizeof(G_bolos_ux_context.pin_buffer));
 
     // ================================================================================
@@ -124,8 +175,8 @@ unsigned int screen_onboarding_7_processing_displayed(unsigned int i) {
     }
 
     // consume the timer event before being able to reply
-    io_seproxyhal_spi_recv(G_io_seproxyhal_spi_buffer,
-                           sizeof(G_io_seproxyhal_spi_buffer), 0);
+    io_seproxyhal_spi_recv(
+        G_io_seproxyhal_spi_buffer, sizeof(G_io_seproxyhal_spi_buffer), 0);
 
     screen_state_init(0);
 

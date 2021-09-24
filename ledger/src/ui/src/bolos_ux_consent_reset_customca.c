@@ -1,19 +1,19 @@
 /*******************************************************************************
-*   Ledger Blue - Secure firmware
-*   (c) 2016, 2017 Ledger
-*
-*  Licensed under the Apache License, Version 2.0 (the "License");
-*  you may not use this file except in compliance with the License.
-*  You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-*  Unless required by applicable law or agreed to in writing, software
-*  distributed under the License is distributed on an "AS IS" BASIS,
-*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*  See the License for the specific language governing permissions and
-*  limitations under the License.
-********************************************************************************/
+ *   Ledger Blue - Secure firmware
+ *   (c) 2016, 2017 Ledger
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ ********************************************************************************/
 
 #include "os.h"
 #include "cx.h"
@@ -27,8 +27,19 @@
 
 const bagl_element_t screen_consent_reset_customca_elements[] = {
     // erase
-    {{BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF,
-      0, 0},
+    {{BAGL_RECTANGLE,
+      0x00,
+      0,
+      0,
+      128,
+      32,
+      0,
+      0,
+      BAGL_FILL,
+      0x000000,
+      0xFFFFFF,
+      0,
+      0},
      NULL,
      0,
      0,
@@ -37,7 +48,18 @@ const bagl_element_t screen_consent_reset_customca_elements[] = {
      NULL,
      NULL},
 
-    {{BAGL_ICON, 0x00, 3, 12, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
+    {{BAGL_ICON,
+      0x00,
+      3,
+      12,
+      7,
+      7,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      0,
       BAGL_GLYPH_ICON_CROSS},
      NULL,
      0,
@@ -46,7 +68,18 @@ const bagl_element_t screen_consent_reset_customca_elements[] = {
      NULL,
      NULL,
      NULL},
-    {{BAGL_ICON, 0x00, 117, 13, 8, 6, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
+    {{BAGL_ICON,
+      0x00,
+      117,
+      13,
+      8,
+      6,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      0,
       BAGL_GLYPH_ICON_CHECK},
      NULL,
      0,
@@ -56,8 +89,19 @@ const bagl_element_t screen_consent_reset_customca_elements[] = {
      NULL,
      NULL},
 
-    {{BAGL_LABELINE, 0x10, 0, 12, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
-      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+    {{BAGL_LABELINE,
+      0x10,
+      0,
+      12,
+      128,
+      32,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER,
+      0},
      "Revoke",
      0,
      0,
@@ -65,8 +109,19 @@ const bagl_element_t screen_consent_reset_customca_elements[] = {
      NULL,
      NULL,
      NULL},
-    {{BAGL_LABELINE, 0x10, 0, 26, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
-      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+    {{BAGL_LABELINE,
+      0x10,
+      0,
+      26,
+      128,
+      32,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER,
+      0},
      "certificate?",
      0,
      0,
@@ -75,8 +130,19 @@ const bagl_element_t screen_consent_reset_customca_elements[] = {
      NULL,
      NULL},
 
-    {{BAGL_LABELINE, 0x11, 0, 12, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
-      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+    {{BAGL_LABELINE,
+      0x11,
+      0,
+      12,
+      128,
+      32,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER,
+      0},
      "Name",
      0,
      0,
@@ -84,8 +150,18 @@ const bagl_element_t screen_consent_reset_customca_elements[] = {
      NULL,
      NULL,
      NULL},
-    {{BAGL_LABELINE, 0x31, 23, 26, 82, 11, 0x80 | 0x10, 0, 0, 0xFFFFFF,
-      0x000000, BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER,
+    {{BAGL_LABELINE,
+      0x31,
+      23,
+      26,
+      82,
+      11,
+      0x80 | 0x10,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER,
       26},
      G_bolos_ux_context.string_buffer,
      0,
@@ -95,8 +171,19 @@ const bagl_element_t screen_consent_reset_customca_elements[] = {
      NULL,
      NULL},
 
-    {{BAGL_LABELINE, 0x12, 0, 12, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
-      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+    {{BAGL_LABELINE,
+      0x12,
+      0,
+      12,
+      128,
+      32,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER,
+      0},
      "Public key",
      0,
      0,
@@ -104,8 +191,19 @@ const bagl_element_t screen_consent_reset_customca_elements[] = {
      NULL,
      NULL,
      NULL},
-    {{BAGL_LABELINE, 0x32, 0, 26, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
-      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+    {{BAGL_LABELINE,
+      0x32,
+      0,
+      26,
+      128,
+      32,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER,
+      0},
      G_bolos_ux_context.string_buffer,
      0,
      0,
@@ -123,9 +221,11 @@ screen_consent_reset_customca_before_element_display_callback(
     switch (element->component.userid) {
     case 0x31:
         SPRINTF(
-            G_bolos_ux_context.string_buffer, "%.*s",
-            MIN(CUSTOMCA_MAXLEN, strlen((char *)G_bolos_ux_context.parameters.u
-                                            .reset_customca.name)),
+            G_bolos_ux_context.string_buffer,
+            "%.*s",
+            MIN(CUSTOMCA_MAXLEN,
+                strlen((char *)G_bolos_ux_context.parameters.u.reset_customca
+                           .name)),
             (const char *)G_bolos_ux_context.parameters.u.reset_customca.name);
         break;
 

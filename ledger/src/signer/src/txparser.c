@@ -48,16 +48,18 @@ void SM_TX_HDR(TX_CTX *ctx,
                   APDU_DATA_PTR + 4,
                   rx - (DATA + 4)); // Update SignatureHash
     ctx->tx_total_read += rx - (DATA + 4);
-    SAFE_MEMMOVE(
-        &ctx->tx_total_len, sizeof(ctx->tx_total_len),
-        APDU_DATA_PTR, APDU_TOTAL_DATA_SIZE,
-        4,
-        THROW(0x6A87));
-    SAFE_MEMMOVE(
-        &ctx->tx_version, sizeof(ctx->tx_version),
-        APDU_DATA_PTR + 4, APDU_TOTAL_DATA_SIZE - 4,
-        4,
-        THROW(0x6A87));
+    SAFE_MEMMOVE(&ctx->tx_total_len,
+                 sizeof(ctx->tx_total_len),
+                 APDU_DATA_PTR,
+                 APDU_TOTAL_DATA_SIZE,
+                 4,
+                 THROW(0x6A87));
+    SAFE_MEMMOVE(&ctx->tx_version,
+                 sizeof(ctx->tx_version),
+                 APDU_DATA_PTR + 4,
+                 APDU_TOTAL_DATA_SIZE - 4,
+                 4,
+                 THROW(0x6A87));
     LOG(" TX_HDR: TX total len %u\n", ctx->tx_total_len);
     LOG(" TX_HDR: version %u\n", ctx->tx_version);
     // The bridge currently only generates pegout transactions with
@@ -88,8 +90,7 @@ void SM_TX_INPUT_START(TX_CTX *ctx,
                        unsigned int rx,
                        unsigned int *tx) {
     LOG(" TX_INPUT_START: ---Current TX Input: %d ----\n", ctx->currentTxInput);
-    sha256_update(
-        &ctx->TX_hash, APDU_DATA_PTR, rx - DATA); // Update TX hash
+    sha256_update(&ctx->TX_hash, APDU_DATA_PTR, rx - DATA); // Update TX hash
     sha256_update(&ctx->signatureHash,
                   APDU_DATA_PTR,
                   (rx - DATA) - 1); // Update signatureHash minus scriptlength
@@ -123,24 +124,24 @@ void SM_TX_VARINT(TX_CTX *ctx,
                   PARSE_STM *state,
                   unsigned int rx,
                   unsigned int *tx) {
-    sha256_update(
-        &ctx->TX_hash, APDU_DATA_PTR, rx - DATA); // Update TX hash
+    sha256_update(&ctx->TX_hash, APDU_DATA_PTR, rx - DATA); // Update TX hash
     // Create VARINT for signaturehash
     if (rx - DATA > 3)
         THROW(0x6A87);
     // Read length from input
     if (rx - DATA > 0) {
         ctx->script_length = 0;
-        SAFE_MEMMOVE(
-            &ctx->script_length, sizeof(ctx->script_length),
-            APDU_DATA_PTR, APDU_TOTAL_DATA_SIZE,
-            APDU_DATA_SIZE(rx),
-            THROW(0x6A87));
+        SAFE_MEMMOVE(&ctx->script_length,
+                     sizeof(ctx->script_length),
+                     APDU_DATA_PTR,
+                     APDU_TOTAL_DATA_SIZE,
+                     APDU_DATA_SIZE(rx),
+                     THROW(0x6A87));
     }
     ctx->tx_total_read += rx - DATA;
     LOG(" TX_VARINT: varint len: %d script_length %d\n",
-           rx - DATA,
-           ctx->script_length);
+        rx - DATA,
+        ctx->script_length);
     ctx->script_length +=
         4; // We treat sequence number as part of script, for simplicity.
     // Prepare to request chunked script
@@ -159,8 +160,7 @@ void SM_TX_INPUT_READ(TX_CTX *ctx,
                       unsigned int *tx) {
     unsigned char tempVarint[5];
     unsigned char varintLen;
-    sha256_update(
-        &ctx->TX_hash, APDU_DATA_PTR, rx - DATA); // Update TX hash
+    sha256_update(&ctx->TX_hash, APDU_DATA_PTR, rx - DATA); // Update TX hash
 
     LOG(" TX_INPUT_READ: read %d bytes (script+seqno)\nScript: ", rx - DATA);
     LOG_HEX(" Script: ", APDU_DATA_PTR, rx - DATA);
@@ -180,20 +180,21 @@ void SM_TX_INPUT_READ(TX_CTX *ctx,
                 THROW(0x6A8D);
             // Skip push instruction (could be , OP_PUSHDATA2 or OP_PUSHDATA4)
             switch (APDU_AT(DATA + pushOffset)) {
-                case 0x4c: // OP_PUSHDATA1
-                    pushOffset += 2;
-                    break;
-                case 0x4d: // OP_PUSHDATA2
-                    pushOffset += 3;
-                    break;
-                case 0x4e: // OP_PUSHDATA4
-                    pushOffset += 5;
-                    break;
-                default: // Unexpected opcode
-                    THROW(0x6A8D);
+            case 0x4c: // OP_PUSHDATA1
+                pushOffset += 2;
+                break;
+            case 0x4d: // OP_PUSHDATA2
+                pushOffset += 3;
+                break;
+            case 0x4e: // OP_PUSHDATA4
+                pushOffset += 5;
+                break;
+            default: // Unexpected opcode
+                THROW(0x6A8D);
             }
             LOG(" Redeem script offset: %u\n", pushOffset);
-            LOG(" Creating varint for new script: %u\n", ctx->script_length - pushOffset - 4);
+            LOG(" Creating varint for new script: %u\n",
+                ctx->script_length - pushOffset - 4);
             // Now we need to generate a varint with the new size of the script
             // (Check and fail if the new script size is not positive)
             if (ctx->script_length <= pushOffset + 4) {
@@ -209,14 +210,17 @@ void SM_TX_INPUT_READ(TX_CTX *ctx,
             LOG(" TX_VARINT: pushOffset: %d CreateVarint: lengtn %d\n",
                 pushOffset,
                 varintLen);
-            LOG_HEX(" DATA after pushOffset: ", APDU_DATA_PTR + pushOffset,
-                     (rx - DATA) - pushOffset);
+            LOG_HEX(" DATA after pushOffset: ",
+                    APDU_DATA_PTR + pushOffset,
+                    (rx - DATA) - pushOffset);
             // Make sure there is actually a script portion
             // to hash as part of the sighash computation
             if ((rx - DATA) > pushOffset) {
-                sha256_update(&ctx->signatureHash,
+                sha256_update(
+                    &ctx->signatureHash,
                     APDU_DATA_PTR + pushOffset,
-                    (rx - DATA) - pushOffset); // Update TX hash minus first 4 OPs
+                    (rx - DATA) -
+                        pushOffset); // Update TX hash minus first 4 OPs
             }
         } else {
             sha256_update(&ctx->signatureHash,
@@ -245,15 +249,16 @@ void SM_TX_INPUT_READ(TX_CTX *ctx,
         if (ctx->script_length > MAX_USB_TRANSFER)
             SET_APDU_TXLEN(MAX_USB_TRANSFER); // read partial script
         else
-            SET_APDU_TXLEN(ctx->script_length); // read whole script + sequence_no
+            SET_APDU_TXLEN(
+                ctx->script_length); // read whole script + sequence_no
         return;
     } else { // Script completely read
         ctx->btc_input_counter -= 1;
         LOG(" TX_INPUT_READ: total read %d  total len: %d, "
-               "btc_input_counter %d)\n",
-               ctx->tx_total_read,
-               ctx->tx_total_len,
-               ctx->btc_input_counter);
+            "btc_input_counter %d)\n",
+            ctx->tx_total_read,
+            ctx->tx_total_len,
+            ctx->btc_input_counter);
         ctx->currentTxInput++;
         if (ctx->btc_input_counter == 0) {
             *state = S_TX_REMAINING; // We parsed all inputs
@@ -263,7 +268,8 @@ void SM_TX_INPUT_READ(TX_CTX *ctx,
                 SET_APDU_TXLEN(ctx->tx_total_len - ctx->tx_total_read);
         } else {
             *state = S_TX_INPUT_START;
-            SET_APDU_TXLEN(32 + 4 + 1); // Previous hash+outputindex+ScriptLenght
+            SET_APDU_TXLEN(32 + 4 +
+                           1); // Previous hash+outputindex+ScriptLenght
         }
     }
 }
@@ -277,15 +283,15 @@ void SM_TX_INPUT_REMAINING(TX_CTX *ctx,
         sha256_update(
             &ctx->TX_hash, APDU_DATA_PTR, rx - DATA); // Update TX hash
         sha256_update(&ctx->signatureHash,
-                    APDU_DATA_PTR,
-                    rx - DATA); // Update signature hash
+                      APDU_DATA_PTR,
+                      rx - DATA); // Update signature hash
         ctx->tx_total_read += rx - DATA;
     }
     LOG_HEX(" DATA recv: ", APDU_DATA_PTR, (int)rx - DATA);
     SET_APDU_FOR_BTC();
     LOG(" TX_REMAINING: total read %d  total len: %d)\n",
-           ctx->tx_total_read,
-           ctx->tx_total_len);
+        ctx->tx_total_read,
+        ctx->tx_total_len);
     if (ctx->tx_total_read == ctx->tx_total_len - 4) {
         *state = S_TX_END;
         SET_APDU_TXLEN(0);
@@ -328,7 +334,8 @@ void SM_TX_END(TX_CTX *ctx,
                   ctx->signatureHashBuf,
                   sizeof(ctx->signatureHashBuf));
     sha256_final(&ctx->signatureHash, ctx->signatureHashBuf);
-    LOG_HEX(" TX_SIGHASH", ctx->signatureHashBuf, sizeof(ctx->signatureHashBuf));
+    LOG_HEX(
+        " TX_SIGHASH", ctx->signatureHashBuf, sizeof(ctx->signatureHashBuf));
     ctx->validHashes = true; // Indicated hashes have been calculated
     SET_APDU_CLA();
     SET_APDU_CMD(INS_SIGN);

@@ -28,15 +28,17 @@
 
 // Threshold difficulty to achieve when advancing the blockchain
 // NOTE: for example, to specify 0x 000001d5 bcab6123 1c92f6c6, use
-// const DIGIT_T MIN_REQUIRED_DIFFICULTY[BIGINT_LEN] = { 0x1c92f6c6, 0xbcab6123, 0x000001d5, 0, 0, 0, 0, 0, 0 };
+// const DIGIT_T MIN_REQUIRED_DIFFICULTY[BIGINT_LEN] = { 0x1c92f6c6, 0xbcab6123,
+// 0x000001d5, 0, 0, 0, 0, 0, 0 };
 
 // Here we take it from an external definition (see Makefile for details)
 #ifdef PARAM_MIN_REQUIRED_DIFFICULTY
-static const DIGIT_T MIN_REQUIRED_DIFFICULTY[BIGINT_LEN] = PARAM_MIN_REQUIRED_DIFFICULTY;
+static const DIGIT_T MIN_REQUIRED_DIFFICULTY[BIGINT_LEN] =
+    PARAM_MIN_REQUIRED_DIFFICULTY;
 #else
-    #ifndef HSM_SIMULATOR
-    #error "Minimum required difficulty not defined!"
-    #endif
+#ifndef HSM_SIMULATOR
+#error "Minimum required difficulty not defined!"
+#endif
 DIGIT_T MIN_REQUIRED_DIFFICULTY[BIGINT_LEN];
 #endif
 
@@ -64,11 +66,12 @@ static uint8_t expected_state;
  * @arg[in] size buffer size in bytes
  */
 static void wa_store(const uint8_t* buf, uint16_t size) {
-    SAFE_MEMMOVE(
-        block.wa_buf + block.wa_off, sizeof(block.wa_buf) - block.wa_off,
-        buf, size,
-        size,
-        FAIL(BUFFER_OVERFLOW));
+    SAFE_MEMMOVE(block.wa_buf + block.wa_off,
+                 sizeof(block.wa_buf) - block.wa_off,
+                 buf,
+                 size,
+                 size,
+                 FAIL(BUFFER_OVERFLOW));
 
     block.wa_off += size;
 }
@@ -80,8 +83,8 @@ static void wa_store(const uint8_t* buf, uint16_t size) {
  * @arg[in] size  chunk size in bytes
  */
 static void process_merkle_proof(const uint8_t* chunk, uint16_t size) {
-    // Size limit established from Iris network upgrade onwards 
-    if (block.network_upgrade >= NU_IRIS && 
+    // Size limit established from Iris network upgrade onwards
+    if (block.network_upgrade >= NU_IRIS &&
         block.merkle_off + size > MAX_MERKLE_PROOF_SIZE) {
         FAIL(MERKLE_PROOF_OVERFLOW);
     }
@@ -114,11 +117,12 @@ static void process_merkle_proof(const uint8_t* chunk, uint16_t size) {
  * @arg[in] size  chunk size in bytes
  */
 static void store_cb_txn_bytes(const uint8_t* chunk, uint16_t size) {
-    SAFE_MEMMOVE(
-        block.cb_txn + block.cb_off, sizeof(block.cb_txn) - block.cb_off,
-        chunk, size,
-        size,
-        FAIL(CB_TXN_OVERFLOW));
+    SAFE_MEMMOVE(block.cb_txn + block.cb_off,
+                 sizeof(block.cb_txn) - block.cb_off,
+                 chunk,
+                 size,
+                 size,
+                 FAIL(CB_TXN_OVERFLOW));
 
     block.cb_off += size;
 }
@@ -278,9 +282,9 @@ static void bc_adv_accum_diff() {
     }
 
     LOG_BIGD_HEX("Total difficulty before = ",
-               aux_bc_st.total_difficulty,
-               BIGINT_LEN,
-               "\n");
+                 aux_bc_st.total_difficulty,
+                 BIGINT_LEN,
+                 "\n");
     LOG_BIGD_HEX("Block difficulty = ", block.difficulty, BIGINT_LEN, "\n");
 
     // Otherwise accumulate total difficulty
@@ -291,9 +295,9 @@ static void bc_adv_accum_diff() {
     }
 
     LOG_BIGD_HEX("Min required difficulty = ",
-               MIN_REQUIRED_DIFFICULTY,
-               BIGINT_LEN,
-               "\n");
+                 MIN_REQUIRED_DIFFICULTY,
+                 BIGINT_LEN,
+                 "\n");
     LOG_BIGD_HEX(
         "Total difficulty = ", aux_bc_st.total_difficulty, BIGINT_LEN, "\n");
     LOG("Comparison: %d\n",
@@ -364,8 +368,7 @@ static void bc_mm_header_received() {
         SET_FLAG(block.flags, HEADER_VALID);
     } else {
         // Check difficulty
-        diff_result r =
-            check_difficulty(block.difficulty, block.mm_hdr_hash);
+        diff_result r = check_difficulty(block.difficulty, block.mm_hdr_hash);
         if (r == DIFF_ZERO) {
             FAIL(BLOCK_DIFF_INVALID);
         }
@@ -474,8 +477,7 @@ static void str_start(const uint16_t size) {
 
     // Prepare for the processing of the merkle proof
     // if we don't already know this block is valid
-    if (block.field == F_MERKLE_PROOF && 
-        !HAS_FLAG(block.flags, HEADER_VALID) && 
+    if (block.field == F_MERKLE_PROOF && !HAS_FLAG(block.flags, HEADER_VALID) &&
         !N_bc_state.updating.already_validated) {
         if (size % HASH_SIZE != 0) {
             FAIL(MERKLE_PROOF_INVALID);
@@ -485,11 +487,12 @@ static void str_start(const uint16_t size) {
         // In preparation for the reduction of the merkle proof to the
         // merkle root, copy the coinbase transaction hash to the
         // reduction area
-        SAFE_MEMMOVE(
-            block.merkle_proof_left, sizeof(block.merkle_proof_left),
-            block.cb_txn_hash, sizeof(block.cb_txn_hash),
-            sizeof(block.cb_txn_hash),
-            FAIL(MERKLE_PROOF_INVALID));
+        SAFE_MEMMOVE(block.merkle_proof_left,
+                     sizeof(block.merkle_proof_left),
+                     block.cb_txn_hash,
+                     sizeof(block.cb_txn_hash),
+                     sizeof(block.cb_txn_hash),
+                     FAIL(MERKLE_PROOF_INVALID));
     }
 
     if (block.field == F_COINBASE_TXN) {
@@ -535,8 +538,7 @@ static void str_chunk(const uint8_t* chunk, const size_t size) {
         wa_store(chunk, size);
     }
 
-    if (block.field == F_MERKLE_PROOF &&
-        !HAS_FLAG(block.flags, HEADER_VALID) && 
+    if (block.field == F_MERKLE_PROOF && !HAS_FLAG(block.flags, HEADER_VALID) &&
         !N_bc_state.updating.already_validated) {
         process_merkle_proof(chunk, size);
     }
@@ -596,11 +598,12 @@ static void str_end() {
                 FAIL(UMM_ROOT_INVALID);
             }
 
-            SAFE_MEMMOVE(
-                block.umm_root, sizeof(block.umm_root),
-                block.wa_buf, sizeof(block.wa_buf),
-                block.wa_off,
-                FAIL(UMM_ROOT_INVALID));
+            SAFE_MEMMOVE(block.umm_root,
+                         sizeof(block.umm_root),
+                         block.wa_buf,
+                         sizeof(block.wa_buf),
+                         block.wa_off,
+                         FAIL(UMM_ROOT_INVALID));
         }
     }
 
@@ -614,17 +617,15 @@ static void str_end() {
         KECCAK_FINAL(&block.mm_ctx, block.hash_for_mm);
         HSTORE(block.merkle_root, block.wa_buf + MERKLE_ROOT_OFFSET);
 
-        // If we haven't reached a valid block while descending the chain, 
-        // we need to compute the btc mm header hash to then do the difficulty validation.
-        // We do this here because if within this part of the RLP processing
-        // there's also a portion of the mm merkle proof, then the
+        // If we haven't reached a valid block while descending the chain,
+        // we need to compute the btc mm header hash to then do the difficulty
+        // validation. We do this here because if within this part of the RLP
+        // processing there's also a portion of the mm merkle proof, then the
         // wa_buf will be overwritten.
         if (!N_bc_state.updating.already_validated) {
             // Compute merge mining header hash
-            double_sha256_rev(&block.ctx,
-                                block.wa_buf,
-                                BTC_HEADER_SIZE,
-                                block.mm_hdr_hash);
+            double_sha256_rev(
+                &block.ctx, block.wa_buf, BTC_HEADER_SIZE, block.mm_hdr_hash);
         }
 
         SET_FLAG(block.flags, MM_HEADER_RECV);
@@ -634,8 +635,7 @@ static void str_end() {
     // Validate the reduction against the stored coinbase
     // transaction hash.
     // All this given that the block hasn't been marked as valid.
-    if (block.field == F_MERKLE_PROOF &&
-        !HAS_FLAG(block.flags, HEADER_VALID) && 
+    if (block.field == F_MERKLE_PROOF && !HAS_FLAG(block.flags, HEADER_VALID) &&
         !N_bc_state.updating.already_validated) {
         validate_merkle_proof();
     }
@@ -690,7 +690,8 @@ unsigned int bc_advance(volatile unsigned int rx) {
         FAIL(PROT_INVALID);
     }
     if (op == OP_ADVANCE_HEADER_META &&
-        APDU_DATA_SIZE(rx) != (sizeof(block.mm_rlp_len) + sizeof(block.cb_txn_hash))) {
+        APDU_DATA_SIZE(rx) !=
+            (sizeof(block.mm_rlp_len) + sizeof(block.cb_txn_hash))) {
         FAIL(PROT_INVALID);
     }
     if (op == OP_ADVANCE_HEADER_CHUNK) {
@@ -709,11 +710,12 @@ unsigned int bc_advance(volatile unsigned int rx) {
         expected_state = OP_ADVANCE_HEADER_META;
 
         memset(aux_bc_st.prev_parent_hash, 0, HASH_SIZE);
-        SAFE_MEMMOVE(
-            aux_bc_st.total_difficulty, sizeof(aux_bc_st.total_difficulty),
-            N_bc_state.updating.total_difficulty, sizeof(N_bc_state.updating.total_difficulty),
-            sizeof(aux_bc_st.total_difficulty),
-            FAIL(PROT_INVALID));
+        SAFE_MEMMOVE(aux_bc_st.total_difficulty,
+                     sizeof(aux_bc_st.total_difficulty),
+                     N_bc_state.updating.total_difficulty,
+                     sizeof(N_bc_state.updating.total_difficulty),
+                     sizeof(aux_bc_st.total_difficulty),
+                     FAIL(PROT_INVALID));
 
         curr_block = 0;
         BIGENDIAN_FROM(APDU_DATA_PTR, expected_blocks);
@@ -742,17 +744,21 @@ unsigned int bc_advance(volatile unsigned int rx) {
         BIGENDIAN_FROM(APDU_DATA_PTR, block.mm_rlp_len);
 
         // Read the coinbase transaction hash
-        SAFE_MEMMOVE(
-            block.cb_txn_hash, sizeof(block.cb_txn_hash),
-            APDU_DATA_PTR + sizeof(block.mm_rlp_len), APDU_TOTAL_DATA_SIZE - sizeof(block.mm_rlp_len),
-            sizeof(block.cb_txn_hash),
-            FAIL(PROT_INVALID));
+        SAFE_MEMMOVE(block.cb_txn_hash,
+                     sizeof(block.cb_txn_hash),
+                     APDU_DATA_PTR + sizeof(block.mm_rlp_len),
+                     APDU_TOTAL_DATA_SIZE - sizeof(block.mm_rlp_len),
+                     sizeof(block.cb_txn_hash),
+                     FAIL(PROT_INVALID));
 
         // Block hash computation: encode and hash payload len
-        
-        // Sanity check: make sure given mm_rlp_len plus BTC_HEADER_RLP_LEN does not overflow
-        if ((uint16_t)(block.mm_rlp_len + BTC_HEADER_RLP_LEN) < block.mm_rlp_len) {
-            LOG("Given MM RLP list length too large, would overflow: %u\n", block.mm_rlp_len);
+
+        // Sanity check: make sure given mm_rlp_len plus BTC_HEADER_RLP_LEN does
+        // not overflow
+        if ((uint16_t)(block.mm_rlp_len + BTC_HEADER_RLP_LEN) <
+            block.mm_rlp_len) {
+            LOG("Given MM RLP list length too large, would overflow: %u\n",
+                block.mm_rlp_len);
             FAIL(PROT_INVALID);
         }
 
@@ -864,7 +870,7 @@ unsigned int bc_advance(volatile unsigned int rx) {
  */
 static uint8_t dump_min_req_difficulty(int offset) {
     // Make sure the minimum required difficulty fits into the output buffer
-    if (APDU_TOTAL_DATA_SIZE < sizeof(MIN_REQUIRED_DIFFICULTY)+offset)
+    if (APDU_TOTAL_DATA_SIZE < sizeof(MIN_REQUIRED_DIFFICULTY) + offset)
         FAIL(BUFFER_OVERFLOW);
     dump_bigint(APDU_DATA_PTR + offset, MIN_REQUIRED_DIFFICULTY, BIGINT_LEN);
     return sizeof(MIN_REQUIRED_DIFFICULTY);

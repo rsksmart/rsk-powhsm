@@ -21,9 +21,9 @@ extern const int ordered_paths[TOTAL_AUTHORIZED_PATHS];
 bool pathRequireAuth(char *path);
 bool pathDontRequireAuth(char *path);
 
-const char* get_ordered_path(unsigned int index);
+const char *get_ordered_path(unsigned int index);
 
-#define KEY_PATH_COUNT() (sizeof(ordered_paths)/sizeof(ordered_paths[0]))
+#define KEY_PATH_COUNT() (sizeof(ordered_paths) / sizeof(ordered_paths[0]))
 #define PATH_LEN 5
 
 #endif // PATHAUTH_H

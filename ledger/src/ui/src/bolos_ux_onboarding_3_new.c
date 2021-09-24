@@ -1,19 +1,19 @@
 /*******************************************************************************
-*   Ledger Blue - Secure firmware
-*   (c) 2016, 2017 Ledger
-*
-*  Licensed under the Apache License, Version 2.0 (the "License");
-*  you may not use this file except in compliance with the License.
-*  You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-*  Unless required by applicable law or agreed to in writing, software
-*  distributed under the License is distributed on an "AS IS" BASIS,
-*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*  See the License for the specific language governing permissions and
-*  limitations under the License.
-********************************************************************************/
+ *   Ledger Blue - Secure firmware
+ *   (c) 2016, 2017 Ledger
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ ********************************************************************************/
 
 #include "os.h"
 #include "cx.h"
@@ -29,8 +29,19 @@
 
 const bagl_element_t screen_onboarding_3_processing_0_elements[] = {
     // erase
-    {{BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF,
-      0, 0},
+    {{BAGL_RECTANGLE,
+      0x00,
+      0,
+      0,
+      128,
+      32,
+      0,
+      0,
+      BAGL_FILL,
+      0x000000,
+      0xFFFFFF,
+      0,
+      0},
      NULL,
      0,
      0,
@@ -39,7 +50,18 @@ const bagl_element_t screen_onboarding_3_processing_0_elements[] = {
      NULL,
      NULL},
 
-    {{BAGL_ICON, 0x00, 10, 9, 14, 14, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
+    {{BAGL_ICON,
+      0x00,
+      10,
+      9,
+      14,
+      14,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      0,
       BAGL_GLYPH_ICON_LOADING_BADGE},
      NULL,
      0,
@@ -48,8 +70,19 @@ const bagl_element_t screen_onboarding_3_processing_0_elements[] = {
      NULL,
      NULL,
      NULL},
-    {{BAGL_LABELINE, 0x00, 30, 19, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
-      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px, 0},
+    {{BAGL_LABELINE,
+      0x00,
+      30,
+      19,
+      128,
+      32,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px,
+      0},
      "Processing...",
      0,
      0,
@@ -81,8 +114,19 @@ const bagl_element_t screen_onboarding_3_processing_0_elements[] = {
 
 const bagl_element_t screen_onboarding_3_new_elements[] = {
     // erase
-    {{BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF,
-      0, 0},
+    {{BAGL_RECTANGLE,
+      0x00,
+      0,
+      0,
+      128,
+      32,
+      0,
+      0,
+      BAGL_FILL,
+      0x000000,
+      0xFFFFFF,
+      0,
+      0},
      NULL,
      0,
      0,
@@ -91,8 +135,19 @@ const bagl_element_t screen_onboarding_3_new_elements[] = {
      NULL,
      NULL},
 
-    {{BAGL_LABELINE, 0x00, 6, 22, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
-      BAGL_FONT_OPEN_SANS_LIGHT_16px, 0},
+    {{BAGL_LABELINE,
+      0x00,
+      6,
+      22,
+      128,
+      32,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      BAGL_FONT_OPEN_SANS_LIGHT_16px,
+      0},
      "3.",
      0,
      0,
@@ -100,8 +155,19 @@ const bagl_element_t screen_onboarding_3_new_elements[] = {
      NULL,
      NULL,
      NULL},
-    {{BAGL_LABELINE, 0x00, 26, 12, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
-      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px, 0},
+    {{BAGL_LABELINE,
+      0x00,
+      26,
+      12,
+      128,
+      32,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px,
+      0},
      "Write down your",
      0,
      0,
@@ -109,8 +175,19 @@ const bagl_element_t screen_onboarding_3_new_elements[] = {
      NULL,
      NULL,
      NULL},
-    {{BAGL_LABELINE, 0x00, 25, 26, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
-      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px, 0},
+    {{BAGL_LABELINE,
+      0x00,
+      25,
+      26,
+      128,
+      32,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px,
+      0},
      "recovery phrase",
      0,
      0,
@@ -122,8 +199,19 @@ const bagl_element_t screen_onboarding_3_new_elements[] = {
 
 const bagl_element_t screen_onboarding_3_new_words_elements[] = {
     // erase
-    {{BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF,
-      0, 0},
+    {{BAGL_RECTANGLE,
+      0x00,
+      0,
+      0,
+      128,
+      32,
+      0,
+      0,
+      BAGL_FILL,
+      0x000000,
+      0xFFFFFF,
+      0,
+      0},
      NULL,
      0,
      0,
@@ -132,8 +220,19 @@ const bagl_element_t screen_onboarding_3_new_words_elements[] = {
      NULL,
      NULL},
 
-    {{BAGL_LABELINE, 0x01, 0, 12, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
-      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+    {{BAGL_LABELINE,
+      0x01,
+      0,
+      12,
+      128,
+      32,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER,
+      0},
      G_bolos_ux_context.string_buffer,
      0,
      0,
@@ -141,8 +240,19 @@ const bagl_element_t screen_onboarding_3_new_words_elements[] = {
      NULL,
      NULL,
      NULL},
-    {{BAGL_LABELINE, 0x02, 0, 26, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
-      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+    {{BAGL_LABELINE,
+      0x02,
+      0,
+      26,
+      128,
+      32,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER,
+      0},
      G_bolos_ux_context.string_buffer,
      0,
      0,
@@ -152,7 +262,18 @@ const bagl_element_t screen_onboarding_3_new_words_elements[] = {
      NULL},
 
     // left/rights icons
-    {{BAGL_ICON, 0x03, 3, 12, 4, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
+    {{BAGL_ICON,
+      0x03,
+      3,
+      12,
+      4,
+      7,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      0,
       BAGL_GLYPH_ICON_LEFT},
      NULL,
      0,
@@ -161,7 +282,18 @@ const bagl_element_t screen_onboarding_3_new_words_elements[] = {
      NULL,
      NULL,
      NULL},
-    {{BAGL_ICON, 0x04, 121, 12, 4, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
+    {{BAGL_ICON,
+      0x04,
+      121,
+      12,
+      4,
+      7,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      0,
       BAGL_GLYPH_ICON_RIGHT},
      NULL,
      0,
@@ -172,7 +304,7 @@ const bagl_element_t screen_onboarding_3_new_words_elements[] = {
      NULL},
     //{{BAGL_ICON                           , 0x05, 117,  13,   8,   6, 0, 0, 0
     //, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_CHECK  }, NULL, 0, 0, 0, NULL,
-    //NULL, NULL },
+    // NULL, NULL },
 };
 
 void screen_onboarding_3_new_init_internal(void);
@@ -202,8 +334,8 @@ unsigned int screen_onboarding_3_processing_0_displayed(unsigned int i) {
     }
 
     // consume the timer event before being able to reply
-    io_seproxyhal_spi_recv(G_io_seproxyhal_spi_buffer,
-                           sizeof(G_io_seproxyhal_spi_buffer), 0);
+    io_seproxyhal_spi_recv(
+        G_io_seproxyhal_spi_buffer, sizeof(G_io_seproxyhal_spi_buffer), 0);
 
     screen_state_init(0);
 
@@ -240,7 +372,8 @@ const bagl_element_t *screen_onboarding_3_new_before_element_display_callback(
         // word value
         unsigned char *word = (unsigned char *)G_bolos_ux_context.words_buffer;
         unsigned int word_length =
-            bolos_ux_get_word_ptr(&word, G_bolos_ux_context.words_buffer_length,
+            bolos_ux_get_word_ptr(&word,
+                                  G_bolos_ux_context.words_buffer_length,
                                   G_bolos_ux_context.onboarding_step);
 
         // copy the word to display
@@ -270,9 +403,8 @@ const bagl_element_t *screen_onboarding_3_new_before_element_display_callback(
     return element;
 }
 
-unsigned int
-screen_onboarding_3_new_words_button(unsigned int button_mask,
-                                     unsigned int button_mask_counter);
+unsigned int screen_onboarding_3_new_words_button(
+    unsigned int button_mask, unsigned int button_mask_counter);
 
 unsigned int screen_onboarding_3_new_button(unsigned int button_mask,
                                             unsigned int button_mask_counter) {
@@ -294,9 +426,8 @@ unsigned int screen_onboarding_3_new_button(unsigned int button_mask,
     return 0;
 }
 
-unsigned int
-screen_onboarding_3_new_words_button(unsigned int button_mask,
-                                     unsigned int button_mask_counter) {
+unsigned int screen_onboarding_3_new_words_button(
+    unsigned int button_mask, unsigned int button_mask_counter) {
     UNUSED(button_mask_counter);
     switch (button_mask) {
     case BUTTON_EVT_RELEASED | BUTTON_LEFT | BUTTON_RIGHT:
@@ -368,7 +499,8 @@ void screen_onboarding_3_new_init(void) {
     screen_state_init(0);
 
     // generate a new seed, and the word list
-    os_memset(G_bolos_ux_context.words_buffer, 0,
+    os_memset(G_bolos_ux_context.words_buffer,
+              0,
               sizeof(G_bolos_ux_context.words_buffer));
 
 #ifdef HAVE_ELECTRUM
@@ -386,7 +518,8 @@ void screen_onboarding_3_new_init(void) {
         G_bolos_ux_context.onboarding_kind = BOLOS_UX_ONBOARDING_NEW_24;
         cx_rng((unsigned char *)G_bolos_ux_context.string_buffer, 32);
         G_bolos_ux_context.words_buffer_length = bolos_ux_mnemonic_from_data(
-            (unsigned char *)G_bolos_ux_context.string_buffer, 32,
+            (unsigned char *)G_bolos_ux_context.string_buffer,
+            32,
             (unsigned char *)G_bolos_ux_context.words_buffer,
             sizeof(G_bolos_ux_context.words_buffer));
         screen_onboarding_3_new_init_internal();
@@ -397,7 +530,8 @@ void screen_onboarding_3_new_init(void) {
     G_bolos_ux_context.onboarding_kind = BOLOS_UX_ONBOARDING_NEW_24;
     cx_rng((unsigned char *)G_bolos_ux_context.string_buffer, 32);
     G_bolos_ux_context.words_buffer_length = bolos_ux_mnemonic_from_data(
-        (unsigned char *)G_bolos_ux_context.string_buffer, 32,
+        (unsigned char *)G_bolos_ux_context.string_buffer,
+        32,
         (unsigned char *)G_bolos_ux_context.words_buffer,
         sizeof(G_bolos_ux_context.words_buffer));
     screen_onboarding_3_new_init_internal();

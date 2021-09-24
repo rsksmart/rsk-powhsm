@@ -16,7 +16,7 @@
 #include "hsmsim_explicit_bzero.h"
 
 /**
- * Miscellaneous 
+ * Miscellaneous
  */
 #define PIC(x) (x)
 

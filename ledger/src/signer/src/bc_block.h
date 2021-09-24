@@ -54,11 +54,12 @@ typedef struct {
             keccak_ctx_t mm_ctx;    // Merge mining hash Keccak256 context
         };
         struct {
-            uint16_t merkle_off;            // Offset to Merkle proof buffer
-            uint8_t merkle_proof_left[HASH_SIZE]; // Merkle proof reduction current left node
-            uint8_t merkle_root[HASH_SIZE]; // Merkle root
-            uint16_t cb_off;                 // Offset to cb txn buffer
-            uint8_t cb_txn[MAX_CB_TXN_SIZE]; // cb txn buffer
+            uint16_t merkle_off; // Offset to Merkle proof buffer
+            uint8_t merkle_proof_left[HASH_SIZE]; // Merkle proof reduction
+                                                  // current left node
+            uint8_t merkle_root[HASH_SIZE];       // Merkle root
+            uint16_t cb_off;                      // Offset to cb txn buffer
+            uint8_t cb_txn[MAX_CB_TXN_SIZE];      // cb txn buffer
         };
     };
 

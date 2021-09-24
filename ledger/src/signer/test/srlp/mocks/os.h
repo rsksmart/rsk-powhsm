@@ -8,7 +8,7 @@
 #define __SIMULATOR_OS
 
 /**
- * Miscellaneous 
+ * Miscellaneous
  */
 #define PIC(x) (x)
 

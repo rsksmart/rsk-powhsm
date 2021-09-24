@@ -68,7 +68,8 @@ void do_test(const char* test_name,
     if (expected_end_result == RLP_OK) {
         assert(list_depth == 0 /* rlp parser is reporting unbalanced lists */);
     } else {
-        printf("Parsing finished with expected non-OK result: %d\n", expected_end_result);
+        printf("Parsing finished with expected non-OK result: %d\n",
+               expected_end_result);
     }
 }
 
@@ -126,7 +127,8 @@ void test_nested_list() {
         0x8a, 0x6d, 0x79, 0x20, 0x66, 0x72, 0x69, 0x65, 0x6e, 0x64, 0x73,
     };
 
-    do_test("list with deep nesting structure", rlp, sizeof(rlp), &std_cbs, RLP_OK);
+    do_test(
+        "list with deep nesting structure", rlp, sizeof(rlp), &std_cbs, RLP_OK);
 }
 
 void test_long_list() {

@@ -40,7 +40,7 @@ void os_io_set_input_file(FILE *_input_file);
  */
 void os_io_set_replica_file(FILE *_replica_file);
 
-/* 
+/*
  * This function performs the input / output to a simulated dongle,
  * either via a TCP server of via an input file depending on global state.
  * @arg[in] channel_and_flags   must be CHANNEL_APDU
@@ -54,7 +54,8 @@ unsigned short io_exchange(unsigned char channel_and_flags, unsigned short tx);
  * @arg[in] tx                  amount of bytes to transmit to the client
  * @ret                         amount of bytes received from the client
  */
-unsigned short io_exchange_server(unsigned char channel_and_flags, unsigned short tx);
+unsigned short io_exchange_server(unsigned char channel_and_flags,
+                                  unsigned short tx);
 
 /* This function emulates the HOST device, reading bytes to a file instead
  * @arg[in] channel_and_flags   must be CHANNEL_APDU
@@ -62,7 +63,8 @@ unsigned short io_exchange_server(unsigned char channel_and_flags, unsigned shor
  * @ret                         amount of bytes received from the client
  */
 unsigned short io_exchange_file(unsigned char channel_and_flags,
-                           unsigned char tx_len, FILE *inputfd);
+                                unsigned char tx_len,
+                                FILE *inputfd);
 
 /* Append a received command to file
  * @arg[in] filename        Binary file to append commands

@@ -29,7 +29,7 @@ struct try_context_s {
 
     // previous exception contexts (if null, then will fail the same way as
     // before, segv, therefore don't mind chaining)
-    try_context_t *previous;
+    try_context_t* previous;
 
     // current exception if any
     exception_t ex;
@@ -49,74 +49,74 @@ extern try_context_t* G_try_last_open_context;
 // - BEGIN TRY
 // -----------------------------------------------------------------------
 
-#define BEGIN_TRY_L(L)                                                         \
-    {                                                                          \
+#define BEGIN_TRY_L(L) \
+    {                  \
         try_context_t __try##L;
 
 // -----------------------------------------------------------------------
 // - TRY
 // -----------------------------------------------------------------------
-#define TRY_L(L)                                                               \
-    __try                                                                      \
-        ##L.previous = G_try_last_open_context;                                \
-    __try                                                                      \
-        ##L.ex = setjmp(__try##L.jmp_buf);                                     \
-    G_try_last_open_context = &__try##L;                                       \
+#define TRY_L(L)                                \
+    __try                                       \
+        ##L.previous = G_try_last_open_context; \
+    __try                                       \
+        ##L.ex = setjmp(__try##L.jmp_buf);      \
+    G_try_last_open_context = &__try##L;        \
     if (__try##L.ex == 0) {
 // -----------------------------------------------------------------------
 // - EXCEPTION CATCH
 // -----------------------------------------------------------------------
-#define CATCH_L(L, x)                                                          \
-    goto CPP_CONCAT(__FINALLY, L);                                             \
-    }                                                                          \
-    else if (__try##L.ex == x) {                                               \
+#define CATCH_L(L, x)              \
+    goto CPP_CONCAT(__FINALLY, L); \
+    }                              \
+    else if (__try##L.ex == x) {   \
         G_try_last_open_context = __try##L.previous;
 
 // -----------------------------------------------------------------------
 // - EXCEPTION CATCH OTHER
 // -----------------------------------------------------------------------
-#define CATCH_OTHER_L(L, e)                                                    \
-    goto CPP_CONCAT(__FINALLY, L);                                             \
-    }                                                                          \
-    else {                                                                     \
-        exception_t e;                                                         \
-        e = __try##L.ex;                                                       \
-        __try                                                                  \
-            ##L.ex = 0;                                                        \
+#define CATCH_OTHER_L(L, e)        \
+    goto CPP_CONCAT(__FINALLY, L); \
+    }                              \
+    else {                         \
+        exception_t e;             \
+        e = __try##L.ex;           \
+        __try                      \
+            ##L.ex = 0;            \
         G_try_last_open_context = __try##L.previous;
 
 // -----------------------------------------------------------------------
 // - EXCEPTION CATCH ALL
 // -----------------------------------------------------------------------
-#define CATCH_ALL_L(L)                                                         \
-    goto CPP_CONCAT(__FINALLY, L);                                             \
-    }                                                                          \
-    else {                                                                     \
-        __try                                                                  \
-            ##L.ex = 0;                                                        \
+#define CATCH_ALL_L(L)             \
+    goto CPP_CONCAT(__FINALLY, L); \
+    }                              \
+    else {                         \
+        __try                      \
+            ##L.ex = 0;            \
         G_try_last_open_context = __try##L.previous;
 
 // -----------------------------------------------------------------------
 // - FINALLY
 // -----------------------------------------------------------------------
-#define FINALLY_L(L)                                                           \
-    goto CPP_CONCAT(__FINALLY, L);                                             \
-    }                                                                          \
+#define FINALLY_L(L)               \
+    goto CPP_CONCAT(__FINALLY, L); \
+    }                              \
     CPP_CONCAT(__FINALLY, L) : G_try_last_open_context = __try##L.previous;
 
 // -----------------------------------------------------------------------
 // - END TRY
 // -----------------------------------------------------------------------
-#define END_TRY_L(L)                                                           \
-    if (__try##L.ex != 0) {                                                    \
-        THROW_L(L, __try##L.ex);                                               \
-    }                                                                          \
+#define END_TRY_L(L)             \
+    if (__try##L.ex != 0) {      \
+        THROW_L(L, __try##L.ex); \
+    }                            \
     }
 
 // -----------------------------------------------------------------------
 // - CLOSE TRY
 // -----------------------------------------------------------------------
-#define CLOSE_TRY_L(L)                                                         \
+#define CLOSE_TRY_L(L) \
     G_try_last_open_context = G_try_last_open_context->previous
 
 // -----------------------------------------------------------------------
@@ -151,28 +151,23 @@ void os_longjmp(jmp_buf b, unsigned int exception);
 
 #include <bc_err.h>
 
-#define IGNORE_WHEN_FUZZING(e) (                            \
-        e == MERKLE_PROOF_MISMATCH ||                       \
-        e == CB_TXN_HASH_MISMATCH ||                        \
-        e == MM_HASH_MISMATCH ||                            \
-        e == CHAIN_MISMATCH ||                              \
-        e == ANCESTOR_TIP_MISMATCH ||                       \
-        e == 0x6A94) // Validations in Merkle Proof. Not assigned a name.
+#define IGNORE_WHEN_FUZZING(e)                                  \
+    (e == MERKLE_PROOF_MISMATCH || e == CB_TXN_HASH_MISMATCH || \
+     e == MM_HASH_MISMATCH || e == CHAIN_MISMATCH ||            \
+     e == ANCESTOR_TIP_MISMATCH ||                              \
+     e == 0x6A94) // Validations in Merkle Proof. Not assigned a name.
 
-#define THROW(e)                             \
-    {                                        \
-        if (!IGNORE_WHEN_FUZZING(e)) {       \
-            THROW_OS(e);                     \
-        }                                    \
+#define THROW(e)                       \
+    {                                  \
+        if (!IGNORE_WHEN_FUZZING(e)) { \
+            THROW_OS(e);               \
+        }                              \
     }
-
 
 #else
 
 #define THROW(e) THROW_OS(e)
 
-
 #endif
 
 #endif // __SIMULATOR_OS_EXCEPTIONS
-

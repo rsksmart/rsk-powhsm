@@ -90,9 +90,10 @@ void rlp_start(const rlp_callbacks_t* cbs) {
 
 // Called for every consumed byte of the input buffer. Traverse stack from
 // top to bottom, incrementing the number of consumed bytes for each list
-// context. 
+// context.
 // If consumed bytes reaches list size on the top context, pop it.
-// If consumed bytes reaches list size on a non-top context, fail due to inconsistency.
+// If consumed bytes reaches list size on a non-top context, fail due to
+// inconsistency.
 //
 // Defined as a macro to save stack.
 // NOTE: Returns if stack underflow

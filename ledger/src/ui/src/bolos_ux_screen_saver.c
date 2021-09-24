@@ -1,19 +1,19 @@
 /*******************************************************************************
-*   Ledger Blue - Secure firmware
-*   (c) 2016, 2017 Ledger
-*
-*  Licensed under the Apache License, Version 2.0 (the "License");
-*  you may not use this file except in compliance with the License.
-*  You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-*  Unless required by applicable law or agreed to in writing, software
-*  distributed under the License is distributed on an "AS IS" BASIS,
-*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*  See the License for the specific language governing permissions and
-*  limitations under the License.
-********************************************************************************/
+ *   Ledger Blue - Secure firmware
+ *   (c) 2016, 2017 Ledger
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ ********************************************************************************/
 
 #include "os.h"
 #include "cx.h"
@@ -32,8 +32,19 @@
 const bagl_element_t screen_saver_elements[] = {
     // type                               userid    x    y   w    h  str rad
     // fill      fg        bg      fid iid  txt   touchparams...       ]
-    {{BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF,
-      0, 0},
+    {{BAGL_RECTANGLE,
+      0x00,
+      0,
+      0,
+      128,
+      32,
+      0,
+      0,
+      BAGL_FILL,
+      0x000000,
+      0xFFFFFF,
+      0,
+      0},
      NULL,
      0,
      0,
@@ -42,20 +53,21 @@ const bagl_element_t screen_saver_elements[] = {
      NULL,
      NULL},
 
-//{{BAGL_LABELINE                       , 0x01,  56,  19, 128,  32, 0, 0, 0
-//, 0xFFFFFF, 0x000000, BAGL_FONT_OPEN_SANS_REGULAR_11px, 0  }, "Locked", 0, 0,
-//0, NULL, NULL, NULL },
-
-// konami
-//{{BAGL_ICON                           , 0x02,  9,
-//32/2-GLYPH_fish_left_HEIGHT/2,  GLYPH_fish_left_WIDTH, GLYPH_fish_left_HEIGHT,
-//0, 0, 0        , 0xFFFFFF, 0x000000, 0, 0  }, NULL, 0, 0, 0, NULL, NULL, NULL
-//},
-
 // not konami
 #ifdef BOUNCING_LOCK
-    {{BAGL_ICON, 0x01, 128 / 2 - 14 / 2, 32 / 2 - 14 / 2, 14, 14, 0, 0, 0,
-      0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_LOCK_BADGE},
+    {{BAGL_ICON,
+      0x01,
+      128 / 2 - 14 / 2,
+      32 / 2 - 14 / 2,
+      14,
+      14,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      0,
+      BAGL_GLYPH_ICON_LOCK_BADGE},
      NULL,
      0,
      0,
@@ -66,11 +78,21 @@ const bagl_element_t screen_saver_elements[] = {
 #else
     //{{BAGL_LABELINE                       , 0x02,  23,  19,  82,  12,
     ///*0x80|*/10, 0, 0        , 0xFFFFFF, 0x000000,
-    //BAGL_FONT_OPEN_SANS_REGULAR_11px|BAGL_FONT_ALIGNMENT_CENTER, 26  }, "
-    //vires in numeris                                                        ",
-    //0, 0, 0, NULL, NULL, NULL },
-    {{BAGL_LABELINE, 0x02, 23, 21, 82, 17, /*0x80|*/ 1, 0, 0, 0xFFFFFF,
-      0x000000, BAGL_FONT_OPEN_SANS_LIGHT_16px | BAGL_FONT_ALIGNMENT_CENTER,
+    // BAGL_FONT_OPEN_SANS_REGULAR_11px|BAGL_FONT_ALIGNMENT_CENTER, 26  }, "
+    // vires in numeris ",
+    // 0, 0, 0, NULL, NULL, NULL },
+    {{BAGL_LABELINE,
+      0x02,
+      23,
+      21,
+      82,
+      17,
+      /*0x80|*/ 1,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      BAGL_FONT_OPEN_SANS_LIGHT_16px | BAGL_FONT_ALIGNMENT_CENTER,
       26},
      "                        vires in numeris                        ",
      0,
@@ -80,9 +102,9 @@ const bagl_element_t screen_saver_elements[] = {
      NULL,
      NULL},
 //{{BAGL_LABELINE                       , 0x02,  14,  20, 100,  17, /*0x80|*/5,
-//0, 0        , 0xFFFFFF, 0x000000,
-//BAGL_FONT_OPEN_SANS_LIGHT_16px|BAGL_FONT_ALIGNMENT_CENTER, 26  }, "
-//vires in numeris                        ", 0, 0, 0, NULL, NULL, NULL },
+// 0, 0        , 0xFFFFFF, 0x000000,
+// BAGL_FONT_OPEN_SANS_LIGHT_16px|BAGL_FONT_ALIGNMENT_CENTER, 26  }, "
+// vires in numeris                        ", 0, 0, 0, NULL, NULL, NULL },
 #endif // BOUNCING_LOCK
 };
 
@@ -92,37 +114,37 @@ unsigned int screen_saver_button(unsigned int button_mask,
                                  unsigned int button_mask_counter) {
     UNUSED(button_mask_counter);
     switch (button_mask) {
-    /*
-    case BUTTON_EVT_RELEASED|BUTTON_RIGHT:
-      if (G_bolos_ux_context.saver_konami==KONAMI_CODE_ENABLED) {
-        // fear the fish
-        if (G_bolos_ux_context.saver_step_x<HORIZONTAL_SPAN) {
-          G_bolos_ux_context.saver_step_x =
-    (2*HORIZONTAL_SPAN)-G_bolos_ux_context.saver_step_x;
-        }
-      }
-      else if (G_bolos_ux_context.saver_konami >= 2) {
-        G_bolos_ux_context.saver_konami++;
-        // enable the ticker when konami code is ok
-        if (G_bolos_ux_context.saver_konami==5) {
-          G_bolos_ux_context.screen_stack[G_bolos_ux_context.screen_stack_count-1].ticker_value
-    = 100;
-        }
-      }
-      break;
-    case BUTTON_EVT_RELEASED|BUTTON_LEFT:
-      if (G_bolos_ux_context.saver_konami==KONAMI_CODE_ENABLED) {
-        // fear the fish
-        if (G_bolos_ux_context.saver_step_x>=HORIZONTAL_SPAN) {
-          G_bolos_ux_context.saver_step_x =
-    (2*HORIZONTAL_SPAN)-G_bolos_ux_context.saver_step_x;
-        }
-      }
-      else if (G_bolos_ux_context.saver_konami <= 1) {
-        G_bolos_ux_context.saver_konami++;
-      }
-      break;
-    */
+        /*
+        case BUTTON_EVT_RELEASED|BUTTON_RIGHT:
+          if (G_bolos_ux_context.saver_konami==KONAMI_CODE_ENABLED) {
+            // fear the fish
+            if (G_bolos_ux_context.saver_step_x<HORIZONTAL_SPAN) {
+              G_bolos_ux_context.saver_step_x =
+        (2*HORIZONTAL_SPAN)-G_bolos_ux_context.saver_step_x;
+            }
+          }
+          else if (G_bolos_ux_context.saver_konami >= 2) {
+            G_bolos_ux_context.saver_konami++;
+            // enable the ticker when konami code is ok
+            if (G_bolos_ux_context.saver_konami==5) {
+              G_bolos_ux_context.screen_stack[G_bolos_ux_context.screen_stack_count-1].ticker_value
+        = 100;
+            }
+          }
+          break;
+        case BUTTON_EVT_RELEASED|BUTTON_LEFT:
+          if (G_bolos_ux_context.saver_konami==KONAMI_CODE_ENABLED) {
+            // fear the fish
+            if (G_bolos_ux_context.saver_step_x>=HORIZONTAL_SPAN) {
+              G_bolos_ux_context.saver_step_x =
+        (2*HORIZONTAL_SPAN)-G_bolos_ux_context.saver_step_x;
+            }
+          }
+          else if (G_bolos_ux_context.saver_konami <= 1) {
+            G_bolos_ux_context.saver_konami++;
+          }
+          break;
+        */
 
     case BUTTON_EVT_RELEASED | BUTTON_LEFT:
     case BUTTON_EVT_RELEASED | BUTTON_RIGHT:
@@ -152,8 +174,8 @@ unsigned int screen_saver_ticker(unsigned int ignored) {
     return 0;
 }
 
-const bagl_element_t *
-screen_saver_before_display_callback(const bagl_element_t *element) {
+const bagl_element_t *screen_saver_before_display_callback(
+    const bagl_element_t *element) {
     // display other elements only if screen setup, else, only redraw words
     // value
     return element;
@@ -191,7 +213,8 @@ void screen_saver_init(void) {
 #ifdef BOUNCING_LOCK
     G_bolos_ux_context.saver_step_x = cx_rng_u8() % 2 ? 3 : -3;
     G_bolos_ux_context.saver_step_y = cx_rng_u8() % 2 ? 1 : -1;
-    os_memmove(&G_bolos_ux_context.tmp_element, &screen_saver_elements[1],
+    os_memmove(&G_bolos_ux_context.tmp_element,
+               &screen_saver_elements[1],
                sizeof(G_bolos_ux_context.tmp_element));
 #endif // BOUNCING_LOCK
 

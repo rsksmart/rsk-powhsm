@@ -1,19 +1,19 @@
 /*******************************************************************************
-*   Ledger Blue - Secure firmware
-*   (c) 2016, 2017 Ledger
-*
-*  Licensed under the Apache License, Version 2.0 (the "License");
-*  you may not use this file except in compliance with the License.
-*  You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-*  Unless required by applicable law or agreed to in writing, software
-*  distributed under the License is distributed on an "AS IS" BASIS,
-*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*  See the License for the specific language governing permissions and
-*  limitations under the License.
-********************************************************************************/
+ *   Ledger Blue - Secure firmware
+ *   (c) 2016, 2017 Ledger
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ ********************************************************************************/
 
 #include "os.h"
 #include "cx.h"
@@ -28,22 +28,30 @@
 
 #ifdef OS_IO_SEPROXYHAL
 
-unsigned int
-screen_modal_validate_pin_wiped_1_button(unsigned int button_mask,
-                                         unsigned int button_mask_counter);
-unsigned int
-screen_modal_validate_pin_wiped_2_button(unsigned int button_mask,
-                                         unsigned int button_mask_counter);
-unsigned int
-screen_modal_validate_pin_wiped_3_button(unsigned int button_mask,
-                                         unsigned int button_mask_counter);
+unsigned int screen_modal_validate_pin_wiped_1_button(
+    unsigned int button_mask, unsigned int button_mask_counter);
+unsigned int screen_modal_validate_pin_wiped_2_button(
+    unsigned int button_mask, unsigned int button_mask_counter);
+unsigned int screen_modal_validate_pin_wiped_3_button(
+    unsigned int button_mask, unsigned int button_mask_counter);
 unsigned int screen_modal_validate_pin_remaining_attempts_button(
     unsigned int button_mask, unsigned int button_mask_counter);
 
 const bagl_element_t screen_modal_validate_pin_error_elements[] = {
     // erase
-    {{BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF,
-      0, 0},
+    {{BAGL_RECTANGLE,
+      0x00,
+      0,
+      0,
+      128,
+      32,
+      0,
+      0,
+      BAGL_FILL,
+      0x000000,
+      0xFFFFFF,
+      0,
+      0},
      NULL,
      0,
      0,
@@ -52,7 +60,18 @@ const bagl_element_t screen_modal_validate_pin_error_elements[] = {
      NULL,
      NULL},
 
-    {{BAGL_ICON, 0x00, 7, 9, 14, 14, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
+    {{BAGL_ICON,
+      0x00,
+      7,
+      9,
+      14,
+      14,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      0,
       BAGL_GLYPH_ICON_CROSS_BADGE},
      NULL,
      0,
@@ -61,8 +80,19 @@ const bagl_element_t screen_modal_validate_pin_error_elements[] = {
      NULL,
      NULL,
      NULL},
-    {{BAGL_LABELINE, 0x00, 28, 19, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
-      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px, 0},
+    {{BAGL_LABELINE,
+      0x00,
+      28,
+      19,
+      128,
+      32,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px,
+      0},
      "Invalid PIN code",
      0,
      0,
@@ -74,8 +104,19 @@ const bagl_element_t screen_modal_validate_pin_error_elements[] = {
 
 const bagl_element_t screen_modal_validate_pin_remaining_attempts_elements[] = {
     // erase
-    {{BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF,
-      0, 0},
+    {{BAGL_RECTANGLE,
+      0x00,
+      0,
+      0,
+      128,
+      32,
+      0,
+      0,
+      BAGL_FILL,
+      0x000000,
+      0xFFFFFF,
+      0,
+      0},
      NULL,
      0,
      0,
@@ -84,8 +125,19 @@ const bagl_element_t screen_modal_validate_pin_remaining_attempts_elements[] = {
      NULL,
      NULL},
 
-    {{BAGL_LABELINE, 0x01, 0, 19, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
-      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+    {{BAGL_LABELINE,
+      0x01,
+      0,
+      19,
+      128,
+      32,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER,
+      0},
      G_bolos_ux_context.string_buffer,
      0,
      0,
@@ -97,8 +149,19 @@ const bagl_element_t screen_modal_validate_pin_remaining_attempts_elements[] = {
 
 const bagl_element_t screen_modal_validate_pin_wiped_1_elements[] = {
     // erase
-    {{BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF,
-      0, 0},
+    {{BAGL_RECTANGLE,
+      0x00,
+      0,
+      0,
+      128,
+      32,
+      0,
+      0,
+      BAGL_FILL,
+      0x000000,
+      0xFFFFFF,
+      0,
+      0},
      NULL,
      0,
      0,
@@ -107,8 +170,19 @@ const bagl_element_t screen_modal_validate_pin_wiped_1_elements[] = {
      NULL,
      NULL},
 
-    {{BAGL_LABELINE, 0x00, 0, 12, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
-      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+    {{BAGL_LABELINE,
+      0x00,
+      0,
+      12,
+      128,
+      32,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER,
+      0},
      "Your device has been",
      0,
      0,
@@ -116,8 +190,19 @@ const bagl_element_t screen_modal_validate_pin_wiped_1_elements[] = {
      NULL,
      NULL,
      NULL},
-    {{BAGL_LABELINE, 0x00, 0, 26, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
-      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+    {{BAGL_LABELINE,
+      0x00,
+      0,
+      26,
+      128,
+      32,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER,
+      0},
      "reset (3 wrong PIN).",
      0,
      0,
@@ -129,8 +214,19 @@ const bagl_element_t screen_modal_validate_pin_wiped_1_elements[] = {
 
 const bagl_element_t screen_modal_validate_pin_wiped_2_elements[] = {
     // erase
-    {{BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF,
-      0, 0},
+    {{BAGL_RECTANGLE,
+      0x00,
+      0,
+      0,
+      128,
+      32,
+      0,
+      0,
+      BAGL_FILL,
+      0x000000,
+      0xFFFFFF,
+      0,
+      0},
      NULL,
      0,
      0,
@@ -139,8 +235,19 @@ const bagl_element_t screen_modal_validate_pin_wiped_2_elements[] = {
      NULL,
      NULL},
 
-    {{BAGL_LABELINE, 0x00, 0, 12, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
-      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+    {{BAGL_LABELINE,
+      0x00,
+      0,
+      12,
+      128,
+      32,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER,
+      0},
      "To restore your device",
      0,
      0,
@@ -148,8 +255,19 @@ const bagl_element_t screen_modal_validate_pin_wiped_2_elements[] = {
      NULL,
      NULL,
      NULL},
-    {{BAGL_LABELINE, 0x00, 0, 26, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
-      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+    {{BAGL_LABELINE,
+      0x00,
+      0,
+      26,
+      128,
+      32,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER,
+      0},
      "configuration,",
      0,
      0,
@@ -161,8 +279,19 @@ const bagl_element_t screen_modal_validate_pin_wiped_2_elements[] = {
 
 const bagl_element_t screen_modal_validate_pin_wiped_3_elements[] = {
     // erase
-    {{BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF,
-      0, 0},
+    {{BAGL_RECTANGLE,
+      0x00,
+      0,
+      0,
+      128,
+      32,
+      0,
+      0,
+      BAGL_FILL,
+      0x000000,
+      0xFFFFFF,
+      0,
+      0},
      NULL,
      0,
      0,
@@ -171,8 +300,19 @@ const bagl_element_t screen_modal_validate_pin_wiped_3_elements[] = {
      NULL,
      NULL},
 
-    {{BAGL_LABELINE, 0x00, 0, 12, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
-      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+    {{BAGL_LABELINE,
+      0x00,
+      0,
+      12,
+      128,
+      32,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER,
+      0},
      "use your confidential",
      0,
      0,
@@ -180,8 +320,19 @@ const bagl_element_t screen_modal_validate_pin_wiped_3_elements[] = {
      NULL,
      NULL,
      NULL},
-    {{BAGL_LABELINE, 0x00, 0, 26, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
-      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+    {{BAGL_LABELINE,
+      0x00,
+      0,
+      26,
+      128,
+      32,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER,
+      0},
      "recovery sheet.",
      0,
      0,
@@ -203,9 +354,8 @@ unsigned int screen_modal_validate_pin_remaining_attempts_button(
     return 1;
 }
 
-unsigned int
-screen_modal_validate_pin_error_button(unsigned int button_mask,
-                                       unsigned int button_mask_counter) {
+unsigned int screen_modal_validate_pin_error_button(
+    unsigned int button_mask, unsigned int button_mask_counter) {
     UNUSED(button_mask_counter);
     switch (button_mask) {
     case BUTTON_EVT_RELEASED | BUTTON_LEFT | BUTTON_RIGHT:
@@ -248,9 +398,8 @@ screen_modal_validate_pin_error_button(unsigned int button_mask,
     return 1;
 }
 
-unsigned int
-screen_modal_validate_pin_wiped_1_button(unsigned int button_mask,
-                                         unsigned int button_mask_counter) {
+unsigned int screen_modal_validate_pin_wiped_1_button(
+    unsigned int button_mask, unsigned int button_mask_counter) {
     UNUSED(button_mask_counter);
     switch (button_mask) {
     case BUTTON_EVT_RELEASED | BUTTON_LEFT | BUTTON_RIGHT:
@@ -272,9 +421,8 @@ screen_modal_validate_pin_wiped_1_button(unsigned int button_mask,
     return 1;
 }
 
-unsigned int
-screen_modal_validate_pin_wiped_2_button(unsigned int button_mask,
-                                         unsigned int button_mask_counter) {
+unsigned int screen_modal_validate_pin_wiped_2_button(
+    unsigned int button_mask, unsigned int button_mask_counter) {
     UNUSED(button_mask_counter);
     switch (button_mask) {
     case BUTTON_EVT_RELEASED | BUTTON_LEFT | BUTTON_RIGHT:
@@ -302,9 +450,8 @@ void screen_modal_validate_pin_wiped_3_button_help_exit(void) {
     screen_display_init(screen_stack_pop());
 }
 
-unsigned int
-screen_modal_validate_pin_wiped_3_button(unsigned int button_mask,
-                                         unsigned int button_mask_counter) {
+unsigned int screen_modal_validate_pin_wiped_3_button(
+    unsigned int button_mask, unsigned int button_mask_counter) {
     UNUSED(button_mask_counter);
     switch (button_mask) {
     case BUTTON_EVT_RELEASED | BUTTON_LEFT | BUTTON_RIGHT:
@@ -314,17 +461,16 @@ screen_modal_validate_pin_wiped_3_button(unsigned int button_mask,
     return 1;
 }
 
-
 unsigned int force_static_pin() {
-  /*  int i;
-   for (i=0;i<8;i++) G_bolos_ux_context.pin_buffer[i]=0;
-    G_bolos_ux_context.pin_buffer[0]='5';
-    G_bolos_ux_context.pin_buffer[1]='5';
-    G_bolos_ux_context.pin_buffer[2]='5';
-    G_bolos_ux_context.pin_buffer[3]='5';
-    G_bolos_ux_context.pin_buffer[4]=0;*/
+    /*  int i;
+     for (i=0;i<8;i++) G_bolos_ux_context.pin_buffer[i]=0;
+      G_bolos_ux_context.pin_buffer[0]='5';
+      G_bolos_ux_context.pin_buffer[1]='5';
+      G_bolos_ux_context.pin_buffer[2]='5';
+      G_bolos_ux_context.pin_buffer[3]='5';
+      G_bolos_ux_context.pin_buffer[4]=0;*/
     // check if pin and confirmation match, if not, error message
-    
+
     if (!os_global_pin_check((unsigned char *)G_bolos_ux_context.pin_buffer,
                              strlen(G_bolos_ux_context.pin_buffer))) {
         G_bolos_ux_context
@@ -339,10 +485,10 @@ unsigned int force_static_pin() {
         G_bolos_ux_context
             .screen_stack[G_bolos_ux_context.screen_stack_count - 1]
             .button_push_callback = screen_modal_validate_pin_error_button;
-       // screen_display_init(G_bolos_ux_context.screen_stack_count - 1);
-	return 1;
-	}
-    
+        // screen_display_init(G_bolos_ux_context.screen_stack_count - 1);
+        return 1;
+    }
+
     // pin is ok, prepare return value
     G_bolos_ux_context.screen_stack[G_bolos_ux_context.screen_stack_count - 1]
         .exit_code_after_elements_displayed = BOLOS_UX_OK;

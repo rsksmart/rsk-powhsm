@@ -39,11 +39,12 @@ static uint8_t expected_state;
  * @arg[in] size buffer size in bytes
  */
 static void wa_store(const uint8_t* buf, uint16_t size) {
-    SAFE_MEMMOVE(
-        block.wa_buf + block.wa_off, sizeof(block.wa_buf) - block.wa_off,
-        buf, size,
-        size,
-        FAIL(BUFFER_OVERFLOW));
+    SAFE_MEMMOVE(block.wa_buf + block.wa_off,
+                 sizeof(block.wa_buf) - block.wa_off,
+                 buf,
+                 size,
+                 size,
+                 FAIL(BUFFER_OVERFLOW));
 
     block.wa_off += size;
 }
@@ -326,9 +327,12 @@ unsigned int bc_upd_ancestor(volatile unsigned int rx) {
 
         // Block hash computation: encode and hash payload len
 
-        // Sanity check: make sure given mm_rlp_len plus BTC_HEADER_RLP_LEN does not overflow
-        if ((uint16_t)(block.mm_rlp_len + BTC_HEADER_RLP_LEN) < block.mm_rlp_len) {
-            LOG("Given MM RLP list length too large, would overflow: %u\n", block.mm_rlp_len);
+        // Sanity check: make sure given mm_rlp_len plus BTC_HEADER_RLP_LEN does
+        // not overflow
+        if ((uint16_t)(block.mm_rlp_len + BTC_HEADER_RLP_LEN) <
+            block.mm_rlp_len) {
+            LOG("Given MM RLP list length too large, would overflow: %u\n",
+                block.mm_rlp_len);
             FAIL(PROT_INVALID);
         }
 
