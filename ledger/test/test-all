@@ -25,11 +25,15 @@ if [[ "$WITH_DONGLE" == "no" ]]; then
     sleep 1
 
     # Run tests
-    docker exec -ti -w /hsm2/ledger/test hsm-mware-notty python run.py
+    docker exec -t -w /hsm2/ledger/test hsm-mware-notty python run.py
+    err_code=$?
 
     # Kill (and remove) container
     docker kill hsm-mware-notty > /dev/null
 else
     # Run tests against a dongle
     $TEST_ROOT/../../docker/mware/do /hsm2/ledger/test "python run.py -d"
+    err_code=$?
 fi
+
+exit $err_code
