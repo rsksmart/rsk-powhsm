@@ -34,7 +34,7 @@
 #define APDU_DATA_PTR (G_io_apdu_buffer + DATA)
 
 // Total size of APDU data part
-#define APDU_TOTAL_DATA_SIZE (sizeof(G_io_apdu_buffer)-DATA)
+#define APDU_TOTAL_DATA_SIZE (sizeof(G_io_apdu_buffer) - DATA)
 
 // Size of payload in APDU
 #define APDU_DATA_SIZE(rx) ((rx) >= DATA ? (rx)-DATA : 0)
@@ -48,7 +48,7 @@
 // Number of bytes to transmit when sending no data payload
 #define TX_NO_DATA() (DATA)
 
-// Number of bytes to transmit when sending only the number of 
+// Number of bytes to transmit when sending only the number of
 // bytes to receive in the subsequent tx
 #define TX_FOR_TXLEN() (DATA + 1)
 

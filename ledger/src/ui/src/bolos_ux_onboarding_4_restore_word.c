@@ -1,19 +1,19 @@
 /*******************************************************************************
-*   Ledger Blue - Secure firmware
-*   (c) 2016, 2017 Ledger
-*
-*  Licensed under the Apache License, Version 2.0 (the "License");
-*  you may not use this file except in compliance with the License.
-*  You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-*  Unless required by applicable law or agreed to in writing, software
-*  distributed under the License is distributed on an "AS IS" BASIS,
-*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*  See the License for the specific language governing permissions and
-*  limitations under the License.
-********************************************************************************/
+ *   Ledger Blue - Secure firmware
+ *   (c) 2016, 2017 Ledger
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ ********************************************************************************/
 
 #include "os.h"
 #include "cx.h"
@@ -34,8 +34,19 @@ screen_onboarding_4_restore_word_before_element_display_callback(
 // show intro
 const bagl_element_t screen_onboarding_4_restore_word_intro_elements[] = {
     // erase
-    {{BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF,
-      0, 0},
+    {{BAGL_RECTANGLE,
+      0x00,
+      0,
+      0,
+      128,
+      32,
+      0,
+      0,
+      BAGL_FILL,
+      0x000000,
+      0xFFFFFF,
+      0,
+      0},
      NULL,
      0,
      0,
@@ -44,8 +55,19 @@ const bagl_element_t screen_onboarding_4_restore_word_intro_elements[] = {
      NULL,
      NULL},
 
-    {{BAGL_LABELINE, 0x31, 0, 12, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
-      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+    {{BAGL_LABELINE,
+      0x31,
+      0,
+      12,
+      128,
+      32,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER,
+      0},
      "Enter first letters",
      0,
      0,
@@ -53,8 +75,19 @@ const bagl_element_t screen_onboarding_4_restore_word_intro_elements[] = {
      NULL,
      NULL,
      NULL},
-    {{BAGL_LABELINE, 0x32, 0, 12, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
-      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+    {{BAGL_LABELINE,
+      0x32,
+      0,
+      12,
+      128,
+      32,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER,
+      0},
      "Next, enter letters",
      0,
      0,
@@ -62,8 +95,19 @@ const bagl_element_t screen_onboarding_4_restore_word_intro_elements[] = {
      NULL,
      NULL,
      NULL},
-    {{BAGL_LABELINE, 0x33, 0, 12, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
-      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+    {{BAGL_LABELINE,
+      0x33,
+      0,
+      12,
+      128,
+      32,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER,
+      0},
      "Finally, enter letters",
      0,
      0,
@@ -71,8 +115,19 @@ const bagl_element_t screen_onboarding_4_restore_word_intro_elements[] = {
      NULL,
      NULL,
      NULL},
-    {{BAGL_LABELINE, 0x30, 0, 26, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
-      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+    {{BAGL_LABELINE,
+      0x30,
+      0,
+      26,
+      128,
+      32,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER,
+      0},
      G_bolos_ux_context.string_buffer,
      0,
      0,
@@ -85,8 +140,19 @@ const bagl_element_t screen_onboarding_4_restore_word_intro_elements[] = {
 // word selection + word clear
 const bagl_element_t screen_onboarding_4_restore_word_select_elements[] = {
     // erase
-    {{BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF,
-      0, 0},
+    {{BAGL_RECTANGLE,
+      0x00,
+      0,
+      0,
+      128,
+      32,
+      0,
+      0,
+      BAGL_FILL,
+      0x000000,
+      0xFFFFFF,
+      0,
+      0},
      NULL,
      0,
      0,
@@ -95,8 +161,19 @@ const bagl_element_t screen_onboarding_4_restore_word_select_elements[] = {
      NULL,
      NULL},
 
-    {{BAGL_LABELINE, 0x21, 0, 12, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
-      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+    {{BAGL_LABELINE,
+      0x21,
+      0,
+      12,
+      128,
+      32,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER,
+      0},
      G_bolos_ux_context.string_buffer,
      0,
      0,
@@ -104,8 +181,19 @@ const bagl_element_t screen_onboarding_4_restore_word_select_elements[] = {
      NULL,
      NULL,
      NULL},
-    {{BAGL_LABELINE, 0x20, 0, 26, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
-      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+    {{BAGL_LABELINE,
+      0x20,
+      0,
+      26,
+      128,
+      32,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER,
+      0},
      G_bolos_ux_context.string_buffer,
      0,
      0,
@@ -114,7 +202,18 @@ const bagl_element_t screen_onboarding_4_restore_word_select_elements[] = {
      NULL,
      NULL},
 
-    {{BAGL_ICON, 0x24, 23, 9, 14, 14, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
+    {{BAGL_ICON,
+      0x24,
+      23,
+      9,
+      14,
+      14,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      0,
       BAGL_GLYPH_ICON_CROSS_BADGE},
      NULL,
      0,
@@ -123,8 +222,19 @@ const bagl_element_t screen_onboarding_4_restore_word_select_elements[] = {
      NULL,
      NULL,
      NULL},
-    {{BAGL_LABELINE, 0x24, 43, 19, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
-      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px, 0},
+    {{BAGL_LABELINE,
+      0x24,
+      43,
+      19,
+      128,
+      32,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px,
+      0},
      "Clear word",
      0,
      0,
@@ -134,7 +244,18 @@ const bagl_element_t screen_onboarding_4_restore_word_select_elements[] = {
      NULL},
 
     // left/rights icons
-    {{BAGL_ICON, 0x22, 3, 12, 4, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
+    {{BAGL_ICON,
+      0x22,
+      3,
+      12,
+      4,
+      7,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      0,
       BAGL_GLYPH_ICON_LEFT},
      NULL,
      0,
@@ -143,7 +264,18 @@ const bagl_element_t screen_onboarding_4_restore_word_select_elements[] = {
      NULL,
      NULL,
      NULL},
-    {{BAGL_ICON, 0x23, 121, 12, 4, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
+    {{BAGL_ICON,
+      0x23,
+      121,
+      12,
+      4,
+      7,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      0,
       BAGL_GLYPH_ICON_RIGHT},
      NULL,
      0,
@@ -157,8 +289,19 @@ const bagl_element_t screen_onboarding_4_restore_word_select_elements[] = {
 // recovery phrase error
 const bagl_element_t screen_onboarding_4_restore_word_invalid_elements[] = {
     // erase
-    {{BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF,
-      0, 0},
+    {{BAGL_RECTANGLE,
+      0x00,
+      0,
+      0,
+      128,
+      32,
+      0,
+      0,
+      BAGL_FILL,
+      0x000000,
+      0xFFFFFF,
+      0,
+      0},
      NULL,
      0,
      0,
@@ -167,7 +310,18 @@ const bagl_element_t screen_onboarding_4_restore_word_invalid_elements[] = {
      NULL,
      NULL},
 
-    {{BAGL_ICON, 0x00, 6, 9, 14, 14, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
+    {{BAGL_ICON,
+      0x00,
+      6,
+      9,
+      14,
+      14,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      0,
       BAGL_GLYPH_ICON_CROSS_BADGE},
      NULL,
      0,
@@ -176,8 +330,19 @@ const bagl_element_t screen_onboarding_4_restore_word_invalid_elements[] = {
      NULL,
      NULL,
      NULL},
-    {{BAGL_LABELINE, 0x00, 27, 12, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
-      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px, 0},
+    {{BAGL_LABELINE,
+      0x00,
+      27,
+      12,
+      128,
+      32,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px,
+      0},
      "Recovery phrase",
      0,
      0,
@@ -185,8 +350,19 @@ const bagl_element_t screen_onboarding_4_restore_word_invalid_elements[] = {
      NULL,
      NULL,
      NULL},
-    {{BAGL_LABELINE, 0x00, 27, 26, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
-      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px, 0},
+    {{BAGL_LABELINE,
+      0x00,
+      27,
+      26,
+      128,
+      32,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px,
+      0},
      "is not valid",
      0,
      0,
@@ -201,9 +377,8 @@ unsigned int screen_onboarding_4_restore_word_select_button(
 
 #define ITEMS (G_bolos_ux_context.string_buffer + 32)
 
-const bagl_element_t *
-screen_onboarding_4_restore_word_keyboard_callback(unsigned int event,
-                                                   unsigned int value);
+const bagl_element_t *screen_onboarding_4_restore_word_keyboard_callback(
+    unsigned int event, unsigned int value);
 
 void screen_onboarding_4_restore_word_display_auto_complete(void) {
     unsigned int auto_complete_count =
@@ -213,7 +388,8 @@ void screen_onboarding_4_restore_word_display_auto_complete(void) {
             (unsigned char *)G_bolos_ux_context.string_buffer + 32);
     // display added letter and refresh slider
     screen_common_keyboard_init(
-        0, 0, /*always restart from the first element in the list*/
+        0,
+        0, /*always restart from the first element in the list*/
         // recompute alphabet and set the number of elements in the keyboard
         auto_complete_count + (strlen(G_bolos_ux_context.string_buffer + 16)
                                    ? 1
@@ -239,9 +415,8 @@ void screen_onboarding_4_restore_word_display_word_selection(void) {
     screen_display_init(0);
 }
 
-const bagl_element_t *
-screen_onboarding_4_restore_word_keyboard_callback(unsigned int event,
-                                                   unsigned int value) {
+const bagl_element_t *screen_onboarding_4_restore_word_keyboard_callback(
+    unsigned int event, unsigned int value) {
     switch (event) {
     case KEYBOARD_ITEM_VALIDATED:
         // depending on the chosen class, interpret the click
@@ -363,7 +538,8 @@ screen_onboarding_4_restore_word_before_element_display_callback(
     switch (element->component.userid) {
     case 0x30:
         // word index
-        SPRINTF(G_bolos_ux_context.string_buffer, "of word #%d",
+        SPRINTF(G_bolos_ux_context.string_buffer,
+                "of word #%d",
                 G_bolos_ux_context.onboarding_step + 1);
         break;
 
@@ -395,7 +571,8 @@ screen_onboarding_4_restore_word_before_element_display_callback(
         goto not_on_last_item;
 
     case 0x21:
-        SPRINTF(G_bolos_ux_context.string_buffer, "Select word #%d",
+        SPRINTF(G_bolos_ux_context.string_buffer,
+                "Select word #%d",
                 G_bolos_ux_context.onboarding_step + 1);
         goto not_on_last_item;
 
@@ -560,12 +737,14 @@ void screen_onboarding_4_restore_word_init(unsigned int firstWord) {
         G_bolos_ux_context.onboarding_step = 0;
 
         // flush the words first
-        os_memset(G_bolos_ux_context.words_buffer, 0,
+        os_memset(G_bolos_ux_context.words_buffer,
+                  0,
                   sizeof(G_bolos_ux_context.words_buffer));
         G_bolos_ux_context.words_buffer_length = 0;
     }
 
-    os_memset(G_bolos_ux_context.string_buffer, 0,
+    os_memset(G_bolos_ux_context.string_buffer,
+              0,
               sizeof(G_bolos_ux_context.string_buffer));
     // offset 0: the display buffer for various placement
     // offset 16: the entered stem for the current word restoration

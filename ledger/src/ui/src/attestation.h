@@ -28,12 +28,17 @@
 #define UD_VALUE_SIZE 32
 
 // Path of the public key to derive for the attestation (m/44'/0'/0'/0/0 - BTC)
-#define PUBKEY_PATH "\x2c\x00\x00\x80\x00\x00\x00\x80\x00\x00\x00\x80\x00\x00\x00\x00\x00\x00\x00\x00"
+#define PUBKEY_PATH                                                            \
+    "\x2c\x00\x00\x80\x00\x00\x00\x80\x00\x00\x00\x80\x00\x00\x00\x00\x00\x00" \
+    "\x00\x00"
 #define PUBKEY_PATH_LENGTH (sizeof(PUBKEY_PATH) - sizeof(""))
 #define PATH_PART_COUNT 5
 
-// Maximum attestation message to sign size (prefix + UD value + BTC public key + CA public key)
-#define ATT_MESSAGE_SIZE (ATT_MSG_PREFIX_LENGTH + UD_VALUE_SIZE + PUBKEYCOMPRESSEDSIZE + PUBKEYCOMPRESSEDSIZE)
+// Maximum attestation message to sign size (prefix + UD value + BTC public key
+// + CA public key)
+#define ATT_MESSAGE_SIZE                                            \
+    (ATT_MSG_PREFIX_LENGTH + UD_VALUE_SIZE + PUBKEYCOMPRESSEDSIZE + \
+     PUBKEYCOMPRESSEDSIZE)
 
 // Attestation SM stages
 typedef enum {

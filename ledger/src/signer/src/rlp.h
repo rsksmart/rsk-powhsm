@@ -27,8 +27,8 @@ bool rlpDecodeLength(uint8_t *buffer,
 // RLP state machine parsing context
 typedef struct {
     // RLP position variables
-    unsigned int listLevel;       // List level
-    unsigned int fieldCount;      // Field count inside list
+    unsigned int listLevel;  // List level
+    unsigned int fieldCount; // Field count inside list
 
     // Internal parsing
     int listSize[MAX_RLP_RECURSION];      // Current list Size
@@ -37,7 +37,7 @@ typedef struct {
     unsigned int currentFieldLength;
     unsigned int offset;
     unsigned char decodeBuffer[MAX_HEADER_LEN]; // RLP Header buffer
-    unsigned char decodeOffset;                          // Offset inside header buffer
+    unsigned char decodeOffset;                 // Offset inside header buffer
     // Input validation
     unsigned char expectedRXBytes;
 } RLP_CTX;

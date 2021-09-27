@@ -15,10 +15,9 @@
 #include "memutil.h"
 
 #define SET_APDU_FOR_RECEIPT() \
-    SET_APDU_CLA(); \
-    SET_APDU_CMD(INS_SIGN); \
+    SET_APDU_CLA();            \
+    SET_APDU_CMD(INS_SIGN);    \
     SET_APDU_OP(P1_RECEIPT);
-
 
 /* Check if enough data to decode a header in buffer. Returns valid if can
  * decode, false if not enough data in buffer */
@@ -169,11 +168,12 @@ void SM_RLP_HDR(RLP_CTX *ctx,
         LOG("RLP decode buffer would overflow\n");
         THROW(0x6A8A);
     }
-    SAFE_MEMMOVE(
-        ctx->decodeBuffer + ctx->decodeOffset, sizeof(ctx->decodeBuffer) - ctx->decodeOffset,
-        APDU_DATA_PTR, APDU_TOTAL_DATA_SIZE,
-        1,
-        THROW(0x6A8A));
+    SAFE_MEMMOVE(ctx->decodeBuffer + ctx->decodeOffset,
+                 sizeof(ctx->decodeBuffer) - ctx->decodeOffset,
+                 APDU_DATA_PTR,
+                 APDU_TOTAL_DATA_SIZE,
+                 1,
+                 THROW(0x6A8A));
     ctx->decodeOffset++;
     ctx->listRemaining[ctx->listLevel] -= 1;
     if (rlpCanDecode(ctx->decodeBuffer, ctx->decodeOffset, &valid)) {
@@ -203,7 +203,8 @@ void SM_RLP_HDR(RLP_CTX *ctx,
             *tx = TX_FOR_TXLEN();
             if (currentFieldIsList) // List field
             {
-                if (++ctx->listLevel == (sizeof(ctx->listSize) / sizeof(ctx->listSize[0])))
+                if (++ctx->listLevel ==
+                    (sizeof(ctx->listSize) / sizeof(ctx->listSize[0])))
                     THROW(0x6A8C); // Max tree depth reached
                 ctx->fieldCount = 0;
                 ctx->listSize[ctx->listLevel] =
@@ -219,9 +220,11 @@ void SM_RLP_HDR(RLP_CTX *ctx,
                     *state = S_RLP_HDR;
                 } else {
                     if (ctx->currentFieldLength <= RLP_MAX_TRANSFER)
-                        SET_APDU_TXLEN(ctx->currentFieldLength); // Return whole field
+                        SET_APDU_TXLEN(
+                            ctx->currentFieldLength); // Return whole field
                     else
-                        SET_APDU_TXLEN(RLP_MAX_TRANSFER); // Return max amount possible
+                        SET_APDU_TXLEN(
+                            RLP_MAX_TRANSFER); // Return max amount possible
                     ctx->remainingFieldBytes = ctx->currentFieldLength;
                     *state = S_RLP_FIELD;
                 }

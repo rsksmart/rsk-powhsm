@@ -17,7 +17,7 @@ void hsm_ledger_main_loop() {
                 // ensure no race in catch_other if io_exchange throws
                 // an error
                 rx = tx;
-                tx = 0; 
+                tx = 0;
                 rx = io_exchange(CHANNEL_APDU, rx);
 
                 tx = hsm_process_apdu(rx);

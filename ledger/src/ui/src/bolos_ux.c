@@ -1,19 +1,19 @@
 /*******************************************************************************
-*   Ledger Blue - Secure firmware
-*   (c) 2016, 2017 Ledger
-*
-*  Licensed under the Apache License, Version 2.0 (the "License");
-*  you may not use this file except in compliance with the License.
-*  You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-*  Unless required by applicable law or agreed to in writing, software
-*  distributed under the License is distributed on an "AS IS" BASIS,
-*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*  See the License for the specific language governing permissions and
-*  limitations under the License.
-********************************************************************************/
+ *   Ledger Blue - Secure firmware
+ *   (c) 2016, 2017 Ledger
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ ********************************************************************************/
 
 #include "os.h"
 #include "cx.h"
@@ -33,7 +33,7 @@
 const char N_SignerHashList[SIGNER_LOG_SIZE][COMPRESSEDHASHSIZE];
 
 // Onboarded with the UI flag
-const unsigned char N_onboarded_ui[1] = { 0 };
+const unsigned char N_onboarded_ui[1] = {0};
 
 #ifdef OS_IO_SEPROXYHAL
 
@@ -44,8 +44,19 @@ bolos_ux_context_t G_bolos_ux_context;
 // USB message waiting screen
 static const bagl_element_t bagl_ui_idle_nanos[] = {
     {
-        {BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000,
-         0xFFFFFF, 0, 0},
+        {BAGL_RECTANGLE,
+         0x00,
+         0,
+         0,
+         128,
+         32,
+         0,
+         0,
+         BAGL_FILL,
+         0x000000,
+         0xFFFFFF,
+         0,
+         0},
         NULL,
         0,
         0,
@@ -55,8 +66,19 @@ static const bagl_element_t bagl_ui_idle_nanos[] = {
         NULL,
     },
     {
-        {BAGL_LABELINE, 0x02, 0, 12, 128, 11, 0, 0, 0, 0xFFFFFF, 0x000000,
-         BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+        {BAGL_LABELINE,
+         0x02,
+         0,
+         12,
+         128,
+         11,
+         0,
+         0,
+         0,
+         0xFFFFFF,
+         0x000000,
+         BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER,
+         0},
         "RSK: Waiting for msg",
         0,
         0,
@@ -64,8 +86,7 @@ static const bagl_element_t bagl_ui_idle_nanos[] = {
         NULL,
         NULL,
         NULL,
-    }
-};
+    }};
 
 unsigned short io_timeout(unsigned short last_timeout) {
     UNUSED(last_timeout);
@@ -75,8 +96,11 @@ unsigned short io_timeout(unsigned short last_timeout) {
 
 void screen_hex_identifier_string_buffer(const unsigned char *buffer,
                                          unsigned int total) {
-    SPRINTF(G_bolos_ux_context.string_buffer, "%.*H...%.*H",
-            BOLOS_UX_HASH_LENGTH / 2, buffer, BOLOS_UX_HASH_LENGTH / 2,
+    SPRINTF(G_bolos_ux_context.string_buffer,
+            "%.*H...%.*H",
+            BOLOS_UX_HASH_LENGTH / 2,
+            buffer,
+            BOLOS_UX_HASH_LENGTH / 2,
             buffer + total - BOLOS_UX_HASH_LENGTH / 2);
 }
 
@@ -87,7 +111,8 @@ void screen_state_init(unsigned int stack_slot) {
                              // being pressed in a previous screen
 
     // wipe the slot to be displayed just in case
-    os_memset(&G_bolos_ux_context.screen_stack[stack_slot], 0,
+    os_memset(&G_bolos_ux_context.screen_stack[stack_slot],
+              0,
               sizeof(G_bolos_ux_context.screen_stack[0]));
 
     // init current screen state
@@ -96,8 +121,8 @@ void screen_state_init(unsigned int stack_slot) {
 }
 
 // check to process keyboard callback before screen generic callback
-const bagl_element_t *
-screen_display_element_callback(const bagl_element_t *element) {
+const bagl_element_t *screen_display_element_callback(
+    const bagl_element_t *element) {
     const bagl_element_t *el;
     if (G_bolos_ux_context.screen_stack_count) {
         if (G_bolos_ux_context
@@ -145,8 +170,8 @@ void screen_display_init(unsigned int stack_slot) {
 }
 
 // return true (stack slot +1) if an element
-unsigned int
-screen_stack_is_element_array_present(const bagl_element_t *element_array) {
+unsigned int screen_stack_is_element_array_present(
+    const bagl_element_t *element_array) {
     unsigned int i, j;
     for (i = 0;
          i < /*ARRAYLEN(G_bolos_ux_context.screen_stack)*/ G_bolos_ux_context
@@ -170,7 +195,8 @@ unsigned int screen_stack_push(void) {
         ARRAYLEN(G_bolos_ux_context.screen_stack)) {
         os_memset(&G_bolos_ux_context
                        .screen_stack[G_bolos_ux_context.screen_stack_count],
-                  0, sizeof(G_bolos_ux_context.screen_stack[0]));
+                  0,
+                  sizeof(G_bolos_ux_context.screen_stack[0]));
         G_bolos_ux_context.screen_stack_count++;
     }
     // return the stack top index
@@ -189,7 +215,8 @@ unsigned int screen_stack_pop(void) {
         // wipe popped slot
         os_memset(&G_bolos_ux_context
                        .screen_stack[G_bolos_ux_context.screen_stack_count],
-                  0, sizeof(G_bolos_ux_context.screen_stack[0]));
+                  0,
+                  sizeof(G_bolos_ux_context.screen_stack[0]));
     }
 
     // prepare output code when popping the last stack screen
@@ -267,17 +294,61 @@ void screen_return_after_displayed_touched_element(unsigned int exit_code) {
 }
 
 const unsigned char const C_app_empty_colors[] = {
-    0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0xFF,
+    0xFF,
+    0xFF,
+    0xFF,
 };
 
 const unsigned char const C_app_empty_bitmap[] = {
     // color index table
-    0x01, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF,
+    0x01,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0xFF,
+    0xFF,
+    0xFF,
+    0xFF,
 
     // icon mask
-    0x00, 0x00, 0xF0, 0x0F, 0xFC, 0x3F, 0xFC, 0x3F, 0xFE, 0x7F, 0xFE, 0x7F,
-    0xFE, 0x7F, 0xFE, 0x7F, 0xFE, 0x7F, 0xFE, 0x7F, 0xFE, 0x7F, 0xFE, 0x7F,
-    0xFC, 0x3F, 0xFC, 0x3F, 0xF0, 0x0F, 0x00, 0x00,
+    0x00,
+    0x00,
+    0xF0,
+    0x0F,
+    0xFC,
+    0x3F,
+    0xFC,
+    0x3F,
+    0xFE,
+    0x7F,
+    0xFE,
+    0x7F,
+    0xFE,
+    0x7F,
+    0xFE,
+    0x7F,
+    0xFE,
+    0x7F,
+    0xFE,
+    0x7F,
+    0xFE,
+    0x7F,
+    0xFE,
+    0x7F,
+    0xFC,
+    0x3F,
+    0xFC,
+    0x3F,
+    0xF0,
+    0x0F,
+    0x00,
+    0x00,
 };
 
 // prepare the app icon as if it was a icon_detail_t encoded structure in the
@@ -331,16 +402,16 @@ void io_seproxyhal_display(const bagl_element_t *element) {
  * Do pin validations on the given pin buffer
  * If pin validations fail, throw
  */
-void validate_pin(char* pin_buffer) {
+void validate_pin(char *pin_buffer) {
     // Check PIN length
     if (pin_buffer[0] != MAX_PIN_LENGTH) {
         THROW(0x69a0);
     }
     // Check if PIN is alphanumeric
-    int isAlphanumeric=0;
-    for (int i=0;i<MAX_PIN_LENGTH;i++) {
-        if (pin_buffer[i+1]>'9') {
-            isAlphanumeric=1;
+    int isAlphanumeric = 0;
+    for (int i = 0; i < MAX_PIN_LENGTH; i++) {
+        if (pin_buffer[i + 1] > '9') {
+            isAlphanumeric = 1;
         }
     }
     if (!isAlphanumeric) {
@@ -361,9 +432,12 @@ static void reset_if_starting(unsigned char cmd) {
     // Otherwise we already reset when curr_cmd started.
     if (cmd != curr_cmd) {
         curr_cmd = cmd;
-        explicit_bzero(G_bolos_ux_context.words_buffer, sizeof(G_bolos_ux_context.words_buffer));
-        explicit_bzero(G_bolos_ux_context.pin_buffer, sizeof(G_bolos_ux_context.pin_buffer));
-        explicit_bzero(G_bolos_ux_context.string_buffer, sizeof(G_bolos_ux_context.string_buffer));
+        explicit_bzero(G_bolos_ux_context.words_buffer,
+                       sizeof(G_bolos_ux_context.words_buffer));
+        explicit_bzero(G_bolos_ux_context.pin_buffer,
+                       sizeof(G_bolos_ux_context.pin_buffer));
+        explicit_bzero(G_bolos_ux_context.string_buffer,
+                       sizeof(G_bolos_ux_context.string_buffer));
         G_bolos_ux_context.words_buffer_length = 0;
         reset_attestation(&attestation_ctx);
     }
@@ -374,7 +448,7 @@ static void sample_main(void) {
     volatile unsigned int tx = 0;
     volatile unsigned int flags = 0;
     volatile unsigned char pin = 0;
-    int i=0;
+    int i = 0;
     unsigned char aux;
 
     // Initialize current operation
@@ -392,7 +466,7 @@ static void sample_main(void) {
         BEGIN_TRY {
             TRY {
                 rx = tx;
-                //flags |= IO_ASYNCH_REPLY;
+                // flags |= IO_ASYNCH_REPLY;
                 tx = 0; // ensure no race in catch_other if io_exchange throws
                         // an error
                 rx = io_exchange(CHANNEL_APDU | flags, rx);
@@ -412,16 +486,17 @@ static void sample_main(void) {
                 switch (APDU_CMD()) {
                 case RSK_SEED_CMD: // Send wordlist
                     reset_if_starting(RSK_META_CMD_UIOP);
-                    pin=APDU_AT(2);
-                    if ( (pin>=0) && (pin <=sizeof(G_bolos_ux_context.words_buffer)))
-                        G_bolos_ux_context.words_buffer[pin]=APDU_AT(3);
+                    pin = APDU_AT(2);
+                    if ((pin >= 0) &&
+                        (pin <= sizeof(G_bolos_ux_context.words_buffer)))
+                        G_bolos_ux_context.words_buffer[pin] = APDU_AT(3);
                     THROW(0x9000);
                     break;
                 case RSK_PIN_CMD: // Send pin_buffer
                     reset_if_starting(RSK_META_CMD_UIOP);
-                    pin=APDU_AT(2);
-                    if ( (pin>=0) && (pin <=MAX_PIN_LENGTH))
-                        G_bolos_ux_context.pin_buffer[pin]=APDU_AT(3);
+                    pin = APDU_AT(2);
+                    if ((pin >= 0) && (pin <= MAX_PIN_LENGTH))
+                        G_bolos_ux_context.pin_buffer[pin] = APDU_AT(3);
                     THROW(0x9000);
                     break;
                 case RSK_IS_ONBOARD: // Wheter it's onboarded or not
@@ -431,67 +506,85 @@ static void sample_main(void) {
                     SET_APDU_AT(output_index++, VERSION_MAJOR);
                     SET_APDU_AT(output_index++, VERSION_MINOR);
                     SET_APDU_AT(output_index++, VERSION_PATCH);
-                    tx=5;
+                    tx = 5;
                     THROW(0x9000);
                     break;
-                case RSK_WIPE:  //--- wipe and onboard device ---
+                case RSK_WIPE: //--- wipe and onboard device ---
                     reset_if_starting(RSK_META_CMD_UIOP);
-        #ifndef DEBUG_BUILD
+#ifndef DEBUG_BUILD
                     validate_pin(G_bolos_ux_context.pin_buffer);
-        #endif
+#endif
                     // Wipe device
                     os_global_pin_invalidate();
                     os_perso_wipe();
-                    G_bolos_ux_context.onboarding_kind = BOLOS_UX_ONBOARDING_NEW_24;
+                    G_bolos_ux_context.onboarding_kind =
+                        BOLOS_UX_ONBOARDING_NEW_24;
                     // Generate 32 bytes of random with onboard rng
-                    cx_rng((unsigned char *)G_bolos_ux_context.string_buffer, HASHSIZE);
+                    cx_rng((unsigned char *)G_bolos_ux_context.string_buffer,
+                           HASHSIZE);
                     // XOR with host-generated 32 bytes random
-                    for (i=0;i<HASHSIZE;i++) {
-                        G_bolos_ux_context.string_buffer[i] ^= G_bolos_ux_context.words_buffer[i];
+                    for (i = 0; i < HASHSIZE; i++) {
+                        G_bolos_ux_context.string_buffer[i] ^=
+                            G_bolos_ux_context.words_buffer[i];
                     }
                     // The seed is now in string_buffer, generate the mnemonic
-                    os_memset(G_bolos_ux_context.words_buffer, 0, sizeof(G_bolos_ux_context.words_buffer));
-                    G_bolos_ux_context.words_buffer_length = bolos_ux_mnemonic_from_data(
-                        (unsigned char *)G_bolos_ux_context.string_buffer, SEEDSIZE,
-                        (unsigned char *)G_bolos_ux_context.words_buffer,
-                        sizeof(G_bolos_ux_context.words_buffer));
+                    os_memset(G_bolos_ux_context.words_buffer,
+                              0,
+                              sizeof(G_bolos_ux_context.words_buffer));
+                    G_bolos_ux_context.words_buffer_length =
+                        bolos_ux_mnemonic_from_data(
+                            (unsigned char *)G_bolos_ux_context.string_buffer,
+                            SEEDSIZE,
+                            (unsigned char *)G_bolos_ux_context.words_buffer,
+                            sizeof(G_bolos_ux_context.words_buffer));
                     // Clear the seed
-                    explicit_bzero(
-                        G_bolos_ux_context.string_buffer, 
-                        sizeof(G_bolos_ux_context.string_buffer));
+                    explicit_bzero(G_bolos_ux_context.string_buffer,
+                                   sizeof(G_bolos_ux_context.string_buffer));
                     // Set seed from mnemonic
-                    os_perso_derive_and_set_seed(0, NULL, 0, NULL, 0,
+                    os_perso_derive_and_set_seed(
+                        0,
+                        NULL,
+                        0,
+                        NULL,
+                        0,
                         G_bolos_ux_context.words_buffer,
                         strlen(G_bolos_ux_context.words_buffer));
                     // Clear the mnemonic
-                    explicit_bzero(
-                        G_bolos_ux_context.words_buffer, 
-                        sizeof(G_bolos_ux_context.words_buffer));
+                    explicit_bzero(G_bolos_ux_context.words_buffer,
+                                   sizeof(G_bolos_ux_context.words_buffer));
                     // Set PIN
                     os_perso_set_pin(
-                        0, (unsigned char *)G_bolos_ux_context.pin_buffer + 1, 
+                        0,
+                        (unsigned char *)G_bolos_ux_context.pin_buffer + 1,
                         G_bolos_ux_context.pin_buffer[0]);
                     // Finalize onboarding
                     os_perso_finalize();
                     os_global_pin_invalidate();
                     SET_APDU_AT(1, 2);
-                    SET_APDU_AT(2, os_global_pin_check(
-                        (unsigned char *)G_bolos_ux_context.pin_buffer + 1,
-                        G_bolos_ux_context.pin_buffer[0]));
+                    SET_APDU_AT(
+                        2,
+                        os_global_pin_check(
+                            (unsigned char *)G_bolos_ux_context.pin_buffer + 1,
+                            G_bolos_ux_context.pin_buffer[0]));
                     // Clear pin buffer
-                    explicit_bzero(G_bolos_ux_context.pin_buffer, sizeof(G_bolos_ux_context.pin_buffer));
+                    explicit_bzero(G_bolos_ux_context.pin_buffer,
+                                   sizeof(G_bolos_ux_context.pin_buffer));
                     // Clear app hash blacklist
                     // (we reuse string_buffer to avoid allocating a new buffer)
-                    os_memset(G_bolos_ux_context.string_buffer, 0, COMPRESSEDHASHSIZE);
-                    for (i=0;i<SIGNER_LOG_SIZE;i++) {
-                        nvm_write((void *)PIC(N_SignerHashList[i]),G_bolos_ux_context.string_buffer,COMPRESSEDHASHSIZE);
+                    os_memset(G_bolos_ux_context.string_buffer,
+                              0,
+                              COMPRESSEDHASHSIZE);
+                    for (i = 0; i < SIGNER_LOG_SIZE; i++) {
+                        nvm_write((void *)PIC(N_SignerHashList[i]),
+                                  G_bolos_ux_context.string_buffer,
+                                  COMPRESSEDHASHSIZE);
                     }
                     // Turn the onboarding flag on to mark onboarding
                     // has been done using the UI
                     aux = 1;
-                    nvm_write((void*)PIC(N_onboarded_ui), &aux, sizeof(aux));
+                    nvm_write((void *)PIC(N_onboarded_ui), &aux, sizeof(aux));
                     // Output
-                    tx=3;
+                    tx = 3;
                     THROW(0x9000);
                     break;
                 case RSK_NEWPIN:
@@ -500,14 +593,19 @@ static void sample_main(void) {
                     validate_pin(G_bolos_ux_context.pin_buffer);
 #endif
                     // Set PIN
-                    os_perso_set_pin(0, (unsigned char *)G_bolos_ux_context.pin_buffer + 1, G_bolos_ux_context.pin_buffer[0]);
+                    os_perso_set_pin(
+                        0,
+                        (unsigned char *)G_bolos_ux_context.pin_buffer + 1,
+                        G_bolos_ux_context.pin_buffer[0]);
                     // check PIN
                     os_global_pin_invalidate();
                     SET_APDU_AT(1, 2);
-                    SET_APDU_AT(2, os_global_pin_check(
-                        (unsigned char *)G_bolos_ux_context.pin_buffer + 1,
-                        G_bolos_ux_context.pin_buffer[0]));
-                    tx=3;
+                    SET_APDU_AT(
+                        2,
+                        os_global_pin_check(
+                            (unsigned char *)G_bolos_ux_context.pin_buffer + 1,
+                            G_bolos_ux_context.pin_buffer[0]));
+                    tx = 3;
                     THROW(0x9000);
                     break;
                 case RSK_ECHO_CMD: // echo
@@ -518,7 +616,7 @@ static void sample_main(void) {
                 case RSK_MODE_CMD: // print mode
                     reset_if_starting(RSK_MODE_CMD);
                     SET_APDU_AT(1, RSK_MODE_BOOTLOADER);
-                    tx=2;
+                    tx = 2;
                     THROW(0x9000);
                     break;
                 case INS_ATTESTATION:
@@ -528,36 +626,39 @@ static void sample_main(void) {
                     break;
                 case RSK_RETRIES:
                     reset_if_starting(RSK_RETRIES);
-                    SET_APDU_AT(2, (unsigned char) os_global_pin_retries());
+                    SET_APDU_AT(2, (unsigned char)os_global_pin_retries());
                     tx = 3;
                     THROW(0x9000);
                     break;
                 case RSK_UNLOCK_CMD: // Unlock
                     reset_if_starting(RSK_META_CMD_UIOP);
-                    SET_APDU_AT(2, os_global_pin_check(
-                        (unsigned char *)G_bolos_ux_context.pin_buffer,
-                        strlen(G_bolos_ux_context.pin_buffer)));
-                    tx=5;
+                    SET_APDU_AT(
+                        2,
+                        os_global_pin_check(
+                            (unsigned char *)G_bolos_ux_context.pin_buffer,
+                            strlen(G_bolos_ux_context.pin_buffer)));
+                    tx = 5;
                     THROW(0x9000);
                     break;
                 case RSK_END_CMD: // return to dashboard
                     reset_if_starting(RSK_END_CMD);
-                    autoexec=1;
+                    autoexec = 1;
                     goto return_to_dashboard;
                 case RSK_END_CMD_NOSIG: // return to dashboard
                     reset_if_starting(RSK_END_CMD_NOSIG);
-                    autoexec=0;
+                    autoexec = 0;
                     goto return_to_dashboard;
                 default:
                     THROW(0x6D00);
                     break;
                 }
-            } CATCH_OTHER(e) {
+            }
+            CATCH_OTHER(e) {
                 // Reset the state in case of an error
                 if (e != 0x9000) {
                     reset_if_starting(0);
                 }
-                
+
                 switch (e & 0xF000) {
                 case 0x6000:
                 case 0x9000:
@@ -587,81 +688,83 @@ return_to_dashboard:
 //
 // Reuse string_buffer because of lack of stack memory
 #define cmpbuf G_bolos_ux_context.string_buffer
-int is_app_version_allowed(application_t *app)
-	{
-	unsigned char *currentHash;
-	unsigned char *oldHash;
-	int i;
-	// Check is app is latest version
-	currentHash=(unsigned char *)PIC(N_SignerHashList[0]);
+int is_app_version_allowed(application_t *app) {
+    unsigned char *currentHash;
+    unsigned char *oldHash;
+    int i;
+    // Check is app is latest version
+    currentHash = (unsigned char *)PIC(N_SignerHashList[0]);
+    SAFE_MEMMOVE(cmpbuf,
+                 sizeof(cmpbuf),
+                 currentHash,
+                 sizeof(N_SignerHashList[0]),
+                 COMPRESSEDHASHSIZE,
+                 { return 0; });
+    // Compare the first COMPRESSEDHASHSIZE bytes
+    if (!memcmp(app->hash, cmpbuf, COMPRESSEDHASHSIZE))
+        return 1; // Latest app detected, allow.
+    // App is not latest. Check if it's on the blacklist.
+    for (i = 1; i < SIGNER_LOG_SIZE; i++) {
+        currentHash = (unsigned char *)PIC(N_SignerHashList[i]);
+        SAFE_MEMMOVE(cmpbuf,
+                     sizeof(cmpbuf),
+                     currentHash,
+                     sizeof(N_SignerHashList[i]),
+                     COMPRESSEDHASHSIZE,
+                     { return 0; })
+        // Compare the first COMPRESSEDHASHSIZE bytes
+        if (!memcmp(app->hash, cmpbuf, COMPRESSEDHASHSIZE))
+            return 0; // App in blacklist! deny execution
+    }
+    // App is not in blacklist, new app detected
+    for (i = SIGNER_LOG_SIZE - 1; i > 0;
+         i--) { // make space for current app hash
+        currentHash = (unsigned char *)PIC(N_SignerHashList[i]);
+        oldHash = (unsigned char *)PIC(N_SignerHashList[i - 1]);
+        SAFE_MEMMOVE(cmpbuf,
+                     sizeof(cmpbuf),
+                     oldHash,
+                     sizeof(N_SignerHashList[i - 1]),
+                     COMPRESSEDHASHSIZE,
+                     { return 0; });
+        nvm_write(currentHash, cmpbuf, COMPRESSEDHASHSIZE);
+    }
+    // Write new hash in current app hash
+    currentHash = (unsigned char *)PIC(N_SignerHashList[0]);
     SAFE_MEMMOVE(
-        cmpbuf, sizeof(cmpbuf),
-        currentHash, sizeof(N_SignerHashList[0]),
-        COMPRESSEDHASHSIZE,
-        { return 0; });
-	// Compare the first COMPRESSEDHASHSIZE bytes
-	if (!memcmp(app->hash,cmpbuf,COMPRESSEDHASHSIZE))
-		return 1; // Latest app detected, allow.
-	// App is not latest. Check if it's on the blacklist.
-	for(i=1;i<SIGNER_LOG_SIZE;i++) {
-		currentHash=(unsigned char *)PIC(N_SignerHashList[i]);
-        SAFE_MEMMOVE(
-            cmpbuf, sizeof(cmpbuf),
-            currentHash, sizeof(N_SignerHashList[i]),
-            COMPRESSEDHASHSIZE,
-            { return 0; })
-		// Compare the first COMPRESSEDHASHSIZE bytes
-		if (!memcmp(app->hash,cmpbuf,COMPRESSEDHASHSIZE))
-			return 0;// App in blacklist! deny execution
-		}
-	// App is not in blacklist, new app detected
-	for(i=SIGNER_LOG_SIZE-1;i>0;i--) { // make space for current app hash
-		currentHash=(unsigned char *)PIC(N_SignerHashList[i]);
-		oldHash=(unsigned char *)PIC(N_SignerHashList[i-1]);
-        SAFE_MEMMOVE(
-            cmpbuf, sizeof(cmpbuf),
-            oldHash, sizeof(N_SignerHashList[i-1]),
-            COMPRESSEDHASHSIZE,
-            { return 0; });
-		nvm_write(currentHash,cmpbuf,COMPRESSEDHASHSIZE);
-		}
-	// Write new hash in current app hash
-	currentHash=(unsigned char *)PIC(N_SignerHashList[0]);
-    SAFE_MEMMOVE(
-        cmpbuf, sizeof(cmpbuf),
-        app->hash, sizeof(app->hash),
-        HASHSIZE,
-        { return 0; });
-	nvm_write((void *)currentHash,cmpbuf,COMPRESSEDHASHSIZE);
-	return 1; // New app detected, allow.
-	}
-
-     // run the first non ux application
-void run_first_app(void) {
-     unsigned int i = 0;
-     while (i < os_registry_count()) {
-	   application_t app;
-           os_registry_get(i, &app);
-#ifndef DEBUG_BUILD
-	   // Reject app if not signed
-	   if ((app.flags & (APPLICATION_FLAG_ISSUER | APPLICATION_FLAG_CUSTOM_CA | APPLICATION_FLAG_SIGNED)) == 0)
-		return;
-#endif
-           if (!(app.flags & APPLICATION_FLAG_BOLOS_UX)) {
-		if (is_app_version_allowed(&app)) {
-			G_bolos_ux_context.app_auto_started = 1;
-			screen_stack_pop();
-			io_seproxyhal_disable_io();
-			os_sched_exec(i); // no return
-			}
-                }
-	   i++;
-          }
+        cmpbuf, sizeof(cmpbuf), app->hash, sizeof(app->hash), HASHSIZE, {
+            return 0;
+        });
+    nvm_write((void *)currentHash, cmpbuf, COMPRESSEDHASHSIZE);
+    return 1; // New app detected, allow.
 }
 
-static unsigned int
-bagl_ui_idle_nanos_button(unsigned int button_mask,
-                          unsigned int button_mask_counter) {
+// run the first non ux application
+void run_first_app(void) {
+    unsigned int i = 0;
+    while (i < os_registry_count()) {
+        application_t app;
+        os_registry_get(i, &app);
+#ifndef DEBUG_BUILD
+        // Reject app if not signed
+        if ((app.flags & (APPLICATION_FLAG_ISSUER | APPLICATION_FLAG_CUSTOM_CA |
+                          APPLICATION_FLAG_SIGNED)) == 0)
+            return;
+#endif
+        if (!(app.flags & APPLICATION_FLAG_BOLOS_UX)) {
+            if (is_app_version_allowed(&app)) {
+                G_bolos_ux_context.app_auto_started = 1;
+                screen_stack_pop();
+                io_seproxyhal_disable_io();
+                os_sched_exec(i); // no return
+            }
+        }
+        i++;
+    }
+}
+
+static unsigned int bagl_ui_idle_nanos_button(
+    unsigned int button_mask, unsigned int button_mask_counter) {
     switch (button_mask) {
     case BUTTON_EVT_RELEASED | BUTTON_LEFT:
     case BUTTON_EVT_RELEASED | BUTTON_LEFT | BUTTON_RIGHT:
@@ -677,14 +780,20 @@ unsigned int screen_idle_displayed(unsigned int i) {
 
 void screen_idle_init(void) {
     screen_state_init(0);
-    G_bolos_ux_context.screen_stack[0].element_arrays[0].element_array = bagl_ui_idle_nanos;
-    G_bolos_ux_context.screen_stack[0].element_arrays[0].element_array_count = ARRAYLEN(bagl_ui_idle_nanos);
+    G_bolos_ux_context.screen_stack[0].element_arrays[0].element_array =
+        bagl_ui_idle_nanos;
+    G_bolos_ux_context.screen_stack[0].element_arrays[0].element_array_count =
+        ARRAYLEN(bagl_ui_idle_nanos);
     G_bolos_ux_context.screen_stack[0].element_arrays_count = 1;
-    G_bolos_ux_context.screen_stack[0].button_push_callback = bagl_ui_idle_nanos_button;
-    G_bolos_ux_context.screen_stack[0].screen_before_element_display_callback = NULL;
- // dashboard says ok when done displaying
-    G_bolos_ux_context.screen_stack[0].exit_code_after_elements_displayed = BOLOS_UX_OK;
-    G_bolos_ux_context.screen_stack[0].displayed_callback = screen_idle_displayed;
+    G_bolos_ux_context.screen_stack[0].button_push_callback =
+        bagl_ui_idle_nanos_button;
+    G_bolos_ux_context.screen_stack[0].screen_before_element_display_callback =
+        NULL;
+    // dashboard says ok when done displaying
+    G_bolos_ux_context.screen_stack[0].exit_code_after_elements_displayed =
+        BOLOS_UX_OK;
+    G_bolos_ux_context.screen_stack[0].displayed_callback =
+        screen_idle_displayed;
     screen_display_init(0);
 }
 
@@ -735,7 +844,7 @@ void bolos_ux_main(void) {
              G_bolos_ux_context.parameters.ux_id == BOLOS_UX_CONSENT_UPGRADE ||
              G_bolos_ux_context.parameters.ux_id == BOLOS_UX_CONSENT_APP_ADD
              //|| G_bolos_ux_context.parameters.ux_id ==
-             //BOLOS_UX_CONSENT_APP_UPG
+             // BOLOS_UX_CONSENT_APP_UPG
              ||
              G_bolos_ux_context.parameters.ux_id == BOLOS_UX_CONSENT_APP_DEL ||
              G_bolos_ux_context.parameters.ux_id ==
@@ -744,10 +853,9 @@ void bolos_ux_main(void) {
                  BOLOS_UX_CONSENT_CUSTOMCA_KEY ||
              G_bolos_ux_context.parameters.ux_id == BOLOS_UX_CONSENT_FOREIGN_KEY
              //|| G_bolos_ux_context.parameters.ux_id ==
-             //BOLOS_UX_CHANGE_ALTERNATE_PIN
-             ||
-             G_bolos_ux_context.parameters.ux_id ==
-                 BOLOS_UX_CONSENT_GET_DEVICE_NAME ||
+             // BOLOS_UX_CHANGE_ALTERNATE_PIN
+             || G_bolos_ux_context.parameters.ux_id ==
+                    BOLOS_UX_CONSENT_GET_DEVICE_NAME ||
              G_bolos_ux_context.parameters.ux_id ==
                  BOLOS_UX_CONSENT_SET_DEVICE_NAME ||
              G_bolos_ux_context.parameters.ux_id ==
@@ -830,14 +938,14 @@ void bolos_ux_main(void) {
                 break;
             }
 
-          //  screen_onboarding_0_welcome_init();
-	    io_seproxyhal_init();
+            //  screen_onboarding_0_welcome_init();
+            io_seproxyhal_init();
             USB_power(1);
-	  //  UX_DISPLAY(bagl_ui_idle_nanos, NULL);
+            //  UX_DISPLAY(bagl_ui_idle_nanos, NULL);
             screen_wake_up();
             screen_settings_apply();
             screen_not_personalized_init();
-	    sample_main();
+            sample_main();
             screen_modal_validate_pin_init();
             break;
 
@@ -855,12 +963,12 @@ void bolos_ux_main(void) {
             // when returning from application, the ticker could have been
             // disabled
             io_seproxyhal_setup_ticker(100);
-	    // Run first application once
-            
-	    if (autoexec) {
-		    autoexec=0;
-		    run_first_app();
-		}
+            // Run first application once
+
+            if (autoexec) {
+                autoexec = 0;
+                run_first_app();
+            }
             screen_dashboard_init();
             break;
 
@@ -868,24 +976,24 @@ void bolos_ux_main(void) {
             screen_wake_up();
             io_seproxyhal_init();
             USB_power(1);
-	    autoexec=0;
-	    sample_main();
+            autoexec = 0;
+            sample_main();
             G_bolos_ux_context.exit_code = BOLOS_UX_OK;
             break;
 
         case BOLOS_UX_CONSENT_APP_UPG:
-        	screen_dashboard_prepare();
-	        G_bolos_ux_context.exit_code = BOLOS_UX_OK;
+            screen_dashboard_prepare();
+            G_bolos_ux_context.exit_code = BOLOS_UX_OK;
             break;
         case BOLOS_UX_CONSENT_APP_ADD:
-	    // PIN is invalidated so we must check it again
+            // PIN is invalidated so we must check it again
             os_global_pin_check((unsigned char *)G_bolos_ux_context.pin_buffer,
-                             strlen(G_bolos_ux_context.pin_buffer));
+                                strlen(G_bolos_ux_context.pin_buffer));
             screen_wake_up();
             break;
 
         case BOLOS_UX_CONSENT_APP_DEL:
-          screen_wake_up();
+            screen_wake_up();
             break;
 
         case BOLOS_UX_CONSENT_ISSUER_KEY:
@@ -900,14 +1008,14 @@ void bolos_ux_main(void) {
 
         case BOLOS_UX_CONSENT_FOREIGN_KEY:
             screen_wake_up();
- //           screen_consent_foreign_key_init();
+            //           screen_consent_foreign_key_init();
             break;
 
         case BOLOS_UX_CONSENT_GET_DEVICE_NAME:
             screen_wake_up();
-	    // GET_DEVICE_NAME event override to reload app
-	    run_first_app();
-            //screen_consent_get_device_name_init();
+            // GET_DEVICE_NAME event override to reload app
+            run_first_app();
+            // screen_consent_get_device_name_init();
             break;
 
         case BOLOS_UX_CONSENT_SET_DEVICE_NAME:
@@ -936,7 +1044,7 @@ void bolos_ux_main(void) {
             break;
 
 #else  // ! BOLOS_OS_UPGRADER
-        // upgrader dashboard does not exists
+       // upgrader dashboard does not exists
         case BOLOS_UX_DASHBOARD:
             screen_wake_up();
             screen_os_upgrader();
@@ -949,7 +1057,7 @@ void bolos_ux_main(void) {
             screen_wake_up();
             // reset global pin state in case was onboarded, must validate the
             // pin to proceed to the upgrade
-            //os_global_pin_invalidate();
+            // os_global_pin_invalidate();
 
             screen_consent_upgrade_init();
             break;
@@ -1378,9 +1486,8 @@ unsigned int screen_consent_button(unsigned int button_mask,
     return 0;
 }
 
-unsigned int
-screen_consent_button_with_final_pin(unsigned int button_mask,
-                                     unsigned int button_mask_counter) {
+unsigned int screen_consent_button_with_final_pin(
+    unsigned int button_mask, unsigned int button_mask_counter) {
     UNUSED(button_mask_counter);
     switch (button_mask) {
     case BUTTON_EVT_RELEASED | BUTTON_LEFT:

@@ -22,16 +22,13 @@ static uint8_t decode_hex_digit(char digit) {
 
 /* Decode a single hex char */
 static uint8_t decode_hex(char* chars) {
-    return 16*decode_hex_digit(chars[0]) + decode_hex_digit(chars[1]);
+    return 16 * decode_hex_digit(chars[0]) + decode_hex_digit(chars[1]);
 }
 
 /* Tell whether a char is a hex char */
 static inline bool is_hex_char(char c) {
-    return (
-        (c >= '0' && c <= '9') || 
-        (c >= 'a' && c <= 'f') || 
-        (c >= 'A' && c <= 'F')
-    );
+    return ((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') ||
+            (c >= 'A' && c <= 'F'));
 }
 
 /*
@@ -44,10 +41,10 @@ int read_hex(char* src, size_t src_length, void* dest) {
         return -1;
 
     size_t bytes_read = 0;
-    for (int i = 0; i < src_length; i+=2) {
-        if (!is_hex_char(src[i]) || !is_hex_char(src[i+1]))
+    for (int i = 0; i < src_length; i += 2) {
+        if (!is_hex_char(src[i]) || !is_hex_char(src[i + 1]))
             return -1;
-        ((uint8_t*)dest)[bytes_read++] = decode_hex(src+i);
+        ((uint8_t*)dest)[bytes_read++] = decode_hex(src + i);
     }
     return bytes_read;
 }

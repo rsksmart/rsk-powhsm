@@ -15,7 +15,10 @@
 void LOG_HEX(const char *prefix, void *buffer, size_t size);
 
 /** Print big integer in hex format with optional prefix and suffix strings */
-void LOG_BIGD_HEX(const char *prefix, const DIGIT_T *a, size_t len, const char *suffix);
+void LOG_BIGD_HEX(const char *prefix,
+                  const DIGIT_T *a,
+                  size_t len,
+                  const char *suffix);
 
 /** Print N copies of a given char */
 void LOG_N_CHARS(const char c, unsigned int times);

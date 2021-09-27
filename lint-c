@@ -1,0 +1,31 @@
+#! /usr/bin/env bash
+
+#
+# Lint C code under ledger folder.
+#
+
+if [[ $1 == "exec" ]]; then
+    if [[ "$(basename $0)" == "lint-c" ]]; then
+        CLANG_ARGS="--dry-run --Werror"
+    else
+        CLANG_ARGS="-i"
+    fi
+
+    SRC_DIR="ledger/src"
+    SEARCH_DIRS="$SRC_DIR/signer $SRC_DIR/ui $SRC_DIR/tcpsigner $SRC_DIR/common $SRC_DIR/signer-certificate"
+
+    find $SEARCH_DIRS -name "*.[ch]" | \
+    egrep -v "(bigdigits|bigdtypes|keccak256)\.[ch]$" | \
+    egrep -v "ledger/src/ui/src/glyphs.[ch]" | \
+    xargs clang-format-10 --style=file $CLANG_ARGS
+else
+    # Script directory
+    pushd $(dirname $0) > /dev/null
+    REPO_ROOT=$(pwd)
+    popd > /dev/null
+
+    SCRIPT=$(basename $0)
+
+    $REPO_ROOT/docker/ledger/do-notty /hsm2 "./$SCRIPT exec"
+fi
+

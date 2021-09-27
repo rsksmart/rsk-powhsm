@@ -2,7 +2,7 @@
  *   HSM 2.1
  *   (c) 2021 RSK
  *   Ledger Nano S BOLOS simulator layer
- * 
+ *
  *   getrandom syscall wrapper
  ********************************************************************************/
 

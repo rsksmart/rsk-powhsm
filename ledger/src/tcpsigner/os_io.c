@@ -2,7 +2,7 @@
  *   HSM 2.1
  *   (c) 2021 RSK
  *   Ledger Nano S BOLOS simulator layer
- * 
+ *
  *   OS IO exchange simulation
  ********************************************************************************/
 
@@ -20,7 +20,6 @@
 #include "log.h"
 #include "defs.h"
 
-
 /**
  * APDU buffer
  */
@@ -34,7 +33,7 @@ unsigned char G_io_apdu_buffer[IO_APDU_BUFFER_SIZE];
  */
 #define MAX_FUZZ_TRANSFER MAX_USB_TRANSFER + DATA + 30
 
-enum io_mode_e {IO_MODE_SERVER, IO_MODE_INPUT_FILE};
+enum io_mode_e { IO_MODE_SERVER, IO_MODE_INPUT_FILE };
 enum io_mode_e io_mode;
 
 /**
@@ -73,26 +72,24 @@ void os_io_set_replica_file(FILE *_replica_file) {
     replica_file = _replica_file;
 }
 
-
-unsigned short io_exchange(unsigned char channel_and_flags,
-                           unsigned short tx) {
+unsigned short io_exchange(unsigned char channel_and_flags, unsigned short tx) {
     unsigned short rx;
     switch (io_mode) {
-        case IO_MODE_SERVER:
-            rx = io_exchange_server(channel_and_flags, tx);
-            break;
-        case IO_MODE_INPUT_FILE:
-            rx = io_exchange_file(channel_and_flags, tx, input_file);
-            break;
-        default:
-            info("[TCPSigner] No IO Mode set! This is a bug.");
-            exit(1);
-            break;
+    case IO_MODE_SERVER:
+        rx = io_exchange_server(channel_and_flags, tx);
+        break;
+    case IO_MODE_INPUT_FILE:
+        rx = io_exchange_file(channel_and_flags, tx, input_file);
+        break;
+    default:
+        info("[TCPSigner] No IO Mode set! This is a bug.");
+        exit(1);
+        break;
     }
 
     if (replica_file != NULL) {
         int written = replicate_to_file(replica_file, rx);
-        if (written != rx+1) {
+        if (written != rx + 1) {
             info("Error writting to output file %s\n", replica_file);
             exit(-1);
         }
@@ -101,22 +98,24 @@ unsigned short io_exchange(unsigned char channel_and_flags,
     return rx;
 }
 
-/* 
+/*
  * This function emulates USB device, writing bytes to tcpsocket instead
  * @arg[in] channel_and_flags   must be CHANNEL_APDU
  * @arg[in] tx                  amount of bytes to transmit to the client
  * @ret                         amount of bytes received from the client
  */
 unsigned short io_exchange_server(unsigned char channel_and_flags,
-                           unsigned short tx) {
+                                  unsigned short tx) {
     uint32_t tx_net, rx_net;
     unsigned int rx;
     int readlen;
 
     // "Test" correct value on channel and flags in every call
     if (channel_and_flags != CHANNEL_APDU) {
-        info("Invalid channel and flags specified for io_exchange: %d (expected %d). Terminating TCPSigner.\n", 
-            channel_and_flags, CHANNEL_APDU);
+        info("Invalid channel and flags specified for io_exchange: %d "
+             "(expected %d). Terminating TCPSigner.\n",
+             channel_and_flags,
+             CHANNEL_APDU);
         exit(1);
     }
 
@@ -128,10 +127,10 @@ unsigned short io_exchange_server(unsigned char channel_and_flags,
 
         // Write len (Compatibility with LegerBlue commTCP.py)
         if (tx > 0) {
-            // Write APDU length minus two bytes of the sw 
+            // Write APDU length minus two bytes of the sw
             // (encoded in 4 bytes network byte-order)
             // (compatibility with LegerBlue commTCP.py)
-            tx_net = tx-2;
+            tx_net = tx - 2;
             tx_net = htonl(tx_net);
             size_t written;
             if (send(socketfd, &tx_net, sizeof(tx_net), MSG_NOSIGNAL) == -1) {
@@ -155,9 +154,13 @@ unsigned short io_exchange_server(unsigned char channel_and_flags,
             rx = ntohl(rx_net);
             if (rx > 0) {
                 // Read APDU from socket
-                readlen = read(socketfd, G_io_apdu_buffer, sizeof(G_io_apdu_buffer));
+                readlen =
+                    read(socketfd, G_io_apdu_buffer, sizeof(G_io_apdu_buffer));
                 if (readlen != rx) {
-                    info("Error reading APDU (got %d bytes != %d bytes). Disconnected\n", readlen, rx);
+                    info("Error reading APDU (got %d bytes != %d bytes). "
+                         "Disconnected\n",
+                         readlen,
+                         rx);
                     socketfd = 0;
                     continue;
                 }
@@ -176,7 +179,10 @@ unsigned short io_exchange_server(unsigned char channel_and_flags,
             info("Error reading from socket. Disconnected\n");
         } else {
             // Invalid packet header
-            info("Error reading APDU length (got %d bytes != %ld bytes). Disconnected\n", readlen, sizeof(rx_net));
+            info("Error reading APDU length (got %d bytes != %ld bytes). "
+                 "Disconnected\n",
+                 readlen,
+                 sizeof(rx_net));
         }
         socketfd = 0;
     }
@@ -189,7 +195,8 @@ unsigned short io_exchange_server(unsigned char channel_and_flags,
  * @ret                         amount of bytes received from the client
  */
 unsigned short io_exchange_file(unsigned char channel_and_flags,
-                           unsigned char tx, FILE *input_file) {
+                                unsigned char tx,
+                                FILE *input_file) {
     // File input format: |1 byte length| |len bytes data|
     static unsigned long file_index = 0;
     info_hex("Dongle => ", G_io_apdu_buffer, tx);
@@ -212,17 +219,26 @@ unsigned short io_exchange_file(unsigned char channel_and_flags,
         capped_rx = MAX_FUZZ_TRANSFER;
     }
 
-    info("Server: reading %d (announced: %d) bytes at index: %d\n", capped_rx, announced_rx, file_index);
-    unsigned short rx = fread(G_io_apdu_buffer, sizeof(char), capped_rx, input_file);
+    info("Server: reading %d (announced: %d) bytes at index: %d\n",
+         capped_rx,
+         announced_rx,
+         file_index);
+    unsigned short rx =
+        fread(G_io_apdu_buffer, sizeof(char), capped_rx, input_file);
 
     if (rx != capped_rx) {
         // if we reach EOF while reading the data portion it means
         // the announced size did not match the file
         if (feof(input_file)) {
-            info("Server: malformed input, tried reading %d bytes but reached EOF after %d\n", capped_rx, rx);
+            info("Server: malformed input, tried reading %d bytes but reached "
+                 "EOF after %d\n",
+                 capped_rx,
+                 rx);
             exit(1);
         }
-        info("Server: Could not read %d bytes (only: %d) from input file\n", capped_rx, rx);
+        info("Server: Could not read %d bytes (only: %d) from input file\n",
+             capped_rx,
+             rx);
         exit(1);
     }
 

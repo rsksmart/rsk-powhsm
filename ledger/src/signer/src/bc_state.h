@@ -81,9 +81,9 @@ void bc_init_state();
 unsigned int bc_get_state(volatile unsigned int rx);
 
 // Actual state reset as a macro, so we can call it from other places
-#define RESET_BC_STATE()                                                 \
-    if (N_bc_state.updating.in_progress) {                               \
-        NVM_RESET(&N_bc_state.updating, sizeof(N_bc_state.updating));    \
+#define RESET_BC_STATE()                                              \
+    if (N_bc_state.updating.in_progress) {                            \
+        NVM_RESET(&N_bc_state.updating, sizeof(N_bc_state.updating)); \
     }
 
 /*

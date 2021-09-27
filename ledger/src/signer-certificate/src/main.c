@@ -1,19 +1,19 @@
 /*******************************************************************************
-*   Ledger Blue
-*   (c) 2016 Ledger
-*
-*  Licensed under the Apache License, Version 2.0 (the "License");
-*  you may not use this file except in compliance with the License.
-*  You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-*  Unless required by applicable law or agreed to in writing, software
-*  distributed under the License is distributed on an "AS IS" BASIS,
-*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*  See the License for the specific language governing permissions and
-*  limitations under the License.
-********************************************************************************/
+ *   Ledger Blue
+ *   (c) 2016 Ledger
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ ********************************************************************************/
 
 #include "os.h"
 #include "cx.h"
@@ -33,8 +33,7 @@ void init_perso(char *persoFile);
 #else
 
 // Crypto_cleanup() not needed on real hardware
-void moxie_swi_crypto_cleanup(void) {
-};
+void moxie_swi_crypto_cleanup(void){};
 
 #endif
 
@@ -50,8 +49,8 @@ enum UI_STATE uiState;
 ux_state_t ux;
 
 static const bagl_element_t *io_seproxyhal_touch_exit(const bagl_element_t *e);
-static const bagl_element_t*
-io_seproxyhal_touch_approve(const bagl_element_t *e);
+static const bagl_element_t *io_seproxyhal_touch_approve(
+    const bagl_element_t *e);
 
 static void ui_idle(void);
 static unsigned char display_text_part(void);
@@ -81,14 +80,13 @@ static unsigned char display_text_part(void);
 // initialization marker in flash. const and N_ variable name are mandatory here
 static const unsigned char N_initialized;
 
-
 //********** LOG ***********
 #define MAX_LOGENTRIES 32
 typedef struct {
-	char *hash[32];
-	char *signature[32];
-	char *time[8];
-	} log_entry;
+    char *hash[32];
+    char *signature[32];
+    char *time[8];
+} log_entry;
 
 static const log_entry N_flash_log[MAX_LOGENTRIES];
 static const unsigned int N_logcursor;
@@ -97,38 +95,48 @@ static char lineBuffer[50];
 static unsigned char attestation[(1 + 1 + 2 * (1 + 1 + 33))];
 unsigned char attestation_len = 0;
 
-int write_log(char *hash, char *signature, char *time)
-{
-log_entry le;
-os_memmove(&le.hash,hash,sizeof(le.hash));
-os_memmove(&le.signature,signature,sizeof(le.signature));
-os_memmove(&le.time,time,sizeof(le.time));
+int write_log(char *hash, char *signature, char *time) {
+    log_entry le;
+    os_memmove(&le.hash, hash, sizeof(le.hash));
+    os_memmove(&le.signature, signature, sizeof(le.signature));
+    os_memmove(&le.time, time, sizeof(le.time));
 
-unsigned int newcursor=N_logcursor;
-newcursor=(newcursor+1) % MAX_LOGENTRIES;
-nvm_write((void*) &N_flash_log[N_logcursor],&le,sizeof(log_entry));
-nvm_write((void*) &N_logcursor, &newcursor, sizeof(unsigned int));
-return 0;
+    unsigned int newcursor = N_logcursor;
+    newcursor = (newcursor + 1) % MAX_LOGENTRIES;
+    nvm_write((void *)&N_flash_log[N_logcursor], &le, sizeof(log_entry));
+    nvm_write((void *)&N_logcursor, &newcursor, sizeof(unsigned int));
+    return 0;
 }
 
-int read_log(unsigned int index, log_entry *le)
-{
-unsigned int newcursor=(N_logcursor-index) % MAX_LOGENTRIES;
-os_memmove(le->hash,&N_flash_log[newcursor].hash,sizeof(le->hash));
-os_memmove(le->signature,&N_flash_log[newcursor].signature,sizeof(le->signature));
-os_memmove(le->time,&N_flash_log[newcursor].time,sizeof(le->time));
-return 0;
+int read_log(unsigned int index, log_entry *le) {
+    unsigned int newcursor = (N_logcursor - index) % MAX_LOGENTRIES;
+    os_memmove(le->hash, &N_flash_log[newcursor].hash, sizeof(le->hash));
+    os_memmove(le->signature,
+               &N_flash_log[newcursor].signature,
+               sizeof(le->signature));
+    os_memmove(le->time, &N_flash_log[newcursor].time, sizeof(le->time));
+    return 0;
 }
-
 
 #ifdef TARGET_BLUE
 
 // UI to approve or deny the signature proposal
 static const bagl_element_t const bagl_ui_approval_blue[] = {
     {
-        {BAGL_BUTTON | BAGL_FLAG_TOUCHABLE, 0x00, 190, 215, 120, 40, 0, 6,
-         BAGL_FILL, 0x41ccb4, 0xF9F9F9, BAGL_FONT_OPEN_SANS_LIGHT_14px |
-         BAGL_FONT_ALIGNMENT_CENTER | BAGL_FONT_ALIGNMENT_MIDDLE, 0},
+        {BAGL_BUTTON | BAGL_FLAG_TOUCHABLE,
+         0x00,
+         190,
+         215,
+         120,
+         40,
+         0,
+         6,
+         BAGL_FILL,
+         0x41ccb4,
+         0xF9F9F9,
+         BAGL_FONT_OPEN_SANS_LIGHT_14px | BAGL_FONT_ALIGNMENT_CENTER |
+             BAGL_FONT_ALIGNMENT_MIDDLE,
+         0},
         "Deny",
         0,
         0x37ae99,
@@ -138,9 +146,20 @@ static const bagl_element_t const bagl_ui_approval_blue[] = {
         NULL,
     },
     {
-        {BAGL_BUTTON | BAGL_FLAG_TOUCHABLE, 0x00, 190, 265, 120, 40, 0, 6,
-         BAGL_FILL, 0x41ccb4, 0xF9F9F9, BAGL_FONT_OPEN_SANS_LIGHT_14px |
-         BAGL_FONT_ALIGNMENT_CENTER | BAGL_FONT_ALIGNMENT_MIDDLE, 0},
+        {BAGL_BUTTON | BAGL_FLAG_TOUCHABLE,
+         0x00,
+         190,
+         265,
+         120,
+         40,
+         0,
+         6,
+         BAGL_FILL,
+         0x41ccb4,
+         0xF9F9F9,
+         BAGL_FONT_OPEN_SANS_LIGHT_14px | BAGL_FONT_ALIGNMENT_CENTER |
+             BAGL_FONT_ALIGNMENT_MIDDLE,
+         0},
         "Approve",
         0,
         0x37ae99,
@@ -151,17 +170,27 @@ static const bagl_element_t const bagl_ui_approval_blue[] = {
     },
 };
 
-static unsigned int
-bagl_ui_approval_blue_button(unsigned int button_mask,
-                             unsigned int button_mask_counter) {
+static unsigned int bagl_ui_approval_blue_button(
+    unsigned int button_mask, unsigned int button_mask_counter) {
     return 0;
 }
 
 // UI displayed when no signature proposal has been received
 static const bagl_element_t bagl_ui_idle_blue[] = {
     {
-        {BAGL_RECTANGLE, 0x00, 0, 60, 320, 420, 0, 0, BAGL_FILL, 0xf9f9f9,
-         0xf9f9f9, 0, 0},
+        {BAGL_RECTANGLE,
+         0x00,
+         0,
+         60,
+         320,
+         420,
+         0,
+         0,
+         BAGL_FILL,
+         0xf9f9f9,
+         0xf9f9f9,
+         0,
+         0},
         NULL,
         0,
         0,
@@ -171,8 +200,19 @@ static const bagl_element_t bagl_ui_idle_blue[] = {
         NULL,
     },
     {
-        {BAGL_RECTANGLE, 0x00, 0, 0, 320, 60, 0, 0, BAGL_FILL, 0x1d2028,
-         0x1d2028, 0, 0},
+        {BAGL_RECTANGLE,
+         0x00,
+         0,
+         0,
+         320,
+         60,
+         0,
+         0,
+         BAGL_FILL,
+         0x1d2028,
+         0x1d2028,
+         0,
+         0},
         NULL,
         0,
         0,
@@ -182,8 +222,19 @@ static const bagl_element_t bagl_ui_idle_blue[] = {
         NULL,
     },
     {
-        {BAGL_LABEL, 0x00, 20, 0, 320, 60, 0, 0, BAGL_FILL, 0xFFFFFF, 0x1d2028,
-         BAGL_FONT_OPEN_SANS_LIGHT_14px | BAGL_FONT_ALIGNMENT_MIDDLE, 0},
+        {BAGL_LABEL,
+         0x00,
+         20,
+         0,
+         320,
+         60,
+         0,
+         0,
+         BAGL_FILL,
+         0xFFFFFF,
+         0x1d2028,
+         BAGL_FONT_OPEN_SANS_LIGHT_14px | BAGL_FONT_ALIGNMENT_MIDDLE,
+         0},
         "Sample Sign",
         0,
         0,
@@ -193,9 +244,20 @@ static const bagl_element_t bagl_ui_idle_blue[] = {
         NULL,
     },
     {
-        {BAGL_BUTTON | BAGL_FLAG_TOUCHABLE, 0x00, 190, 215, 120, 40, 0, 6,
-         BAGL_FILL, 0x41ccb4, 0xF9F9F9, BAGL_FONT_OPEN_SANS_LIGHT_14px |
-         BAGL_FONT_ALIGNMENT_CENTER | BAGL_FONT_ALIGNMENT_MIDDLE, 0},
+        {BAGL_BUTTON | BAGL_FLAG_TOUCHABLE,
+         0x00,
+         190,
+         215,
+         120,
+         40,
+         0,
+         6,
+         BAGL_FILL,
+         0x41ccb4,
+         0xF9F9F9,
+         BAGL_FONT_OPEN_SANS_LIGHT_14px | BAGL_FONT_ALIGNMENT_CENTER |
+             BAGL_FONT_ALIGNMENT_MIDDLE,
+         0},
         "Exit",
         0,
         0x37ae99,
@@ -206,17 +268,15 @@ static const bagl_element_t bagl_ui_idle_blue[] = {
     },
 };
 
-static unsigned int
-bagl_ui_idle_blue_button(unsigned int button_mask,
-                         unsigned int button_mask_counter) {
+static unsigned int bagl_ui_idle_blue_button(unsigned int button_mask,
+                                             unsigned int button_mask_counter) {
     return 0;
 }
 
 static bagl_element_t bagl_ui_text[1];
 
-static unsigned int
-bagl_ui_text_button(unsigned int button_mask,
-                    unsigned int button_mask_counter) {
+static unsigned int bagl_ui_text_button(unsigned int button_mask,
+                                        unsigned int button_mask_counter) {
     return 0;
 }
 
@@ -224,8 +284,19 @@ bagl_ui_text_button(unsigned int button_mask,
 
 static const bagl_element_t bagl_ui_idle_nanos[] = {
     {
-        {BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000,
-         0xFFFFFF, 0, 0},
+        {BAGL_RECTANGLE,
+         0x00,
+         0,
+         0,
+         128,
+         32,
+         0,
+         0,
+         BAGL_FILL,
+         0x000000,
+         0xFFFFFF,
+         0,
+         0},
         NULL,
         0,
         0,
@@ -235,8 +306,19 @@ static const bagl_element_t bagl_ui_idle_nanos[] = {
         NULL,
     },
     {
-        {BAGL_LABELINE, 0x02, 0, 12, 128, 11, 0, 0, 0, 0xFFFFFF, 0x000000,
-         BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+        {BAGL_LABELINE,
+         0x02,
+         0,
+         12,
+         128,
+         11,
+         0,
+         0,
+         0,
+         0xFFFFFF,
+         0x000000,
+         BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER,
+         0},
         "RSK: Waiting for msg",
         0,
         0,
@@ -244,17 +326,15 @@ static const bagl_element_t bagl_ui_idle_nanos[] = {
         NULL,
         NULL,
         NULL,
-    }
-};
+    }};
 
-static unsigned int
-bagl_ui_idle_nanos_button(unsigned int button_mask,
-                          unsigned int button_mask_counter) {
+static unsigned int bagl_ui_idle_nanos_button(
+    unsigned int button_mask, unsigned int button_mask_counter) {
     switch (button_mask) {
     case BUTTON_EVT_RELEASED | BUTTON_LEFT:
     case BUTTON_EVT_RELEASED | BUTTON_LEFT | BUTTON_RIGHT:
-   //     We removed this functio, but leave it in src in case its needed for debug.
-   //     io_seproxyhal_touch_exit(NULL);
+        //     We removed this functio, but leave it in src in case its needed
+        //     for debug. io_seproxyhal_touch_exit(NULL);
         break;
     }
 
@@ -272,22 +352,32 @@ static const bagl_element_t *io_seproxyhal_touch_exit(const bagl_element_t *e) {
     return NULL; // do not redraw the widget
 }
 
-static const bagl_element_t*
-io_seproxyhal_touch_approve(const bagl_element_t *e) {
+static const bagl_element_t *io_seproxyhal_touch_approve(
+    const bagl_element_t *e) {
     unsigned int tx = 0;
-        unsigned char result[32];
-	memcpy(result,G_io_apdu_buffer+5,sizeof(result));
-#if TARGET_ID==0x31100003
-        tx = cx_ecdsa_sign((void*) &privateKey, CX_RND_RFC6979 | CX_LAST,
-                           CX_SHA256, result, sizeof(result), G_io_apdu_buffer,NULL);
+    unsigned char result[32];
+    memcpy(result, G_io_apdu_buffer + 5, sizeof(result));
+#if TARGET_ID == 0x31100003
+    tx = cx_ecdsa_sign((void *)&privateKey,
+                       CX_RND_RFC6979 | CX_LAST,
+                       CX_SHA256,
+                       result,
+                       sizeof(result),
+                       G_io_apdu_buffer,
+                       NULL);
 #else
-        tx = cx_ecdsa_sign((void*) &privateKey, CX_RND_RFC6979 | CX_LAST,
-                           CX_SHA256, result, sizeof(result), G_io_apdu_buffer);
+    tx = cx_ecdsa_sign((void *)&privateKey,
+                       CX_RND_RFC6979 | CX_LAST,
+                       CX_SHA256,
+                       result,
+                       sizeof(result),
+                       G_io_apdu_buffer);
 #endif
-        G_io_apdu_buffer[0] &= 0xF0; // discard the parity information
+    G_io_apdu_buffer[0] &= 0xF0; // discard the parity information
 
     // Sign output buffer with attestation key
-    // attestation_len = os_endorsement_key2_derive_sign_data(G_io_apdu_buffer,tx,attestation);
+    // attestation_len =
+    // os_endorsement_key2_derive_sign_data(G_io_apdu_buffer,tx,attestation);
 
     G_io_apdu_buffer[tx++] = 0x90;
     G_io_apdu_buffer[tx++] = 0x00;
@@ -314,8 +404,8 @@ unsigned short io_exchange_al(unsigned char channel, unsigned short tx_len) {
             return 0; // nothing received from the master so far (it's a tx
                       // transaction)
         } else {
-            return io_seproxyhal_spi_recv(G_io_apdu_buffer,
-                                          sizeof(G_io_apdu_buffer), 0);
+            return io_seproxyhal_spi_recv(
+                G_io_apdu_buffer, sizeof(G_io_apdu_buffer), 0);
         }
 
     default:
@@ -324,12 +414,10 @@ unsigned short io_exchange_al(unsigned char channel, unsigned short tx_len) {
     return 0;
 }
 
-
 static void hsm_main(void) {
     volatile unsigned int rx = 0;
     volatile unsigned int tx = 0;
     volatile unsigned int flags = 0;
-
 
     // next timer callback in 500 ms
     UX_CALLBACK_SET_INTERVAL(500);
@@ -342,7 +430,7 @@ static void hsm_main(void) {
     // APDU injection faults.
     for (;;) {
         volatile unsigned short sw = 0;
-	unsigned int index;
+        unsigned int index;
 
         BEGIN_TRY {
             TRY {
@@ -363,102 +451,117 @@ static void hsm_main(void) {
                 }
 
                 switch (G_io_apdu_buffer[1]) {
-		case RSK_MODE_CMD: //print mode
-     		     G_io_apdu_buffer[1]=RSK_MODE_APP;
-		     tx=2;
-                     THROW(0x9000);
-		     break;
+                case RSK_MODE_CMD: // print mode
+                    G_io_apdu_buffer[1] = RSK_MODE_APP;
+                    tx = 2;
+                    THROW(0x9000);
+                    break;
                 case RSK_IS_ONBOARD: // Wheter it's onboarded or not
-		     G_io_apdu_buffer[1]=os_perso_isonboarded();
-		     tx=2;
-                     THROW(0x9000);
-		     break;
+                    G_io_apdu_buffer[1] = os_perso_isonboarded();
+                    tx = 2;
+                    THROW(0x9000);
+                    break;
                 case RSK_GET_LOG:
-		     if (rx!=4)
-			THROW(0x6A87); /// Wrong buffer size
-		     index = G_io_apdu_buffer[3];
-		     log_entry le;
-		     read_log(index,&le);
-		     switch(G_io_apdu_buffer[2]) {
-			case 0:
-		     		os_memmove(&G_io_apdu_buffer[1],le.hash,sizeof(le.hash));
-		     		tx=1+sizeof(le.hash);
-				break;
-			case 1:
-			        os_memmove(&G_io_apdu_buffer[1],le.signature,sizeof(le.signature));
-		     		tx=1+sizeof(le.signature);
-				break;
-			case 2:
-			        os_memmove(&G_io_apdu_buffer[1],le.time,sizeof(le.time));
-		     		tx=1+sizeof(le.time);
-				break;
-			}
-                     THROW(0x9000);
-		    break;
+                    if (rx != 4)
+                        THROW(0x6A87); /// Wrong buffer size
+                    index = G_io_apdu_buffer[3];
+                    log_entry le;
+                    read_log(index, &le);
+                    switch (G_io_apdu_buffer[2]) {
+                    case 0:
+                        os_memmove(
+                            &G_io_apdu_buffer[1], le.hash, sizeof(le.hash));
+                        tx = 1 + sizeof(le.hash);
+                        break;
+                    case 1:
+                        os_memmove(&G_io_apdu_buffer[1],
+                                   le.signature,
+                                   sizeof(le.signature));
+                        tx = 1 + sizeof(le.signature);
+                        break;
+                    case 2:
+                        os_memmove(
+                            &G_io_apdu_buffer[1], le.time, sizeof(le.time));
+                        tx = 1 + sizeof(le.time);
+                        break;
+                    }
+                    THROW(0x9000);
+                    break;
 
                 case INS_SIGN: {
-		    // Generate key with path
-		    if (G_io_apdu_buffer[2] == P1_PATH)
-			{
-    		    	unsigned char privateKeyData[32];
-		    	if (rx!=4+20) THROW (0x6A87); // Wrong buffer size (has to be 24)
-		    	moxie_swi_crypto_cleanup();
+                    // Generate key with path
+                    if (G_io_apdu_buffer[2] == P1_PATH) {
+                        unsigned char privateKeyData[32];
+                        if (rx != 4 + 20)
+                            THROW(0x6A87); // Wrong buffer size (has to be 24)
+                        moxie_swi_crypto_cleanup();
 
-	    	        unsigned int path[5];
-		        int pathlen=5;//G_io_apdu_buffer[3];
-		        os_memmove(path,&G_io_apdu_buffer[4],pathlen*4);
-		        os_perso_derive_node_bip32(CX_CURVE_256K1, path, pathlen, privateKeyData, NULL);
-	                cx_ecdsa_init_private_key(CX_CURVE_256K1, privateKeyData, 32, &privateKey);
-                        cx_ecfp_generate_pair(CX_CURVE_256K1, &publicKey, &privateKey, 1);
+                        unsigned int path[5];
+                        int pathlen = 5; // G_io_apdu_buffer[3];
+                        os_memmove(path, &G_io_apdu_buffer[4], pathlen * 4);
+                        os_perso_derive_node_bip32(CX_CURVE_256K1,
+                                                   path,
+                                                   pathlen,
+                                                   privateKeyData,
+                                                   NULL);
+                        cx_ecdsa_init_private_key(
+                            CX_CURVE_256K1, privateKeyData, 32, &privateKey);
+                        cx_ecfp_generate_pair(
+                            CX_CURVE_256K1, &publicKey, &privateKey, 1);
                         THROW(0x9000);
-			}
+                    }
                     if ((G_io_apdu_buffer[2] != P1_MORE) &&
                         (G_io_apdu_buffer[2] != P1_LAST)) {
                         THROW(0x6A86);
                     }
-		    if (rx!=5+32) THROW (0x6A87); // Wrong buffer size (has to be 32)
-        	    io_seproxyhal_touch_approve(NULL);
+                    if (rx != 5 + 32)
+                        THROW(0x6A87); // Wrong buffer size (has to be 32)
+                    io_seproxyhal_touch_approve(NULL);
                 } break;
 
-		case RSK_GET_APP_HASH:
-		    os_endorsement_get_code_hash(G_io_apdu_buffer);
-		    tx=32;
+                case RSK_GET_APP_HASH:
+                    os_endorsement_get_code_hash(G_io_apdu_buffer);
+                    tx = 32;
                     THROW(0x9000);
-		    break;
+                    break;
 
-		case RSK_GET_ENDORSEMENT_PUBKEY:
-		    os_endorsement_get_public_key(2,G_io_apdu_buffer);
-		    tx=65;
+                case RSK_GET_ENDORSEMENT_PUBKEY:
+                    os_endorsement_get_public_key(2, G_io_apdu_buffer);
+                    tx = 65;
                     THROW(0x9000);
-		    break;
+                    break;
 
-		case RSK_GET_ATTESTATION:
-	            tx=attestation_len;
-		    os_memmove(G_io_apdu_buffer,attestation,tx);
+                case RSK_GET_ATTESTATION:
+                    tx = attestation_len;
+                    os_memmove(G_io_apdu_buffer, attestation, tx);
                     THROW(0x9000);
-		    break;
+                    break;
 
                 case INS_GET_PUBLIC_KEY: {
                     cx_ecfp_public_key_t publicKey;
                     cx_ecfp_private_key_t privateKey;
-    		    unsigned char privateKeyData[32];
-		    if (rx!=3+20) THROW (0x6A87); // Wrong buffer size (has to be 32)
-		    moxie_swi_crypto_cleanup();
-	    	    unsigned int path[5];
-		    int pathlen=5;//G_io_apdu_buffer[2];
-		    os_memmove(path,&G_io_apdu_buffer[3],pathlen*4);
-		    os_perso_derive_node_bip32(CX_CURVE_256K1, path, pathlen, privateKeyData, NULL);
-	            cx_ecdsa_init_private_key(CX_CURVE_256K1, privateKeyData, 32, &privateKey);
-                    cx_ecfp_generate_pair(CX_CURVE_256K1, &publicKey, &privateKey, 1);
+                    unsigned char privateKeyData[32];
+                    if (rx != 3 + 20)
+                        THROW(0x6A87); // Wrong buffer size (has to be 32)
+                    moxie_swi_crypto_cleanup();
+                    unsigned int path[5];
+                    int pathlen = 5; // G_io_apdu_buffer[2];
+                    os_memmove(path, &G_io_apdu_buffer[3], pathlen * 4);
+                    os_perso_derive_node_bip32(
+                        CX_CURVE_256K1, path, pathlen, privateKeyData, NULL);
+                    cx_ecdsa_init_private_key(
+                        CX_CURVE_256K1, privateKeyData, 32, &privateKey);
+                    cx_ecfp_generate_pair(
+                        CX_CURVE_256K1, &publicKey, &privateKey, 1);
                     os_memmove(G_io_apdu_buffer, publicKey.W, 65);
                     tx = 65;
                     THROW(0x9000);
                 } break;
 
                 case RSK_END_CMD: // return to dashboard
-		    os_sched_exit(0);
-		    return;
-                    //goto return_to_dashboard;
+                    os_sched_exit(0);
+                    return;
+                    // goto return_to_dashboard;
 
                 default:
                     THROW(0x6D00);
@@ -497,7 +600,7 @@ void io_seproxyhal_display(const bagl_element_t *element) {
 // Pick the text elements to display
 static unsigned char display_text_part() {
     unsigned int i;
-    WIDE char *text = (char*) G_io_apdu_buffer + 5;
+    WIDE char *text = (char *)G_io_apdu_buffer + 5;
     if (text[current_text_pos] == '\0') {
         return 0;
     }
@@ -556,7 +659,7 @@ unsigned char io_event(unsigned char channel) {
             (os_seph_features() &
              SEPROXYHAL_TAG_SESSION_START_EVENT_FEATURE_SCREEN_BIG)) {
             if (!display_text_part()) {
-                //ui_approval();
+                // ui_approval();
             } else {
                 UX_REDISPLAY();
             }
@@ -565,14 +668,14 @@ unsigned char io_event(unsigned char channel) {
         }
         break;
     case SEPROXYHAL_TAG_TICKER_EVENT:
-        #ifdef TARGET_NANOS
-            UX_TICKER_EVENT(G_io_seproxyhal_spi_buffer, {
-                // defaulty retrig very soon (will be overriden during
-                // stepper_prepro)
-                UX_CALLBACK_SET_INTERVAL(500);
-                UX_REDISPLAY();
-            });
-        #endif
+#ifdef TARGET_NANOS
+        UX_TICKER_EVENT(G_io_seproxyhal_spi_buffer, {
+            // defaulty retrig very soon (will be overriden during
+            // stepper_prepro)
+            UX_CALLBACK_SET_INTERVAL(500);
+            UX_REDISPLAY();
+        });
+#endif
         break;
 
     // unknown events are acknowledged
@@ -594,17 +697,20 @@ char SERVER_PATH[256];
 __attribute__((section(".boot"))) int main(int argc, char **argv) {
 
 #ifdef FEDHM_EMULATOR
-    printf("[EMU] Emulator starting. Usage:\n[EMU] %s <comm socket> <privkey file>\n",argv[0]);
+    printf("[EMU] Emulator starting. Usage:\n[EMU] %s <comm socket> <privkey "
+           "file>\n",
+           argv[0]);
     // Socket name
-    if (argc>1)
-	 strncpy(SERVER_PATH,argv[1],sizeof(SERVER_PATH));
-    else strncpy(SERVER_PATH,"/tmp/emuUSBSocket",sizeof(SERVER_PATH));
+    if (argc > 1)
+        strncpy(SERVER_PATH, argv[1], sizeof(SERVER_PATH));
+    else
+        strncpy(SERVER_PATH, "/tmp/emuUSBSocket", sizeof(SERVER_PATH));
 
     current_text_pos = 0;
     text_y = 60;
     uiState = UI_IDLE;
-    if (argc>3)
-	init_perso(argv[3]);
+    if (argc > 3)
+        init_perso(argv[3]);
 #else
     // exit critical section
     __asm volatile("cpsie i");
@@ -617,35 +723,36 @@ __attribute__((section(".boot"))) int main(int argc, char **argv) {
 
     BEGIN_TRY {
         TRY {
-             unsigned char canary;
+            unsigned char canary;
             io_seproxyhal_init();
-		//DEBUG
-                canary = 0x00;
-                nvm_write((void*) &N_initialized, &canary, sizeof(canary));
+            // DEBUG
+            canary = 0x00;
+            nvm_write((void *)&N_initialized, &canary, sizeof(canary));
 
             // Create the private key if not initialized
             if (N_initialized != 0x01) {
 #ifdef FEDHM_EMULATOR
-		srand( time(NULL) );
-//		platform_random(privateKeyData, sizeof(privateKeyData));
-		FILE *pFile;
-    		if (argc>2) {
-			pFile = fopen(argv[2],"r");
-			if (pFile!=NULL) {
-				fread(&privateKeyData,1,sizeof(privateKeyData),pFile);
-				printf("[EMU] Loaded private key from %s \n",argv[2]);
-				fclose(pFile);
-				}
-			else	{ // Key not found, save it
-				pFile = fopen(argv[2],"w");
-				fwrite(&privateKeyData,1,sizeof(privateKeyData),pFile);
-				printf("[EMU] Saved private key to %s \n",argv[2]);
-				fclose(pFile);
-				}
-			}
+                srand(time(NULL));
+                //		platform_random(privateKeyData, sizeof(privateKeyData));
+                FILE *pFile;
+                if (argc > 2) {
+                    pFile = fopen(argv[2], "r");
+                    if (pFile != NULL) {
+                        fread(
+                            &privateKeyData, 1, sizeof(privateKeyData), pFile);
+                        printf("[EMU] Loaded private key from %s \n", argv[2]);
+                        fclose(pFile);
+                    } else { // Key not found, save it
+                        pFile = fopen(argv[2], "w");
+                        fwrite(
+                            &privateKeyData, 1, sizeof(privateKeyData), pFile);
+                        printf("[EMU] Saved private key to %s \n", argv[2]);
+                        fclose(pFile);
+                    }
+                }
 #endif
-               canary = 0x01;
-                nvm_write((void*) &N_initialized, &canary, sizeof(canary));
+                canary = 0x01;
+                nvm_write((void *)&N_initialized, &canary, sizeof(canary));
             }
 
 #ifdef LISTEN_BLE

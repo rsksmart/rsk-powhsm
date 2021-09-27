@@ -13,12 +13,13 @@
  * @arg[in] path_length length of the derivation path
  * @arg[in] dest destination buffer
  * @arg[in] dest destination buffer size
- * @ret     size of the public key derived, 
+ * @ret     size of the public key derived,
  *          or DO_PUBKEY_ERROR in case of error
  */
-int do_pubkey(
-    unsigned int* path, unsigned char path_length, 
-    unsigned char* dest, size_t dest_size) {
+int do_pubkey(unsigned int* path,
+              unsigned char path_length,
+              unsigned char* dest,
+              size_t dest_size) {
 
     unsigned char private_key_data[KEYLEN];
     cx_ecfp_private_key_t private_key;
@@ -26,12 +27,13 @@ int do_pubkey(
 
     int pubkey_size;
 
-
     BEGIN_TRY {
         TRY {
             // Derive and init private key
-            os_perso_derive_node_bip32(CX_CURVE_256K1, path, path_length, private_key_data, NULL);
-            cx_ecdsa_init_private_key(CX_CURVE_256K1, private_key_data, KEYLEN, &private_key);
+            os_perso_derive_node_bip32(
+                CX_CURVE_256K1, path, path_length, private_key_data, NULL);
+            cx_ecdsa_init_private_key(
+                CX_CURVE_256K1, private_key_data, KEYLEN, &private_key);
             // Cleanup private key data
             explicit_bzero(private_key_data, sizeof(private_key_data));
             // Derive public key
@@ -40,11 +42,12 @@ int do_pubkey(
             explicit_bzero(&private_key, sizeof(private_key));
             // Output the public key
             pubkey_size = public_key.W_len;
-            SAFE_MEMMOVE(
-                dest, dest_size,
-                public_key.W, public_key.W_len,
-                public_key.W_len,
-                { pubkey_size = DO_PUBKEY_ERROR; })
+            SAFE_MEMMOVE(dest,
+                         dest_size,
+                         public_key.W,
+                         public_key.W_len,
+                         public_key.W_len,
+                         { pubkey_size = DO_PUBKEY_ERROR; })
             // Cleanup public key
             explicit_bzero(&public_key, sizeof(public_key));
         }
@@ -74,13 +77,15 @@ int do_pubkey(
  * @arg[in] message_size message size
  * @arg[in] dest destination buffer
  * @arg[in] dest destination buffer size
- * @ret     size of the signature produced, 
+ * @ret     size of the signature produced,
  *          or DO_SIGN_ERROR in case of error
  */
-int do_sign(
-    unsigned int* path, unsigned char path_length, 
-    unsigned char* message, size_t message_size,
-    unsigned char* dest, size_t dest_size) {
+int do_sign(unsigned int* path,
+            unsigned char path_length,
+            unsigned char* message,
+            size_t message_size,
+            unsigned char* dest,
+            size_t dest_size) {
 
     unsigned char private_key_data[KEYLEN];
     cx_ecfp_private_key_t private_key;
@@ -95,16 +100,18 @@ int do_sign(
     BEGIN_TRY {
         TRY {
             // Derive and init private key
-            os_perso_derive_node_bip32(CX_CURVE_256K1, path, path_length, private_key_data, NULL);
-            cx_ecdsa_init_private_key(CX_CURVE_256K1, private_key_data, KEYLEN, &private_key);
+            os_perso_derive_node_bip32(
+                CX_CURVE_256K1, path, path_length, private_key_data, NULL);
+            cx_ecdsa_init_private_key(
+                CX_CURVE_256K1, private_key_data, KEYLEN, &private_key);
             // Cleanup private key data
             explicit_bzero(private_key_data, sizeof(private_key_data));
-            sig_size = cx_ecdsa_sign((void *)&private_key,
-                CX_RND_RFC6979 | CX_LAST,
-                CX_SHA256,
-                message,
-                message_size,
-                dest);
+            sig_size = cx_ecdsa_sign((void*)&private_key,
+                                     CX_RND_RFC6979 | CX_LAST,
+                                     CX_SHA256,
+                                     message,
+                                     message_size,
+                                     dest);
             // Cleanup private key
             explicit_bzero(&private_key, sizeof(private_key));
         }

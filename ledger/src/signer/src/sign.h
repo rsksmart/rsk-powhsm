@@ -12,12 +12,13 @@
  * @arg[in] path_length length of the derivation path
  * @arg[in] dest destination buffer
  * @arg[in] dest destination buffer size
- * @ret     size of the public key derived, 
+ * @ret     size of the public key derived,
  *          or DO_PUBKEY_ERROR in case of error
  */
-int do_pubkey(
-    unsigned int* path, unsigned char path_length, 
-    unsigned char* dest, size_t dest_size);
+int do_pubkey(unsigned int* path,
+              unsigned char path_length,
+              unsigned char* dest,
+              size_t dest_size);
 
 /*
  * Sign a message with a given path.
@@ -29,12 +30,14 @@ int do_pubkey(
  * @arg[in] message_size message size
  * @arg[in] dest destination buffer
  * @arg[in] dest destination buffer size
- * @ret     size of the signature produced, 
+ * @ret     size of the signature produced,
  *          or DO_SIGN_ERROR in case of error
  */
-int do_sign(
-    unsigned int* path, unsigned char path_length, 
-    unsigned char* message, size_t message_size,
-    unsigned char* dest, size_t dest_size);
+int do_sign(unsigned int* path,
+            unsigned char path_length,
+            unsigned char* message,
+            size_t message_size,
+            unsigned char* dest,
+            size_t dest_size);
 
 #endif

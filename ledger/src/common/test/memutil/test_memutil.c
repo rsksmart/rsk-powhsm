@@ -4,7 +4,8 @@
 
 #include "memutil.h"
 
-void os_memmove(void *dst, const void *src, unsigned int length) {}
+void os_memmove(void *dst, const void *src, unsigned int length) {
+}
 
 void test_ok() {
     printf("Test OK...\n");

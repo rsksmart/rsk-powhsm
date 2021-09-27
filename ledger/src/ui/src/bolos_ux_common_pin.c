@@ -1,19 +1,19 @@
 /*******************************************************************************
-*   Ledger Blue - Secure firmware
-*   (c) 2016, 2017 Ledger
-*
-*  Licensed under the Apache License, Version 2.0 (the "License");
-*  you may not use this file except in compliance with the License.
-*  You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-*  Unless required by applicable law or agreed to in writing, software
-*  distributed under the License is distributed on an "AS IS" BASIS,
-*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*  See the License for the specific language governing permissions and
-*  limitations under the License.
-********************************************************************************/
+ *   Ledger Blue - Secure firmware
+ *   (c) 2016, 2017 Ledger
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ ********************************************************************************/
 
 #include "os.h"
 #include "cx.h"
@@ -33,19 +33,37 @@
 #define INIT_DIGIT_VALUE 5
 
 const bagl_icon_details_t *const C_digit_font[] = {
-    &C_digit_0,        &C_digit_1,
-    &C_digit_2,        &C_digit_3,
-    &C_digit_4,        &C_digit_5,
-    &C_digit_6,        &C_digit_7,
-    &C_digit_8,        &C_digit_9,
-    &C_digit_dot,      &C_digit_underscore,
-    &C_icon_backspace, &C_icon_validate_bold,
+    &C_digit_0,
+    &C_digit_1,
+    &C_digit_2,
+    &C_digit_3,
+    &C_digit_4,
+    &C_digit_5,
+    &C_digit_6,
+    &C_digit_7,
+    &C_digit_8,
+    &C_digit_9,
+    &C_digit_dot,
+    &C_digit_underscore,
+    &C_icon_backspace,
+    &C_icon_validate_bold,
 };
 
 const bagl_element_t screen_common_pin_elements[] = {
     // erase
-    {{BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF,
-      0, 0},
+    {{BAGL_RECTANGLE,
+      0x00,
+      0,
+      0,
+      128,
+      32,
+      0,
+      0,
+      BAGL_FILL,
+      0x000000,
+      0xFFFFFF,
+      0,
+      0},
      NULL,
      0,
      0,
@@ -68,8 +86,19 @@ const bagl_element_t screen_common_pin_elements[] = {
       , 0xFFFFFF, 0x000000, 0, 0   }, NULL, 0, 0, 0, NULL, NULL, NULL },
     */
 
-    {{BAGL_LABELINE, 0x00, 0, 12, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
-      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+    {{BAGL_LABELINE,
+      0x00,
+      0,
+      12,
+      128,
+      32,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER,
+      0},
      "Codigo PIN",
      0,
      0,
@@ -78,8 +107,19 @@ const bagl_element_t screen_common_pin_elements[] = {
      NULL,
      NULL},
 
-    {{BAGL_ICON, 0x11, 25 /*-7*/, 18, GLYPH_digit_0_WIDTH, GLYPH_digit_0_HEIGHT,
-      0, 0, 0, 0xFFFFFF, 0x000000, 0, 0},
+    {{BAGL_ICON,
+      0x11,
+      25 /*-7*/,
+      18,
+      GLYPH_digit_0_WIDTH,
+      GLYPH_digit_0_HEIGHT,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      0,
+      0},
      G_bolos_ux_context.string_buffer + 4,
      0,
      0,
@@ -87,8 +127,19 @@ const bagl_element_t screen_common_pin_elements[] = {
      NULL,
      NULL,
      NULL},
-    {{BAGL_ICON, 0x12, 35 /*-5*/, 18, GLYPH_digit_0_WIDTH, GLYPH_digit_0_HEIGHT,
-      0, 0, 0, 0xFFFFFF, 0x000000, 0, 0},
+    {{BAGL_ICON,
+      0x12,
+      35 /*-5*/,
+      18,
+      GLYPH_digit_0_WIDTH,
+      GLYPH_digit_0_HEIGHT,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      0,
+      0},
      G_bolos_ux_context.string_buffer + 4,
      0,
      0,
@@ -96,8 +147,19 @@ const bagl_element_t screen_common_pin_elements[] = {
      NULL,
      NULL,
      NULL},
-    {{BAGL_ICON, 0x13, 45 /*-3*/, 18, GLYPH_digit_0_WIDTH, GLYPH_digit_0_HEIGHT,
-      0, 0, 0, 0xFFFFFF, 0x000000, 0, 0},
+    {{BAGL_ICON,
+      0x13,
+      45 /*-3*/,
+      18,
+      GLYPH_digit_0_WIDTH,
+      GLYPH_digit_0_HEIGHT,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      0,
+      0},
      G_bolos_ux_context.string_buffer + 4,
      0,
      0,
@@ -105,8 +167,19 @@ const bagl_element_t screen_common_pin_elements[] = {
      NULL,
      NULL,
      NULL},
-    {{BAGL_ICON, 0x14, 55 /*-1*/, 18, GLYPH_digit_0_WIDTH, GLYPH_digit_0_HEIGHT,
-      0, 0, 0, 0xFFFFFF, 0x000000, 0, 0},
+    {{BAGL_ICON,
+      0x14,
+      55 /*-1*/,
+      18,
+      GLYPH_digit_0_WIDTH,
+      GLYPH_digit_0_HEIGHT,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      0,
+      0},
      G_bolos_ux_context.string_buffer + 4,
      0,
      0,
@@ -114,8 +187,19 @@ const bagl_element_t screen_common_pin_elements[] = {
      NULL,
      NULL,
      NULL},
-    {{BAGL_ICON, 0x15, 65 /*+1*/, 18, GLYPH_digit_0_WIDTH, GLYPH_digit_0_HEIGHT,
-      0, 0, 0, 0xFFFFFF, 0x000000, 0, 0},
+    {{BAGL_ICON,
+      0x15,
+      65 /*+1*/,
+      18,
+      GLYPH_digit_0_WIDTH,
+      GLYPH_digit_0_HEIGHT,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      0,
+      0},
      G_bolos_ux_context.string_buffer + 4,
      0,
      0,
@@ -123,8 +207,19 @@ const bagl_element_t screen_common_pin_elements[] = {
      NULL,
      NULL,
      NULL},
-    {{BAGL_ICON, 0x16, 75 /*+3*/, 18, GLYPH_digit_0_WIDTH, GLYPH_digit_0_HEIGHT,
-      0, 0, 0, 0xFFFFFF, 0x000000, 0, 0},
+    {{BAGL_ICON,
+      0x16,
+      75 /*+3*/,
+      18,
+      GLYPH_digit_0_WIDTH,
+      GLYPH_digit_0_HEIGHT,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      0,
+      0},
      G_bolos_ux_context.string_buffer + 4,
      0,
      0,
@@ -132,8 +227,19 @@ const bagl_element_t screen_common_pin_elements[] = {
      NULL,
      NULL,
      NULL},
-    {{BAGL_ICON, 0x17, 85 /*+5*/, 18, GLYPH_digit_0_WIDTH, GLYPH_digit_0_HEIGHT,
-      0, 0, 0, 0xFFFFFF, 0x000000, 0, 0},
+    {{BAGL_ICON,
+      0x17,
+      85 /*+5*/,
+      18,
+      GLYPH_digit_0_WIDTH,
+      GLYPH_digit_0_HEIGHT,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      0,
+      0},
      G_bolos_ux_context.string_buffer + 4,
      0,
      0,
@@ -141,8 +247,19 @@ const bagl_element_t screen_common_pin_elements[] = {
      NULL,
      NULL,
      NULL},
-    {{BAGL_ICON, 0x18, 95 /*+7*/, 18, GLYPH_digit_0_WIDTH, GLYPH_digit_0_HEIGHT,
-      0, 0, 0, 0xFFFFFF, 0x000000, 0, 0},
+    {{BAGL_ICON,
+      0x18,
+      95 /*+7*/,
+      18,
+      GLYPH_digit_0_WIDTH,
+      GLYPH_digit_0_HEIGHT,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      0,
+      0},
      G_bolos_ux_context.string_buffer + 4,
      0,
      0,
@@ -152,7 +269,18 @@ const bagl_element_t screen_common_pin_elements[] = {
      NULL},
 
     // left/rights icons
-    {{BAGL_ICON, 0x00, 3, 14, 7, 4, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
+    {{BAGL_ICON,
+      0x00,
+      3,
+      14,
+      7,
+      4,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      0,
       BAGL_GLYPH_ICON_DOWN},
      NULL,
      0,
@@ -161,7 +289,18 @@ const bagl_element_t screen_common_pin_elements[] = {
      NULL,
      NULL,
      NULL},
-    {{BAGL_ICON, 0x00, 118, 14, 7, 4, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
+    {{BAGL_ICON,
+      0x00,
+      118,
+      14,
+      7,
+      4,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      0,
       BAGL_GLYPH_ICON_UP},
      NULL,
      0,
@@ -179,8 +318,10 @@ const bagl_element_t *screen_common_pin_before_element_display_callback(
     switch (element->component.userid) {
     case 0x01: {
         unsigned int retries = os_global_pin_retries();
-        SPRINTF(G_bolos_ux_context.string_buffer, "%d remaining attempt%s",
-                retries, retries == 1 ? "" : "s");
+        SPRINTF(G_bolos_ux_context.string_buffer,
+                "%d remaining attempt%s",
+                retries,
+                retries == 1 ? "" : "s");
         break;
     }
 
@@ -189,18 +330,21 @@ const bagl_element_t *screen_common_pin_before_element_display_callback(
             if (digit_count > (element->component.userid & 0xF)) {
                 // display the * (validated digits)
                 os_memmove(G_bolos_ux_context.string_buffer + 4,
-                           PIC(C_digit_font[0xA]), sizeof(bagl_icon_details_t));
+                           PIC(C_digit_font[0xA]),
+                           sizeof(bagl_icon_details_t));
             } else if (digit_count < (element->component.userid & 0xF)) {
                 // display the _ (not entered digits)
                 os_memmove(G_bolos_ux_context.string_buffer + 4,
-                           PIC(C_digit_font[0xB]), sizeof(bagl_icon_details_t));
+                           PIC(C_digit_font[0xB]),
+                           sizeof(bagl_icon_details_t));
             } else if (digit_count == (element->component.userid & 0xF)) {
                 if (G_bolos_ux_context.string_buffer[0] == ':') {
                     // display the 'backspace'
                     os_memmove(G_bolos_ux_context.string_buffer + 4,
                                PIC(C_digit_font[0xC]),
                                sizeof(bagl_icon_details_t));
-                    os_memmove(&G_bolos_ux_context.tmp_element, element,
+                    os_memmove(&G_bolos_ux_context.tmp_element,
+                               element,
                                sizeof(bagl_element_t));
                     G_bolos_ux_context.tmp_element.component.y = 19;
                     G_bolos_ux_context.tmp_element.component.x -= 1;
@@ -211,7 +355,8 @@ const bagl_element_t *screen_common_pin_before_element_display_callback(
                                PIC(C_digit_font[0xD]),
                                sizeof(bagl_icon_details_t));
                     // change the shape for the check
-                    os_memmove(&G_bolos_ux_context.tmp_element, element,
+                    os_memmove(&G_bolos_ux_context.tmp_element,
+                               element,
                                sizeof(bagl_element_t));
                     G_bolos_ux_context.tmp_element.component.y = 20;
                     return &G_bolos_ux_context.tmp_element;
@@ -348,7 +493,8 @@ void screen_common_pin_init(unsigned int stack_slot,
     screen_state_init(stack_slot);
 
     // blank pins, first step first
-    os_memset(G_bolos_ux_context.pin_buffer, 0,
+    os_memset(G_bolos_ux_context.pin_buffer,
+              0,
               sizeof(G_bolos_ux_context.pin_buffer));
 
     // build the pin current digit

@@ -23,14 +23,14 @@ typedef enum {
 #define NETID_REGTEST 0x03
 
 // Activation block numbers
-#define MAINNET_ANCIENT_ABN     0
-#define MAINNET_WASABI_ABN      1591000UL
-#define MAINNET_PAPYRUS_ABN     2392700UL
-#define MAINNET_IRIS_ABN        3589500UL
+#define MAINNET_ANCIENT_ABN 0
+#define MAINNET_WASABI_ABN 1591000UL
+#define MAINNET_PAPYRUS_ABN 2392700UL
+#define MAINNET_IRIS_ABN 3589500UL
 
-#define TESTNET_WASABI_ABN      0
-#define TESTNET_PAPYRUS_ABN     863000UL
-#define TESTNET_IRIS_ABN        2027200UL
+#define TESTNET_WASABI_ABN 0
+#define TESTNET_PAPYRUS_ABN 863000UL
+#define TESTNET_IRIS_ABN 2027200UL
 
 #ifdef TESTNET
 #define SET_NETWORK_UPGRADE(bn, x)          \
@@ -52,16 +52,16 @@ typedef enum {
 #define SET_NETWORK_UPGRADE(bn, x) hsmsim_set_network_upgrade(bn, x)
 #define GET_NETWORK_IDENTIFIER() hsmsim_get_network_identifier()
 #else
-#define SET_NETWORK_UPGRADE(bn, x) \
-    {                              \
-        if (bn >= MAINNET_IRIS_ABN)       \
-            *(x) = NU_IRIS;           \
-        else if (bn >= MAINNET_PAPYRUS_ABN)  \
-            *(x) = NU_PAPYRUS;        \
+#define SET_NETWORK_UPGRADE(bn, x)          \
+    {                                       \
+        if (bn >= MAINNET_IRIS_ABN)         \
+            *(x) = NU_IRIS;                 \
+        else if (bn >= MAINNET_PAPYRUS_ABN) \
+            *(x) = NU_PAPYRUS;              \
         else if (bn >= MAINNET_WASABI_ABN)  \
-            *(x) = NU_WASABI;         \
-        else                       \
-            *(x) = NU_ANCIENT;        \
+            *(x) = NU_WASABI;               \
+        else                                \
+            *(x) = NU_ANCIENT;              \
     }
 #define GET_NETWORK_IDENTIFIER() NETID_MAINNET
 #endif

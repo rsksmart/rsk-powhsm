@@ -1,19 +1,19 @@
 /*******************************************************************************
-*   Ledger Blue - Secure firmware
-*   (c) 2016, 2017 Ledger
-*
-*  Licensed under the Apache License, Version 2.0 (the "License");
-*  you may not use this file except in compliance with the License.
-*  You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-*  Unless required by applicable law or agreed to in writing, software
-*  distributed under the License is distributed on an "AS IS" BASIS,
-*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*  See the License for the specific language governing permissions and
-*  limitations under the License.
-********************************************************************************/
+ *   Ledger Blue - Secure firmware
+ *   (c) 2016, 2017 Ledger
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ ********************************************************************************/
 
 #include "os.h"
 #include "cx.h"
@@ -152,8 +152,19 @@ void screen_settings_display_current(void) {
 
 const bagl_element_t screen_settings_brightness_elements[] = {
     // erase
-    {{BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF,
-      0, 0},
+    {{BAGL_RECTANGLE,
+      0x00,
+      0,
+      0,
+      128,
+      32,
+      0,
+      0,
+      BAGL_FILL,
+      0x000000,
+      0xFFFFFF,
+      0,
+      0},
      NULL,
      0,
      0,
@@ -163,8 +174,19 @@ const bagl_element_t screen_settings_brightness_elements[] = {
      NULL},
 
     // application name
-    {{BAGL_LABELINE, 0x00, 0, 12, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
-      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+    {{BAGL_LABELINE,
+      0x00,
+      0,
+      12,
+      128,
+      32,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER,
+      0},
      "Brightness",
      0,
      0,
@@ -222,7 +244,18 @@ const bagl_element_t screen_settings_brightness_elements[] = {
      NULL,
      NULL},
 
-    {{BAGL_CIRCLE, 0x00, 34, 20, 6, 6, 0, 3, BAGL_FILL, 0xFFFFFF, 0x000000, 0,
+    {{BAGL_CIRCLE,
+      0x00,
+      34,
+      20,
+      6,
+      6,
+      0,
+      3,
+      BAGL_FILL,
+      0xFFFFFF,
+      0x000000,
+      0,
       0},
      NULL,
      0,
@@ -231,7 +264,18 @@ const bagl_element_t screen_settings_brightness_elements[] = {
      NULL,
      NULL,
      NULL},
-    {{BAGL_CIRCLE, 0x02, 45, 20, 6, 6, 0, 3, BAGL_FILL, 0xFFFFFF, 0x000000, 0,
+    {{BAGL_CIRCLE,
+      0x02,
+      45,
+      20,
+      6,
+      6,
+      0,
+      3,
+      BAGL_FILL,
+      0xFFFFFF,
+      0x000000,
+      0,
       0},
      NULL,
      0,
@@ -240,7 +284,18 @@ const bagl_element_t screen_settings_brightness_elements[] = {
      NULL,
      NULL,
      NULL},
-    {{BAGL_CIRCLE, 0x03, 56, 20, 6, 6, 0, 3, BAGL_FILL, 0xFFFFFF, 0x000000, 0,
+    {{BAGL_CIRCLE,
+      0x03,
+      56,
+      20,
+      6,
+      6,
+      0,
+      3,
+      BAGL_FILL,
+      0xFFFFFF,
+      0x000000,
+      0,
       0},
      NULL,
      0,
@@ -249,7 +304,18 @@ const bagl_element_t screen_settings_brightness_elements[] = {
      NULL,
      NULL,
      NULL},
-    {{BAGL_CIRCLE, 0x04, 67, 20, 6, 6, 0, 3, BAGL_FILL, 0xFFFFFF, 0x000000, 0,
+    {{BAGL_CIRCLE,
+      0x04,
+      67,
+      20,
+      6,
+      6,
+      0,
+      3,
+      BAGL_FILL,
+      0xFFFFFF,
+      0x000000,
+      0,
       0},
      NULL,
      0,
@@ -258,7 +324,18 @@ const bagl_element_t screen_settings_brightness_elements[] = {
      NULL,
      NULL,
      NULL},
-    {{BAGL_CIRCLE, 0x05, 78, 20, 6, 6, 0, 3, BAGL_FILL, 0xFFFFFF, 0x000000, 0,
+    {{BAGL_CIRCLE,
+      0x05,
+      78,
+      20,
+      6,
+      6,
+      0,
+      3,
+      BAGL_FILL,
+      0xFFFFFF,
+      0x000000,
+      0,
       0},
      NULL,
      0,
@@ -267,7 +344,18 @@ const bagl_element_t screen_settings_brightness_elements[] = {
      NULL,
      NULL,
      NULL},
-    {{BAGL_CIRCLE, 0x06, 89, 20, 6, 6, 0, 3, BAGL_FILL, 0xFFFFFF, 0x000000, 0,
+    {{BAGL_CIRCLE,
+      0x06,
+      89,
+      20,
+      6,
+      6,
+      0,
+      3,
+      BAGL_FILL,
+      0xFFFFFF,
+      0x000000,
+      0,
       0},
      NULL,
      0,
@@ -278,7 +366,18 @@ const bagl_element_t screen_settings_brightness_elements[] = {
      NULL},
 
     // icons
-    {{BAGL_ICON, 0x00, 3, 15, 6, 1, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
+    {{BAGL_ICON,
+      0x00,
+      3,
+      15,
+      6,
+      1,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      0,
       BAGL_GLYPH_ICON_LESS},
      NULL,
      0,
@@ -287,7 +386,18 @@ const bagl_element_t screen_settings_brightness_elements[] = {
      NULL,
      NULL,
      NULL},
-    {{BAGL_ICON, 0x00, 118, 12, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
+    {{BAGL_ICON,
+      0x00,
+      118,
+      12,
+      7,
+      7,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      0,
       BAGL_GLYPH_ICON_PLUS},
      NULL,
      0,
@@ -298,8 +408,8 @@ const bagl_element_t screen_settings_brightness_elements[] = {
      NULL},
 };
 
-const bagl_element_t *
-screen_settings_brightness_before_display(const bagl_element_t *element) {
+const bagl_element_t *screen_settings_brightness_before_display(
+    const bagl_element_t *element) {
     if (element->component.userid) {
         if (G_bolos_ux_context.settings_value < element->component.userid) {
             return NULL;
@@ -311,9 +421,8 @@ screen_settings_brightness_before_display(const bagl_element_t *element) {
     return element;
 }
 
-unsigned int
-screen_settings_brightness_button(unsigned int button_mask,
-                                  unsigned int button_mask_counter) {
+unsigned int screen_settings_brightness_button(
+    unsigned int button_mask, unsigned int button_mask_counter) {
     UNUSED(button_mask_counter);
     switch (button_mask) {
     case BUTTON_EVT_FAST | BUTTON_LEFT:
@@ -330,7 +439,8 @@ screen_settings_brightness_button(unsigned int button_mask,
         }
 
     redraw:
-        screen_settings_apply_internal(0, G_bolos_ux_context.settings_value,
+        screen_settings_apply_internal(0,
+                                       G_bolos_ux_context.settings_value,
                                        os_setting_get(OS_SETTING_ROTATION),
                                        os_setting_get(OS_SETTING_INVERT));
         screen_settings_display_current();
@@ -357,8 +467,19 @@ void screen_settings_brightness_init(void) {
 
 const bagl_element_t screen_settings_version_elements[] = {
     // erase
-    {{BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF,
-      0, 0},
+    {{BAGL_RECTANGLE,
+      0x00,
+      0,
+      0,
+      128,
+      32,
+      0,
+      0,
+      BAGL_FILL,
+      0x000000,
+      0xFFFFFF,
+      0,
+      0},
      NULL,
      0,
      0,
@@ -367,8 +488,19 @@ const bagl_element_t screen_settings_version_elements[] = {
      NULL,
      NULL},
 
-    {{BAGL_LABELINE, 0x01, 0, 12, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
-      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+    {{BAGL_LABELINE,
+      0x01,
+      0,
+      12,
+      128,
+      32,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER,
+      0},
      G_bolos_ux_context.string_buffer,
      0,
      0,
@@ -376,8 +508,19 @@ const bagl_element_t screen_settings_version_elements[] = {
      NULL,
      NULL,
      NULL},
-    {{BAGL_LABELINE, 0x02, 0, 26, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
-      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+    {{BAGL_LABELINE,
+      0x02,
+      0,
+      26,
+      128,
+      32,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER,
+      0},
      G_bolos_ux_context.string_buffer,
      0,
      0,
@@ -387,7 +530,18 @@ const bagl_element_t screen_settings_version_elements[] = {
      NULL},
 
     // icons
-    {{BAGL_ICON, 0x10, 3, 12, 4, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
+    {{BAGL_ICON,
+      0x10,
+      3,
+      12,
+      4,
+      7,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      0,
       BAGL_GLYPH_ICON_LEFT},
      NULL,
      0,
@@ -396,7 +550,18 @@ const bagl_element_t screen_settings_version_elements[] = {
      NULL,
      NULL,
      NULL},
-    {{BAGL_ICON, 0x11, 121, 12, 4, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
+    {{BAGL_ICON,
+      0x11,
+      121,
+      12,
+      4,
+      7,
+      0,
+      0,
+      0,
+      0xFFFFFF,
+      0x000000,
+      0,
       BAGL_GLYPH_ICON_RIGHT},
      NULL,
      0,
@@ -407,8 +572,8 @@ const bagl_element_t screen_settings_version_elements[] = {
      NULL},
 };
 
-const bagl_element_t *
-screen_settings_version_before_display(const bagl_element_t *element) {
+const bagl_element_t *screen_settings_version_before_display(
+    const bagl_element_t *element) {
     switch (element->component.userid) {
     // previous setting
     case 0x01:
@@ -433,7 +598,8 @@ screen_settings_version_before_display(const bagl_element_t *element) {
 
         // MCU
         case 1:
-            os_memset(G_bolos_ux_context.string_buffer, 0,
+            os_memset(G_bolos_ux_context.string_buffer,
+                      0,
                       sizeof(G_bolos_ux_context.string_buffer));
             os_seph_version((unsigned char *)G_bolos_ux_context.string_buffer,
                             sizeof(G_bolos_ux_context.string_buffer));
@@ -484,16 +650,16 @@ void screen_settings_version_init(void) {
 
 void menu_settings_rotate_init(unsigned int ignored) {
     UNUSED(ignored);
-    UX_MENU_DISPLAY(os_setting_get(OS_SETTING_ROTATION), menu_settings_rotate,
-                    NULL);
+    UX_MENU_DISPLAY(
+        os_setting_get(OS_SETTING_ROTATION), menu_settings_rotate, NULL);
 }
 
 // ==========================================================================
 
 void menu_settings_invert_init(unsigned int ignored) {
     UNUSED(ignored);
-    UX_MENU_DISPLAY(os_setting_get(OS_SETTING_INVERT), menu_settings_invert,
-                    NULL);
+    UX_MENU_DISPLAY(
+        os_setting_get(OS_SETTING_INVERT), menu_settings_invert, NULL);
 }
 
 // ==========================================================================
@@ -525,8 +691,8 @@ void menu_settings_autolock_init(unsigned int index) {
 
 void menu_settings_shufflepin_init(unsigned int ignored) {
     UNUSED(ignored);
-    UX_MENU_DISPLAY(os_setting_get(OS_SETTING_SHUFFLE_PIN),
-                    menu_settings_shufflepin, NULL);
+    UX_MENU_DISPLAY(
+        os_setting_get(OS_SETTING_SHUFFLE_PIN), menu_settings_shufflepin, NULL);
 }
 
 // ==========================================================================
@@ -576,11 +742,13 @@ const screen_desc_t screen_settings_desc[] = {
     {screen_settings_brightness_elements,
      ARRAYLEN(screen_settings_brightness_elements),
      screen_settings_brightness_before_display,
-     screen_settings_brightness_button, screen_settings_brightness_init},
+     screen_settings_brightness_button,
+     screen_settings_brightness_init},
 
     {screen_settings_version_elements,
      ARRAYLEN(screen_settings_version_elements),
-     screen_settings_version_before_display, screen_settings_version_button,
+     screen_settings_version_before_display,
+     screen_settings_version_button,
      screen_settings_version_init},
 };
 
@@ -689,14 +857,38 @@ const ux_menu_entry_t menu_settings_passphrase[] = {
 
 const ux_menu_entry_t menu_settings_autolock[] = {
     {NULL, screen_settings_autolock_change, -1UL, NULL, "OFF", NULL, 0, 0},
-    {NULL, screen_settings_autolock_change, 60000, NULL, "1 minute", NULL, 0,
+    {NULL,
+     screen_settings_autolock_change,
+     60000,
+     NULL,
+     "1 minute",
+     NULL,
+     0,
      0},
-    {NULL, screen_settings_autolock_change, 180000, NULL, "3 minutes", NULL, 0,
+    {NULL,
+     screen_settings_autolock_change,
+     180000,
+     NULL,
+     "3 minutes",
+     NULL,
+     0,
      0},
-    {NULL, screen_settings_autolock_change, 300000, NULL, "5 minutes", NULL, 0,
+    {NULL,
+     screen_settings_autolock_change,
+     300000,
+     NULL,
+     "5 minutes",
+     NULL,
+     0,
      0},
-    {NULL, screen_settings_autolock_change, 6000000, NULL, "10 minutes", NULL,
-     0, 0},
+    {NULL,
+     screen_settings_autolock_change,
+     6000000,
+     NULL,
+     "10 minutes",
+     NULL,
+     0,
+     0},
     UX_MENU_END};
 
 const ux_menu_entry_t menu_settings_security[] = {

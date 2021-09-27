@@ -1,19 +1,19 @@
 /*******************************************************************************
-*   Ledger Blue - Secure firmware
-*   (c) 2016, 2017 Ledger
-*
-*  Licensed under the Apache License, Version 2.0 (the "License");
-*  you may not use this file except in compliance with the License.
-*  You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-*  Unless required by applicable law or agreed to in writing, software
-*  distributed under the License is distributed on an "AS IS" BASIS,
-*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*  See the License for the specific language governing permissions and
-*  limitations under the License.
-********************************************************************************/
+ *   Ledger Blue - Secure firmware
+ *   (c) 2016, 2017 Ledger
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ ********************************************************************************/
 
 #ifdef HAVE_ELECTRUM
 
@@ -22,9 +22,8 @@
 
 #include "bolos_ux_common.h"
 
-extern unsigned int
-bolos_ux_mnemonic_to_seed_hash_length128(unsigned char *mnemonic,
-                                         unsigned int mnemonicLength);
+extern unsigned int bolos_ux_mnemonic_to_seed_hash_length128(
+    unsigned char *mnemonic, unsigned int mnemonicLength);
 
 int cx_math_shiftr_11(unsigned char *r, unsigned int len) {
     unsigned int j, b11;
@@ -38,7 +37,6 @@ int cx_math_shiftr_11(unsigned char *r, unsigned int len) {
 
     return b11;
 }
-
 
 unsigned int bolos_ux_electrum_mnemonic_encode(unsigned char *seed17,
                                                unsigned char *out,
@@ -55,7 +53,8 @@ unsigned int bolos_ux_electrum_mnemonic_encode(unsigned char *seed17,
         if ((offset + wordLength) > outLength) {
             THROW(INVALID_PARAMETER);
         }
-        os_memmove(out + offset, BIP39_WORDLIST + BIP39_WORDLIST_OFFSETS[idx],
+        os_memmove(out + offset,
+                   BIP39_WORDLIST + BIP39_WORDLIST_OFFSETS[idx],
                    wordLength);
         offset += wordLength;
         if (i < 11) {
@@ -102,8 +101,11 @@ unsigned int bolos_ux_electrum_mnemonic_check(unsigned int version,
                                               unsigned char *mnemonic,
                                               unsigned int mnemonicLength) {
     unsigned char tmp[64];
-    cx_hmac_sha512(ELECTRUM_SEED_VERSION, ELECTRUM_SEED_VERSION_LENGTH,
-                   mnemonic, mnemonicLength, tmp);
+    cx_hmac_sha512(ELECTRUM_SEED_VERSION,
+                   ELECTRUM_SEED_VERSION_LENGTH,
+                   mnemonic,
+                   mnemonicLength,
+                   tmp);
     return (tmp[0] == version);
 }
 
@@ -115,10 +117,14 @@ void bolos_ux_electrum_mnemonic_to_seed(unsigned char *mnemonic,
         bolos_ux_mnemonic_to_seed_hash_length128(mnemonic, mnemonicLength);
 
     os_memmove(passphrase, ELECTRUM_MNEMONIC, ELECTRUM_MNEMONIC_LENGTH);
-    cx_pbkdf2_sha512(mnemonic, mnemonicLength, passphrase,
+    cx_pbkdf2_sha512(mnemonic,
+                     mnemonicLength,
+                     passphrase,
                      ELECTRUM_MNEMONIC_LENGTH +
                          4 /*for round index, set in pbkdf2*/,
-                     ELECTRUM_PBKDF2_ROUNDS, seed, 64);
+                     ELECTRUM_PBKDF2_ROUNDS,
+                     seed,
+                     64);
 }
 
 #endif
