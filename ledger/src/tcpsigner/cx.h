@@ -21,11 +21,3 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-
-/*******************************************************************************
- *   powHSM
- *   Ledger Nano S BOLOS simulator layer
- *
- *   Functions defined here in BOLOS are actually defined in os.h for the
- *   TCPSigner (for simplicity)
- ********************************************************************************/

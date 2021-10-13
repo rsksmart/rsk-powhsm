@@ -37,13 +37,6 @@
    License along with the GNU C Library; if not, see
    <http://www.gnu.org/licenses/>.  */
 
-/*******************************************************************************
- *   powHSM
- *   Ledger Nano S BOLOS simulator layer
- *
- *   ad-hoc implementation of explicit_bzero
- ********************************************************************************/
-
 /* An assembler implementation of explicit_bzero can be created as an
    assembler alias of an optimized bzero implementation.
    Architecture-specific implementations also need to define

@@ -22,17 +22,10 @@
  * IN THE SOFTWARE.
  */
 
-/*******************************************************************************
- *   powHSM
- *   Ledger Nano S BOLOS simulator layer
- *
- *   Endorsement (attestation) functions
- ********************************************************************************/
-
 #include "os_attestation.h"
 
-// XXX: We are returning zero out of pure hope, as we do not know exactly what
-// these functions return.
+// XXX: We are returning zero at the moment since we're not using attestation
+// from the TCPSigner. We should implement this when the need arises.
 // XXX:
 // https://github.com/LedgerHQ/ledger-nanos-sdk/blob/master/nanos-secure-sdk/include/os_endorsement.h#L25
 

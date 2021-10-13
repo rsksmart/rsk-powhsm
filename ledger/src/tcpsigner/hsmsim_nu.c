@@ -22,13 +22,6 @@
  * IN THE SOFTWARE.
  */
 
-/*******************************************************************************
- *   powHSM
- *   Ledger Nano S BOLOS simulator layer
- *
- *   Network-upgrade related functions
- ********************************************************************************/
-
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>

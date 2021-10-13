@@ -39,14 +39,10 @@
  *  limitations under the License.
  ******************************************************************************/
 
-/****************************************************************************
- * powHSM
- * Ledger Nano S BOLOS simulator layer
- *
+/**
  * Modified try...catch exception implementation (taken from nanos-secure-sdk)
  * (https://github.com/LedgerHQ/nanos-secure-sdk/blob/nanos-1314/include/os.h)
- *
- *****************************************************************************/
+ */
 
 #include "os_exceptions.h"
 

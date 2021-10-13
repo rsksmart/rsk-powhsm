@@ -22,13 +22,6 @@
  * IN THE SOFTWARE.
  */
 
-/*******************************************************************************
- *   powHSM
- *   Ledger Nano S BOLOS simulator layer
- *
- *   Endorsement (attestation) functions
- ********************************************************************************/
-
 #ifndef __SIMULATOR_OS_ATTESTATION
 #define __SIMULATOR_OS_ATTESTATION
 

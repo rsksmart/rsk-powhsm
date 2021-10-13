@@ -22,13 +22,6 @@
  * IN THE SOFTWARE.
  */
 
-/****************************************************************************
- *   powHSM
- *   Ledger Nano S BOLOS simulator layer
- *
- *   Network-upgrade related functions
- *****************************************************************************/
-
 #ifndef __SIMULATOR_NU
 #define __SIMULATOR_NU
 

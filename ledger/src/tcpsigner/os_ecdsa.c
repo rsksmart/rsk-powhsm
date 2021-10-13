@@ -22,13 +22,6 @@
  * IN THE SOFTWARE.
  */
 
-/*******************************************************************************
- *   powHSM
- *   Ledger Nano S BOLOS simulator layer
- *
- *   ECDSA functions including logic for simulating seed and derivations
- ********************************************************************************/
-
 #include "os_ecdsa.h"
 
 #include <string.h>

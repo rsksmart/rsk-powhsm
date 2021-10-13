@@ -22,13 +22,6 @@
  * IN THE SOFTWARE.
  */
 
-/*******************************************************************************
- *   powHSM
- *   Ledger Nano S BOLOS simulator layer
- *
- *   getrandom syscall wrapper
- ********************************************************************************/
-
 #include "hsmsim_random.h"
 
 #include <stddef.h>

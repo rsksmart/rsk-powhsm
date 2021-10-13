@@ -22,13 +22,6 @@
  * IN THE SOFTWARE.
  */
 
-/*******************************************************************************
- *   powHSM
- *   Ledger Nano S BOLOS simulator layer
- *
- *   Hashing functions
- ********************************************************************************/
-
 #ifndef __SIMULATOR_OS_HASHING
 #define __SIMULATOR_OS_HASHING
 

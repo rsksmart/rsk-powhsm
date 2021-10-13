@@ -22,13 +22,6 @@
  * IN THE SOFTWARE.
  */
 
-/*******************************************************************************
- *   powHSM
- *   Ledger Nano S BOLOS simulator layer
- *
- *   ECDSA logic for private key keeping
- ********************************************************************************/
-
 #include "hsmsim_ecdsa.h"
 #include "os_ecdsa.h"
 

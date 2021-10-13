@@ -22,13 +22,6 @@
  * IN THE SOFTWARE.
  */
 
-/*******************************************************************************
- *   powHSM
- *   Ledger Nano S BOLOS simulator layer
- *
- *   Hashing functions
- ********************************************************************************/
-
 #include "os_hash.h"
 #include "os_exceptions.h"
 #include "dbg.h"

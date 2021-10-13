@@ -22,13 +22,6 @@
  * IN THE SOFTWARE.
  */
 
-/*******************************************************************************
- *   powHSM
- *   Ledger Nano S BOLOS simulator layer
- *
- *   OS IO exchange simulation
- ********************************************************************************/
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <stddef.h>

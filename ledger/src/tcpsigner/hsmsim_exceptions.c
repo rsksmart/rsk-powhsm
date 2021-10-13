@@ -21,10 +21,3 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-
-/****************************************************************************
- * powHSM
- * Ledger Nano S BOLOS simulator layer
- *
- * HSM simulator layer specific exceptions
- *****************************************************************************/

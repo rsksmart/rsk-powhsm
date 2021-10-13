@@ -22,13 +22,6 @@
  * IN THE SOFTWARE.
  */
 
-/****************************************************************************
- * powHSM
- * Ledger Nano S BOLOS simulator layer
- *
- * HSM simulator layer specific exceptions
- *****************************************************************************/
-
 #ifndef __SIMULATOR_HSMSIM_EXCEPTIONS
 #define __SIMULATOR_HSMSIM_EXCEPTIONS
 

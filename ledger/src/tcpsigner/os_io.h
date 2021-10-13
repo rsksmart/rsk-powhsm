@@ -22,13 +22,6 @@
  * IN THE SOFTWARE.
  */
 
-/*******************************************************************************
- *   powHSM
- *   Ledger Nano S BOLOS simulator layer
- *
- *   OS IO exchange simulation
- ********************************************************************************/
-
 #ifndef __SIMULATOR_OS_IO
 #define __SIMULATOR_OS_IO
 
