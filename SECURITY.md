@@ -4,7 +4,7 @@ We're committed to conduct our security process in a professional and civil mann
 
 ## Responsible Disclosure
 
-For all security related issues, RSK has to main points of contact. Reach us at <security@iovlabs.org> or refer to our [Bug Bounty Program.](https://www.rsk.co/bounty-program/) **Do not open up a GitHub issue if the bug is a security vulnerability.**
+For all security related issues, RSK has two main points of contact. Reach us at <security@iovlabs.org> or refer to our [Bug Bounty Program.](https://www.rsk.co/bounty-program/) **Do not open up a GitHub issue if the bug is a security vulnerability.**
 
 **Ensure the bug was not already reported** by searching on Github under [Issues](https://github.com/rsksmart/rsk-powhsm/issues).
 
@@ -25,7 +25,7 @@ We’ll try to keep you informed about our progress throughout the process.
 * Follow HackerOne's [disclosure guidelines](https://www.hackerone.com/disclosure-guidelines).
 * Public disclosure of a vulnerability makes it ineligible for a bounty. If the user reports the vulnerability to other security teams (e.g. Ethereum or ETC) but reports to RSK with considerable delay, then RSK may reduce or cancel the bounty.
 
-For more information check RSK bounty program policy at [HackerOne](https://hackerone.com/iovlabs)
+For more information check the IOVLabs bounty program policy at [HackerOne](https://hackerone.com/iovlabs)
 
 ## Public Keys
 
