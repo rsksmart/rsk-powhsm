@@ -1,14 +1,14 @@
-# HSM 2.x blockchain bookkeeping
+# powHSM blockchain bookkeeping
 
 ## Abstract
 
-This document describes the means by which an HSM 2.x stores and updates a partial RSK blockchain state. It also depicts the process by which it can use this state to check whether a given block header is part of the blockchain.
+This document describes the means by which a powHSM stores and updates a partial RSK blockchain state. It also depicts the process by which it can use this state to check whether a given block header is part of the blockchain.
 
 ## Specification
 
 ### HSM state
 
-An *initialized* HSM 2.x device must store the following state information in non-volatile memory. We call this blockchain state `blockchain_state` collectively. The `.` (dot) notation in variable names below is just a way of grouping related variables together.
+An *initialized* powHSM device must store the following state information in non-volatile memory. We call this blockchain state `blockchain_state` collectively. The `.` (dot) notation in variable names below is just a way of grouping related variables together.
 
 - `best_block` (32 bytes - byte array): The current known best block with sufficient confirmations.
 - `newest_valid_block` (32 bytes - byte array): The newest valid block known, regardless of confirmations.
@@ -34,7 +34,7 @@ At any point in time, the `ancestor_block` is the hash of any ancestor block to 
 
 ### Initialization
 
-An *uninitialized* HSM 2.x device must hold the following values for each of the fields of the `blockchain_state`:
+An *uninitialized* powHSM device must hold the following values for each of the fields of the `blockchain_state`:
 
 - `best_block`: `00...00` (zeroes).
 - `newest_valid_block`: `00...00` (zeroes).
@@ -52,7 +52,7 @@ When transitioning to the *initialized* state, it must set its `best_block` and 
 
 ### Updating
 
-In order to update the `blockchain_state` of an *initialized* HSM 2.x device, we define the operations `advanceBlockchain` and `resetAdvanceBlockchain`.
+In order to update the `blockchain_state` of an *initialized* powHSM device, we define the operations `advanceBlockchain` and `resetAdvanceBlockchain`.
 
 #### Context and preliminaries
 
@@ -208,4 +208,4 @@ The implementation must take into account the limited resources available on the
 
 ## Miscellaneous
 
-The terms *initialized* and *uninitialized* describe two possible states of an HSM 2.x device. These possible states and the transition between them are out of the scope of this document, excepting the `blockchain_state` update that occurs when the device transitions from the *uninitialized* to the *initialized* state (see the corresponding section above for details).
+The terms *initialized* and *uninitialized* describe two possible states of a powHSM device. These possible states and the transition between them are out of the scope of this document, excepting the `blockchain_state` update that occurs when the device transitions from the *uninitialized* to the *initialized* state (see the corresponding section above for details).

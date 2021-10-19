@@ -1,6 +1,6 @@
 # Ledger app deployment
 
-The Docker image for middleware (see [the middleware readme](../../middleware/README.md)) provides a environment suitable to deploy Ledger Nano S applications on a Ledger Nano S device. This way new developers don't have to struggle setting up the deployment toolchain, and all of them will have exactly the same toolchain.
+The Docker image for middleware (see [the middleware readme](../../middleware/README.md)) provides an environment suitable to deploy Ledger Nano S applications on a Ledger Nano S device. This way new developers don't have to struggle setting up the deployment toolchain.
 
 ## Deploying built apps
 
@@ -8,7 +8,7 @@ Before deploying the Signer or UI, you first have to build them. Refer to [the b
 
 ### UI
 
-Once the UI is built, you must have your device plugged in recovery mode. Issue:
+Once the UI is built, you must have your device plugged in and in recovery mode. Issue:
 
 ```bash
 ~/repo> ledger/deploy/deploy-ui
@@ -24,7 +24,7 @@ Once the Signer is built, you must have your device plugged in and unlocked (or 
 ~/repo> ledger/deploy/deploy-signer
 ```
 
-and follow the prompts on the device (only if in recovery mode).
+and follow the prompts on the device (only if in recovery mode or using the factory UI).
 
 ### Certificate signer
 
@@ -34,6 +34,6 @@ Once the certificate signer is built, you must have your device plugged in and u
 ~/repo> ledger/deploy/deploy-signer-certificate
 ```
 
-and follow the prompts on the device (only if in recovery mode).
+and follow the prompts on the device (only if in recovery mode or using the factory UI).
 
 Happy deploying!

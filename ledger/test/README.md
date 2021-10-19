@@ -9,7 +9,7 @@
 ### Example command to build a signer to run the tests against
 
 ```bash
-hsm_root> ledger/build/build-signer 0xbdcb3c17c7aee714cec8ad900341bfd987b452280220dcbd6e7191f67ea4209b 50 regtest
+~/repo> ledger/build/build-signer 0xbdcb3c17c7aee714cec8ad900341bfd987b452280220dcbd6e7191f67ea4209b 50 regtest
 ```
 
 ## Running the tests
@@ -17,12 +17,11 @@ hsm_root> ledger/build/build-signer 0xbdcb3c17c7aee714cec8ad900341bfd987b4522802
 To test using the TCPSigner, issue:
 
 ```bash
-hsm_root> ledger/test/test-all
+~/repo> ledger/test/test-all
 ```
 
 To test against a physical dongle, issue:
 
 ```bash
-hsm_root> ledger/test/test-all dongle
+~/repo> ledger/test/test-all dongle
 ```
-

@@ -1,6 +1,6 @@
-# HSM 2 distribution
+# powHSM distribution
 
-This document describes the artifacts provided to build a distributable version of the HSM 2 software. This distributable version includes both ledger apps and middleware binaries, as well as scripts for both setting up and onboarding a brand new Ledger Nano S; as well as upgrading an existing Ledger Nano S with HSM 1.x to HSM 2.
+This document describes the artifacts provided to build a distributable version of the powHSM software. This distributable version includes both ledger apps and middleware binaries, as well as scripts for both setting up and onboarding a brand new Ledger Nano S; and also for upgrading an existing legacy Ledger Nano S with HSM 1.x to powHSM.
 
 ## Prerequisites
 
@@ -32,7 +32,7 @@ The computer on which the distrbution is to be used needs the following installe
 
 ### Scripts
 
-As mentioned, a distribution can be used to setup a new device as well as to upgrade a device from HSM 1.x to HSM 2. To setup a brand new device, you will first need:
+As mentioned, a distribution can be used to setup a new device as well as to upgrade a device from a legacy HSM 1.x to powHSM. To setup a brand new device, you will first need:
 
 - Certification of both of the ledger applications (UI and Signer) by means of generating signatures for them using the ledger with the public key corresponding to `/path/to/dist/scripts/rsk-ca.txt` with the `signapp` utility (see [the middleware readme](../middleware/README.md) for details on this). Files expected to be present at the end of this process are `/path/to/dist/firmware/signer.hex.sig` and `/path/to/dist/firmware/ui.hex.sig`.
 
@@ -44,9 +44,9 @@ Then, to execute the setup process, within the `/path/to/dist` directory, issue:
 
 and follow the instructions.
 
-As mentioned, a distribution can be used to setup a new device as well as to upgrade a device from HSM 1.x to HSM 2 or to upgrade an existing HSM 2 to a newer firmware version. 
+As mentioned, a distribution can be used to setup a new device as well as to upgrade a device from a legacy HSM 1.x to powHSM or to upgrade an existing powHSM to a newer firmware version. 
 
-To upgrade an existing HSM 1.x device, you will first need:
+To upgrade an existing legacy HSM 1.x device, you will first need:
 
 - A file `/path/to/dist/pin.txt` with the current device's pin.
 - Certifications of both of the ledger applications (UI and Signer) exactly as in the setup process (see above).
@@ -59,22 +59,16 @@ Then, to execute the upgrade process, within the `/path/to/dist` directory, issu
 
 and follow the instructions.
 
-To upgrade an existing HSM 2 device, you will first need:
+To upgrade an existing powHSM device, you will first need:
 
 - A file `/path/to/dist/pin.txt` with the current device's pin.
-- A file `/path/to/dist/device_attestation.json` with the device attestation generated upon setup _(only if initially setup with HSM 2.1+)_.
+- A file `/path/to/dist/device_attestation.json` with the device attestation generated upon setup.
 - Certification of the ledger signer exactly as in the setup process (see above).
 
 Then, to execute the upgrade process, within the `/path/to/dist` directory, issue:
 
-If initially setup with HSM 2.1+:
 ```
 /path/to/dist> ./upgrade-v2-device
-```
-
-If initially setup with HSM 2.0:
-```
-/path/to/dist> ./upgrade-v2-device-noatt
 ```
 
 and follow the instructions.

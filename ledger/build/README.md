@@ -32,6 +32,10 @@ For example, to build the signer with checkpoint `0x00f06dcff26ec8b4d373fbd53ee7
 
 Once the build is complete, you will get the hash of the build as output, and the actual build output will be in `<HSM_PROJECT_ROOT>/ledger/src/signer/bin/app.hex` (for the signer) and `<HSM_PROJECT_ROOT>/ledger/src/ui/bin/token.hex` (for the UI).
 
+#### Reproducible builds
+
+It is *very important* to mention that both the Signer and the UI builds are bitwise reproducible. That is, two independent builds of the same code will yield the exact same hex files (and thus, the same app hashes). This is of remarkable importance for the [attestation process](../../docs/attestation.md).
+
 ### Building the certificate signer
 
 To build the certificate signer, just do:
@@ -40,12 +44,10 @@ To build the certificate signer, just do:
 ~/repo> ledger/build/build-signer-certificate
 ```
 
-### Building the simulator
+### Building the TCPSigner
 
 ```bash
-~/repo> ledger/build/builder-term [<docker_image>]
-cd ledger/src/simul
-make
+~/repo> ledger/build/build-tcpsigner
 ```
 
 Happy building!
