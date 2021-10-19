@@ -7,10 +7,6 @@ obj/
 signer/test/**/*.o
 signer/test/**/test.out
 
-# Simulator
-simul/simul
-simul/objs
-
 # TCPSigner
 tcpsigner/tcpsigner
 tcpsigner/objs

@@ -130,7 +130,7 @@ function keys() {
     error
 }
 
-echo -e "\e[1;32mWelcome to the HSM1 -> HSM2 Upgrade for RSK \e[0m"
+echo -e "\e[1;32mWelcome to the HSM1 -> powHSM Upgrade for RSK \e[0m"
 echo
 checkFirmware
 checkForPinFile
@@ -174,7 +174,7 @@ echo -e "\e[1;32mGathering public keys\e[0m"
 createOutputDir
 keys
 echo
-echo -e "\e[1;32mHSM2 Upgrade complete.\e[0m"
+echo -e "\e[1;32mpowHSM Upgrade complete.\e[0m"
 echo -e "\e[1;33mPlease disconnect the device.\e[0m"
 echo
 cleanBinaries

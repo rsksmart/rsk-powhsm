@@ -346,7 +346,7 @@ class HSM2DongleErrorResult(HSM2DongleBaseError):
         return self.args[0]
 
 
-# Handles low-level communication with an HSM2 dongle
+# Handles low-level communication with a powHSM dongle
 class HSM2Dongle:
     # Ledger constants
     HASH_SIZE = 32

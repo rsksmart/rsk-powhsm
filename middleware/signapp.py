@@ -53,7 +53,7 @@ def compute_app_hash(path):
 if __name__ == "__main__":
     logging.disable(logging.CRITICAL)
 
-    parser = ArgumentParser(description="HSM 2 App Signer")
+    parser = ArgumentParser(description="powHSM App Signer")
     parser.add_argument("operation", choices=["key", "ledger", "hash"])
     parser.add_argument(
         "-a",

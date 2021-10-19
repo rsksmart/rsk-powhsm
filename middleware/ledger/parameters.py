@@ -30,7 +30,7 @@ class _Network(IntEnum):
 
 
 # Instances of this represent parameters
-# of firmware installed on an HSM2
+# of firmware installed on a powHSM
 # Parameters consist of minimum required difficulty, checkpoint and
 # target network.
 class HSM2FirmwareParameters:
