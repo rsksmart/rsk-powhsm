@@ -2,10 +2,7 @@
 
 ## I don't want to read this whole thing, I just have a question
 
-Please **don't file an issue** to ask a question. You'll get faster results by using the resources below.
-
-* We have a [Gitter channel](https://gitter.im/rsksmart/rskj) for technical questions about PowHSM and RSK
-* We have a [Telegram channel](https://t.me/RSKsmartcontracts) for general questions or discussions about PowHSM and RSK
+Please **don't file an issue** to ask a question. You'll get faster results by using our [Slack workspace](https://developers.rsk.co/slack/) instead.
 
 ## How to contribute to PowHSM
 
