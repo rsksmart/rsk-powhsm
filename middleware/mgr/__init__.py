@@ -19,32 +19,3 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
-import os
-from ledger.hsm2dongle import HSM2Dongle
-from mgr.runner import ManagerRunner
-from ledger.pin import FileBasedPin
-from user.options import UserOptionParser
-
-
-def load_pin(user_options):
-    env_pin = os.environ.get("PIN", None)
-    if env_pin is not None:
-        env_pin = env_pin.encode()
-    pin = FileBasedPin(
-        user_options.pin_file,
-        default_pin=env_pin,
-        force_change=user_options.force_pin_change,
-    )
-    return pin
-
-
-if __name__ == "__main__":
-    user_options = UserOptionParser("Start the powHSM manager",
-                                    is_simulator=False, with_pin=True).parse()
-
-    runner = ManagerRunner("powHSM manager",
-                           lambda options: HSM2Dongle(options.dongle_debug),
-                           load_pin)
-
-    runner.run(user_options)

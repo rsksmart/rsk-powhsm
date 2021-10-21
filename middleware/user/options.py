@@ -28,6 +28,8 @@ class UserOptionParser:
         self,
         description,
         is_simulator,
+        with_pin,
+        with_tcpsigner=False,
         default_port=9999,
         default_host="localhost",
         default_keyfile="key.secp256",
@@ -39,9 +41,13 @@ class UserOptionParser:
         default_min_cumulative_difficulty="0x1",
         default_pin_file="pin.txt",
         default_logging_config_path="logging.cfg",
+        default_tcpsigner_host="localhost",
+        default_tcpsigner_port=8888,
     ):
         self.description = description
         self.is_simulator = is_simulator
+        self.with_pin = with_pin
+        self.with_tcpsigner = with_tcpsigner
         self.default_port = default_port
         self.default_host = default_host
         self.default_keyfile = default_keyfile
@@ -53,6 +59,8 @@ class UserOptionParser:
         self.default_speed_bps = default_speed_bps
         self.default_min_cumulative_difficulty = default_min_cumulative_difficulty
         self.default_logging_config_path = default_logging_config_path
+        self.default_tcpsigner_port = default_tcpsigner_port
+        self.default_tcpsigner_host = default_tcpsigner_host
 
     def parse(self):
         parser = ArgumentParser(description=self.description)
@@ -129,6 +137,15 @@ class UserOptionParser:
             )
         else:
             parser.add_argument(
+                "-D",
+                "--dongledebug",
+                dest="dongle_debug",
+                action="store_true",
+                help="Low level dongle debug. (defaults to no)",
+            )
+
+        if self.with_pin:
+            parser.add_argument(
                 "-P",
                 "--pin",
                 dest="pin_file",
@@ -142,13 +159,7 @@ class UserOptionParser:
                 action="store_true",
                 help="Force PIN change. (defaults to no)",
             )
-            parser.add_argument(
-                "-D",
-                "--dongledebug",
-                dest="dongle_debug",
-                action="store_true",
-                help="Low level dongle debug. (defaults to no)",
-            )
+
         parser.add_argument(
             "-l",
             "--logconfig",
@@ -163,6 +174,23 @@ class UserOptionParser:
             action="store_true",
             help="Run in version 1 mode. (defaults to no)",
         )
+
+        if self.with_tcpsigner:
+            parser.add_argument(
+                "-tp",
+                "--tcpsigner-port",
+                dest="tcpsigner_port",
+                help=f"TCPSigner listening port (default {self.default_tcpsigner_port})",
+                type=int,
+                default=self.default_tcpsigner_port,
+            )
+            parser.add_argument(
+                "-th",
+                "--tcpsigner-host",
+                dest="tcpsigner_host",
+                help=f"TCPSigner host. (default '{self.default_tcpsigner_host}')",
+                default=self.default_tcpsigner_host,
+            )
 
         options = parser.parse_args()
 
