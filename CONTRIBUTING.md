@@ -61,7 +61,7 @@ In order to ease review, it is expected that the code diff is maintained to a mi
 
 This repository hosts both C and Python code. Any changes introduced must pass both the existing Python and C automatic linting processes.
 
-For C, we use [clang-format](https://releases.llvm.org/10.0.0/tools/clang/docs/ClangFormat.html) for both linting and formatting. See the [linting/formatting](./linc-c) script for details and specifics.
+For C, we use [clang-format](https://releases.llvm.org/10.0.0/tools/clang/docs/ClangFormat.html) for both linting and formatting. See the [linting/formatting](./lint-c) script for details and specifics.
 
 For Python, we use [flake8](https://flake8.pycqa.org/en/latest/) for linting [yapf](https://github.com/google/yapf) for automatic formatting. See the [linting](./lint-python) and [formatting](./format-python) scripts for details and specifics.
 
