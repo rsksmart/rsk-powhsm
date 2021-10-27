@@ -35,7 +35,7 @@ import logging
 
 if __name__ == "__main__":
     user_options = UserOptionParser("Start the HSM2 manager+ledger simulator",
-                                    is_simulator=True).parse()
+                                    is_simulator=True, with_pin=False).parse()
 
     configure_logging(user_options.logconfigfilepath)
     logger = logging.getLogger("smltr")
