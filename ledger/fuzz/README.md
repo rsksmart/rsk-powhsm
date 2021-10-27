@@ -13,11 +13,16 @@ You can build the TCPSigner with the AFL++ compilers with the
 `~/repo/docker/afl/Dockerfile` instructions to build a `tcpsigner` 
 binary which you can then fuzz using the `fuzz` script in this folder.
 
-You should always at least one primary fuzzer (`./fuzz primary`) and as
-many secondary fuzzers as you want (`./fuzz secondary`). Running the `./fuzz` script 
-with only `primary` or `secondary` arguments works. If you want to specify
-input and output folders, you should know that all fuzzers are required
-to share the output folder. Read more on the AFL++ docs.
+The `fuzz` script takes three optional parameters:
+- number of cores, defaults to the number of cores on your machine (as per reported by `nproc`)
+- path to testcases, defaults to `~/repo/ledger/fuzz/testcases`
+- path to output, defaults to `~/repo/ledger/fuzz/output`
+- path to dictionary, defaults to `~/repo/ledger/fuzz/dict`
+
+And runs a primary fuzzer and `cores-1` secondary fuzzers.
+
+The script uses the `env` file to read some `tcpsingers` arguments. See the 
+`Modifying run parameters` title on this doc.
 
 # Generating coverage
 To know how much coverage the fuzzer has, you can run the `./coverage` script. 
