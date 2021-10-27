@@ -69,7 +69,7 @@ class _EndorsementScheme(IntEnum):
     SCHEME_TWO = 2
 
 
-# Handles low-level communication with an HSM2 dongle for
+# Handles low-level communication with an powHSM dongle for
 # some factory/legacy commands
 class DongleAdmin:
     # APDU prefix

@@ -31,7 +31,7 @@ DEFAULT_PORT = 9999
 DEFAULT_VERBOSE = False
 CHUNK_PLACEHOLDER = "<CHUNK>"
 
-parser = ArgumentParser(description="Send a request to the HSM2 manager")
+parser = ArgumentParser(description="Send a request to the powHSM manager")
 parser.add_argument(
     "-a",
     "--host",

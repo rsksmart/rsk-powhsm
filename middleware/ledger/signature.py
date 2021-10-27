@@ -20,7 +20,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# Parses a signature received from an HSM 2 dongle
+# Parses a signature received from a powHSM dongle
+
 class HSM2DongleSignature:
     def __init__(self, signature_bytes):
         def error():

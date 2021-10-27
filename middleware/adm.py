@@ -50,7 +50,7 @@ if __name__ == "__main__":
         "verify_attestation": do_verify_attestation,
     }
 
-    parser = ArgumentParser(description="HSM 2 Administrative tool")
+    parser = ArgumentParser(description="powHSM Administrative tool")
     parser.add_argument("operation", choices=list(actions.keys()))
     parser.add_argument("-p", "--pin", dest="pin", help="PIN.")
     parser.add_argument(

@@ -1,16 +1,12 @@
-# HSM 2.x attestation
+# powHSM attestation
 
 ## Abstract
 
-This document describes the mechanisms through which an HSM 2.x installation can prove to an end user that it is actually installed on an authentic physical Ledger device with a specific UI and Signer versions, along with its installed Certification Authority (usually RSK) and generated public keys.
-
-## Support
-
-Attestation support in HSM 2.x was added in version 2.1. Previous versions of both the UI and Signer do not support attestation.
+This document describes the mechanisms through which a powHSM installation can prove to an end user that it is actually installed on an authentic physical Ledger device with a specific UI and Signer versions, along with its installed Certification Authority (usually RSK) and generated public keys.
 
 ## Preliminaries, native support and assumptions
 
-Each device currently used to run HSM 2.x on, namely Ledger Nano S, ships with a mechanism to prove its authenticity and that also enables and leverages some basic additional support for user application attestation. For HSM 2.x attestation we make extensive use of these mechanisms, assuming it is robust enough for our purpose.
+Each device currently used to run powHSM on, namely Ledger Nano S, ships with a mechanism to prove its authenticity and that also enables and leverages some basic additional support for user application attestation. For powHSM attestation we make extensive use of these mechanisms, assuming it is robust enough for our purpose.
 
 ## Device key and authenticity
 
@@ -18,9 +14,9 @@ The mechanism use by Ledger Nano S devices to prove their authenticity can be be
 
 _"When all Ledger devices are provisioned in the factory, they first generate a unique Device public-private keypair. The Device’s public key is then signed by Ledger’s Issuer key to create an Issuer Certificate which is stored in the device. This certificate is a digital seal of authenticity of the Ledger device. By providing the Device’s public key and Issuer Certificate, the device can prove that it is a genuine Ledger device."_
 
-We use the device public key and issuer certificate as the basis for the HSM 2.x attestation mechanism.
+We use the device public key and issuer certificate as the basis for the powHSM attestation mechanism.
 
-## Application attestation and HSM 2.x
+## Application attestation and powHSM
 
 Ledger Nano S user applications can make indirect use of the aforementioned device keypair to provide attestation mechanisms. This can be better understood from [the ledger documentation](https://ledger.readthedocs.io/en/latest/bolos/features.html#attestation):
 
@@ -30,15 +26,15 @@ and
 
 _"The attestation keys are not accessible to apps directly, instead BOLOS provides attestation functionality to userspace applications through cryptographic primitives available as system calls. There are two different Endorsement Schemes available to applications (Endorsement Scheme One and Endorsement Scheme Two). When creating an attestation keypair, the user must choose which scheme the keypair shall belong to."_
 
-For HSM 2.x, we use Endorsement Scheme #2, which provides a primitive to _"Sign a message using a private key derived from the attestation private key and the hash of the running application"_. In this way, installed applications can endorse specific messages, and that endorsement constitutes _proof_ of those messages being generated on that specific running code on an authentic Ledger Nano S. This is the basis for HSM 2.x attestation.
+For powHSM, we use Endorsement Scheme #2, which provides a primitive to _"Sign a message using a private key derived from the attestation private key and the hash of the running application"_. In this way, installed applications can endorse specific messages, and that endorsement constitutes _proof_ of those messages being generated on that specific running code on an authentic Ledger Nano S. This is the basis for the powHSM attestation.
 
 ## Attestation goal
 
-The main goal of the HSM 2.x attestation mechanism is enabling the end user(s) to have proof of a specific HSM 2.x with a given UI and Signer running on an authentic Ledger Nano S with a specific custom certification authority (CA) and having control over a given set of generated public keys. Given the constraints specifically implemented on the HSM 2.x UI (more on this later), proof of the aforementioned would also guarantee that the holder of the HSM 2.x device will not be able to alter the installed UI and/or Signer applications without the explicit authorization of the custom certification authority (namely, RSK). An attempt to do so would result in the keypairs being lost forever.
+The main goal of the powHSM attestation mechanism is enabling the end user(s) to have proof of a specific powHSM with a given UI and Signer running on an authentic Ledger Nano S with a specific custom certification authority (CA) and having control over a given set of generated public keys. Given the constraints specifically implemented on the powHSM UI (more on this later), proof of the aforementioned would also guarantee that the holder of the powHSM device will not be able to alter the installed UI and/or Signer applications without the explicit authorization of the custom certification authority (namely, RSK). An attempt to do so would result in the keypairs being lost forever.
 
 ## Attestation gathering
 
-The attestation gathering process is actually a three step process: first, the attestation keypair is setup; second, the UI provides attestation for itself; last, the Signer provides an attestation for itself. Together, these three pieces form the HSM 2.x attestation.
+The attestation gathering process is actually a three step process: first, the attestation keypair is setup; second, the UI provides attestation for itself; last, the Signer provides an attestation for itself. Together, these three pieces form the powHSM attestation.
 
 ### Attestation keypair setup
 
@@ -82,7 +78,7 @@ The output of the attestation process is a JSON file with a proprietary structur
     {
       "name": "attestation",
       "message": "ff043bc81f42c85b1cafb66f2af7ba29c61aac0357ae0228ea479d775c908ee412ca857f892c38c300c7e7283298dea535723955448fe6edb906a4dc4738cbb61e86",
-      "digest": "sha256",
+      "digest": "none",
       "extract": "1:",
       "signature": "3045022100cb411ef6771105a8eb71c85295450fac36edd8abfca7bfcf55dbca0fe9842a0f022056055f6f34f4f0c0bfe6620611b18139fc816b8c64447452ea31d2551c0dcff2",
       "signed_by": "device"

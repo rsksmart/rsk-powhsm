@@ -1,12 +1,14 @@
-# HSM 2.0 Ledger Nano S apps
+# powHSM Ledger Nano S apps
 
 There are three ledger apps, all of them targeted for running on a Ledger Nano S with a 1.3.1 firmware.
 
 - UI: this is the modified 1.3.1 UI with a nonblocking behavior to allow the device to run uninterruptedly without human interaction. It is essentially the RSK version of the Ledger Nano S User Interface which can be loaded as a specific application - it can be used to personalize most generic parts of the user experience. This version also modifies the onboarding process to reflect RSK needs. Modified UIs display a warning at boot time to let you know whether you're running a certified version. This application shall be installed in Recovery mode. Find the source code under `ledger/src/ui`.
 
-- Signer: this is the main app that implements the signing and authorization logic for HSM 2. It is intended to be used alongside the UI. Find the source code under `ledger/src/signer`.
+- Signer: this is the main app that implements the signing and authorization logic for powHSM. It is intended to be used alongside the UI. Find the source code under `ledger/src/signer`.
 
-- Certificate signer: this is a simple signer app, used only for the purpose of certifying authentic UI and Signer builds. It is intended for use with the default UI. Even though it hasn't been tested, this app should be runnable on a newer firmware. Find the source code under `ledger/src/signer-certificate`.
+- Certificate signer: this is a simple signer app, used only for the purpose of certifying authentic UI and Signer builds. It is intended for use with the default (i.e., factory) UI. Even though it hasn't been tested, this app should also be runnable on a newer firmware. Find the source code under `ledger/src/signer-certificate`.
+
+There exists also an x86 implementation of the _Signer_ component, which we call TCPSigner, that we use to smoke test, fuzz (see [the fuzzing documentation](./fuzz/README.md) for details) and debug & test new features on before we jump onto testing on a physical device. With the exception of fuzzing, this component creates a TCP/IP server that serves the purpose of enabling the otherwise USB-based interactions with a given client.
 
 ## Prerequisites
 
@@ -36,10 +38,16 @@ See [Ledger's documentation](http://ledger.readthedocs.io) to get a reference on
 
 ## Tests
 
-There are some python tests that serve the purpose of smoke testing the HSM 2 signer when installed and running on a Ledger Nano S. To run them, issue:
+There are some tests written in Python that serve the purpose of smoke testing the powHSM signer when either installed and running on a Ledger Nano S or via a fresh TCPSigner build. To run them against a TCPSigner, issue:
 
 ```
 ~/repo/ledger/src/tests> ./test-all
+```
+
+To run them against a Ledger Nano S, issue:
+
+```
+~/repo/ledger/src/tests> ./test-all dongle
 ```
 
 Make sure that the Ledger is unlocked and with the signer app running for the tests to run correctly.

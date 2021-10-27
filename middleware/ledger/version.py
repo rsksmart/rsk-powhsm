@@ -21,9 +21,9 @@
 # SOFTWARE.
 
 # Instances of this represent firmware versions
-# of firmware installed on an HSM2.
+# of firmware installed on a powHSM.
 # It is also used to represent implemented versions
-# of the HSM2 protocol on the middleware manager.
+# of the powHSM protocol on the middleware manager.
 # A version consists of a major, minor and patch
 class HSM2FirmwareVersion:
     def __init__(self, major, minor, patch):

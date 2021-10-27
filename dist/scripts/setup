@@ -168,7 +168,7 @@ function verify_attestation() {
     error
 }
 
-echo -e "\e[1;32mWelcome to the HSM2 Setup for RSK \e[0m"
+echo -e "\e[1;32mWelcome to the powHSM Setup for RSK \e[0m"
 echo
 checkForPinFile
 checkFirmware
@@ -224,7 +224,7 @@ echo
 echo -e "\e[1;32mVerifying attestation\e[0m"
 verify_attestation
 echo
-echo -e "\e[1;32mHSM2 Setup complete.\e[0m"
+echo -e "\e[1;32mpowHSM Setup complete.\e[0m"
 echo -e "\e[1;33mPlease disconnect the device.\e[0m"
 echo
 cleanBinaries

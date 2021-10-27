@@ -1,6 +1,6 @@
-# HSM 2.0 middleware
+# powHSM middleware
 
-All of the HSM 2.0 middleware is written in Python 3. Here you will find guidelines on setting up and using an  environment for developing, running and building binaries.
+All of the powHSM middleware is written in Python 3. Here you will find guidelines on setting up and using an environment for developing, running and building binaries.
 
 ## Prerequisites
 
@@ -42,7 +42,7 @@ Throughout the rest of the document, we will refer to a middleware development e
 
 ### Manager
 
-The manager is the main middleware component. Its role is to provide a high-level abstraction layer over the low-level HSM 2 dongle USB interface. It does this by starting a TCP service in a certain interface and port and implementing the [protocol](../docs/protocol.md) on top by means of interactions with the connected HSM 2 dongle. The entrypoint to the manager is the `manager.py` script. In order to start the HSM 2 manager, issue:
+The manager is the main middleware component. Its role is to provide a high-level abstraction layer over the low-level powHSM dongle USB interface. It does this by starting a TCP service in a certain interface and port and implementing the [protocol](../docs/protocol.md) on top by means of interactions with the connected powHSM dongle. The entrypoint to the manager is the `manager.py` script. In order to start the powHSM manager, issue:
 
 ```
 (mware)> python manager.py
@@ -52,7 +52,7 @@ Hit CTRL-C at any time to stop it.
 
 ### Simulator
 
-The simulator is a middleware component that implements both the manager and the HSM 2 dongle at the same time, meaning that there's no need for an actual physical HSM device to be present. That is, it simulates an HSM 2 dongle and all its supported operations. This piece of software should be updated alongside the manager as the middleware evolves. The entrypoint to the simulator is the `sim.py` script. In order to start the HSM 2 simulator, issue:
+The simulator is a middleware component that implements both the manager and the powHSM dongle at the same time, meaning that there's no need for an actual physical powHSM device to be present. That is, it simulates a powHSM dongle and all its supported operations. This piece of software should be updated alongside the manager as the middleware evolves. The entrypoint to the simulator is the `sim.py` script. In order to start the powHSM simulator, issue:
 
 ```
 (mware)> python sim.py
@@ -62,12 +62,11 @@ Hit CTRL-C at any time to stop it.
 
 ### Administrative utilities
 
-Aside from the main `manager.py` and `sim.py` scripts, there are other four scripts to consider:
+Aside from the main `manager.py` and `sim.py` scripts, there are other three scripts to consider:
 
-- `adm.py`: administrative utility for an HSM 2 dongle. It provides common utilities that can be performed on an HSM 2 dongle.
+- `adm.py`: administrative utility for a powHSM dongle. It provides common utilities that can be performed on a powHSM dongle.
 - `lbutils.py`: common frontend to some of the `ledgerblue` modules. In particular, it ultimately serves the purpose of being able to build a binary for these utilities.
-- `signapp.py`: ledger app signer. Serves the purpose of signing firmware builds. Can be used to sign with an HSM Certificate Signer Ledger app (see [the ledger readme](`../ledger/README.md`) for details) or with a manually input key (for testing purposes).
-- `restore.py`: HSM 2 onboarding backup restorer. It takes an HSM 2 backup (one of the byproducts of the onboarding process) as input and produces a mnemonic as output. This mnemonic can then be used to restore the keys of the ledger. It is intended for emergencies only.
+- `signapp.py`: ledger app signer. Serves the purpose of signing firmware builds. Can be used to sign with a powHSM Certificate Signer Ledger app (see [the ledger readme](`../ledger/README.md`) for details) or with a manually input key (for testing purposes).
 
 The remaining `client.py` is a shorthand client utility for manually testing communication with a running manager or simulator.
 
@@ -104,6 +103,6 @@ that should build (or rebuild in case the `Dockerfile` has changed) the correspo
 Distribution of the middleware is done in the form of `.tgz` archives containing the binaries - main file and dependencies -, which are first built using the python tool [pyinstaller](https://www.pyinstaller.org/) and then packed for distribution. Scripts for building binaries for each main tool can be found under the `middleware/build` directory. These scripts place the output under the `middleware/bin` directory. There are also two scripts that are shorthand for serial building:
 
 - `middleware/build/all`: builds all the tools.
-- `middleware/build/dist`: builds all the tools that are meant for distribution (i.e., all but `sim.py` and `restore.py`).
+- `middleware/build/dist`: builds all the tools that are meant for distribution (i.e., all but `sim.py`).
 
 Within the same docker image, utility builds are bytewise reproducible.

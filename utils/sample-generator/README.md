@@ -1,4 +1,4 @@
-# HSM 2 sample proof generation tool
+# powHSM sample proof generation tool
 
 ## Prerequisites
 
