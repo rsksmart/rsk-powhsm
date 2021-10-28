@@ -3,19 +3,14 @@
 # set -exo pipefail
 
 function usage {
-    echo "Usage: $0 <opt: cores to use> <opt: path to testcases> <opt: path to output> <opt: path to dictionary>"
+    echo "Usage: $0 <opt: cores to use> <opt: path to testcases> <opt: path to output> <opt: path to dictionary> <opt: path to coverage dir>"
     exit 1
 }
 
-if [[ $# -gt 4 ]]; then
+if [[ $# -gt 5 ]]; then
     usage
 fi
 
-if [[ "$1" -lt 1 ]]; then
-    usage
-    echo "ERR: can not use zero cores"
-    exit 1
-fi
 
 if [[ "$1" -gt $(nproc) ]]; then
     echo "WARNING: Spinning up more instances than cores available"
@@ -50,6 +45,12 @@ if [[ -z "$RAW_CORES" ]]; then
     RAW_CORES=$(nproc)
 fi
 
+if [[ "$RAW_CORES" -lt 1 ]]; then
+    usage
+    echo "ERR: can not use zero cores"
+    exit 1
+fi
+
 TESTCASES="$2"
 if [[ -z "$TESTCASES" ]]; then
     TESTCASES="$HSM_ROOT/ledger/fuzz/testcases"
@@ -65,6 +66,28 @@ if [[ -z "$DICT" ]]; then
     DICT="$HSM_ROOT/ledger/fuzz/dict"
 fi
 
+COVERAGE_DIR="$5"
+if [[ -z "$COVERAGE_DIR" ]]; then
+    COVERAGE_DIR="$HSM_ROOT/ledger/fuzz/.coverage-build"
+fi
+
+if [[ -d "$OUTPUT/cov" ]]; then
+    echo "ERR: coverage directory exists"
+    echo "ERR: do something with previous result"
+    echo "ERR: and delete the $OUTPUT/cov dir"
+    exit 1
+fi
+
+# Create coverage session
+COVERAGE_CMD="afl-cov -d /output --live  --coverage-cmd \
+    '$CMD' \
+    --code-dir . --lcov-web-all"
+tmux new -d -s coverage \
+    docker run -ti --rm --user $DOCKER_USER -w /hsm2-cov/tcpsigner \
+    -v ${COVERAGE_DIR}:/hsm2-cov -v ${OUTPUT}:/output -v \
+    "$HSM_ROOT":/hsm2 ${DOCKER_IMAGE} /bin/bash -c "$COVERAGE_CMD"
+sleep 0.5 # give some time to coverage to start...
+
 # Create main tmux session and init the fuzzer in there
 MAIN_FUZZ_CMD="afl-fuzz -x /dict -D -M main -i /testcases -o /output $CMD"
 tmux new -d -s main \
@@ -72,9 +95,10 @@ tmux new -d -s main \
     --user $DOCKER_USER -w /hsm2/ledger/src/tcpsigner \
     -v "$DICT":/dict -v "$TESTCASES":/testcases -v "$OUTPUT":/output \
     -v "$HSM_ROOT":/hsm2 ${DOCKER_IMAGE} /bin/bash -c "$MAIN_FUZZ_CMD"
+sleep 0.1 # starting too many instances of AFL too quickly seems to mess things up
 
 # For every core available, create annother dettached session and start a fuzzer there
-CORES=$((RAW_CORES - 1)) # one is already used by the main fuzzer
+CORES=$((RAW_CORES - 1)) # one already used by the main fuzzer
 
 # see https://github.com/mboehme/aflfast for more information on
 # power schedules
@@ -85,7 +109,6 @@ CORE=0
 while [[ $CORE -lt $CORES ]]; do
     SELECTED_PW=$((i % POWER_SCHEDULES_LEN))
     PW=${POWER_SCHEDULES[$SELECTED_PW]}
-    echo $PW
     ENV="AFL_IMPORT_FIRST=1"
     NAME="secondary-$CORE"
     QUEUE=""
