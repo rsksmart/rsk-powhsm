@@ -33,3 +33,42 @@ jobs:
           for d in memutil; do
             (cd "$d" && make clean test)
           done
+
+  run-integration-tests:
+    name: Integration tests
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Checkout rsk-powhsm repo
+        uses: actions/checkout@v2
+        with:
+          path: rsk-powhsm
+
+      - name: Build TCP manager
+        working-directory: rsk-powhsm
+        run: middleware/build/manager-tcp
+        # middleware/bin/manager-tcp.tgz
+
+      - name: Build TCPSigner
+        working-directory: rsk-powhsm
+        run: ledger/build/build-tcpsigner
+        # ledger/src/tcpsigner/tcpsigner
+
+      - name: Checkout hsm-integration-test repo
+        uses: actions/checkout@v2
+        with:
+          repository: rootstock/hsm-integration-test
+          path: hsm-integration-test
+          ssh-key: ${{ secrets.HSM_INTEGRATION_TEST_SSH_KEY }}
+
+      - name: Copy required files
+        run: |
+          mkdir hsm-integration-test/docker/manager/manager-tcp
+          tar -xzf rsk-powhsm/middleware/bin/manager-tcp.tgz \
+              -C hsm-integration-test/docker/manager/manager-tcp
+          cp rsk-powhsm/ledger/src/tcpsigner/tcpsigner \
+              hsm-integration-test/docker/tcpsigner/
+
+      - name: Run HSM integration tests
+        working-directory: hsm-integration-test
+        run: sh smoke-test.sh
