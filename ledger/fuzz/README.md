@@ -22,7 +22,7 @@ The `fuzz` script takes three optional parameters:
 
 And runs a primary fuzzer, coverage and `cores - 1` secondary fuzzers.
 
-The script uses the `env` file to read some `tcpsingers` arguments. See the 
+The script uses the `env` file to read some `tcpsinger` arguments. See the 
 `Modifying run parameters` title on this doc.
 
 # Coverage build
