@@ -13,19 +13,19 @@ You can build the TCPSigner with the AFL++ compilers with the
 `~/repo/docker/afl/Dockerfile` instructions to build a `tcpsigner` 
 binary which you can then fuzz using the `fuzz` script in this folder.
 
-You should always at least one primary fuzzer (`./fuzz primary`) and as
-many secondary fuzzers as you want (`./fuzz secondary`). Running the `./fuzz` script 
-with only `primary` or `secondary` arguments works. If you want to specify
-input and output folders, you should know that all fuzzers are required
-to share the output folder. Read more on the AFL++ docs.
+The `fuzz` script takes three optional parameters:
+- number of cores, defaults to the number of cores on your machine (as per reported by `nproc`)
+- path to testcases, defaults to `~/repo/ledger/fuzz/testcases`
+- path to output, defaults to `~/repo/ledger/fuzz/output`
+- path to dictionary, defaults to `~/repo/ledger/fuzz/dict`
+- path to coverage build, defaults to `~/repo/ledger/fuzz/.coverage-build`
 
-# Generating coverage
-To know how much coverage the fuzzer has, you can run the `./coverage` script. 
-The `./coverage` script needs to be run _before_ the fuzzer starts. Its defaults 
-match the defaults arguments of the `./fuzz` script, but if you will run 
-the fuzzer with a different output location, you should let the `./coverage` script
-know.
+And runs a primary fuzzer, coverage and `cores - 1` secondary fuzzers.
 
+The script uses the `env` file to read some `tcpsinger` arguments. See the 
+`Modifying run parameters` title on this doc.
+
+# Coverage build
 The `coverage-build` parameter is an unfortunate technicality. Coverage needs
 a copy of the source files, and we must put it somewhere. The default is `./.coverage-build`.
 You can mostly ignore this folder. But whatever you specify as the coverage build folder
