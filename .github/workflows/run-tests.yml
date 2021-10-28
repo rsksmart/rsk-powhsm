@@ -44,15 +44,13 @@ jobs:
         with:
           path: rsk-powhsm
 
-      - name: Build TCP manager
+      - name: Build required software
         working-directory: rsk-powhsm
-        run: middleware/build/manager-tcp
-        # middleware/bin/manager-tcp.tgz
-
-      - name: Build TCPSigner
-        working-directory: rsk-powhsm
-        run: ledger/build/build-tcpsigner
-        # ledger/src/tcpsigner/tcpsigner
+        run: |
+          docker/mware/build
+          docker/packer/build
+          middleware/build/manager-tcp
+          ledger/build/build-tcpsigner
 
       - name: Checkout hsm-integration-test repo
         uses: actions/checkout@v2
