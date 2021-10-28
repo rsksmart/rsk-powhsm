@@ -93,3 +93,17 @@ All notable changes to this project will be documented in this file.
 ### Fixes
 
 - Abort the firmware upgrade process if device is not onboarded
+
+## [2.3.0] - 28/10/2021
+
+### Features/enhancements
+
+- Implemented recommended best practices on the Signer and UI
+- Added fuzzing support for the TCPSigner using AFL
+- Implemented TCP version of the manager (to run against a TCPSigner)
+- Signer, middleware and integration tests run as part of the CI workflow
+- C and Python linters run as part of the CI workflow
+
+### Fixes
+
+- Implemented dependabot recommended dependency bumps
