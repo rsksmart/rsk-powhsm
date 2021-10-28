@@ -105,7 +105,7 @@ CORES=$((RAW_CORES - 1)) # one already used by the main fuzzer
 POWER_SCHEDULES=("fast" "explore" "coe" "lin" "quad" "exploit" "rare")
 POWER_SCHEDULES_LEN=${#POWER_SCHEDULES[@]}
 
-CORE=0
+CORE=1
 while [[ $CORE -lt $CORES ]]; do
     SELECTED_PW=$((i % POWER_SCHEDULES_LEN))
     PW=${POWER_SCHEDULES[$SELECTED_PW]}
