@@ -30,7 +30,9 @@ We make use of GitHub Checks to ensure all changes meet a certain criteria:
 
 1. The `master` branch is protected and only changeable through pull requests
 1. All tests (unit and integration) must pass
-1. SonarQube quality gate must be met
+1. The C linter must pass
+1. The python linter must pass
+1. The SonarQube quality gate must be met
 1. A project maintainer must approve the pull request
 1. An authorized merger must merge the pull request
 
@@ -47,6 +49,12 @@ All code paths on new code must be tested, including sensible edge cases and exp
 New dependencies are discouraged in order to minimize the attack surface.
 
 In order to ease review, it is expected that the code diff is maintained to a minimum. This includes things like not changing unrelated files, not changing names or reordering code when there isn't an evident benefit.
+
+#### Branching
+
+Under normal circumstances, the PowHSM repository has a sole main branch, `master`, which is protected. This contains the latest nonreleased version, and is constantly updated with changes (e.g., features, bugfixes). There can occasionally exist protected _version_ branches in case there is ongoing patch work on top of an old version. Aside from this, we manage version releases using tags and GitHub releases for some of these.
+
+When creating a pull request for a given set of changes, make sure to create a new branch with a _meaningful_ name off the `master` branch. If your change happens to be an improvement or fix over an old tagged version, then please make sure to contact the team first so that they can assess the situation and create a branch from the corresponding tag so that you can target your pull request to.
 
 ## Style
 
