@@ -110,7 +110,6 @@ def do_verify_attestation(options):
         raise AdminError("Certificate does not contain a UI attestation")
 
     ui_result = result["ui"]
-    print(ui_result)
     if not ui_result[0]:
         raise AdminError(f"Invalid UI attestation: error validating '{ui_result[1]}'")
 

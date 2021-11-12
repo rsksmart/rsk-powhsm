@@ -186,10 +186,12 @@ void SM_RLP_HDR(RLP_CTX *ctx,
         LOG("RLP decode buffer would overflow\n");
         THROW(0x6A8A);
     }
-    SAFE_MEMMOVE(ctx->decodeBuffer + ctx->decodeOffset,
-                 sizeof(ctx->decodeBuffer) - ctx->decodeOffset,
+    SAFE_MEMMOVE(ctx->decodeBuffer,
+                 sizeof(ctx->decodeBuffer),
+                 ctx->decodeOffset,
                  APDU_DATA_PTR,
                  APDU_TOTAL_DATA_SIZE,
+                 0,
                  1,
                  THROW(0x6A8A));
     ctx->decodeOffset++;

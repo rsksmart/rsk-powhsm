@@ -90,10 +90,12 @@ static uint8_t expected_state;
  * @arg[in] size buffer size in bytes
  */
 static void wa_store(const uint8_t* buf, uint16_t size) {
-    SAFE_MEMMOVE(block.wa_buf + block.wa_off,
-                 sizeof(block.wa_buf) - block.wa_off,
+    SAFE_MEMMOVE(block.wa_buf,
+                 sizeof(block.wa_buf),
+                 block.wa_off,
                  buf,
                  size,
+                 0,
                  size,
                  FAIL(BUFFER_OVERFLOW));
 
@@ -141,10 +143,12 @@ static void process_merkle_proof(const uint8_t* chunk, uint16_t size) {
  * @arg[in] size  chunk size in bytes
  */
 static void store_cb_txn_bytes(const uint8_t* chunk, uint16_t size) {
-    SAFE_MEMMOVE(block.cb_txn + block.cb_off,
-                 sizeof(block.cb_txn) - block.cb_off,
+    SAFE_MEMMOVE(block.cb_txn,
+                 sizeof(block.cb_txn),
+                 block.cb_off,
                  chunk,
                  size,
+                 0,
                  size,
                  FAIL(CB_TXN_OVERFLOW));
 
@@ -513,8 +517,10 @@ static void str_start(const uint16_t size) {
         // reduction area
         SAFE_MEMMOVE(block.merkle_proof_left,
                      sizeof(block.merkle_proof_left),
+                     0,
                      block.cb_txn_hash,
                      sizeof(block.cb_txn_hash),
+                     0,
                      sizeof(block.cb_txn_hash),
                      FAIL(MERKLE_PROOF_INVALID));
     }
@@ -624,8 +630,10 @@ static void str_end() {
 
             SAFE_MEMMOVE(block.umm_root,
                          sizeof(block.umm_root),
+                         0,
                          block.wa_buf,
                          sizeof(block.wa_buf),
+                         0,
                          block.wa_off,
                          FAIL(UMM_ROOT_INVALID));
         }
@@ -736,8 +744,10 @@ unsigned int bc_advance(volatile unsigned int rx) {
         memset(aux_bc_st.prev_parent_hash, 0, HASH_SIZE);
         SAFE_MEMMOVE(aux_bc_st.total_difficulty,
                      sizeof(aux_bc_st.total_difficulty),
+                     0,
                      N_bc_state.updating.total_difficulty,
                      sizeof(N_bc_state.updating.total_difficulty),
+                     0,
                      sizeof(aux_bc_st.total_difficulty),
                      FAIL(PROT_INVALID));
 
@@ -770,8 +780,10 @@ unsigned int bc_advance(volatile unsigned int rx) {
         // Read the coinbase transaction hash
         SAFE_MEMMOVE(block.cb_txn_hash,
                      sizeof(block.cb_txn_hash),
-                     APDU_DATA_PTR + sizeof(block.mm_rlp_len),
-                     APDU_TOTAL_DATA_SIZE - sizeof(block.mm_rlp_len),
+                     0,
+                     APDU_DATA_PTR,
+                     APDU_TOTAL_DATA_SIZE,
+                     sizeof(block.mm_rlp_len),
                      sizeof(block.cb_txn_hash),
                      FAIL(PROT_INVALID));
 
