@@ -107,3 +107,9 @@ All notable changes to this project will be documented in this file.
 ### Fixes
 
 - Implemented dependabot recommended dependency bumps
+
+## [2.3.1] - 12/11/2021
+
+### Features/enhancements
+
+- Added source and destination offsets as additional parameters to SAFE_MEMMOVE
