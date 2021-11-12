@@ -63,10 +63,12 @@ static uint8_t expected_state;
  * @arg[in] size buffer size in bytes
  */
 static void wa_store(const uint8_t* buf, uint16_t size) {
-    SAFE_MEMMOVE(block.wa_buf + block.wa_off,
-                 sizeof(block.wa_buf) - block.wa_off,
+    SAFE_MEMMOVE(block.wa_buf,
+                 sizeof(block.wa_buf),
+                 block.wa_off,
                  buf,
                  size,
+                 0,
                  size,
                  FAIL(BUFFER_OVERFLOW));
 

@@ -65,20 +65,26 @@ void MP_START(MP_CTX *ctx,
     // Copy parameters (ReceiptHash and ReceiptsRoot)
     SAFE_MEMMOVE(ctx->receiptHash,
                  sizeof(ctx->receiptHash),
+                 0,
                  Receipt_Hash,
                  HASHLEN,
+                 0,
                  HASHLEN,
                  THROW(0x6A87));
     SAFE_MEMMOVE(ctx->receiptsRoot,
                  sizeof(ctx->receiptsRoot),
+                 0,
                  receiptsRoot,
                  HASHLEN,
+                 0,
                  HASHLEN,
                  THROW(0x6A87));
     SAFE_MEMMOVE(ctx->signatureHash,
                  sizeof(ctx->signatureHash),
+                 0,
                  signatureHash,
                  HASHLEN,
+                 0,
                  HASHLEN,
                  THROW(0x6A87));
     LOG("MP START rx:%d\n", rx);
@@ -234,8 +240,10 @@ void MP_NODE_SHARED_PREFIX_VARINT_BODY(MP_CTX *ctx,
     // Read length from input
     SAFE_MEMMOVE(&length,
                  sizeof(length),
+                 0,
                  APDU_DATA_PTR,
                  APDU_TOTAL_DATA_SIZE,
+                 0,
                  APDU_DATA_SIZE(rx),
                  THROW(0x6A87));
     // Shared prefixes over MAX_MP_TRANSFER_SIZE not supported
@@ -289,8 +297,10 @@ void MP_NODE_LEFT(MP_CTX *ctx,
         // Copy hash and continue parsing
         SAFE_MEMMOVE(ctx->left_node_hash,
                      sizeof(ctx->left_node_hash),
+                     0,
                      APDU_DATA_PTR,
                      APDU_TOTAL_DATA_SIZE,
+                     0,
                      HASHLEN,
                      THROW(0x6A87));
         SET_APDU_TXLEN(0);
@@ -361,8 +371,10 @@ void MP_NODE_RIGHT(MP_CTX *ctx,
         // Copy hash and continue parsing
         SAFE_MEMMOVE(ctx->right_node_hash,
                      sizeof(ctx->right_node_hash),
+                     0,
                      APDU_DATA_PTR,
                      APDU_TOTAL_DATA_SIZE,
+                     0,
                      HASHLEN,
                      THROW(0x6A87));
         SET_APDU_TXLEN(0);
@@ -483,8 +495,10 @@ void MP_NODE_VALUE_LEN(MP_CTX *ctx,
     // ValueHash
     SAFE_MEMMOVE(ctx->value_hash,
                  sizeof(ctx->value_hash),
+                 0,
                  APDU_DATA_PTR,
                  APDU_TOTAL_DATA_SIZE,
+                 0,
                  HASHLEN,
                  THROW(0x6A87));
     // Check Receipt hash, must be equal that the first trie node value

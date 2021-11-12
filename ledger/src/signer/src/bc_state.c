@@ -122,10 +122,12 @@ uint8_t dump_hash(uint8_t hash_code) {
     }
 
     APDU_DATA_PTR[0] = hash_code;
-    SAFE_MEMMOVE(APDU_DATA_PTR + 1,
-                 APDU_TOTAL_DATA_SIZE - 1,
+    SAFE_MEMMOVE(APDU_DATA_PTR,
+                 APDU_TOTAL_DATA_SIZE,
+                 1,
                  h,
                  HASH_SIZE,
+                 0,
                  HASH_SIZE,
                  FAIL(PROT_INVALID));
 
@@ -147,8 +149,10 @@ uint8_t dump_difficulty() {
         continue;
     SAFE_MEMMOVE(APDU_DATA_PTR,
                  APDU_TOTAL_DATA_SIZE,
-                 buf + start,
-                 sizeof(buf) - start,
+                 0,
+                 buf,
+                 sizeof(buf),
+                 start,
                  sizeof(buf) - start,
                  FAIL(PROT_INVALID));
     return sizeof(buf) - start;
@@ -161,10 +165,12 @@ uint8_t dump_difficulty() {
  * @ret number of bytes dumped to APDU buffer
  */
 uint8_t bc_dump_initial_block_hash(int offset) {
-    SAFE_MEMMOVE(APDU_DATA_PTR + offset,
-                 APDU_TOTAL_DATA_SIZE - offset,
+    SAFE_MEMMOVE(APDU_DATA_PTR,
+                 APDU_TOTAL_DATA_SIZE,
+                 offset,
                  INITIAL_BLOCK_HASH,
                  sizeof(INITIAL_BLOCK_HASH),
+                 0,
                  sizeof(INITIAL_BLOCK_HASH),
                  FAIL(PROT_INVALID));
     return sizeof(INITIAL_BLOCK_HASH);

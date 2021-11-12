@@ -24,11 +24,25 @@
 
 #include "os.h"
 
-#define SAFE_MEMMOVE(dest, dest_size, src, src_size, n, ERR_EXPR) \
-    {                                                             \
-        if ((n) < 0 || (n) > (dest_size) || (n) > (src_size)) {   \
-            ERR_EXPR;                                             \
-        } else {                                                  \
-            os_memmove(dest, src, n);                             \
-        }                                                         \
+#define SAFE_MEMMOVE(                                                       \
+    dst, dst_size, dst_off, src, src_size, src_off, n, ERR_EXPR)            \
+    {                                                                       \
+        if (((unsigned int)(n)) > ((unsigned int)(dst_size)) ||             \
+            ((unsigned int)(n)) > ((unsigned int)(src_size)) ||             \
+            ((unsigned int)(dst_off)) > ((unsigned int)(dst_size)) ||       \
+            ((unsigned int)(src_off)) > ((unsigned int)(src_size)) ||       \
+            ((unsigned int)(n) + (unsigned int)(dst_off)) <                 \
+                ((unsigned int)(n)) ||                                      \
+            ((unsigned int)(n) + (unsigned int)(src_off)) <                 \
+                ((unsigned int)(n)) ||                                      \
+            ((unsigned int)(n) + (unsigned int)(dst_off)) >                 \
+                ((unsigned int)(dst_size)) ||                               \
+            ((unsigned int)(n) + (unsigned int)(src_off)) >                 \
+                ((unsigned int)(src_size))) {                               \
+            ERR_EXPR;                                                       \
+        } else {                                                            \
+            os_memmove(((unsigned char*)(dst)) + ((unsigned int)(dst_off)), \
+                       ((unsigned char*)(src)) + ((unsigned int)(src_off)), \
+                       (unsigned int)(n));                                  \
+        }                                                                   \
     }

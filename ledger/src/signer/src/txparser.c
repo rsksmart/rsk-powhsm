@@ -68,14 +68,18 @@ void SM_TX_HDR(TX_CTX *ctx,
     ctx->tx_total_read += rx - (DATA + 4);
     SAFE_MEMMOVE(&ctx->tx_total_len,
                  sizeof(ctx->tx_total_len),
+                 0,
                  APDU_DATA_PTR,
                  APDU_TOTAL_DATA_SIZE,
+                 0,
                  4,
                  THROW(0x6A87));
     SAFE_MEMMOVE(&ctx->tx_version,
                  sizeof(ctx->tx_version),
-                 APDU_DATA_PTR + 4,
-                 APDU_TOTAL_DATA_SIZE - 4,
+                 0,
+                 APDU_DATA_PTR,
+                 APDU_TOTAL_DATA_SIZE,
+                 4,
                  4,
                  THROW(0x6A87));
     LOG(" TX_HDR: TX total len %u\n", ctx->tx_total_len);
@@ -151,8 +155,10 @@ void SM_TX_VARINT(TX_CTX *ctx,
         ctx->script_length = 0;
         SAFE_MEMMOVE(&ctx->script_length,
                      sizeof(ctx->script_length),
+                     0,
                      APDU_DATA_PTR,
                      APDU_TOTAL_DATA_SIZE,
+                     0,
                      APDU_DATA_SIZE(rx),
                      THROW(0x6A87));
     }

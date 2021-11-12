@@ -720,8 +720,10 @@ int is_app_version_allowed(application_t *app) {
     currentHash = (unsigned char *)PIC(N_SignerHashList[0]);
     SAFE_MEMMOVE(cmpbuf,
                  sizeof(cmpbuf),
+                 0,
                  currentHash,
                  sizeof(N_SignerHashList[0]),
+                 0,
                  COMPRESSEDHASHSIZE,
                  { return 0; });
     // Compare the first COMPRESSEDHASHSIZE bytes
@@ -732,8 +734,10 @@ int is_app_version_allowed(application_t *app) {
         currentHash = (unsigned char *)PIC(N_SignerHashList[i]);
         SAFE_MEMMOVE(cmpbuf,
                      sizeof(cmpbuf),
+                     0,
                      currentHash,
                      sizeof(N_SignerHashList[i]),
+                     0,
                      COMPRESSEDHASHSIZE,
                      { return 0; })
         // Compare the first COMPRESSEDHASHSIZE bytes
@@ -747,8 +751,10 @@ int is_app_version_allowed(application_t *app) {
         oldHash = (unsigned char *)PIC(N_SignerHashList[i - 1]);
         SAFE_MEMMOVE(cmpbuf,
                      sizeof(cmpbuf),
+                     0,
                      oldHash,
                      sizeof(N_SignerHashList[i - 1]),
+                     0,
                      COMPRESSEDHASHSIZE,
                      { return 0; });
         nvm_write(currentHash, cmpbuf, COMPRESSEDHASHSIZE);
@@ -756,7 +762,7 @@ int is_app_version_allowed(application_t *app) {
     // Write new hash in current app hash
     currentHash = (unsigned char *)PIC(N_SignerHashList[0]);
     SAFE_MEMMOVE(
-        cmpbuf, sizeof(cmpbuf), app->hash, sizeof(app->hash), HASHSIZE, {
+        cmpbuf, sizeof(cmpbuf), 0, app->hash, sizeof(app->hash), 0, HASHSIZE, {
             return 0;
         });
     nvm_write((void *)currentHash, cmpbuf, COMPRESSEDHASHSIZE);

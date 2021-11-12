@@ -55,8 +55,10 @@ while (true) {
                            // (DATA+PATHLEN+HASHEN)
         SAFE_MEMMOVE(path,
                      sizeof(path),
-                     APDU_DATA_PTR + 1,
-                     APDU_TOTAL_DATA_SIZE - 1,
+                     0,
+                     APDU_DATA_PTR,
+                     APDU_TOTAL_DATA_SIZE,
+                     1,
                      RSK_PATH_LEN * sizeof(int),
                      THROW(0x6A87));
         // If path requires authorization, continue with authorization and
@@ -66,8 +68,10 @@ while (true) {
                 THROW(0x6A90); // Wrong buffer size for authorized sign
             SAFE_MEMMOVE(&tx_ctx.tx_input_index_to_sign,
                          sizeof(tx_ctx.tx_input_index_to_sign),
-                         APDU_DATA_PTR + PATHLEN,
-                         APDU_TOTAL_DATA_SIZE - PATHLEN,
+                         0,
+                         APDU_DATA_PTR,
+                         APDU_TOTAL_DATA_SIZE,
+                         PATHLEN,
                          INPUTINDEXLEN,
                          THROW(0x6A87));
             SET_APDU_OP(P1_BTC);
@@ -91,8 +95,10 @@ while (true) {
             // Skip validations
             SAFE_MEMMOVE(mp_ctx.signatureHash,
                          sizeof(mp_ctx.signatureHash),
-                         APDU_DATA_PTR + PATHLEN,
-                         APDU_TOTAL_DATA_SIZE - PATHLEN,
+                         0,
+                         APDU_DATA_PTR,
+                         APDU_TOTAL_DATA_SIZE,
+                         PATHLEN,
                          sizeof(mp_ctx.signatureHash),
                          THROW(0x6A87));
             tx = TX_FOR_TXLEN();
@@ -106,8 +112,10 @@ while (true) {
     // blockchain state
     SAFE_MEMMOVE(ReceiptsRootBuf,
                  sizeof(ReceiptsRootBuf),
+                 0,
                  N_bc_state.ancestor_receipt_root,
                  sizeof(N_bc_state.ancestor_receipt_root),
+                 0,
                  sizeof(ReceiptsRootBuf),
                  THROW(0x6A87));
 
@@ -300,8 +308,10 @@ while (true) {
         case S_MP_START:
             SAFE_MEMMOVE(signatureHashCopy,
                          sizeof(signatureHashCopy),
+                         0,
                          tx_ctx.signatureHashBuf,
                          sizeof(tx_ctx.signatureHashBuf),
+                         0,
                          sizeof(signatureHashCopy),
                          THROW(0x6A87));
             MP_START(&mp_ctx,
