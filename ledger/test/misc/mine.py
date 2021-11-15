@@ -74,7 +74,7 @@ def mine(block_hex, np, mm_mp_nodes):
 
 
 def mine_chain(first_block_hex, np, total_blocks):
-    current_block = mine(first_block_hex, np)
+    current_block = mine(first_block_hex, np, 0)
     blocks = [current_block]
     ba = rlp.decode(bytes.fromhex(current_block))
     for i in range(total_blocks - 1):
@@ -85,7 +85,7 @@ def mine_chain(first_block_hex, np, total_blocks):
                                     byteorder="big",
                                     signed=False)
         ba[5] = bytes.fromhex("00" * 32)  # Receipts root does not matter
-        current_block = mine(rlp.encode(ba).hex(), np)
+        current_block = mine(rlp.encode(ba).hex(), np, 0)
         blocks.insert(0, current_block)
 
     return blocks

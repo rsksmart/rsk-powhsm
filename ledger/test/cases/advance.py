@@ -42,7 +42,7 @@ class AdvanceBlockchain(TestCase):
                 self.list_length = self.list_length[2:]
             self.list_length = bytes.fromhex(self.list_length)
 
-        return super().__init__(spec)
+        super().__init__(spec)
 
     def _change_rlp_list_length(self, block_hex):
         bs = bytes.fromhex(block_hex)

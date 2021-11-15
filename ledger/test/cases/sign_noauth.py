@@ -43,7 +43,8 @@ class SignUnauthorized(TestCase):
 
     def __init__(self, spec):
         self.hash = spec["hash"]
-        return super().__init__(spec)
+
+        super().__init__(spec)
 
     def run(self, dongle, version, debug):
         try:

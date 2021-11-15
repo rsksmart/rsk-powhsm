@@ -29,7 +29,7 @@ class GetBlockchainState(TestCase):
         return "getState"
 
     def __init__(self, spec):
-        return super().__init__(spec)
+        super().__init__(spec)
 
     def run(self, dongle, version, debug):
         try:
