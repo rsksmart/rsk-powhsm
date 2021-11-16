@@ -43,7 +43,7 @@ class SignAuthorized(TestCase):
         self.receipt = spec["receipt"]
         self.receipt_mp = spec["receiptMp"]
 
-        return super().__init__(spec)
+        super().__init__(spec)
 
     def run(self, dongle, version, debug):
         try:

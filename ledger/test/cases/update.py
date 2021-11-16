@@ -31,7 +31,8 @@ class UpdateAncestor(TestCase):
     def __init__(self, spec):
         self.blocks = spec["blocks"]
         self.chunk_size = spec.get("chunkSize", len(self.blocks))
-        return super().__init__(spec)
+
+        super().__init__(spec)
 
     def run(self, dongle, version, debug):
         try:
