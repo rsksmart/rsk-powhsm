@@ -158,7 +158,13 @@ void test_overflow() {
         dst, sizeof(dst), 0, src, sizeof(src), 10, UINT_MAX - 5, { failed++; });
     TEST_MEMMOVE(
         dst, sizeof(dst), 0, src, sizeof(src), UINT_MAX, 5, { failed++; });
-    assert(failed == 4);
+    TEST_MEMMOVE((void*)__UINTPTR_MAX__ - 10, 20, 15, src, sizeof(src), 0, 5, {
+        failed++;
+    });
+    TEST_MEMMOVE(dst, sizeof(dst), 0, (void*)__UINTPTR_MAX__ - 10, 20, 15, 5, {
+        failed++;
+    });
+    assert(failed == 6);
     assert(!copied);
 }
 

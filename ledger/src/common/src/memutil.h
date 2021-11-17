@@ -22,27 +22,49 @@
  * IN THE SOFTWARE.
  */
 
+#ifndef __MEMUTIL
+#define __MEMUTIL
+
+#include <stdint.h>
+#include <stdbool.h>
+
 #include "os.h"
 
 #define SAFE_MEMMOVE(                                                       \
     dst, dst_size, dst_off, src, src_size, src_off, n, ERR_EXPR)            \
-    {                                                                       \
-        if (((unsigned int)(n)) > ((unsigned int)(dst_size)) ||             \
-            ((unsigned int)(n)) > ((unsigned int)(src_size)) ||             \
-            ((unsigned int)(dst_off)) > ((unsigned int)(dst_size)) ||       \
-            ((unsigned int)(src_off)) > ((unsigned int)(src_size)) ||       \
-            ((unsigned int)(n) + (unsigned int)(dst_off)) <                 \
-                ((unsigned int)(n)) ||                                      \
-            ((unsigned int)(n) + (unsigned int)(src_off)) <                 \
-                ((unsigned int)(n)) ||                                      \
-            ((unsigned int)(n) + (unsigned int)(dst_off)) >                 \
-                ((unsigned int)(dst_size)) ||                               \
-            ((unsigned int)(n) + (unsigned int)(src_off)) >                 \
-                ((unsigned int)(src_size))) {                               \
-            ERR_EXPR;                                                       \
-        } else {                                                            \
-            os_memmove(((unsigned char*)(dst)) + ((unsigned int)(dst_off)), \
-                       ((unsigned char*)(src)) + ((unsigned int)(src_off)), \
-                       (unsigned int)(n));                                  \
-        }                                                                   \
+    if (!safe_memmove(dst, dst_size, dst_off, src, src_size, src_off, n)) { \
+        ERR_EXPR;                                                           \
     }
+
+__attribute__((always_inline)) static inline int safe_memmove(
+    const void *dst,
+    unsigned int dst_size,
+    unsigned int dst_off,
+    const void *src,
+    unsigned int src_size,
+    unsigned int src_off,
+    unsigned int n) {
+
+    if (((unsigned int)(n)) > ((unsigned int)(dst_size)) ||
+        ((unsigned int)(n)) > ((unsigned int)(src_size)) ||
+        ((unsigned int)(dst_off)) > ((unsigned int)(dst_size)) ||
+        ((unsigned int)(src_off)) > ((unsigned int)(src_size)) ||
+        ((unsigned int)(n) + (unsigned int)(dst_off)) < ((unsigned int)(n)) ||
+        ((unsigned int)(n) + (unsigned int)(src_off)) < ((unsigned int)(n)) ||
+        ((uintptr_t)(dst) + (uintptr_t)(dst_off)) < ((uintptr_t)(dst)) ||
+        ((uintptr_t)(src) + (uintptr_t)(src_off)) < ((uintptr_t)(src)) ||
+        ((unsigned int)(n) + (unsigned int)(dst_off)) >
+            ((unsigned int)(dst_size)) ||
+        ((unsigned int)(n) + (unsigned int)(src_off)) >
+            ((unsigned int)(src_size))) {
+
+        return false;
+    } else {
+        os_memmove(((unsigned char *)(dst)) + ((unsigned int)(dst_off)),
+                   ((unsigned char *)(src)) + ((unsigned int)(src_off)),
+                   (unsigned int)(n));
+        return true;
+    }
+}
+
+#endif
