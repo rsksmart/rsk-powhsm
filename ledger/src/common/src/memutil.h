@@ -45,24 +45,15 @@ __attribute__((always_inline)) static inline int safe_memmove(
     unsigned int src_off,
     unsigned int n) {
 
-    if (((unsigned int)(n)) > ((unsigned int)(dst_size)) ||
-        ((unsigned int)(n)) > ((unsigned int)(src_size)) ||
-        ((unsigned int)(dst_off)) > ((unsigned int)(dst_size)) ||
-        ((unsigned int)(src_off)) > ((unsigned int)(src_size)) ||
-        ((unsigned int)(n) + (unsigned int)(dst_off)) < ((unsigned int)(n)) ||
-        ((unsigned int)(n) + (unsigned int)(src_off)) < ((unsigned int)(n)) ||
-        ((uintptr_t)(dst) + (uintptr_t)(dst_off)) < ((uintptr_t)(dst)) ||
-        ((uintptr_t)(src) + (uintptr_t)(src_off)) < ((uintptr_t)(src)) ||
-        ((unsigned int)(n) + (unsigned int)(dst_off)) >
-            ((unsigned int)(dst_size)) ||
-        ((unsigned int)(n) + (unsigned int)(src_off)) >
-            ((unsigned int)(src_size))) {
+    if (n + dst_off < n || n + src_off < n ||
+        (uintptr_t)dst + (uintptr_t)dst_off < (uintptr_t)dst ||
+        (uintptr_t)src + (uintptr_t)src_off < (uintptr_t)src ||
+        n + dst_off > dst_size || n + src_off > src_size) {
 
         return false;
     } else {
-        os_memmove(((unsigned char *)(dst)) + ((unsigned int)(dst_off)),
-                   ((unsigned char *)(src)) + ((unsigned int)(src_off)),
-                   (unsigned int)(n));
+        os_memmove(
+            (unsigned char *)dst + dst_off, (unsigned char *)src + src_off, n);
         return true;
     }
 }
