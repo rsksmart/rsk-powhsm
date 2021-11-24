@@ -113,3 +113,10 @@ All notable changes to this project will be documented in this file.
 ### Features/enhancements
 
 - Added source and destination offsets as additional parameters to SAFE_MEMMOVE
+
+## [2.3.2] - 24/11/2021
+
+### Features/enhancements
+
+- SAFE_MEMMOVE now wraps an always inlined function, combining both macro and function advantages
+- Added script to add new testcases to a running fuzzing campaign
