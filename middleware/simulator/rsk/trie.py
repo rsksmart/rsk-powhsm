@@ -82,12 +82,12 @@ class RskTrie:
 
     def link_child(self, child):
         # Is the child our left node?
-        if child.hash == self.left.hash:
+        if self.left and child.hash == self.left.hash:
             self._left = child
             return
 
         # Is the child our right node?
-        if child.hash == self.right.hash:
+        if self.right and child.hash == self.right.hash:
             self._right = child
             return
 

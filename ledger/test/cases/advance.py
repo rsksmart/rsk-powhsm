@@ -81,35 +81,40 @@ class AdvanceBlockchain(TestCase):
                     ledger.hsm2dongle.rlp_mm_payload_size = old_rlp_mm_payload_size
                     ledger.hsm2dongle.get_coinbase_txn = old_get_coinbase_txn
 
-                error_code = (dongle.last_comm_exception.sw
-                              if dongle.last_comm_exception is not None else result[1])
+                if dongle.last_comm_exception is not None:
+                    error_code = dongle.last_comm_exception.sw
+                    error_code_desc = hex(error_code)
+                else:
+                    error_code = result[1]
+                    error_code_desc = error_code
+
                 if self.expected is True:
                     if not result[0]:
-                        raise TestCaseError(
-                            f"Expected success but got failure with code {error_code}")
+                        raise TestCaseError("Expected success but got "
+                                            f"failure with code {error_code_desc}")
                     elif (offset < len(self.blocks)
                           and error_code != dongle.RESPONSE.ADVANCE.OK_PARTIAL):
                         raise TestCaseError(
                             f"Expected {dongle.RESPONSE.ADVANCE.OK_PARTIAL} (partial "
-                            f"success) but got {error_code}")
+                            f"success) but got {error_code_desc}")
                     elif (offset >= len(self.blocks) and not self.partial
                           and error_code != dongle.RESPONSE.ADVANCE.OK_TOTAL):
                         raise TestCaseError(
                             f"Expected {dongle.RESPONSE.ADVANCE.OK_TOTAL} (total "
-                            f"success) but got {error_code}")
+                            f"success) but got {error_code_desc}")
                     elif (offset >= len(self.blocks) and self.partial
                           and error_code != dongle.RESPONSE.ADVANCE.OK_PARTIAL):
                         raise TestCaseError(
                             f"Expected {dongle.RESPONSE.ADVANCE.OK_PARTIAL} (partial "
-                            f"success) but got {error_code}")
+                            f"success) but got {error_code_desc}")
                 else:
                     if result[0]:
-                        raise TestCaseError(
-                            f"Expected failure but got success with code {error_code}")
+                        raise TestCaseError("Expected failure but got success with "
+                                            f"code {error_code_desc}")
                     elif error_code != self.expected:
-                        raise TestCaseError(
-                            f"Expected failure with code {self.expected} but got failure "
-                            f"with code {error_code}")
+                        raise TestCaseError("Expected failure with "
+                                            f"code {self.expected_desc} but got failure "
+                                            f"with code {error_code_desc}")
 
         except RuntimeError as e:
             raise TestCaseError(str(e))

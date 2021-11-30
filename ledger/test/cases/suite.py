@@ -56,14 +56,30 @@ class TestSuite:
         self.cases = cases
         self.debug = False
 
-    def run(self, dongle, version):
+    def run(self, dongle, version, run_on):
         debug_fn = debug if self.debug else noop
+        self._passed = 0
+        self._failed = 0
+        self._skipped = 0
         try:
             for case in self.cases:
                 output.info(case.name)
-                case.run(dongle, version, debug_fn)
-                output.ok()
+                if case.runs_on(run_on):
+                    case.run(dongle, version, debug_fn)
+                    output.ok()
+                    self._passed += 1
+                else:
+                    output.skipped()
+                    self._skipped += 1
             return True
         except TestCaseError as e:
             output.error(str(e))
+            self._failed += 1
             return False
+
+    def get_stats(self):
+        return {
+            "passed": self._passed,
+            "failed": self._failed,
+            "skipped": self._skipped,
+        }

@@ -20,10 +20,24 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from ledgerblue.comm import CommException
 from .case import TestCase, TestCaseError
 from .sign_helpers import assert_signature
 from comm.bip32 import BIP32Path
 from comm.bitcoin import get_signature_hash_for_p2sh_input
+from enum import IntEnum
+
+
+class TcpSignerAdmin(IntEnum):
+    # These should eventually get refactored into a separate class
+    # that knows how to send TCPSigner admin commands
+    # For the time being there is only one, so we'll keep it here
+    CLA = 0x99
+
+    CMD_SET_ARR = 0x01
+    CMD_RESET_ARR = 0x02
+
+    OP_NONE = 0x00
 
 
 class SignAuthorized(TestCase):
@@ -42,11 +56,28 @@ class SignAuthorized(TestCase):
         self.btc_tx_input = spec["btcTxInput"]
         self.receipt = spec["receipt"]
         self.receipt_mp = spec["receiptMp"]
+        self.fake_ancestor_receipts_root = spec.get("fake_ancestor_receipts_root", None)
 
         super().__init__(spec)
 
     def run(self, dongle, version, debug):
         try:
+            # Do we need to fake the ancestor receipts root?
+            # (TCPSigner feature only, it will fail with a physical dongle)
+            if self.fake_ancestor_receipts_root:
+                try:
+                    dongle.dongle.exchange(
+                        bytes([TcpSignerAdmin.CLA,
+                               TcpSignerAdmin.CMD_SET_ARR,
+                               TcpSignerAdmin.OP_NONE]) +
+                        bytes.fromhex(self.fake_ancestor_receipts_root))
+                except CommException as e:
+                    if self.expected != e.sw:
+                        raise TestCaseError("Expected error code "
+                                            f"{self.expected_desc} but got {hex(e.sw)}")
+                    # This was expected, return implying success
+                    return
+
             # Attempt the signature with each of the valid paths
             for pkey in self.paths:
                 path = self.paths[pkey]
@@ -64,24 +95,36 @@ class SignAuthorized(TestCase):
                                                    self.btc_tx, self.btc_tx_input)
                 debug(f"Dongle replied with {signature}")
                 if not signature[0]:
-                    error_code = (dongle.last_comm_exception.sw
-                                  if dongle.last_comm_exception is not None else
-                                  signature[1])
+                    if dongle.last_comm_exception is not None:
+                        error_code = dongle.last_comm_exception.sw
+                        error_code_desc = hex(error_code)
+                    else:
+                        error_code = signature[1]
+                        error_code_desc = error_code
+
                     if self.expected is True:
-                        raise TestCaseError(
-                            f"Expected success signing but got error code {error_code}")
+                        raise TestCaseError("Expected success signing but got error "
+                                            f"code {error_code_desc}")
                     elif self.expected != error_code:
-                        raise TestCaseError(
-                            f"Expected error code {self.expected} but got {error_code}")
+                        raise TestCaseError(f"Expected error code {self.expected_desc} "
+                                            f"but got {error_code_desc}")
                     # All good, expected failure
                     continue
                 elif self.expected is not True:
-                    raise TestCaseError(f"Expected error code {self.expected} signing "
-                                        "but got a successful signature")
+                    raise TestCaseError(f"Expected error code {self.expected_desc} "
+                                        "signing but got a successful signature")
 
                 # Validate the signature
                 sighash = get_signature_hash_for_p2sh_input(self.btc_tx,
                                                             self.btc_tx_input)
                 assert_signature(pubkey, sighash, signature[1])
+
+            # Did we fake the ancestor receipts root? Reset it
+            # (TCPSigner feature only, it will fail with a physical dongle)
+            if self.fake_ancestor_receipts_root:
+                dongle.dongle.exchange(bytes([
+                    TcpSignerAdmin.CLA,
+                    TcpSignerAdmin.CMD_RESET_ARR,
+                    TcpSignerAdmin.OP_NONE]))
         except RuntimeError as e:
             raise TestCaseError(str(e))

@@ -48,25 +48,29 @@ class UpdateAncestor(TestCase):
 
                 offset += self.chunk_size
 
-                error_code = (dongle.last_comm_exception.sw
-                              if dongle.last_comm_exception is not None else result[1])
+                if dongle.last_comm_exception is not None:
+                    error_code = dongle.last_comm_exception.sw
+                    error_code_desc = hex(error_code)
+                else:
+                    error_code = result[1]
+                    error_code_desc = error_code
 
                 if self.expected is True:
                     if not result[0]:
-                        raise TestCaseError(
-                            f"Expected success but got failure with code {error_code}")
+                        raise TestCaseError("Expected success but got failure with "
+                                            f"code {error_code_desc}")
                     elif error_code != dongle.RESPONSE.UPD_ANCESTOR.OK_TOTAL:
                         raise TestCaseError(
                             f"Expected {dongle.RESPONSE.UPD_ANCESTOR.OK_TOTAL} (success) "
-                            f"but got {error_code}")
+                            f"but got {error_code_desc}")
                 else:
                     if result[0]:
-                        raise TestCaseError(
-                            f"Expected failure but got success with code {error_code}")
+                        raise TestCaseError("Expected failure but got success with "
+                                            f"code {error_code_desc}")
                     elif error_code != self.expected:
-                        raise TestCaseError(
-                            f"Expected failure with code {self.expected} but got failure "
-                            f"with code {error_code}")
+                        raise TestCaseError("Expected failure with code "
+                                            f"{self.expected_desc} but got failure "
+                                            f"with code {error_code_desc}")
 
         except RuntimeError as e:
             raise TestCaseError(str(e))

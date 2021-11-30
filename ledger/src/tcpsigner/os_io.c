@@ -35,6 +35,7 @@
 #include "tcp.h"
 #include "log.h"
 #include "defs.h"
+#include "hsmsim_admin.h"
 
 /**
  * APDU buffer
@@ -109,6 +110,14 @@ unsigned short io_exchange(unsigned char channel_and_flags, unsigned short tx) {
             info("Error writting to output file %s\n", replica_file);
             exit(-1);
         }
+    }
+
+    // Process one APDU message using the admin module
+    // if need be (there shouldn't normally
+    // be many of these in a row, so the stack shouldn't overflow)
+    if (hsmsim_admin_need_process(rx)) {
+        tx = hsmsim_admin_process_apdu(rx);
+        return io_exchange(channel_and_flags, tx);
     }
 
     return rx;

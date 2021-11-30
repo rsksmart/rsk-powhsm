@@ -1,0 +1,11 @@
+{
+    "name": "Attempt to fake the ancestor receipts root on a physical dongle fails",
+    "operation": "signAuthorized",
+    "runOn": "dongle",
+    "expected": "0x6e11",
+    "fake_ancestor_receipts_root": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "btcTx": "",
+    "btcTxInput": 0,
+    "receipt": "",
+    "receiptMp": []
+}

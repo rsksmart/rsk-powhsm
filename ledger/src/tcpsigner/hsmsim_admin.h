@@ -22,16 +22,34 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef CONTRACTVALUES_H
-#define CONTRACTVALUES_H
+#ifndef __HSMSIM_ADMIN
+#define __HSMSIM_ADMIN
 
-// Real values
-#define CONTRACTADDRESS_LEN 20
-const char ContractAddress[] = "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
-                               "\x00\x00\x00\x00\x00\x01\x00\x00\x06";
-#define CONTRACTSIGNATURE_LEN 32
-const char ContractSignature[] =
-    "\x7a\x7c\x29\x48\x15\x28\xac\x8c\x2b\x2e\x93\xae\xe6\x58\xfd\xdd\x4d\xc1"
-    "\x53\x04\xfa\x72\x3a\x5c\x2b\x88\x51\x45\x57\xbc\xc7\x90";
+#include <stdbool.h>
+#include <stdint.h>
+
+#include "defs.h"
+
+// Admin APDU constants
+#define MIN_ADMIN_BYTES 2
+#define HSMSIM_ADMIN_CLA 0x99
+
+#define HSMSIM_ADMIN_CMD_SET_ANCESTOR_RCPT_ROOT 0x01
+#define HSMSIM_ADMIN_CMD_RESET_ANCESTOR_RCPT_ROOT 0x02
+
+#define HSMSIM_ADMIN_ERROR_INVALID_PROTOCOL 0x6f00
+#define HSMSIM_ADMIN_ERROR_DATA_SIZE 0x6f01
+#define HSMSIM_ADMIN_ERROR_INVALID_STATE 0x6f02
+
+typedef struct hsmsim_admin_data_s {
+    bool ancestor_receipts_root_set;
+    uint8_t old_ancestor_receipts_root[HASHLEN];
+} hsmsim_admin_data_t;
+
+void hsmsim_admin_init();
+
+bool hsmsim_admin_need_process(unsigned int rx);
+
+unsigned int hsmsim_admin_process_apdu(unsigned int rx);
 
 #endif
