@@ -194,6 +194,20 @@ class TestRskTrie(TestCase):
             receipt_length=1687,
         )
 
+    def test_proof_4(self):
+        self.assert_proof(
+            proof=[
+                "7006002c05a0d7d85908466fdd3e6896af6c88a588701d4aa19769600875a7aa9a64a0000203", # noqa E501
+                "4a267006002c05a0d7d85908466fdd3e6896af6c88a588701d4aa19769600875a7aa9a64a0000203aa", # noqa E501
+                "4435fbe74b04b49d685bc1e2bf73c9fc5b99bc70b94d981b3111b2c600060dfd36fd1234", # noqa E501
+                "48d000d518eb562ac62c2f556fed61a3595f3af0d902c51bd14dc91e8e1bb846fcfe12345678", # noqa E501
+                "4c051f23e611d1cf391cdd2b5a51f3df78815d1d303bef096f7158018b128a0de1d7fdcca3245c3ccda6fb81c6eed41fb6d018abcdf388ff5840d5368eb86aeaf1ff123456789abcdef0"], # noqa E501
+            root_hash="8aa4045b662823a33a55d9a7558e29b2152c4228ee22a2b179bc892a375f9b4b",
+            leaf_hash="9c9236b6adb2d088f40f19451f15e77e428498840b2518e4a8ca977f7bcd543b",
+            receipt_hash="2c05a0d7d85908466fdd3e6896af6c88a588701d4aa19769600875a7aa9a64a0", # noqa E501
+            receipt_length=515,
+        )
+
     def test_invalid_trie_1(self):
         with self.assertRaises(RskTrieError):
             RskTrie(
