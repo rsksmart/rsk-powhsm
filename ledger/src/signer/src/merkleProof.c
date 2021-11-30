@@ -435,8 +435,14 @@ void MP_NODE_VARINT_HDR(MP_CTX *ctx,
     // Update node hash
     keccak_update(&ctx->NodeHash_ctx, APDU_DATA_PTR, rx - DATA);
     SET_APDU_FOR_MP();
-    SET_APDU_TXLEN(varintLen(APDU_AT(DATA)));
-    *state = S_MP_NODE_VARINT_BODY;
+    int varint_length = varintLen(APDU_AT(DATA));
+    if (varint_length == 1) {
+        SET_APDU_TXLEN(0);
+        *state = S_MP_NODE_VALUE;
+    } else {
+        SET_APDU_TXLEN(varint_length);
+        *state = S_MP_NODE_VARINT_BODY;
+    }
     *tx = TX_FOR_TXLEN();
 }
 
