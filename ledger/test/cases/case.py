@@ -26,6 +26,12 @@ from comm.bip32 import BIP32Path
 
 class TestCase:
     OPERATION_KEY = "operation"
+
+    RUN_ON_KEY = "runOn"
+    RUN_ON_VALUE_BOTH = "both"
+    RUN_ON_VALUE_TCPSIGNER = "tcpsigner"
+    RUN_ON_VALUE_DONGLE = "dongle"
+
     op_mapping = None
     PATHS = None
 
@@ -56,9 +62,11 @@ class TestCase:
 
     def __init__(self, spec):
         self.name = spec["name"]
+        self.run_on = spec.get(self.RUN_ON_KEY, self.RUN_ON_VALUE_BOTH)
 
         # Test case expectation
         self.expected = spec.get("expected", True)
+        self.expected_desc = self.expected
         if type(self.expected) == str:
             self.expected = self._parse_int(self.expected)
 
@@ -71,6 +79,9 @@ class TestCase:
             self.paths = paths
         else:
             self.paths = self.PATHS
+
+    def runs_on(self, run_on):
+        return self.run_on == run_on or self.run_on == self.RUN_ON_VALUE_BOTH
 
     def run(self, dongle, version, debug):
         raise RuntimeError(f"Unable to run generic test case {self.name}")

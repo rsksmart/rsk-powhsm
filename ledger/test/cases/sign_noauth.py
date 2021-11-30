@@ -64,19 +64,24 @@ class SignUnauthorized(TestCase):
                 signature = dongle.sign_unauthorized(path, self.hash)
                 debug(f"Dongle replied with {signature}")
                 if not signature[0]:
-                    error_code = (dongle.last_comm_exception.sw
-                                  if dongle.last_comm_exception is not None else
-                                  signature[1])
+                    if dongle.last_comm_exception is not None:
+                        error_code = dongle.last_comm_exception.sw
+                        error_code_desc = hex(error_code)
+                    else:
+                        error_code = signature[1]
+                        error_code_desc = error_code
+
                     if self.expected is True:
-                        raise TestCaseError(
-                            f"Expected success signing but got error code {error_code}")
+                        raise TestCaseError("Expected success signing but got "
+                                            f"error code {error_code_desc}")
                     elif self.expected != error_code:
-                        raise TestCaseError(
-                            f"Expected error code {self.expected} but got {error_code}")
+                        raise TestCaseError("Expected error code "
+                                            f"{self.expected_desc} but got "
+                                            f"{error_code_desc}")
                     # All good, expected failure
                     continue
                 elif self.expected is not True:
-                    raise TestCaseError(f"Expected error code {self.expected} "
+                    raise TestCaseError(f"Expected error code {self.expected_desc} "
                                         "signing but got a successful signature")
 
                 # Validate the signature

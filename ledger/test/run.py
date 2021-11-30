@@ -22,7 +22,7 @@
 
 import sys
 from options import OptionParser
-from cases import TestSuite
+from cases import TestSuite, TestCase
 from ledger.hsm2dongle import HSM2Dongle
 from ledger.hsm2dongle_tcp import HSM2DongleTCP
 import output
@@ -50,9 +50,11 @@ if __name__ == "__main__":
 
         if options.dongle:
             dongle = HSM2Dongle(options.dongle_verbose)
+            run_on = TestCase.RUN_ON_VALUE_DONGLE
             output.info("Running against a USB device", nl=True)
         else:
             dongle = HSM2DongleTCP(options.host, options.port, options.dongle_verbose)
+            run_on = TestCase.RUN_ON_VALUE_TCPSIGNER
             output.info("Running against a TCP device", nl=True)
 
         output.info(f"Loading test cases from {options.tests_path}")
@@ -77,7 +79,12 @@ if __name__ == "__main__":
         output.info(f"Version: {version}", nl=True)
 
         output.header("Running tests")
-        tests_passed = suite.run(dongle, version)
+        tests_passed = suite.run(dongle, version, run_on)
+        stats = suite.get_stats()
+        output.info(
+            f"( {stats['passed']} passed, {stats['failed']} failed, "
+            f"{stats['skipped']} skipped )", nl=True
+        )
 
         output.header("Teardown")
         output.info("Disconnecting from dongle")
