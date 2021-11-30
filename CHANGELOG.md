@@ -120,3 +120,15 @@ All notable changes to this project will be documented in this file.
 
 - SAFE_MEMMOVE now wraps an always inlined function, combining both macro and function advantages
 - Added script to add new testcases to a running fuzzing campaign
+
+## [2.3.3] - 30/11/2021
+
+### Features/enhancements
+
+- TCPSigner admin overrides feature for tests
+- Signer test framework improvements
+- Additional signer test cases
+
+### Fixes
+
+- Correctly parsing one-byte tree sizes in partial merkle tries
