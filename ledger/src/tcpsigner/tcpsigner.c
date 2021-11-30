@@ -41,6 +41,7 @@
 #include "hsmsim_exceptions.h"
 #include "hsmsim_nu.h"
 #include "hsmsim_ecdsa.h"
+#include "hsmsim_admin.h"
 
 #include "hsm.h"
 #include "hsm-ledger.h"
@@ -241,6 +242,9 @@ void main(int argc, char **argv) {
         exit(1);
     }
     info("ECDSA initialized.\n");
+
+    // Initialize admin
+    hsmsim_admin_init();
 
     // Initialize hsm
     hsm_init();
