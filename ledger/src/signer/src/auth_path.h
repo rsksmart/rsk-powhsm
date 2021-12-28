@@ -22,16 +22,22 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __HEX_READER
-#define __HEX_READER
+#ifndef __AUTH_PATH
+#define __AUTH_PATH
 
 #include <stdint.h>
 
+// Constants
+#define PATH_LEN 21
+#define INPUT_INDEX_LEN 4
+
 /*
- * Read src_length hex bytes from the src string
- * Return the number of bytes actually read or
- * -1 in case of error
+ * Implement the path parsing and validation portion of the signing 
+ * authorization protocol.
+ *
+ * @arg[in] rx      number of received bytes from the host
+ * @ret             number of transmited bytes to the host
  */
-int read_hex(const char* src, size_t src_length, void* dest);
+unsigned int auth_sign_handle_path(volatile unsigned int rx);
 
 #endif

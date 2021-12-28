@@ -22,6 +22,8 @@
  * IN THE SOFTWARE.
  */
 
+#include <string.h>
+
 #include "os.h"
 #include "attestation.h"
 #include "defs.h"
@@ -63,7 +65,7 @@ static void hash_public_key(const char* path,
                                        NULL);
             cx_ecdsa_init_private_key(CX_CURVE_256K1,
                                       att_ctx->priv_key_data,
-                                      KEYLEN,
+                                      KEY_LEN,
                                       &att_ctx->priv_key);
             // Cleanup private key data
             explicit_bzero(att_ctx->priv_key_data,
@@ -109,7 +111,7 @@ static unsigned int generate_message_to_sign(att_t* att_ctx) {
     SAFE_MEMMOVE(att_ctx->msg,
                  sizeof(att_ctx->msg),
                  0,
-                 PIC(ATT_MSG_PREFIX),
+                 (void*)PIC(ATT_MSG_PREFIX),
                  ATT_MSG_PREFIX_LENGTH,
                  0,
                  ATT_MSG_PREFIX_LENGTH,
@@ -119,7 +121,7 @@ static unsigned int generate_message_to_sign(att_t* att_ctx) {
     SHA256_INIT(&att_ctx->hash_ctx);
 
     // Retrieve and hash the public keys in order
-    for (int i = 0; i < KEY_PATH_COUNT(); i++) {
+    for (unsigned int i = 0; i < KEY_PATH_COUNT(); i++) {
         hash_public_key(get_ordered_path(i), SINGLE_PATH_SIZE_BYTES, att_ctx);
     }
 

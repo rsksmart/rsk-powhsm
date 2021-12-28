@@ -82,7 +82,7 @@ const int ordered_paths[TOTAL_AUTHORIZED_PATHS] = {
 
 // Return true if the *path is inside the authPaths array, false otherwhise
 // this means this path require authorization and validations.
-bool pathRequireAuth(char *path) {
+bool pathRequireAuth(unsigned char *path) {
     char cmpbuf[sizeof(authPaths[0])];
     for (unsigned int i = 0; i < sizeof(authPaths) / sizeof(authPaths[0]);
          i++) {
@@ -97,7 +97,7 @@ bool pathRequireAuth(char *path) {
 // Return true if the *path is inside the noAuthPaths array, false otherwhise
 // This means this path can be used to sign any hash, and does not require
 // authorization
-bool pathDontRequireAuth(char *path) {
+bool pathDontRequireAuth(unsigned char *path) {
     char cmpbuf[sizeof(noAuthPaths[0])];
     for (unsigned int i = 0; i < sizeof(noAuthPaths) / sizeof(noAuthPaths[0]);
          i++) {

@@ -60,7 +60,7 @@ static const uint8_t INITIAL_BLOCK_HASH[] = PARAM_INITIAL_BLOCK_HASH;
 #ifndef HSM_SIMULATOR
 #error "Initial block hash not defined!"
 #endif
-uint8_t INITIAL_BLOCK_HASH[HASHLEN];
+uint8_t INITIAL_BLOCK_HASH[HASH_LEN];
 #endif
 
 // Non-volatile initialization flag.

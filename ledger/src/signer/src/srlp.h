@@ -54,7 +54,7 @@
 
 // Define your own MAX_RLP_CTX_DEPTH to override the default value
 #ifndef MAX_RLP_CTX_DEPTH
-#define MAX_RLP_CTX_DEPTH 3
+#define MAX_RLP_CTX_DEPTH 5
 #endif
 
 // Context item state:
@@ -126,5 +126,14 @@ int rlp_consume(uint8_t* buf, const uint8_t len);
  * @arg[in] str_size string size
  */
 uint8_t guess_rlp_str_prefix_size(uint16_t str_size);
+
+/*
+ * Get the length in bytes of the (minimal) RLP prefix for a list of the
+ * given size (max size for any given list is 2^16-1 in this
+ * implementation)
+ *
+ * @arg[in] list_size list size
+ */
+uint8_t rlp_list_prefix_size(uint16_t list_size);
 
 #endif

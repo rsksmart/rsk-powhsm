@@ -22,16 +22,37 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __HEX_READER
-#define __HEX_READER
+#ifndef __AUTH_RECEIPT
+#define __AUTH_RECEIPT
 
 #include <stdint.h>
 
+#include "srlp.h"
+#include "keccak256.h"
+
+#define RECEIPT_MAX_DEPTH           (4)
+#define RECEIPT_MAX_BUFFER_SIZE     (32)
+
+typedef struct {
+    uint8_t flags;
+    uint32_t remaining_bytes;
+    
+    uint8_t level;
+    uint8_t index[RECEIPT_MAX_DEPTH];
+
+    uint8_t aux[RECEIPT_MAX_BUFFER_SIZE];
+    uint8_t aux_offset;
+
+    SHA3_CTX hash_ctx;
+} receipt_auth_ctx_t;
+
 /*
- * Read src_length hex bytes from the src string
- * Return the number of bytes actually read or
- * -1 in case of error
+ * Implement the RSK receipt parsing and validation portion of the signing 
+ * authorization protocol.
+ *
+ * @arg[in] rx      number of received bytes from the host
+ * @ret             number of transmited bytes to the host
  */
-int read_hex(const char* src, size_t src_length, void* dest);
+unsigned int auth_sign_handle_receipt(volatile unsigned int rx);
 
 #endif

@@ -48,7 +48,7 @@ void LOG_BIGD_HEX(const char *prefix,
 void LOG_N_CHARS(const char c, unsigned int times);
 
 /** Print the given SRLP context (see srlp.h) */
-void LOG_SRLP_CTX(rlp_ctx_t ctx[], uint8_t ptr);
+void LOG_SRLP_CTX(uint8_t v, rlp_ctx_t ctx[], uint8_t ptr);
 
 #else
 

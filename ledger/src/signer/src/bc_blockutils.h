@@ -32,6 +32,7 @@
 #include "bc_block.h"
 #include "bc_nu.h"
 #include "mem.h"
+#include "flags.h"
 
 // Bit flags
 #define HAS_UMM_ROOT 0x01   // Is umm_root present in the current block?
@@ -39,11 +40,6 @@
 #define HEADER_VALID 0x04   // We know the current header is valid
 #define MM_HEADER_RECV 0x08 // We received the BTC merge mining header
 #define CB_TXN_RECV 0x10    // We received the coinbase transaction
-
-// Operate on bit flags
-#define SET_FLAG(flags, f) ((flags) |= (f))
-#define CLR_FLAG(flags, f) ((flags) &= ~(f))
-#define HAS_FLAG(flags, f) ((flags) & (f))
 
 // Macros for field offsets, 1-based
 #define F_PARENT_HASH 1
