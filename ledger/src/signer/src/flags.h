@@ -22,16 +22,12 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __HEX_READER
-#define __HEX_READER
+#ifndef _FLAGS
+#define _FLAGS
 
-#include <stdint.h>
-
-/*
- * Read src_length hex bytes from the src string
- * Return the number of bytes actually read or
- * -1 in case of error
- */
-int read_hex(const char* src, size_t src_length, void* dest);
+// Operate on bit flags
+#define SET_FLAG(flags, f) ((flags) |= (f))
+#define CLR_FLAG(flags, f) ((flags) &= ~(f))
+#define HAS_FLAG(flags, f) ((flags) & (f))
 
 #endif

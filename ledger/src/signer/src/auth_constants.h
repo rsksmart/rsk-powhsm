@@ -22,17 +22,23 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef VARINT_H
-#define VARINT_H
+#ifndef __AUTH_CONSTANTS
+#define __AUTH_CONSTANTS
+
 #include <stdint.h>
-#include <stdbool.h>
 
-bool varintCanDecode(uint8_t *buffer, uint32_t bufferLength);
+const uint8_t EVENT_EMITTER[] = { 0x00, 0x00, 0x00, 0x00, 0x00,
+                                  0x00, 0x00, 0x00, 0x00, 0x00,
+                                  0x00, 0x00, 0x00, 0x00, 0x00,
+                                  0x00, 0x01, 0x00, 0x00, 0x06 };
 
-void createVarint(unsigned int value,
-                  unsigned char *buffer,
-                  unsigned char *len);
+const uint8_t EVENT_SIGNATURE[] = { 0x7a, 0x7c, 0x29, 0x48, 0x15,
+                                    0x28, 0xac, 0x8c, 0x2b, 0x2e,
+                                    0x93, 0xae, 0xe6, 0x58, 0xfd,
+                                    0xdd, 0x4d, 0xc1, 0x53, 0x04,
+                                    0xfa, 0x72, 0x3a, 0x5c, 0x2b,
+                                    0x88, 0x51, 0x45, 0x57, 0xbc,
+                                    0xc7, 0x90 };
+#define EVENT_SIGNATURE_SIZE (32)
 
-int varintLen(uint8_t firstByte);
-
-#endif // VARINT_H
+#endif

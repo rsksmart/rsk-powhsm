@@ -41,7 +41,7 @@
 
 struct private_key_mapping_s {
     const unsigned char* path;
-    unsigned char key[KEYLEN];
+    unsigned char key[KEY_LEN];
 };
 
 static struct private_key_mapping_s private_keys[TOTAL_AUTHORIZED_PATHS];

@@ -50,7 +50,7 @@
 
 // Context item stack and stack pointer
 static uint8_t rlp_ctx_ptr;
-static rlp_ctx_t rlp_ctx[MAX_RLP_CTX_DEPTH];
+static rlp_ctx_t rlp_ctx[MAX_RLP_CTX_DEPTH+1    ];
 
 // Pointer to the beginning of the next chunk to report
 static uint8_t* rlp_frame_start;
@@ -201,7 +201,7 @@ int rlp_consume(uint8_t* buf, const uint8_t len) {
     for (uint8_t i = 0; i < len; ++i) {
         uint8_t* b = buf + i;
 
-        LOG_SRLP_CTX(rlp_ctx, rlp_ctx_ptr);
+        LOG_SRLP_CTX(*b, rlp_ctx, rlp_ctx_ptr);
 
         switch (rlp_ctx[rlp_ctx_ptr].state) {
         case RLP_BOTTOM:
@@ -280,4 +280,21 @@ uint8_t guess_rlp_str_prefix_size(uint16_t str_size) {
             ;
         return n + 1;
     }
+}
+
+/*
+ * Get the length in bytes of the (minimal) RLP prefix for a list of the
+ * given size (max size for any given list is 2^16-1 in this
+ * implementation)
+ *
+ * @arg[in] list_size list size
+ */
+uint8_t rlp_list_prefix_size(uint16_t list_size) {
+    if (list_size <= 55)
+        return 1;
+
+    uint8_t n;
+    for (n = 0; list_size != 0; list_size >>= 8, ++n)
+        ;
+    return n + 1;
 }

@@ -22,16 +22,45 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef CONTRACTVALUES_H
-#define CONTRACTVALUES_H
+#ifndef __AUTH_TRIE
+#define __AUTH_TRIE
 
-// Real values
-#define CONTRACTADDRESS_LEN 20
-const char ContractAddress[] = "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
-                               "\x00\x00\x00\x00\x00\x01\x00\x00\x06";
-#define CONTRACTSIGNATURE_LEN 32
-const char ContractSignature[] =
-    "\x7a\x7c\x29\x48\x15\x28\xac\x8c\x2b\x2e\x93\xae\xe6\x58\xfd\xdd\x4d\xc1"
-    "\x53\x04\xfa\x72\x3a\x5c\x2b\x88\x51\x45\x57\xbc\xc7\x90";
+#include <stdint.h>
+
+#include "trie.h"
+#include "keccak256.h"
+#include "defs.h"
+
+#define AUTH_TRIE_STATE_NODE_LENGTH (0)
+#define AUTH_TRIE_STATE_NODE        (1)
+
+#define AUTH_TRIE_NODE_VERSION      (1)
+
+typedef struct {
+    uint8_t total_nodes;
+    uint8_t current_node;
+    uint8_t state;
+
+    trie_ctx_t ctx;
+    SHA3_CTX hash_ctx;
+    SHA3_CTX aux_hash_ctx;
+
+    uint8_t num_linked;
+    uint8_t offset;
+    union {
+        uint8_t value_hash[HASH_LEN];
+        uint8_t child_hash[HASH_LEN];
+    };
+    uint8_t node_hash[HASH_LEN];
+} trie_auth_ctx_t;
+
+/*
+ * Implement the partial merkle trie parsing portion 
+ * of the signing authorization protocol.
+ *
+ * @arg[in] rx      number of received bytes from the host
+ * @ret             number of transmited bytes to the host
+ */
+unsigned int auth_sign_handle_merkleproof(volatile unsigned int rx);
 
 #endif

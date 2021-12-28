@@ -88,7 +88,7 @@ int cx_ecdsa_sign(cx_ecfp_private_key_t *key,
                   unsigned char *sig) {
 
     secp256k1_ecdsa_signature sp_sig;
-    size_t sig_serialized_size = MAX_SIGNATURE_LENGTH;
+    size_t sig_serialized_size = MAX_SIGNATURE_LEN;
 
     // Sign and serialize as DER
     secp256k1_ecdsa_sign(sp_ctx, &sp_sig, hash, key->K, NULL, NULL);
