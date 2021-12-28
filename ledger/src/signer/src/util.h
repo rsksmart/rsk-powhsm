@@ -22,16 +22,9 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __HEX_READER
-#define __HEX_READER
+#ifndef __UTIL_H
+#define __UTIL_H
 
-#include <stdint.h>
+#define MIN(x, y) ((x) < (y) ? (x) : (y))
 
-/*
- * Read src_length hex bytes from the src string
- * Return the number of bytes actually read or
- * -1 in case of error
- */
-int read_hex(const char* src, size_t src_length, void* dest);
-
-#endif
+#endif // __UTIL_H

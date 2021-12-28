@@ -45,7 +45,7 @@ static uint8_t decode_hex_digit(char digit) {
 }
 
 /* Decode a single hex char */
-static uint8_t decode_hex(char* chars) {
+static uint8_t decode_hex(const char* chars) {
     return 16 * decode_hex_digit(chars[0]) + decode_hex_digit(chars[1]);
 }
 
@@ -60,7 +60,7 @@ static inline bool is_hex_char(char c) {
  * Return the number of bytes actually read or
  * -1 in case of error
  */
-int read_hex(char* src, size_t src_length, void* dest) {
+int read_hex(const char* src, size_t src_length, void* dest) {
     if ((src_length % 2) != 0)
         return -1;
 

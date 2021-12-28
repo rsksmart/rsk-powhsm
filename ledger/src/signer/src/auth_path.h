@@ -22,16 +22,22 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef CONTRACTVALUES_H
-#define CONTRACTVALUES_H
+#ifndef __AUTH_PATH
+#define __AUTH_PATH
 
-// Real values
-#define CONTRACTADDRESS_LEN 20
-const char ContractAddress[] = "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
-                               "\x00\x00\x00\x00\x00\x01\x00\x00\x06";
-#define CONTRACTSIGNATURE_LEN 32
-const char ContractSignature[] =
-    "\x7a\x7c\x29\x48\x15\x28\xac\x8c\x2b\x2e\x93\xae\xe6\x58\xfd\xdd\x4d\xc1"
-    "\x53\x04\xfa\x72\x3a\x5c\x2b\x88\x51\x45\x57\xbc\xc7\x90";
+#include <stdint.h>
+
+// Constants
+#define PATH_LEN 21
+#define INPUT_INDEX_LEN 4
+
+/*
+ * Implement the path parsing and validation portion of the signing
+ * authorization protocol.
+ *
+ * @arg[in] rx      number of received bytes from the host
+ * @ret             number of transmited bytes to the host
+ */
+unsigned int auth_sign_handle_path(volatile unsigned int rx);
 
 #endif

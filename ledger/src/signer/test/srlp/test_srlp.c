@@ -31,7 +31,7 @@
 #include "srlp.h"
 
 #define MAX_CHUNK_SIZE 10
-#define min(x, y) (x) <= (y) ? (x) : (y)
+#define MIN(x, y) (x) <= (y) ? (x) : (y)
 
 static int list_depth = 0;
 
@@ -82,7 +82,7 @@ void do_test(const char* test_name,
     int limit = (len + MAX_CHUNK_SIZE - 1) / MAX_CHUNK_SIZE;
     for (int i = 0; i < limit; i++) {
         unsigned char* start = rlp + MAX_CHUNK_SIZE * i;
-        size_t chunk_size = min(MAX_CHUNK_SIZE, rlp + len - start);
+        size_t chunk_size = MIN(MAX_CHUNK_SIZE, rlp + len - start);
         if ((r = rlp_consume(start, chunk_size)) != RLP_OK) {
             break;
         }

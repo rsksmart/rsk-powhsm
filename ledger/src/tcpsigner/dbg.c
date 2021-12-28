@@ -80,8 +80,9 @@ void LOG_N_CHARS(const char c, unsigned int times) {
 }
 
 /** Print the given SRLP context (see srlp.h) */
-void LOG_SRLP_CTX(rlp_ctx_t ctx[], uint8_t ptr) {
+void LOG_SRLP_CTX(uint8_t v, rlp_ctx_t ctx[], uint8_t ptr) {
 #ifdef DEBUG_SRLP
+    printf("'0x%02x' ; <%u> ; ", v, ptr);
     for (int i = ptr; i >= 0; --i) {
         rlp_ctx_t cur = ctx[i];
         printf("{%d, %u, %u} ; ", cur.state, cur.size, cur.cursor);

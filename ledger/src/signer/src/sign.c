@@ -22,6 +22,8 @@
  * IN THE SOFTWARE.
  */
 
+#include <string.h>
+
 #include "os.h"
 #include "cx.h"
 
@@ -45,7 +47,7 @@ int do_pubkey(unsigned int* path,
               unsigned char* dest,
               size_t dest_size) {
 
-    unsigned char private_key_data[KEYLEN];
+    unsigned char private_key_data[KEY_LEN];
     cx_ecfp_private_key_t private_key;
     cx_ecfp_public_key_t public_key;
 
@@ -57,7 +59,7 @@ int do_pubkey(unsigned int* path,
             os_perso_derive_node_bip32(
                 CX_CURVE_256K1, path, path_length, private_key_data, NULL);
             cx_ecdsa_init_private_key(
-                CX_CURVE_256K1, private_key_data, KEYLEN, &private_key);
+                CX_CURVE_256K1, private_key_data, KEY_LEN, &private_key);
             // Cleanup private key data
             explicit_bzero(private_key_data, sizeof(private_key_data));
             // Derive public key
@@ -113,13 +115,13 @@ int do_sign(unsigned int* path,
             unsigned char* dest,
             size_t dest_size) {
 
-    unsigned char private_key_data[KEYLEN];
+    unsigned char private_key_data[KEY_LEN];
     cx_ecfp_private_key_t private_key;
 
     int sig_size;
 
     // Check the destination buffer won't be overflowed by the signature
-    if (dest_size < MAX_SIGNATURE_LENGTH) {
+    if (dest_size < MAX_SIGNATURE_LEN) {
         return DO_SIGN_ERROR;
     }
 
@@ -129,7 +131,7 @@ int do_sign(unsigned int* path,
             os_perso_derive_node_bip32(
                 CX_CURVE_256K1, path, path_length, private_key_data, NULL);
             cx_ecdsa_init_private_key(
-                CX_CURVE_256K1, private_key_data, KEYLEN, &private_key);
+                CX_CURVE_256K1, private_key_data, KEY_LEN, &private_key);
             // Cleanup private key data
             explicit_bzero(private_key_data, sizeof(private_key_data));
             sig_size = cx_ecdsa_sign((void*)&private_key,

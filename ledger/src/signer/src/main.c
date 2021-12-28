@@ -43,6 +43,7 @@
 #include "os_io_seproxyhal.h"
 
 #include "hsm.h"
+#include "hsm-ledger.h"
 
 unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
 
@@ -239,7 +240,7 @@ __attribute__((section(".boot"))) int main(int argc, char **argv) {
             UX_CALLBACK_SET_INTERVAL(500);
 
             // APDU buffer initialization
-            memset(G_io_apdu_buffer, 0, sizeof(G_io_apdu_buffer));
+            os_memset(G_io_apdu_buffer, 0, sizeof(G_io_apdu_buffer));
 
             // HSM context initialization
             hsm_init();

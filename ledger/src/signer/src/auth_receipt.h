@@ -22,17 +22,37 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef VARINT_H
-#define VARINT_H
+#ifndef __AUTH_RECEIPT
+#define __AUTH_RECEIPT
+
 #include <stdint.h>
-#include <stdbool.h>
 
-bool varintCanDecode(uint8_t *buffer, uint32_t bufferLength);
+#include "srlp.h"
+#include "keccak256.h"
 
-void createVarint(unsigned int value,
-                  unsigned char *buffer,
-                  unsigned char *len);
+#define RECEIPT_MAX_DEPTH (4)
+#define RECEIPT_MAX_BUFFER_SIZE (32)
 
-int varintLen(uint8_t firstByte);
+typedef struct {
+    uint8_t flags;
+    uint32_t remaining_bytes;
 
-#endif // VARINT_H
+    uint8_t level;
+    uint8_t index[RECEIPT_MAX_DEPTH];
+
+    uint8_t aux[RECEIPT_MAX_BUFFER_SIZE];
+    uint8_t aux_offset;
+
+    SHA3_CTX hash_ctx;
+} receipt_auth_ctx_t;
+
+/*
+ * Implement the RSK receipt parsing and validation portion of the signing
+ * authorization protocol.
+ *
+ * @arg[in] rx      number of received bytes from the host
+ * @ret             number of transmited bytes to the host
+ */
+unsigned int auth_sign_handle_receipt(volatile unsigned int rx);
+
+#endif

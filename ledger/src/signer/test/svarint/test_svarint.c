@@ -46,11 +46,16 @@ void test_init() {
     assert(svarint_notstarted());
 }
 
-void test_parsing(const uint8_t* buf, const uint8_t len, uint8_t expected_read, uint32_t expected_value) {
+void test_parsing(const uint8_t* buf,
+                  const uint8_t len,
+                  uint8_t expected_read,
+                  uint32_t expected_value) {
     printf("Testing value for \"0x");
-    for (uint8_t i = 0; i < len; i++) printf("%02x", buf[i]);
-    printf("\" should be %u and bytes read should be %u...\n", 
-           expected_value, expected_read);
+    for (uint8_t i = 0; i < len; i++)
+        printf("%02x", buf[i]);
+    printf("\" should be %u and bytes read should be %u...\n",
+           expected_value,
+           expected_read);
     // Test sending step bytes at a time (increasing)
     for (uint8_t step = 1; step <= len; step++) {
         printf("- with step %u\n", step);
@@ -59,8 +64,8 @@ void test_parsing(const uint8_t* buf, const uint8_t len, uint8_t expected_read, 
         uint8_t total_read = 0;
         for (uint8_t i = 0; i < len; i += step) {
             assert(!svarint_result());
-            uint8_t remaining = i+step >= len ? len - i : step;
-            uint8_t bs_read = svarint_consume(buf+i, remaining);
+            uint8_t remaining = i + step >= len ? len - i : step;
+            uint8_t bs_read = svarint_consume(buf + i, remaining);
             assert(!svarint_notstarted());
             assert(bs_read > 0);
             total_read += (uint8_t)bs_read;
@@ -75,7 +80,7 @@ void test_parsing(const uint8_t* buf, const uint8_t len, uint8_t expected_read, 
         // read an extra byte should trigger an invalid error
         if (len > total_read) {
             printf("-- reading past should yield an invalid error\n");
-            assert(!svarint_consume(buf+total_read, 1));
+            assert(!svarint_consume(buf + total_read, 1));
             assert(svarint_result() == SVARINT_ERR_INVALID);
         }
     }
@@ -83,7 +88,8 @@ void test_parsing(const uint8_t* buf, const uint8_t len, uint8_t expected_read, 
 
 void test_unsupported(const uint8_t* buf, const uint8_t len) {
     printf("Testing parsing for \"0x");
-    for (uint8_t i = 0; i < len; i++) printf("%02x", buf[i]);
+    for (uint8_t i = 0; i < len; i++)
+        printf("%02x", buf[i]);
     printf("\" should yield an unsupported error...\n");
 
     // Test sending step bytes at a time (increasing)
@@ -93,9 +99,9 @@ void test_unsupported(const uint8_t* buf, const uint8_t len) {
         svarint_init(&context);
         uint8_t total_read = 0;
         for (uint8_t i = 0; i < len; i += step) {
-            uint8_t remaining = i+step >= len ? len - i : step;
+            uint8_t remaining = i + step >= len ? len - i : step;
             assert(!svarint_result());
-            uint8_t bs_read = svarint_consume(buf+i, remaining);
+            uint8_t bs_read = svarint_consume(buf + i, remaining);
             assert(!svarint_notstarted());
             assert(bs_read > 0);
             total_read += bs_read;
@@ -108,13 +114,14 @@ void test_unsupported(const uint8_t* buf, const uint8_t len) {
         // read an extra byte should trigger an invalid error
         if (len > total_read) {
             printf("-- reading past should trigger an invalid error\n");
-            assert(!svarint_consume(buf+total_read, 1));
+            assert(!svarint_consume(buf + total_read, 1));
             assert(svarint_result() == SVARINT_ERR_INVALID);
         }
     }
 }
 
-void test_encode(uint32_t value, const uint8_t *expected, 
+void test_encode(uint32_t value,
+                 const uint8_t* expected,
                  const uint8_t expected_length) {
     uint8_t result[5];
 
@@ -126,34 +133,45 @@ void test_encode(uint32_t value, const uint8_t *expected,
 int main() {
     test_init();
 
-    test_parsing((uint8_t[]){ 0xaa }, 1, 1, 0xaa);
-    test_parsing((uint8_t[]){ 0xaa, 0xbb }, 2, 1, 0xaa);
-    test_parsing((uint8_t[]){ 0xfc }, 1, 1, 0xfc);
-    test_parsing((uint8_t[]){ 0xfc, 0xbb }, 2, 1, 0xfc);
+    test_parsing((uint8_t[]){0xaa}, 1, 1, 0xaa);
+    test_parsing((uint8_t[]){0xaa, 0xbb}, 2, 1, 0xaa);
+    test_parsing((uint8_t[]){0xfc}, 1, 1, 0xfc);
+    test_parsing((uint8_t[]){0xfc, 0xbb}, 2, 1, 0xfc);
 
-    test_parsing((uint8_t[]){ 0xfd, 0xaa, 0xbb }, 3, 3, 0xbbaa);
-    test_parsing((uint8_t[]){ 0xfd, 0xaa, 0xbb, 0xcc, 0xdd }, 5, 3, 0xbbaa);
+    test_parsing((uint8_t[]){0xfd, 0xaa, 0xbb}, 3, 3, 0xbbaa);
+    test_parsing((uint8_t[]){0xfd, 0xaa, 0xbb, 0xcc, 0xdd}, 5, 3, 0xbbaa);
 
-    test_parsing((uint8_t[]){ 0xfe, 0xcc, 0xdd, 0xee, 0xff }, 5, 5, 0xffeeddcc);
-    test_parsing((uint8_t[]){ 0xfe, 0xcc, 0xdd, 0xee, 0xff, 0x01, 0x02, 0x03 }, 8, 5, 0xffeeddcc);
+    test_parsing((uint8_t[]){0xfe, 0xcc, 0xdd, 0xee, 0xff}, 5, 5, 0xffeeddcc);
+    test_parsing((uint8_t[]){0xfe, 0xcc, 0xdd, 0xee, 0xff, 0x01, 0x02, 0x03},
+                 8,
+                 5,
+                 0xffeeddcc);
 
-    test_parsing((uint8_t[]){ 0xff, 0x11, 0x22, 0x33, 0x44, 0, 0, 0, 0 }, 9, 9, 0x44332211);
-    test_parsing((uint8_t[]){ 0xff, 0x11, 0x22, 0x33, 0x44, 0, 0, 0, 0, 1, 2, 3, 4 }, 13, 9, 0x44332211);
+    test_parsing((uint8_t[]){0xff, 0x11, 0x22, 0x33, 0x44, 0, 0, 0, 0},
+                 9,
+                 9,
+                 0x44332211);
+    test_parsing(
+        (uint8_t[]){0xff, 0x11, 0x22, 0x33, 0x44, 0, 0, 0, 0, 1, 2, 3, 4},
+        13,
+        9,
+        0x44332211);
 
-    test_unsupported((uint8_t[]){ 0xff, 0x11, 0x22, 0x33, 0x44, 1, 0, 0, 0 }, 9);
-    test_unsupported((uint8_t[]){ 0xff, 0x11, 0x22, 0x33, 0x44, 1, 0, 0, 0, 1, 2 }, 11);
+    test_unsupported((uint8_t[]){0xff, 0x11, 0x22, 0x33, 0x44, 1, 0, 0, 0}, 9);
+    test_unsupported(
+        (uint8_t[]){0xff, 0x11, 0x22, 0x33, 0x44, 1, 0, 0, 0, 1, 2}, 11);
 
-    test_encode(0x00, (uint8_t[]){ 0x00 }, 1);
-    test_encode(0xab, (uint8_t[]){ 0xab }, 1);
-    test_encode(0xfc, (uint8_t[]){ 0xfc }, 1);
+    test_encode(0x00, (uint8_t[]){0x00}, 1);
+    test_encode(0xab, (uint8_t[]){0xab}, 1);
+    test_encode(0xfc, (uint8_t[]){0xfc}, 1);
 
-    test_encode(0xfd, (uint8_t[]){ 0xfd, 0xfd, 0x00 }, 3);
-    test_encode(0xaabb, (uint8_t[]){ 0xfd, 0xbb, 0xaa }, 3);
-    test_encode(0xffff, (uint8_t[]){ 0xfd, 0xff, 0xff }, 3);
+    test_encode(0xfd, (uint8_t[]){0xfd, 0xfd, 0x00}, 3);
+    test_encode(0xaabb, (uint8_t[]){0xfd, 0xbb, 0xaa}, 3);
+    test_encode(0xffff, (uint8_t[]){0xfd, 0xff, 0xff}, 3);
 
-    test_encode(0x010000, (uint8_t[]){ 0xfe, 0x00, 0x00, 0x01, 0x00 }, 5);
-    test_encode(0xaabbccdd, (uint8_t[]){ 0xfe, 0xdd, 0xcc, 0xbb, 0xaa }, 5);
-    test_encode(0xffffffff, (uint8_t[]){ 0xfe, 0xff, 0xff, 0xff, 0xff }, 5);
-    
+    test_encode(0x010000, (uint8_t[]){0xfe, 0x00, 0x00, 0x01, 0x00}, 5);
+    test_encode(0xaabbccdd, (uint8_t[]){0xfe, 0xdd, 0xcc, 0xbb, 0xaa}, 5);
+    test_encode(0xffffffff, (uint8_t[]){0xfe, 0xff, 0xff, 0xff, 0xff}, 5);
+
     return 0;
 }
