@@ -371,7 +371,7 @@ def _read_shared_prefix(bs):
     size_bytes = 0
 
     if length > 0:
-        size_bytes = length//8 + 1
+        size_bytes = (length-1)//8 + 1
         if len(bs[offset:]) < size_bytes:
             raise ValueError("Not enough bytes to read in shared prefix")
         encoded_path = bs[offset:offset + size_bytes]
