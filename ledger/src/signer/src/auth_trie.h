@@ -22,16 +22,45 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __HEX_READER
-#define __HEX_READER
+#ifndef __AUTH_TRIE
+#define __AUTH_TRIE
 
 #include <stdint.h>
 
+#include "trie.h"
+#include "keccak256.h"
+#include "defs.h"
+
+#define AUTH_TRIE_STATE_NODE_LENGTH (0)
+#define AUTH_TRIE_STATE_NODE (1)
+
+#define AUTH_TRIE_NODE_VERSION (1)
+
+typedef struct {
+    uint8_t total_nodes;
+    uint8_t current_node;
+    uint8_t state;
+
+    trie_ctx_t ctx;
+    SHA3_CTX hash_ctx;
+    SHA3_CTX aux_hash_ctx;
+
+    uint8_t num_linked;
+    uint8_t offset;
+    union {
+        uint8_t value_hash[HASH_LEN];
+        uint8_t child_hash[HASH_LEN];
+    };
+    uint8_t node_hash[HASH_LEN];
+} trie_auth_ctx_t;
+
 /*
- * Read src_length hex bytes from the src string
- * Return the number of bytes actually read or
- * -1 in case of error
+ * Implement the partial merkle trie parsing portion
+ * of the signing authorization protocol.
+ *
+ * @arg[in] rx      number of received bytes from the host
+ * @ret             number of transmited bytes to the host
  */
-int read_hex(const char* src, size_t src_length, void* dest);
+unsigned int auth_sign_handle_merkleproof(volatile unsigned int rx);
 
 #endif

@@ -43,7 +43,7 @@
 
 typedef struct hsmsim_admin_data_s {
     bool ancestor_receipts_root_set;
-    uint8_t old_ancestor_receipts_root[HASHLEN];
+    uint8_t old_ancestor_receipts_root[HASH_LEN];
 } hsmsim_admin_data_t;
 
 void hsmsim_admin_init();

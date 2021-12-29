@@ -25,30 +25,15 @@
 #include <string.h>
 
 #include "hsm.h"
-#include "defs.h"
 #include "os.h"
 
-#include "dbg.h"
-
+#include "defs.h"
 #include "mem.h"
+#include "memutil.h"
 
-// Simulation of cx_hash()
-#include "sha256.h"
-
-// BTC TX-parsing code
-#include "txparser.h"
-
-// Signing code
-#include "sign.h"
-
-// rlp-parsing code
-#include "rlp.h"
-
-// Path auth definitions
 #include "pathAuth.h"
-
-// Hardcoded contract values
-#include "contractValues.h"
+#include "auth.h"
+#include "sign.h"
 
 #include "bc_state.h"
 #include "bc_advance.h"
@@ -56,31 +41,10 @@
 
 #include "attestation.h"
 
-#include "memutil.h"
-
-// Make state variables used by signer global static, so they can be reset
-static PARSE_STM state;
-// Receipt keccak256 hash
-unsigned char ReceiptHashBuf[HASHLEN];
-// Receipts trie root (from block headers)
-unsigned char ReceiptsRootBuf[HASHLEN];
-
-// Key definitions
-unsigned int path[5];
+#include "dbg.h"
 
 // Operation being currently executed
 static unsigned char curr_cmd;
-
-/*
- * Initialize signer state.
- */
-static void init_signer() {
-    explicit_bzero(ReceiptHashBuf, sizeof(ReceiptHashBuf));
-    explicit_bzero(ReceiptsRootBuf, sizeof(ReceiptsRootBuf));
-    explicit_bzero(path, sizeof(path));
-
-    state = S_CMD_START;
-}
 
 /*
  * Reset shared memory state.
@@ -99,7 +63,6 @@ static void reset_if_starting(unsigned char cmd) {
     // Otherwise we already reset when curr_cmd started.
     if (cmd != curr_cmd) {
         reset_shared_state();
-        init_signer();
         bc_init_advance();
         bc_init_upd_ancestor();
         curr_cmd = cmd;
@@ -164,16 +127,18 @@ unsigned int hsm_process_apdu(volatile unsigned int rx) {
         }
 
         // Derive the public key
-        SAFE_MEMMOVE(path,
-                     sizeof(path),
+        SAFE_MEMMOVE(auth.path,
+                     sizeof(auth.path),
                      0,
                      APDU_DATA_PTR,
                      APDU_TOTAL_DATA_SIZE,
                      0,
                      RSK_PATH_LEN * sizeof(uint32_t),
                      THROW(0x6A8F));
-        tx = do_pubkey(
-            path, RSK_PATH_LEN, G_io_apdu_buffer, sizeof(G_io_apdu_buffer));
+        tx = do_pubkey(auth.path,
+                       RSK_PATH_LEN,
+                       G_io_apdu_buffer,
+                       sizeof(G_io_apdu_buffer));
 
         // Error deriving?
         if (tx == DO_PUBKEY_ERROR) {
@@ -183,8 +148,8 @@ unsigned int hsm_process_apdu(volatile unsigned int rx) {
         break;
 
     case INS_SIGN:
-// Include INS_SIGN command handling
-#include "ins_sign.h"
+        reset_if_starting(INS_SIGN);
+        tx = auth_sign(rx);
         break;
 
     case INS_ATTESTATION:

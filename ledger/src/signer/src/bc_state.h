@@ -61,7 +61,7 @@ extern const bc_state_t N_bc_state_var;
 
 #ifndef PARAM_INITIAL_BLOCK_HASH
 #include "defs.h"
-extern uint8_t INITIAL_BLOCK_HASH[HASHLEN];
+extern uint8_t INITIAL_BLOCK_HASH[HASH_LEN];
 #endif
 
 // -----------------------------------------------------------------------

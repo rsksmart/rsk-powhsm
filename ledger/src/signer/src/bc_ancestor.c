@@ -41,8 +41,7 @@
 #include "bc_hash.h"
 #include "bc_mm.h"
 #include "bc_state.h"
-
-#define min(x, y) ((x) <= (y) ? (x) : (y))
+#include "util.h"
 
 // We'll be asking for block header chunks of at most this size
 #define MAX_CHUNK_SIZE 80
@@ -313,7 +312,7 @@ unsigned int bc_upd_ancestor(volatile unsigned int rx) {
     }
     if (op == OP_UPD_ANCESTOR_HEADER_CHUNK) {
         uint16_t expected_txlen =
-            block.size > 0 ? min(block.size - block.recv, MAX_CHUNK_SIZE)
+            block.size > 0 ? MIN(block.size - block.recv, MAX_CHUNK_SIZE)
                            : MAX_CHUNK_SIZE;
         if (APDU_DATA_SIZE(rx) != expected_txlen) {
             FAIL(PROT_INVALID);
@@ -421,7 +420,7 @@ unsigned int bc_upd_ancestor(volatile unsigned int rx) {
         // Current block not fully consumed? Ask for next chunk
         if (block.recv < block.size) {
             SET_APDU_OP(OP_UPD_ANCESTOR_HEADER_CHUNK);
-            SET_APDU_TXLEN(min(block.size - block.recv, MAX_CHUNK_SIZE));
+            SET_APDU_TXLEN(MIN(block.size - block.recv, MAX_CHUNK_SIZE));
             return TX_FOR_DATA_SIZE(1);
         }
 
