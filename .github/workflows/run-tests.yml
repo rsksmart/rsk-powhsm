@@ -23,7 +23,7 @@ jobs:
       - name: Ledger Signer's tests
         working-directory: ledger/src/signer/test/
         run: |
-          for d in difficulty sha256 srlp; do
+          for d in difficulty sha256 srlp svarint btcscript btctx trie; do
             (cd "$d" && make clean test)
           done
 
