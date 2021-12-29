@@ -28,14 +28,14 @@
 #include "svarint.h"
 
 // Context pointer
-static svarint_ctx_t *ctx;
+static svarint_ctx_t* ctx;
 
 /*
  * Initialize the parser.
  *
  * @arg[in] ctx the context to be used for this session
  */
-void svarint_init(svarint_ctx_t *_ctx) {
+void svarint_init(svarint_ctx_t* _ctx) {
     ctx = _ctx;
     memset(ctx, 0, sizeof(svarint_ctx_t));
     ctx->state = SVARINT_ST_HEADER;
@@ -49,7 +49,7 @@ int8_t svarint_notstarted() {
 }
 
 /*
- * Tell whether parsing is finished, and 
+ * Tell whether parsing is finished, and
  * whether it triggered an error (and which one)
  * This should be checked after every call to svarint_consume
  */
@@ -84,17 +84,17 @@ uint8_t svarint_consume(const uint8_t* buf, const uint8_t len) {
             break;
         case SVARINT_ST_BODY:
             // We don't support values greater than 32 bits in practice
-            // (we do support up to 32 bit values 
+            // (we do support up to 32 bit values
             // represented as 64 bit values though)
             if (ctx->offset > 3 && buf[i] > 0) {
                 ctx->state = SVARINT_ERR_UNSUPPORTED;
-                return i+1;
+                return i + 1;
             }
             // Read little endian varint value
-            ctx->value += buf[i] << (8*ctx->offset++);
+            ctx->value += buf[i] << (8 * ctx->offset++);
             if (--ctx->size == 0) {
                 ctx->state = SVARINT_ST_DONE;
-                return i+1;
+                return i + 1;
             }
             break;
         default:
@@ -120,11 +120,13 @@ uint8_t svarint_consume(const uint8_t* buf, const uint8_t len) {
  */
 uint8_t svarint_encode(uint32_t value, uint8_t* buf, const uint8_t len) {
     if (value < 0xFD) {
-        if (len < 1) return 0;
+        if (len < 1)
+            return 0;
         buf[0] = (uint8_t)value;
         return 1;
     } else if (value <= 0xFFFF) {
-        if (len < 3) return 0;
+        if (len < 3)
+            return 0;
         buf[0] = 0xFD;
         buf[1] = value & 0xFF;
         buf[2] = (value & 0xFF00) >> 8;

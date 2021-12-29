@@ -32,9 +32,9 @@
 #include "defs.h"
 
 #define AUTH_TRIE_STATE_NODE_LENGTH (0)
-#define AUTH_TRIE_STATE_NODE        (1)
+#define AUTH_TRIE_STATE_NODE (1)
 
-#define AUTH_TRIE_NODE_VERSION      (1)
+#define AUTH_TRIE_NODE_VERSION (1)
 
 typedef struct {
     uint8_t total_nodes;
@@ -55,7 +55,7 @@ typedef struct {
 } trie_auth_ctx_t;
 
 /*
- * Implement the partial merkle trie parsing portion 
+ * Implement the partial merkle trie parsing portion
  * of the signing authorization protocol.
  *
  * @arg[in] rx      number of received bytes from the host

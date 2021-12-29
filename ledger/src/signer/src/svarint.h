@@ -25,12 +25,12 @@
 // Streaming varint parser.
 //
 // Usage:
-// Call svarint_init to initialize the parser with the context 
+// Call svarint_init to initialize the parser with the context
 // to use for the parsing session
 //
 // Then feed chunks of the varint with varint_consume. This function
 // will process them and return the number of bytes actually processed.
-// Immediately after calling this function, check error conditions and 
+// Immediately after calling this function, check error conditions and
 // parsing state with svarint_result.
 // The parsed value will be available in the 'value' field of the context
 // if svarint_result yields VARINT_ST_DONE.
@@ -49,13 +49,13 @@
 #define MAX_SVARINT_ENCODING_SIZE 5
 
 // Context state and errors
-#define SVARINT_ST_HEADER           (0)
-#define SVARINT_ST_BODY             (1)
-#define SVARINT_ST_DONE             (2)
+#define SVARINT_ST_HEADER (0)
+#define SVARINT_ST_BODY (1)
+#define SVARINT_ST_DONE (2)
 
-#define SVARINT_ERR_NONE            (0)
-#define SVARINT_ERR_INVALID         (-1)
-#define SVARINT_ERR_UNSUPPORTED     (-2)
+#define SVARINT_ERR_NONE (0)
+#define SVARINT_ERR_INVALID (-1)
+#define SVARINT_ERR_UNSUPPORTED (-2)
 
 typedef int8_t svarint_state_t;
 
@@ -72,7 +72,7 @@ typedef struct {
  *
  * @arg[in] ctx the context to be used for this session
  */
-void svarint_init(svarint_ctx_t *ctx);
+void svarint_init(svarint_ctx_t* ctx);
 
 /*
  * Tells whether the parser has not yet consumed any bytes
@@ -80,7 +80,7 @@ void svarint_init(svarint_ctx_t *ctx);
 int8_t svarint_notstarted();
 
 /*
- * Tell whether parsing is finished, and 
+ * Tell whether parsing is finished, and
  * whether it triggered an error (and which one)
  * This should be checked after every call to svarint_consume
  */

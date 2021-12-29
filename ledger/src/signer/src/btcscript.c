@@ -39,7 +39,9 @@ static btcscript_ctx_t *ctx;
  * @arg[in] cb          the callback to be used for this session
  * @arg[in] script_size the total script size in bytes
  */
-void btcscript_init(btcscript_ctx_t *_ctx, btcscript_cb_t _cb, uint32_t script_size) {
+void btcscript_init(btcscript_ctx_t *_ctx,
+                    btcscript_cb_t _cb,
+                    uint32_t script_size) {
     ctx = _ctx;
     memset(ctx, 0, sizeof(btcscript_ctx_t));
     ctx->state = BTCSCRIPT_ST_OPCODE;
@@ -48,7 +50,7 @@ void btcscript_init(btcscript_ctx_t *_ctx, btcscript_cb_t _cb, uint32_t script_s
 }
 
 /*
- * Tell whether parsing is finished, and 
+ * Tell whether parsing is finished, and
  * whether it triggered an error (and which one)
  * This should be checked after every call to btcscript_consume
  */
@@ -66,26 +68,27 @@ int8_t btcscript_result() {
  *
  * @return the number of bytes actually read and processed
  */
-uint8_t btcscript_consume(uint8_t* buf, const uint8_t len) {
+uint8_t btcscript_consume(uint8_t *buf, const uint8_t len) {
     for (uint8_t i = 0; i < len; i++) {
         ctx->bytes_remaining--;
         switch (ctx->state) {
         case BTCSCRIPT_ST_OPCODE:
             ctx->opcode = buf[i];
-            // Push only - taken from 
+            // Push only - taken from
             // https://github.com/bitcoin/bitcoin/blob/v0.20.2/src/script/script.cpp#L242
             if (ctx->opcode > BTCSCRIPT_OP_16) {
                 ctx->state = BTCSCRIPT_ERR_INVALID;
-                return i+1;
+                return i + 1;
             }
-            
+
             // Taken from
             // https://github.com/bitcoin/bitcoin/blob/v0.20.2/src/script/script.cpp#L278
-            if (ctx->opcode > BTCSCRIPT_OP_0 && ctx->opcode < BTCSCRIPT_OP_PUSHDATA1) {
+            if (ctx->opcode > BTCSCRIPT_OP_0 &&
+                ctx->opcode < BTCSCRIPT_OP_PUSHDATA1) {
                 ctx->operand_size = ctx->opcode;
                 ctx->callback(BTCSCRIPT_EV_OPCODE);
                 ctx->state = BTCSCRIPT_ST_OPERAND;
-            } else if (ctx->opcode == BTCSCRIPT_OP_0 || 
+            } else if (ctx->opcode == BTCSCRIPT_OP_0 ||
                        ctx->opcode >= BTCSCRIPT_OP_1NEGATE) {
                 ctx->operand_size = 0;
                 ctx->callback(BTCSCRIPT_EV_OPCODE);
@@ -96,10 +99,13 @@ uint8_t btcscript_consume(uint8_t* buf, const uint8_t len) {
             }
             break;
         case BTCSCRIPT_ST_OPERAND_SIZE:
-            ctx->operand_size += buf[i] << (8*ctx->size_offset++);
-            if ((ctx->opcode == BTCSCRIPT_OP_PUSHDATA1 && ctx->size_offset == 1) ||
-                (ctx->opcode == BTCSCRIPT_OP_PUSHDATA2 && ctx->size_offset == 2) ||
-                (ctx->opcode == BTCSCRIPT_OP_PUSHDATA4 && ctx->size_offset == 4)) {
+            ctx->operand_size += buf[i] << (8 * ctx->size_offset++);
+            if ((ctx->opcode == BTCSCRIPT_OP_PUSHDATA1 &&
+                 ctx->size_offset == 1) ||
+                (ctx->opcode == BTCSCRIPT_OP_PUSHDATA2 &&
+                 ctx->size_offset == 2) ||
+                (ctx->opcode == BTCSCRIPT_OP_PUSHDATA4 &&
+                 ctx->size_offset == 4)) {
                 ctx->callback(BTCSCRIPT_EV_OPCODE);
                 ctx->state = BTCSCRIPT_ST_OPERAND;
             }
@@ -122,7 +128,7 @@ uint8_t btcscript_consume(uint8_t* buf, const uint8_t len) {
             } else {
                 ctx->state = BTCSCRIPT_ERR_INVALID;
             }
-            return i+1;
+            return i + 1;
         }
     }
 

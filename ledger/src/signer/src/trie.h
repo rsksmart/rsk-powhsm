@@ -24,7 +24,7 @@
 
 // Streaming RSK (uni)trie node parser.
 // See https://github.com/rsksmart/RSKIPs/blob/master/IPs/RSKIP107.md for
-// details on the format, and 
+// details on the format, and
 // https://github.com/rsksmart/rskj/blob/IRIS-3.1.0/rskj-core/
 // src/main/java/co/rsk/trie/Trie.java for the reference implementation.
 //
@@ -36,7 +36,7 @@
 // Then feed chunks of the BTC transaction with trie_consume. This function
 // will process them and call your callback accordingly, returning the number
 // of bytes actually processed and read.
-// Immediately after calling this function, check error conditions and 
+// Immediately after calling this function, check error conditions and
 // parsing state with trie_result.
 
 #ifndef __TRIE
@@ -48,66 +48,66 @@
 #include "svarint.h"
 
 // Miscellaneous constants
-#define TRIE_MAX_RAW_SIZE           10
-#define NON_EMBEDDED_NODE_SIZE      32
-#define MAX_EMBEDDED_SIZE           40
-#define VALUE_HASH_SIZE             32
-#define VALUE_LENGTH_SIZE           3
+#define TRIE_MAX_RAW_SIZE 10
+#define NON_EMBEDDED_NODE_SIZE 32
+#define MAX_EMBEDDED_SIZE 40
+#define VALUE_HASH_SIZE 32
+#define VALUE_LENGTH_SIZE 3
 
 // Callback events
-#define TRIE_EV_FLAGS                           (0)
-#define TRIE_EV_SHARED_PREFIX_LENGTH            (1)
-#define TRIE_EV_SHARED_PREFIX                   (2)
-#define TRIE_EV_LEFT_NODE_START                 (3)
-#define TRIE_EV_LEFT_NODE_DATA                  (4)
-#define TRIE_EV_LEFT_NODE_END                   (5)
-#define TRIE_EV_LEFT_NODE_EMBEDDED_START        (6)
-#define TRIE_EV_LEFT_NODE_EMBEDDED_DATA         (7)
-#define TRIE_EV_LEFT_NODE_EMBEDDED_END          (8)
-#define TRIE_EV_RIGHT_NODE_START                (9)
-#define TRIE_EV_RIGHT_NODE_DATA                 (10)
-#define TRIE_EV_RIGHT_NODE_END                  (11)
-#define TRIE_EV_RIGHT_NODE_EMBEDDED_START       (12)
-#define TRIE_EV_RIGHT_NODE_EMBEDDED_DATA        (13)
-#define TRIE_EV_RIGHT_NODE_EMBEDDED_END         (14)
-#define TRIE_EV_CHILDREN_SIZE                   (15)
-#define TRIE_EV_VALUE_HASH_START                (16)
-#define TRIE_EV_VALUE_HASH_DATA                 (17)
-#define TRIE_EV_VALUE_HASH_END                  (18)
-#define TRIE_EV_VALUE_START                     (19)
-#define TRIE_EV_VALUE_DATA                      (20)
-#define TRIE_EV_VALUE_END                       (21)
+#define TRIE_EV_FLAGS (0)
+#define TRIE_EV_SHARED_PREFIX_LENGTH (1)
+#define TRIE_EV_SHARED_PREFIX (2)
+#define TRIE_EV_LEFT_NODE_START (3)
+#define TRIE_EV_LEFT_NODE_DATA (4)
+#define TRIE_EV_LEFT_NODE_END (5)
+#define TRIE_EV_LEFT_NODE_EMBEDDED_START (6)
+#define TRIE_EV_LEFT_NODE_EMBEDDED_DATA (7)
+#define TRIE_EV_LEFT_NODE_EMBEDDED_END (8)
+#define TRIE_EV_RIGHT_NODE_START (9)
+#define TRIE_EV_RIGHT_NODE_DATA (10)
+#define TRIE_EV_RIGHT_NODE_END (11)
+#define TRIE_EV_RIGHT_NODE_EMBEDDED_START (12)
+#define TRIE_EV_RIGHT_NODE_EMBEDDED_DATA (13)
+#define TRIE_EV_RIGHT_NODE_EMBEDDED_END (14)
+#define TRIE_EV_CHILDREN_SIZE (15)
+#define TRIE_EV_VALUE_HASH_START (16)
+#define TRIE_EV_VALUE_HASH_DATA (17)
+#define TRIE_EV_VALUE_HASH_END (18)
+#define TRIE_EV_VALUE_START (19)
+#define TRIE_EV_VALUE_DATA (20)
+#define TRIE_EV_VALUE_END (21)
 typedef uint8_t trie_cb_event_t;
 
 // Callback synonym
 typedef void (*trie_cb_t)(const trie_cb_event_t event);
 
 // Context state and errors
-#define TRIE_ST_FLAGS                       (0)
-#define TRIE_ST_SHARED_PREFIX_LENGTH        (1)
-#define TRIE_ST_SHARED_PREFIX_LENGTH_VAR    (2)
-#define TRIE_ST_SHARED_PREFIX               (3)
-#define TRIE_ST_LEFT_NODE                   (4)
-#define TRIE_ST_LEFT_NODE_EMBEDDED          (5)
-#define TRIE_ST_RIGHT_NODE                  (6)
-#define TRIE_ST_RIGHT_NODE_EMBEDDED         (7)
-#define TRIE_ST_CHILDREN_SIZE               (8)
-#define TRIE_ST_VALUE                       (9)
-#define TRIE_ST_LONG_VALUE                  (10)
-#define TRIE_ST_DONE                        (99)
+#define TRIE_ST_FLAGS (0)
+#define TRIE_ST_SHARED_PREFIX_LENGTH (1)
+#define TRIE_ST_SHARED_PREFIX_LENGTH_VAR (2)
+#define TRIE_ST_SHARED_PREFIX (3)
+#define TRIE_ST_LEFT_NODE (4)
+#define TRIE_ST_LEFT_NODE_EMBEDDED (5)
+#define TRIE_ST_RIGHT_NODE (6)
+#define TRIE_ST_RIGHT_NODE_EMBEDDED (7)
+#define TRIE_ST_CHILDREN_SIZE (8)
+#define TRIE_ST_VALUE (9)
+#define TRIE_ST_LONG_VALUE (10)
+#define TRIE_ST_DONE (99)
 
-#define TRIE_ERR_NONE          (0)
-#define TRIE_ERR_INVALID       (-1)
-#define TRIE_ERR_UNSUPPORTED   (-2)
+#define TRIE_ERR_NONE (0)
+#define TRIE_ERR_INVALID (-1)
+#define TRIE_ERR_UNSUPPORTED (-2)
 
 // Flag-reading macros to save space and ease readability
-#define TRIE_FG_VERSION(flags)                 (((flags) & 0b11000000) >> 6)
-#define TRIE_FG_HAS_LONG_VALUE(flags)          (((flags) & 0b00100000) > 0)
-#define TRIE_FG_SHARED_PREFIX_PRESENT(flags)   (((flags) & 0b00010000) > 0)
-#define TRIE_FG_NODE_PRESENT_LEFT(flags)       (((flags) & 0b00001000) > 0)
-#define TRIE_FG_NODE_PRESENT_RIGHT(flags)      (((flags) & 0b00000100) > 0)
-#define TRIE_FG_NODE_IS_EMBEDDED_LEFT(flags)   (((flags) & 0b00000010) > 0)
-#define TRIE_FG_NODE_IS_EMBEDDED_RIGHT(flags)  (((flags) & 0b00000001) > 0)
+#define TRIE_FG_VERSION(flags) (((flags)&0b11000000) >> 6)
+#define TRIE_FG_HAS_LONG_VALUE(flags) (((flags)&0b00100000) > 0)
+#define TRIE_FG_SHARED_PREFIX_PRESENT(flags) (((flags)&0b00010000) > 0)
+#define TRIE_FG_NODE_PRESENT_LEFT(flags) (((flags)&0b00001000) > 0)
+#define TRIE_FG_NODE_PRESENT_RIGHT(flags) (((flags)&0b00000100) > 0)
+#define TRIE_FG_NODE_IS_EMBEDDED_LEFT(flags) (((flags)&0b00000010) > 0)
+#define TRIE_FG_NODE_IS_EMBEDDED_RIGHT(flags) (((flags)&0b00000001) > 0)
 
 typedef int8_t trie_state_t;
 
@@ -139,10 +139,10 @@ typedef struct {
  * @arg[in] cb  the callback to be used for this session
  * @arg[in] length  the length of the node in bytes
  */
-void trie_init(trie_ctx_t *ctx, trie_cb_t cb, uint32_t length);
+void trie_init(trie_ctx_t* ctx, trie_cb_t cb, uint32_t length);
 
 /*
- * Tell whether parsing is finished, and 
+ * Tell whether parsing is finished, and
  * whether it triggered an error (and which one)
  * This should be checked after every call to trie_consume
  */

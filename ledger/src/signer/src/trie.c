@@ -48,7 +48,7 @@ void trie_init(trie_ctx_t *_ctx, trie_cb_t _cb, uint32_t length) {
 }
 
 /*
- * Tell whether parsing is finished, and 
+ * Tell whether parsing is finished, and
  * whether it triggered an error (and which one)
  * This should be checked after every call to trie_consume
  */
@@ -58,46 +58,47 @@ int8_t trie_result() {
     return TRIE_ERR_NONE;
 }
 
-#define NEXT_STATE()                                        \
-    {                                                       \
-        if (ctx->state < TRIE_ST_SHARED_PREFIX_LENGTH &&    \
-            TRIE_FG_SHARED_PREFIX_PRESENT(ctx->flags)) {    \
-            ctx->state = TRIE_ST_SHARED_PREFIX_LENGTH;      \
-        } else if (ctx->state < TRIE_ST_LEFT_NODE &&        \
-                TRIE_FG_NODE_PRESENT_LEFT(ctx->flags)) {    \
-            ctx->offset = 0;                                \
-            if (TRIE_FG_NODE_IS_EMBEDDED_LEFT(ctx->flags))  \
-                ctx->state = TRIE_ST_LEFT_NODE_EMBEDDED;    \
-            else                                            \
-                ctx->state = TRIE_ST_LEFT_NODE;             \
-        } else if (ctx->state < TRIE_ST_RIGHT_NODE &&       \
-                TRIE_FG_NODE_PRESENT_RIGHT(ctx->flags)) {   \
-            ctx->offset = 0;                                \
-            if (TRIE_FG_NODE_IS_EMBEDDED_RIGHT(ctx->flags)) \
-                ctx->state = TRIE_ST_RIGHT_NODE_EMBEDDED;   \
-            else                                            \
-                ctx->state = TRIE_ST_RIGHT_NODE;            \
-        } else if (ctx->state < TRIE_ST_CHILDREN_SIZE &&    \
-                (TRIE_FG_NODE_PRESENT_LEFT(ctx->flags) ||   \
-                TRIE_FG_NODE_PRESENT_RIGHT(ctx->flags))) {  \
-            svarint_init(&ctx->varint);                     \
-            ctx->state = TRIE_ST_CHILDREN_SIZE;             \
-        } else if (ctx->state < TRIE_ST_VALUE) {            \
-            ctx->offset = 0;                                \
-            if (TRIE_FG_HAS_LONG_VALUE(ctx->flags))         \
-                ctx->state = TRIE_ST_LONG_VALUE;            \
-            else if (ctx->remaining_bytes == 0) {           \
-                ctx->state = TRIE_ERR_INVALID;              \
-                return i+1;                                 \
-            } else                                          \
-                ctx->state = TRIE_ST_VALUE;                 \
-        } else {                                            \
-            ctx->state = TRIE_ERR_INVALID;                  \
-            return i+1;                                     \
-        }                                                   \
+#define NEXT_STATE()                                           \
+    {                                                          \
+        if (ctx->state < TRIE_ST_SHARED_PREFIX_LENGTH &&       \
+            TRIE_FG_SHARED_PREFIX_PRESENT(ctx->flags)) {       \
+            ctx->state = TRIE_ST_SHARED_PREFIX_LENGTH;         \
+        } else if (ctx->state < TRIE_ST_LEFT_NODE &&           \
+                   TRIE_FG_NODE_PRESENT_LEFT(ctx->flags)) {    \
+            ctx->offset = 0;                                   \
+            if (TRIE_FG_NODE_IS_EMBEDDED_LEFT(ctx->flags))     \
+                ctx->state = TRIE_ST_LEFT_NODE_EMBEDDED;       \
+            else                                               \
+                ctx->state = TRIE_ST_LEFT_NODE;                \
+        } else if (ctx->state < TRIE_ST_RIGHT_NODE &&          \
+                   TRIE_FG_NODE_PRESENT_RIGHT(ctx->flags)) {   \
+            ctx->offset = 0;                                   \
+            if (TRIE_FG_NODE_IS_EMBEDDED_RIGHT(ctx->flags))    \
+                ctx->state = TRIE_ST_RIGHT_NODE_EMBEDDED;      \
+            else                                               \
+                ctx->state = TRIE_ST_RIGHT_NODE;               \
+        } else if (ctx->state < TRIE_ST_CHILDREN_SIZE &&       \
+                   (TRIE_FG_NODE_PRESENT_LEFT(ctx->flags) ||   \
+                    TRIE_FG_NODE_PRESENT_RIGHT(ctx->flags))) { \
+            svarint_init(&ctx->varint);                        \
+            ctx->state = TRIE_ST_CHILDREN_SIZE;                \
+        } else if (ctx->state < TRIE_ST_VALUE) {               \
+            ctx->offset = 0;                                   \
+            if (TRIE_FG_HAS_LONG_VALUE(ctx->flags))            \
+                ctx->state = TRIE_ST_LONG_VALUE;               \
+            else if (ctx->remaining_bytes == 0) {              \
+                ctx->state = TRIE_ERR_INVALID;                 \
+                return i + 1;                                  \
+            } else                                             \
+                ctx->state = TRIE_ST_VALUE;                    \
+        } else {                                               \
+            ctx->state = TRIE_ERR_INVALID;                     \
+            return i + 1;                                      \
+        }                                                      \
     }
 
-#define SHARED_PREFIX_TO_BYTES() { ctx->length = (ctx->length-1)/8 + 1; }
+#define SHARED_PREFIX_TO_BYTES() \
+    { ctx->length = (ctx->length - 1) / 8 + 1; }
 
 /*
  * Consume a chunk of bytes.
@@ -107,11 +108,12 @@ int8_t trie_result() {
  *
  * @return the number of bytes actually read and processed
  */
-uint8_t trie_consume(uint8_t* buf, const uint8_t len) {
+uint8_t trie_consume(uint8_t *buf, const uint8_t len) {
     uint8_t processed;
 
     for (uint8_t i = 0; i < len; i++) {
-        // printf("st: %u, i: %u/%u, val: 0x%02x\n", ctx->state, i, len, buf[i]);
+        // printf("st: %u, i: %u/%u, val: 0x%02x\n", ctx->state, i, len,
+        // buf[i]);
         switch (ctx->state) {
         case TRIE_ST_FLAGS:
             ctx->raw[0] = buf[i];
@@ -140,8 +142,8 @@ uint8_t trie_consume(uint8_t* buf, const uint8_t len) {
             }
             break;
         case TRIE_ST_SHARED_PREFIX_LENGTH_VAR:
-            processed = svarint_consume(buf+i, len-i);
-            memcpy(ctx->raw, buf+i, processed);
+            processed = svarint_consume(buf + i, len - i);
+            memcpy(ctx->raw, buf + i, processed);
             ctx->raw_size += processed;
             i += processed - 1;
             ctx->remaining_bytes -= processed;
@@ -155,10 +157,10 @@ uint8_t trie_consume(uint8_t* buf, const uint8_t len) {
                 break;
             case SVARINT_ERR_UNSUPPORTED:
                 ctx->state = TRIE_ERR_UNSUPPORTED;
-                return i+1;
+                return i + 1;
             case SVARINT_ERR_INVALID:
                 ctx->state = TRIE_ERR_INVALID;
-                return i+1;
+                return i + 1;
             }
             break;
         case TRIE_ST_SHARED_PREFIX:
@@ -174,21 +176,21 @@ uint8_t trie_consume(uint8_t* buf, const uint8_t len) {
         case TRIE_ST_RIGHT_NODE:
             if (ctx->offset == 0) {
                 ctx->raw_size = 0;
-                ctx->callback(ctx->state == TRIE_ST_LEFT_NODE ? 
-                          TRIE_EV_LEFT_NODE_START : 
-                          TRIE_EV_RIGHT_NODE_START);
+                ctx->callback(ctx->state == TRIE_ST_LEFT_NODE
+                                  ? TRIE_EV_LEFT_NODE_START
+                                  : TRIE_EV_RIGHT_NODE_START);
             }
             ctx->raw[0] = buf[i];
             ctx->raw_size = 1;
             --ctx->remaining_bytes;
-            ctx->callback(ctx->state == TRIE_ST_LEFT_NODE ? 
-                          TRIE_EV_LEFT_NODE_DATA : 
-                          TRIE_EV_RIGHT_NODE_DATA);
+            ctx->callback(ctx->state == TRIE_ST_LEFT_NODE
+                              ? TRIE_EV_LEFT_NODE_DATA
+                              : TRIE_EV_RIGHT_NODE_DATA);
             if (++ctx->offset == NON_EMBEDDED_NODE_SIZE) {
                 ctx->raw_size = 0;
-                ctx->callback(ctx->state == TRIE_ST_LEFT_NODE ? 
-                            TRIE_EV_LEFT_NODE_END : 
-                            TRIE_EV_RIGHT_NODE_END);
+                ctx->callback(ctx->state == TRIE_ST_LEFT_NODE
+                                  ? TRIE_EV_LEFT_NODE_END
+                                  : TRIE_EV_RIGHT_NODE_END);
                 NEXT_STATE();
             }
             break;
@@ -199,19 +201,19 @@ uint8_t trie_consume(uint8_t* buf, const uint8_t len) {
             --ctx->remaining_bytes;
             if (ctx->offset == 0) {
                 ctx->offset = MIN(buf[i], MAX_EMBEDDED_SIZE);
-                ctx->length = (uint32_t) ctx->offset;
-                ctx->callback(ctx->state == TRIE_ST_LEFT_NODE_EMBEDDED ?
-                              TRIE_EV_LEFT_NODE_EMBEDDED_START : 
-                              TRIE_EV_RIGHT_NODE_EMBEDDED_START);
+                ctx->length = (uint32_t)ctx->offset;
+                ctx->callback(ctx->state == TRIE_ST_LEFT_NODE_EMBEDDED
+                                  ? TRIE_EV_LEFT_NODE_EMBEDDED_START
+                                  : TRIE_EV_RIGHT_NODE_EMBEDDED_START);
             } else {
-                ctx->callback(ctx->state == TRIE_ST_LEFT_NODE_EMBEDDED ?
-                              TRIE_EV_LEFT_NODE_EMBEDDED_DATA : 
-                              TRIE_EV_RIGHT_NODE_EMBEDDED_DATA);
+                ctx->callback(ctx->state == TRIE_ST_LEFT_NODE_EMBEDDED
+                                  ? TRIE_EV_LEFT_NODE_EMBEDDED_DATA
+                                  : TRIE_EV_RIGHT_NODE_EMBEDDED_DATA);
                 if (--ctx->offset == 0) {
                     ctx->raw_size = 0;
-                    ctx->callback(ctx->state == TRIE_ST_LEFT_NODE_EMBEDDED ?
-                              TRIE_EV_LEFT_NODE_EMBEDDED_END : 
-                              TRIE_EV_RIGHT_NODE_EMBEDDED_END);
+                    ctx->callback(ctx->state == TRIE_ST_LEFT_NODE_EMBEDDED
+                                      ? TRIE_EV_LEFT_NODE_EMBEDDED_END
+                                      : TRIE_EV_RIGHT_NODE_EMBEDDED_END);
                     NEXT_STATE();
                 }
             }
@@ -219,8 +221,8 @@ uint8_t trie_consume(uint8_t* buf, const uint8_t len) {
         case TRIE_ST_CHILDREN_SIZE:
             if (svarint_notstarted())
                 ctx->raw_size = 0;
-            processed = svarint_consume(buf+i, len-i);
-            memcpy(ctx->raw+ctx->raw_size, buf+i, processed);
+            processed = svarint_consume(buf + i, len - i);
+            memcpy(ctx->raw + ctx->raw_size, buf + i, processed);
             ctx->raw_size += processed;
             i += processed - 1;
             ctx->remaining_bytes -= processed;
@@ -229,20 +231,20 @@ uint8_t trie_consume(uint8_t* buf, const uint8_t len) {
             case SVARINT_ST_DONE:
                 ctx->children_size = ctx->varint.value;
                 ctx->callback(TRIE_EV_CHILDREN_SIZE);
-                if (ctx->remaining_bytes == 0 && 
+                if (ctx->remaining_bytes == 0 &&
                     !TRIE_FG_HAS_LONG_VALUE(ctx->flags)) {
                     ctx->state = TRIE_ST_DONE;
-                    return i+1;
+                    return i + 1;
                 } else {
                     NEXT_STATE();
                 }
                 break;
             case SVARINT_ERR_UNSUPPORTED:
                 ctx->state = TRIE_ERR_UNSUPPORTED;
-                return i+1;
+                return i + 1;
             case SVARINT_ERR_INVALID:
                 ctx->state = TRIE_ERR_INVALID;
-                return i+1;
+                return i + 1;
             }
             break;
         case TRIE_ST_VALUE:
@@ -256,7 +258,7 @@ uint8_t trie_consume(uint8_t* buf, const uint8_t len) {
             if (ctx->remaining_bytes == 0) {
                 ctx->callback(TRIE_EV_VALUE_END);
                 ctx->state = TRIE_ST_DONE;
-                return i+1;
+                return i + 1;
             }
             break;
         case TRIE_ST_LONG_VALUE:
@@ -277,9 +279,9 @@ uint8_t trie_consume(uint8_t* buf, const uint8_t len) {
                 ctx->raw[ctx->raw_size++] = buf[i];
                 if (++ctx->offset == VALUE_HASH_SIZE + VALUE_LENGTH_SIZE) {
                     ctx->callback(TRIE_EV_VALUE_HASH_END);
-                    ctx->state = ctx->remaining_bytes == 0 ?
-                        TRIE_ST_DONE : TRIE_ERR_INVALID;
-                    return i+1;
+                    ctx->state = ctx->remaining_bytes == 0 ? TRIE_ST_DONE
+                                                           : TRIE_ERR_INVALID;
+                    return i + 1;
                 }
             }
             break;

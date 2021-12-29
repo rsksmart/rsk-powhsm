@@ -32,7 +32,7 @@
 #define INPUT_INDEX_LEN 4
 
 /*
- * Implement the path parsing and validation portion of the signing 
+ * Implement the path parsing and validation portion of the signing
  * authorization protocol.
  *
  * @arg[in] rx      number of received bytes from the host

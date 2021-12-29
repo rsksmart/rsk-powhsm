@@ -33,7 +33,8 @@
 
 #define BTCTX_LENGTH_SIZE 4
 #define SIGHASH_ALL_SIZE 4
-#define SIGHASH_ALL_BYTES { 0x01, 0x00, 0x00, 0x00 }
+#define SIGHASH_ALL_BYTES \
+    { 0x01, 0x00, 0x00, 0x00 }
 
 typedef struct {
     uint32_t remaining_bytes;
@@ -45,7 +46,7 @@ typedef struct {
 } btctx_auth_ctx_t;
 
 /*
- * Implement the BTC tx parsing and calculations portion 
+ * Implement the BTC tx parsing and calculations portion
  * of the signing authorization protocol.
  *
  * @arg[in] rx      number of received bytes from the host

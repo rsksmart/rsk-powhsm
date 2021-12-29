@@ -38,36 +38,33 @@ static void btcscript_cb(const btcscript_cb_event_t event) {
     uint8_t redeemscript_length_size;
     uint8_t redeemscript_length[MAX_SVARINT_ENCODING_SIZE];
 
-    if (event == BTCSCRIPT_EV_OPCODE &&
-        auth.tx.script_ctx.operand_size > 0 &&
+    if (event == BTCSCRIPT_EV_OPCODE && auth.tx.script_ctx.operand_size > 0 &&
         auth.tx.script_ctx.operand_size == auth.tx.script_ctx.bytes_remaining) {
-        // This is a push of exactly the remaining script bytes => this is the last push
-        // of the script => this is the redeemScript
+        // This is a push of exactly the remaining script bytes => this is the
+        // last push of the script => this is the redeemScript
         auth.tx.redeemscript_found = 1;
         // Hash the script size using the size of the operand (redeemScript)
-        redeemscript_length_size = svarint_encode(auth.tx.script_ctx.operand_size, 
-                                                  redeemscript_length, 
-                                                  sizeof(redeemscript_length));
-        sha256_update(&auth.tx.sig_hash_ctx, 
-                      redeemscript_length, 
+        redeemscript_length_size =
+            svarint_encode(auth.tx.script_ctx.operand_size,
+                           redeemscript_length,
+                           sizeof(redeemscript_length));
+        sha256_update(&auth.tx.sig_hash_ctx,
+                      redeemscript_length,
                       redeemscript_length_size);
     } else if (event == BTCSCRIPT_EV_OPERAND && auth.tx.redeemscript_found) {
-        sha256_update(&auth.tx.sig_hash_ctx, 
-                      &auth.tx.script_ctx.operand_byte, 
+        sha256_update(&auth.tx.sig_hash_ctx,
+                      &auth.tx.script_ctx.operand_byte,
                       sizeof(auth.tx.script_ctx.operand_byte));
     }
 }
 
 static void btctx_cb(const btctx_cb_event_t event) {
     // Update txhash
-    sha256_update(&auth.tx.tx_hash_ctx,
-                  auth.tx.ctx.raw, 
-                  auth.tx.ctx.raw_size);
+    sha256_update(&auth.tx.tx_hash_ctx, auth.tx.ctx.raw, auth.tx.ctx.raw_size);
 
     // The bridge currently only generates pegout transactions with
     // versions 1 or 2. Validate that.
-    if (event == BTCTX_EV_VERSION && 
-        auth.tx.ctx.parsed.version != 1 && 
+    if (event == BTCTX_EV_VERSION && auth.tx.ctx.parsed.version != 1 &&
         auth.tx.ctx.parsed.version != 2) {
         LOG("[E] Unsupported TX Version: %u\n", auth.tx.ctx.parsed.version);
         THROW(AUTH_ERR_INVALID_TX_VERSION);
@@ -79,25 +76,25 @@ static void btctx_cb(const btctx_cb_event_t event) {
         LOG("[E] Input index to sign > number of inputs.\n");
         THROW(AUTH_ERR_INVALID_TX_INPUT_INDEX);
     }
-        
+
     // Update sighash
     if (event == BTCTX_EV_VIN_SLENGTH) {
         if (auth.tx.ctx.inout_current == auth.input_index_to_sign) {
             // Parse this scriptSig
             auth.tx.redeemscript_found = 0;
-            btcscript_init(&auth.tx.script_ctx, 
-                           &btcscript_cb, 
+            btcscript_init(&auth.tx.script_ctx,
+                           &btcscript_cb,
                            auth.tx.ctx.parsed.varint.value);
         } else {
             // All other scriptSigs get replaced by an empty scriptSig
             // when calculating the sigHash
-            sha256_update(&auth.tx.sig_hash_ctx, (uint8_t[]){ 0x00 }, 1);
+            sha256_update(&auth.tx.sig_hash_ctx, (uint8_t[]){0x00}, 1);
         }
-    } else if (event == BTCTX_EV_VIN_SCRIPT_DATA && 
+    } else if (event == BTCTX_EV_VIN_SCRIPT_DATA &&
                auth.tx.ctx.inout_current == auth.input_index_to_sign) {
-        if (btcscript_consume(auth.tx.ctx.raw, auth.tx.ctx.raw_size) != 
+        if (btcscript_consume(auth.tx.ctx.raw, auth.tx.ctx.raw_size) !=
             auth.tx.ctx.raw_size) {
-            LOG("[E] Expected to consume %u bytes from the script but didn't", 
+            LOG("[E] Expected to consume %u bytes from the script but didn't",
                 auth.tx.ctx.raw_size);
             THROW(AUTH_ERR_TX_HASH_MISMATCH);
         }
@@ -120,14 +117,13 @@ static void btctx_cb(const btctx_cb_event_t event) {
             }
         }
     } else if (event != BTCTX_EV_VIN_SCRIPT_DATA) {
-        sha256_update(&auth.tx.sig_hash_ctx, 
-                      auth.tx.ctx.raw, 
-                      auth.tx.ctx.raw_size);
+        sha256_update(
+            &auth.tx.sig_hash_ctx, auth.tx.ctx.raw, auth.tx.ctx.raw_size);
     }
 }
 
 /*
- * Implement the BTC tx parsing and calculations portion 
+ * Implement the BTC tx parsing and calculations portion
  * of the signing authorization protocol.
  *
  * @arg[in] rx      number of received bytes from the host
@@ -145,7 +141,7 @@ unsigned int auth_sign_handle_btctx(volatile unsigned int rx) {
     // (part of the legacy protocol, includes this length)
     if (auth.tx.remaining_bytes == 0) {
         for (uint8_t i = 0; i < BTCTX_LENGTH_SIZE; i++) {
-            auth.tx.remaining_bytes += APDU_DATA_PTR[i] << (8*i);
+            auth.tx.remaining_bytes += APDU_DATA_PTR[i] << (8 * i);
         }
         // BTC tx length includes the length of the length
         auth.tx.remaining_bytes -= BTCTX_LENGTH_SIZE;
@@ -157,12 +153,13 @@ unsigned int auth_sign_handle_btctx(volatile unsigned int rx) {
         apdu_offset = BTCTX_LENGTH_SIZE;
     }
 
-    auth.tx.remaining_bytes -= btctx_consume(APDU_DATA_PTR+apdu_offset, APDU_DATA_SIZE(rx)-apdu_offset);
-    
+    auth.tx.remaining_bytes -= btctx_consume(APDU_DATA_PTR + apdu_offset,
+                                             APDU_DATA_SIZE(rx) - apdu_offset);
+
     if (btctx_result() < 0) {
         LOG("[E] Error parsing BTC tx: %u\n", btctx_result());
         // To comply with the legacy implementation
-        THROW(AUTH_ERR_TX_HASH_MISMATCH); 
+        THROW(AUTH_ERR_TX_HASH_MISMATCH);
     }
 
     if (btctx_result() == BTCTX_ST_DONE) {
@@ -180,12 +177,14 @@ unsigned int auth_sign_handle_btctx(volatile unsigned int rx) {
         sha256_final(&auth.tx.tx_hash_ctx, auth.tx_hash);
         for (int j = 0; j < 16; j++) {
             uint8_t aux = auth.tx_hash[j];
-            auth.tx_hash[j] = auth.tx_hash[31-j];
-            auth.tx_hash[31-j] = aux;
+            auth.tx_hash[j] = auth.tx_hash[31 - j];
+            auth.tx_hash[31 - j] = aux;
         }
 
         // Add SIGHASH_ALL hash type at the end
-        sha256_update(&auth.tx.sig_hash_ctx, (uint8_t[])SIGHASH_ALL_BYTES, sizeof(SIGHASH_ALL_SIZE));
+        sha256_update(&auth.tx.sig_hash_ctx,
+                      (uint8_t[])SIGHASH_ALL_BYTES,
+                      sizeof(SIGHASH_ALL_SIZE));
         sha256_final(&auth.tx.sig_hash_ctx, auth.sig_hash);
 
         sha256_init(&auth.tx.sig_hash_ctx);
@@ -205,7 +204,7 @@ unsigned int auth_sign_handle_btctx(volatile unsigned int rx) {
     }
 
     if (auth.tx.remaining_bytes == 0) {
-        
+
         LOG("[E] Error parsing BTC tx: no more bytes should "
             "remain but haven't finished parsing\n");
         // To comply with the legacy implementation

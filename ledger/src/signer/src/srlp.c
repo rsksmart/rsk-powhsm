@@ -50,7 +50,7 @@
 
 // Context item stack and stack pointer
 static uint8_t rlp_ctx_ptr;
-static rlp_ctx_t rlp_ctx[MAX_RLP_CTX_DEPTH+1    ];
+static rlp_ctx_t rlp_ctx[MAX_RLP_CTX_DEPTH + 1];
 
 // Pointer to the beginning of the next chunk to report
 static uint8_t* rlp_frame_start;
