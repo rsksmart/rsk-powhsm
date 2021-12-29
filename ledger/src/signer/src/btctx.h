@@ -25,13 +25,13 @@
 // Streaming BTC tx parser.
 //
 // Usage:
-// Call btctx_init to initialize the parser with the context 
+// Call btctx_init to initialize the parser with the context
 // to use for the parsing session
 //
 // Then feed chunks of the BTC transaction with btctx_consume. This function
 // will process them and call your callback accordingly, returning the number
 // of bytes actually processed and read.
-// Immediately after calling this function, check error conditions and 
+// Immediately after calling this function, check error conditions and
 // parsing state with btctx_result.
 
 #ifndef __BTCTX
@@ -43,52 +43,52 @@
 #include "svarint.h"
 
 // Miscellaneous constants
-#define BTCTX_VERSION_SIZE          4
-#define BTCTX_INPUT_INDEX_SIZE      4
-#define BTCTX_INPUT_SEQNO_SIZE      4
-#define BTCTX_HASH_SIZE             32
-#define BTCTX_OUTPUT_VALUE_SIZE     8
-#define BTCTX_LOCKTIME_SIZE         4
-#define BTCTX_MAX_RAW_SIZE          9
+#define BTCTX_VERSION_SIZE 4
+#define BTCTX_INPUT_INDEX_SIZE 4
+#define BTCTX_INPUT_SEQNO_SIZE 4
+#define BTCTX_HASH_SIZE 32
+#define BTCTX_OUTPUT_VALUE_SIZE 8
+#define BTCTX_LOCKTIME_SIZE 4
+#define BTCTX_MAX_RAW_SIZE 9
 
 // Callback events
-#define BTCTX_EV_VERSION            (0)
-#define BTCTX_EV_VIN_COUNT          (1)
-#define BTCTX_EV_VIN_TXH_START      (2)
-#define BTCTX_EV_VIN_TXH_DATA       (3)
-#define BTCTX_EV_VIN_TXH_END        (4)
-#define BTCTX_EV_VIN_TXIX           (5)
-#define BTCTX_EV_VIN_SLENGTH        (6)
-#define BTCTX_EV_VIN_SCRIPT_DATA    (7)
-#define BTCTX_EV_VIN_SEQNO          (8)
-#define BTCTX_EV_VOUT_COUNT         (9)
-#define BTCTX_EV_VOUT_VALUE         (10)
-#define BTCTX_EV_VOUT_SLENGTH       (11)
-#define BTCTX_EV_VOUT_SCRIPT_DATA   (12)
-#define BTCTX_EV_LOCKTIME           (13)
+#define BTCTX_EV_VERSION (0)
+#define BTCTX_EV_VIN_COUNT (1)
+#define BTCTX_EV_VIN_TXH_START (2)
+#define BTCTX_EV_VIN_TXH_DATA (3)
+#define BTCTX_EV_VIN_TXH_END (4)
+#define BTCTX_EV_VIN_TXIX (5)
+#define BTCTX_EV_VIN_SLENGTH (6)
+#define BTCTX_EV_VIN_SCRIPT_DATA (7)
+#define BTCTX_EV_VIN_SEQNO (8)
+#define BTCTX_EV_VOUT_COUNT (9)
+#define BTCTX_EV_VOUT_VALUE (10)
+#define BTCTX_EV_VOUT_SLENGTH (11)
+#define BTCTX_EV_VOUT_SCRIPT_DATA (12)
+#define BTCTX_EV_LOCKTIME (13)
 typedef uint8_t btctx_cb_event_t;
 
 // Callback synonym
 typedef void (*btctx_cb_t)(const btctx_cb_event_t event);
 
 // Context state and errors
-#define BTCTX_ST_VERSION        (0)
-#define BTCTX_ST_VIN_COUNT      (1)
-#define BTCTX_ST_VIN_TXH        (2)
-#define BTCTX_ST_VIN_TXIX       (3)
-#define BTCTX_ST_VIN_SLENGTH    (4)
-#define BTCTX_ST_VIN_SCRIPT     (5)
-#define BTCTX_ST_VIN_SEQNO      (6)
-#define BTCTX_ST_VOUT_COUNT     (7)
-#define BTCTX_ST_VOUT_VALUE     (8)
-#define BTCTX_ST_VOUT_SLENGTH   (9)
-#define BTCTX_ST_VOUT_SCRIPT    (10)
-#define BTCTX_ST_LOCK_TIME      (11)
-#define BTCTX_ST_DONE           (12)
+#define BTCTX_ST_VERSION (0)
+#define BTCTX_ST_VIN_COUNT (1)
+#define BTCTX_ST_VIN_TXH (2)
+#define BTCTX_ST_VIN_TXIX (3)
+#define BTCTX_ST_VIN_SLENGTH (4)
+#define BTCTX_ST_VIN_SCRIPT (5)
+#define BTCTX_ST_VIN_SEQNO (6)
+#define BTCTX_ST_VOUT_COUNT (7)
+#define BTCTX_ST_VOUT_VALUE (8)
+#define BTCTX_ST_VOUT_SLENGTH (9)
+#define BTCTX_ST_VOUT_SCRIPT (10)
+#define BTCTX_ST_LOCK_TIME (11)
+#define BTCTX_ST_DONE (12)
 
-#define BTCTX_ERR_NONE          (0)
-#define BTCTX_ERR_INVALID       (-1)
-#define BTCTX_ERR_UNSUPPORTED   (-2)
+#define BTCTX_ERR_NONE (0)
+#define BTCTX_ERR_INVALID (-1)
+#define BTCTX_ERR_UNSUPPORTED (-2)
 
 typedef int8_t btctx_state_t;
 
@@ -123,10 +123,10 @@ typedef struct {
  * @arg[in] ctx the context to be used for this session
  * @arg[in] cb  the callback to be used for this session
  */
-void btctx_init(btctx_ctx_t *ctx, btctx_cb_t cb);
+void btctx_init(btctx_ctx_t* ctx, btctx_cb_t cb);
 
 /*
- * Tell whether parsing is finished, and 
+ * Tell whether parsing is finished, and
  * whether it triggered an error (and which one)
  * This should be checked after every call to btctx_consume
  */

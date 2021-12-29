@@ -31,7 +31,7 @@
 #include "memutil.h"
 
 /*
- * Implement the path parsing and validation portion of the signing 
+ * Implement the path parsing and validation portion of the signing
  * authorization protocol.
  *
  * @arg[in] rx      number of received bytes from the host
@@ -44,18 +44,18 @@ unsigned int auth_sign_handle_path(volatile unsigned int rx) {
     if ((rx != DATA + PATH_LEN + INPUT_INDEX_LEN) &&
         (rx != DATA + PATH_LEN + HASH_LEN))
         THROW(0x6A87); // Wrong buffer size, has to be either
-                        // 28 (DATA+PATH_LEN+INPUT_INDEX_LEN) or
-                        // 56 (DATA+PATH_LEN+HASHEN)
+                       // 28 (DATA+PATH_LEN+INPUT_INDEX_LEN) or
+                       // 56 (DATA+PATH_LEN+HASHEN)
 
     // Read derivation path
     SAFE_MEMMOVE(auth.path,
-                sizeof(auth.path),
-                0,
-                APDU_DATA_PTR,
-                APDU_TOTAL_DATA_SIZE,
-                1, // Skip path length (first byte)
-                sizeof(auth.path),
-                THROW(0x6A87));
+                 sizeof(auth.path),
+                 0,
+                 APDU_DATA_PTR,
+                 APDU_TOTAL_DATA_SIZE,
+                 1, // Skip path length (first byte)
+                 sizeof(auth.path),
+                 THROW(0x6A87));
 
     if (pathRequireAuth(APDU_DATA_PTR)) {
         // If path requires authorization, continue with authorization
@@ -64,13 +64,13 @@ unsigned int auth_sign_handle_path(volatile unsigned int rx) {
 
         // Read input index to sign
         SAFE_MEMMOVE(&auth.input_index_to_sign,
-                    sizeof(auth.input_index_to_sign),
-                    0,
-                    APDU_DATA_PTR,
-                    APDU_TOTAL_DATA_SIZE,
-                    PATH_LEN,
-                    INPUT_INDEX_LEN,
-                    THROW(0x6A87));
+                     sizeof(auth.input_index_to_sign),
+                     0,
+                     APDU_DATA_PTR,
+                     APDU_TOTAL_DATA_SIZE,
+                     PATH_LEN,
+                     INPUT_INDEX_LEN,
+                     THROW(0x6A87));
 
         // Request BTC transaction
         SET_APDU_OP(P1_BTC);
@@ -79,20 +79,20 @@ unsigned int auth_sign_handle_path(volatile unsigned int rx) {
         auth_transition_to(AUTH_ST_BTCTX);
         return TX_FOR_TXLEN();
     } else if (pathDontRequireAuth(APDU_DATA_PTR)) {
-        // If path doesn't require authorization, 
+        // If path doesn't require authorization,
         // go directly to signing
         if (rx != DATA + PATH_LEN + HASH_LEN)
             THROW(0x6A91); // Wrong buffer size for unauthorized sign
 
         // Read hash to sign
         SAFE_MEMMOVE(auth.sig_hash,
-                    sizeof(auth.sig_hash),
-                    0,
-                    APDU_DATA_PTR,
-                    APDU_TOTAL_DATA_SIZE,
-                    PATH_LEN,
-                    sizeof(auth.sig_hash),
-                    THROW(0x6A87));
+                     sizeof(auth.sig_hash),
+                     0,
+                     APDU_DATA_PTR,
+                     APDU_TOTAL_DATA_SIZE,
+                     PATH_LEN,
+                     sizeof(auth.sig_hash),
+                     THROW(0x6A87));
 
         auth_transition_to(AUTH_ST_SIGN);
         return 0;

@@ -62,8 +62,7 @@ unsigned int auth_sign(volatile unsigned int rx) {
     // Check we receive the amount of bytes we requested
     // (this is an extra check on the legacy protocol, not
     // really adding much validation)
-    if (auth.state != AUTH_ST_START && 
-        auth.state != AUTH_ST_MERKLEPROOF &&
+    if (auth.state != AUTH_ST_START && auth.state != AUTH_ST_MERKLEPROOF &&
         APDU_DATA_SIZE(rx) != auth.expected_bytes)
         THROW(0x6A87);
 
@@ -87,7 +86,7 @@ unsigned int auth_sign(volatile unsigned int rx) {
 
     if (auth.state != AUTH_ST_SIGN)
         THROW(0x6A89); // Invalid state
-    
+
     tx = do_sign(auth.path,
                  RSK_PATH_LEN,
                  auth.sig_hash,

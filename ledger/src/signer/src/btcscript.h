@@ -34,7 +34,7 @@
 // Then feed chunks of the BTC script with btcscript_consume. This function
 // will process them and call your callback accordingly, returning the number
 // of bytes actually processed and read.
-// Immediately after calling this function, check error conditions and 
+// Immediately after calling this function, check error conditions and
 // parsing state with btcscript_result.
 
 #ifndef __BTCSCRIPT
@@ -43,7 +43,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-// Supported opcodes (taken from 
+// Supported opcodes (taken from
 // https://github.com/bitcoin/bitcoin/blob/v0.20.2/src/script/script.h#L54)
 #define BTCSCRIPT_OP_0 0x00
 #define BTCSCRIPT_OP_FALSE BTCSCRIPT_OP_0
@@ -71,22 +71,22 @@
 #define BTCSCRIPT_OP_16 0x60
 
 // Callback events
-#define BTCSCRIPT_EV_OPCODE             (0)
-#define BTCSCRIPT_EV_OPERAND            (1)
-#define BTCSCRIPT_EV_OPERAND_END        (2)
+#define BTCSCRIPT_EV_OPCODE (0)
+#define BTCSCRIPT_EV_OPERAND (1)
+#define BTCSCRIPT_EV_OPERAND_END (2)
 typedef uint8_t btcscript_cb_event_t;
 
 // Callback synonym
 typedef void (*btcscript_cb_t)(const btcscript_cb_event_t event);
 
 // Context state and errors
-#define BTCSCRIPT_ST_OPCODE         (0)
-#define BTCSCRIPT_ST_OPERAND_SIZE   (1)
-#define BTCSCRIPT_ST_OPERAND        (2)
-#define BTCSCRIPT_ST_DONE           (3)
+#define BTCSCRIPT_ST_OPCODE (0)
+#define BTCSCRIPT_ST_OPERAND_SIZE (1)
+#define BTCSCRIPT_ST_OPERAND (2)
+#define BTCSCRIPT_ST_DONE (3)
 
-#define BTCSCRIPT_ERR_NONE          (0)
-#define BTCSCRIPT_ERR_INVALID       (-1)
+#define BTCSCRIPT_ERR_NONE (0)
+#define BTCSCRIPT_ERR_INVALID (-1)
 
 typedef int8_t btcscript_state_t;
 
@@ -111,10 +111,12 @@ typedef struct {
  * @arg[in] ctx the context to be used for this session
  * @arg[in] cb  the callback to be used for this session
  */
-void btcscript_init(btcscript_ctx_t *ctx, btcscript_cb_t cb, uint32_t script_size);
+void btcscript_init(btcscript_ctx_t* ctx,
+                    btcscript_cb_t cb,
+                    uint32_t script_size);
 
 /*
- * Tell whether parsing is finished, and 
+ * Tell whether parsing is finished, and
  * whether it triggered an error (and which one)
  * This should be checked after every call to btcscript_consume
  */

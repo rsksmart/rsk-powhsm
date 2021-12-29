@@ -41,7 +41,6 @@
 
 #include "attestation.h"
 
-
 #include "dbg.h"
 
 // Operation being currently executed
@@ -136,11 +135,10 @@ unsigned int hsm_process_apdu(volatile unsigned int rx) {
                      0,
                      RSK_PATH_LEN * sizeof(uint32_t),
                      THROW(0x6A8F));
-        tx = do_pubkey(
-            auth.path,
-            RSK_PATH_LEN,
-            G_io_apdu_buffer,
-            sizeof(G_io_apdu_buffer));
+        tx = do_pubkey(auth.path,
+                       RSK_PATH_LEN,
+                       G_io_apdu_buffer,
+                       sizeof(G_io_apdu_buffer));
 
         // Error deriving?
         if (tx == DO_PUBKEY_ERROR) {

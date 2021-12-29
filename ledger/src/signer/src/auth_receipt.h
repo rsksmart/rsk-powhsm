@@ -30,13 +30,13 @@
 #include "srlp.h"
 #include "keccak256.h"
 
-#define RECEIPT_MAX_DEPTH           (4)
-#define RECEIPT_MAX_BUFFER_SIZE     (32)
+#define RECEIPT_MAX_DEPTH (4)
+#define RECEIPT_MAX_BUFFER_SIZE (32)
 
 typedef struct {
     uint8_t flags;
     uint32_t remaining_bytes;
-    
+
     uint8_t level;
     uint8_t index[RECEIPT_MAX_DEPTH];
 
@@ -47,7 +47,7 @@ typedef struct {
 } receipt_auth_ctx_t;
 
 /*
- * Implement the RSK receipt parsing and validation portion of the signing 
+ * Implement the RSK receipt parsing and validation portion of the signing
  * authorization protocol.
  *
  * @arg[in] rx      number of received bytes from the host
