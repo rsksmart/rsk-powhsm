@@ -26,7 +26,9 @@ $FUZZ_ROOT/unique-testcases
 # one directly and exit 
 if [[ "$1" == "big" ]]; then
     cp $FUZZ_ROOT/testcases-unique/* $FUZZ_ROOT/testcases
+    find $FUZZ_ROOT/testcases/ -size +100kb -delete
     exit 0
 fi
 
 $FUZZ_ROOT/min-testcases
+find $FUZZ_ROOT/testcases/ -size +100kb -delete
