@@ -43,13 +43,7 @@
  */
 unsigned char G_io_apdu_buffer[IO_APDU_BUFFER_SIZE];
 
-/**
- * Fuzz with bigger transfers than an USB would allow in reality so as to
- * maybe catch bugs with payloads that a human can reduce in size
- * DATA + 30 is a magic number, can be adjusted at will to contrain or free
- * the fuzzer as deemed necessary.
- */
-#define MAX_FUZZ_TRANSFER APDU_TOTAL_DATA_SIZE + DATA + 30
+#define MAX_FUZZ_TRANSFER IO_APDU_BUFFER_SIZE
 
 enum io_mode_e { IO_MODE_SERVER, IO_MODE_INPUT_FILE };
 enum io_mode_e io_mode;
