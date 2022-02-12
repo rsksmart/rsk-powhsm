@@ -1,0 +1,4 @@
+dist/key.secp256
+dist/tcpsigner.log
+dist/bin/tcpsigner
+dist/bin/manager-tcp.tgz
