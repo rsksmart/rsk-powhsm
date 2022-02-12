@@ -22,8 +22,8 @@
 
 import ledger.block_utils as block_utils
 import comm.pow as pow
-import simulator.rsk.netparams as netparams
-import simulator.rsk.block as rsk_block
+import rsk_netparams as netparams
+import rsk_block as rsk_block
 import rlp
 import sys
 import hashlib

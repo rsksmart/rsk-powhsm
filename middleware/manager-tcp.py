@@ -26,7 +26,7 @@ from user.options import UserOptionParser
 
 if __name__ == "__main__":
     user_options = UserOptionParser("Start the powHSM manager for TCPSigner",
-                                    is_simulator=False, with_pin=False,
+                                    with_pin=False,
                                     with_tcpsigner=True).parse()
 
     runner = ManagerRunner("powHSM manager for TCPSigner",
