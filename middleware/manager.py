@@ -41,7 +41,7 @@ def load_pin(user_options):
 
 if __name__ == "__main__":
     user_options = UserOptionParser("Start the powHSM manager",
-                                    is_simulator=False, with_pin=True).parse()
+                                    with_pin=True).parse()
 
     runner = ManagerRunner("powHSM manager",
                            lambda options: HSM2Dongle(options.dongle_debug),

@@ -22,9 +22,9 @@
 
 import sha3
 import rlp
-from .utils import rlp_decode_list_of_expected_length
+from rsk_utils import rlp_decode_list_of_expected_length
 from comm.utils import bitwise_and_bytes
-from .netparams import NetworkUpgrades
+from rsk_netparams import NetworkUpgrades
 import comm.pow as pow
 import comm.bitcoin
 import logging
