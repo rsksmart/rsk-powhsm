@@ -132,3 +132,4 @@ All notable changes to this project will be documented in this file.
 ### Fixes
 
 - Correctly parsing one-byte tree sizes in partial merkle tries
+- Updating middleware dependencies due to reported vulnerabilities
