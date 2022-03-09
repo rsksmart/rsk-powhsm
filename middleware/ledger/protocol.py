@@ -448,3 +448,21 @@ class HSM2ProtocolLedger(HSM2Protocol):
             HSM2Dongle.RESPONSE.UPD_ANCESTOR.ERROR_REMOVE_MM_FIELDS: self.ERROR_CODE_INVALID_INPUT_BLOCKS,  # noqa E501
             HSM2Dongle.RESPONSE.UPD_ANCESTOR.ERROR_UNEXPECTED: self.ERROR_CODE_UNKNOWN,
         }).get(result, self.ERROR_CODE_UNKNOWN)
+
+    def _get_blockchain_parameters(self, request):
+        try:
+            self.ensure_connection()
+            params = self.hsm2dongle.get_signer_parameters()
+            return (self.ERROR_CODE_OK, {"parameters": {
+                "checkpoint": params.checkpoint,
+                "minimum_difficulty": params.min_required_difficulty,
+                "network": params.network.name.lower()}
+            })
+        except (HSM2DongleError, HSM2DongleTimeoutError) as e:
+            self.logger.error("Dongle error in get parameters: %s", str(e))
+            return (self.ERROR_CODE_DEVICE,)
+        except HSM2DongleCommError:
+            # Signal a communication problem and return a device error
+            self._comm_issue = True
+            self.logger.error("Dongle communication error in get parameters")
+            return (self.ERROR_CODE_DEVICE,)
