@@ -75,6 +75,7 @@ class HSM2Protocol:
     RESET_ADVANCE_BLOCKCHAIN_COMMAND = "resetAdvanceBlockchain"
     BLOCKCHAIN_STATE_COMMAND = "blockchainState"
     UPDATE_ANCESTOR_BLOCK_COMMAND = "updateAncestorBlock"
+    GET_BLOCKCHAIN_PARAMETERS = "blockchainParameters"
 
     # Minimum number of blocks to update the ancestor block
     MINIMUM_UPDATE_ANCESTOR_BLOCKS = 1
@@ -366,6 +367,9 @@ class HSM2Protocol:
     def _sign(self, request):
         self._not_implemented(self.SIGN_COMMAND)
 
+    def _get_blockchain_parameters(self, request):
+        self._not_implemented(self.GET_BLOCKCHAIN_PARAMETERS)
+
     def _not_implemented(self, funcname):
         self.logger.warning("%s not implemented", funcname)
         raise NotImplementedError(funcname)
@@ -380,6 +384,7 @@ class HSM2Protocol:
             self.RESET_ADVANCE_BLOCKCHAIN_COMMAND: self._reset_advance_blockchain,
             self.BLOCKCHAIN_STATE_COMMAND: self._blockchain_state,
             self.UPDATE_ANCESTOR_BLOCK_COMMAND: self._update_ancestor_block,
+            self.GET_BLOCKCHAIN_PARAMETERS: self._get_blockchain_parameters,
         }
 
         # Command input validations
@@ -391,5 +396,6 @@ class HSM2Protocol:
             self.RESET_ADVANCE_BLOCKCHAIN_COMMAND: lambda r: 0,
             self.BLOCKCHAIN_STATE_COMMAND: lambda r: 0,
             self.UPDATE_ANCESTOR_BLOCK_COMMAND: self._validate_update_ancestor_block,
+            self.GET_BLOCKCHAIN_PARAMETERS: lambda r: 0,
         }
         self._known_commands = self._mappings.keys()
