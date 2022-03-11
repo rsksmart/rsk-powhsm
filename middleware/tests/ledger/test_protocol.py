@@ -31,6 +31,7 @@ from ledger.hsm2dongle import (
     HSM2DongleErrorResult,
     HSM2DongleTimeoutError,
     HSM2DongleCommError,
+    HSM2FirmwareParameters
 )
 from ledger.version import HSM2FirmwareVersion
 
@@ -1046,6 +1047,50 @@ class TestHSM2ProtocolLedger(TestCase):
             self.dongle.update_ancestor.call_args_list,
         )
         self.assertFalse(self.dongle.disconnect.called)
+
+    def test_get_blockchain_parameters_ok(self):
+        self.dongle.get_signer_parameters.return_value = HSM2FirmwareParameters(
+            "minimum-difficulty",
+            "the-checkpoint",
+            HSM2FirmwareParameters.Network.MAINNET
+        )
+
+        self.assertEqual(
+            {
+                "errorcode": 0,
+                "parameters": {
+                    "checkpoint": "the-checkpoint",
+                    "minimum_difficulty": "minimum-difficulty",
+                    "network": "mainnet",
+                },
+            },
+            self.protocol.handle_request({
+                "version": 2,
+                "command": "blockchainParameters"
+            }),
+        )
+
+    def test_get_blockchain_parameters_dongle_timeout(self):
+        self.dongle.get_signer_parameters.side_effect = HSM2DongleTimeoutError()
+
+        self.assertEqual(
+            {"errorcode": -905},
+            self.protocol.handle_request({
+                "version": 2,
+                "command": "blockchainParameters"
+            }),
+        )
+
+    def test_get_blockchain_parameters_exception(self):
+        self.dongle.get_signer_parameters.side_effect = HSM2DongleError("a-message")
+
+        self.assertEqual(
+            {"errorcode": -905},
+            self.protocol.handle_request({
+                "version": 2,
+                "command": "blockchainParameters"
+            }),
+        )
 
     def _assert_reconnected(self):
         self.assertTrue(self.dongle.disconnect.called)
