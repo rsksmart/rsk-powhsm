@@ -453,7 +453,11 @@ class HSM2ProtocolLedger(HSM2Protocol):
         try:
             self.ensure_connection()
             params = self.hsm2dongle.get_signer_parameters()
-            return (self.ERROR_CODE_OK, {"parameters": {"checkpoint": params.checkpoint, "minimum_difficulty": params.min_required_difficulty, "network": params.network}})
+            return (self.ERROR_CODE_OK, {"parameters": {
+                "checkpoint": params.checkpoint,
+                "minimum_difficulty": params.min_required_difficulty,
+                "network": params.network.name.lower()}
+            })
         except (HSM2DongleError, HSM2DongleTimeoutError) as e:
             self.logger.error("Dongle error in get parameters: %s", str(e))
             return (self.ERROR_CODE_DEVICE,)
