@@ -24,8 +24,7 @@ import json
 import hmac
 import secp256k1 as ec
 import hashlib
-from .utils import is_nonempty_hex_string, is_slice_str, slice_from_str
-from enum import Enum
+from .utils import is_nonempty_hex_string
 
 
 class HSMCertificate:
@@ -164,13 +163,17 @@ class HSMCertificate:
 
 
 class HSMCertificateElement:
-    class DIGEST(Enum):
-        NONE = "none"
-        SHA256 = "sha256"
+    VALID_NAMES = ["device", "attestation", "ui", "signer"]
+    EXTRACTORS = {
+        "device": lambda b: b[-65:],
+        "attestation": lambda b: b[1:],
+        "ui": lambda b: b[:],
+        "signer": lambda b: b[:],
+    }
 
     def __init__(self, element_map):
         if ("name" not in element_map
-                or element_map["name"] == HSMCertificate.ROOT_ELEMENT):
+                or element_map["name"] not in self.VALID_NAMES):
             raise ValueError("Missing or invalid name for HSM certificate element")
         self._name = element_map["name"]
 
@@ -190,18 +193,6 @@ class HSMCertificateElement:
             raise ValueError(
                 f"Missing or invalid message for HSM certificate element {self.name}")
         self._message = element_map["message"]
-
-        if "digest" not in element_map or (element_map["digest"] not in self.DIGEST
-                                           and element_map["digest"] not in map(
-                                               lambda e: e.value, self.DIGEST)):
-            raise ValueError(
-                f"Missing or invalid digest for HSM certificate element {self.name}")
-        self._digest = self.DIGEST(element_map["digest"])
-
-        if "extract" not in element_map or not is_slice_str(element_map["extract"]):
-            raise ValueError(
-                f"Missing or invalid extract for HSM certificate element {self.name}")
-        self._extract = element_map["extract"]
 
         if "signature" not in element_map or not is_nonempty_hex_string(
                 element_map["signature"]):
@@ -226,14 +217,6 @@ class HSMCertificateElement:
         return self._message
 
     @property
-    def digest(self):
-        return self._digest
-
-    @property
-    def extract(self):
-        return self._extract
-
-    @property
     def signature(self):
         return self._signature
 
@@ -241,8 +224,6 @@ class HSMCertificateElement:
         result = {
             "name": self.name,
             "message": self.message,
-            "digest": self.digest.value,
-            "extract": self.extract,
             "signature": self.signature,
             "signed_by": self.signed_by,
         }
@@ -255,8 +236,6 @@ class HSMCertificateElement:
     def is_valid(self, certifier_pubkey):
         try:
             message = bytes.fromhex(self.message)
-            if self.digest == self.DIGEST.SHA256:
-                message = hashlib.sha256(message).digest()
 
             verifier_pubkey = certifier_pubkey
             if self.tweak is not None:
@@ -274,4 +253,4 @@ class HSMCertificateElement:
             return False
 
     def get_value(self):
-        return bytes.fromhex(self.message)[slice_from_str(self.extract)].hex()
+        return self.EXTRACTORS[self.name](bytes.fromhex(self.message)).hex()

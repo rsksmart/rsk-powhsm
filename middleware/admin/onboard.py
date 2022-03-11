@@ -171,8 +171,6 @@ def do_onboard(options):
         HSMCertificateElement({
             "name": "attestation",
             "message": attestation_key_info["message"],
-            "extract": "1:",
-            "digest": HSMCertificateElement.DIGEST.NONE,
             "signature": attestation_key_info["signature"],
             "signed_by": "device",
         }))
@@ -180,8 +178,6 @@ def do_onboard(options):
         HSMCertificateElement({
             "name": "device",
             "message": device_key_info["message"],
-            "extract": "-65:",
-            "digest": HSMCertificateElement.DIGEST.NONE,
             "signature": device_key_info["signature"],
             "signed_by": "root",
         }))

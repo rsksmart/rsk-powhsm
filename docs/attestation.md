@@ -65,7 +65,7 @@ To generate the attestation, the Signer uses the configured attestation scheme t
 
 ## Attestation file format
 
-The output of the attestation process is a JSON file with a proprietary structure that allows for the validation of each of the attestation components (UI and Signer) all the way to the issuer's public key(Ledger), and also validating the generated attestation keypair as a byproduct. A sample attestation file is shown below:
+The output of the attestation process is a JSON file with a proprietary structure that allows for the validation of each of the attestation components (UI and Signer) all the way to the issuer's public key (Ledger), and also validating the generated attestation keypair as a byproduct. A sample attestation file is shown below:
 
 ```json
 {
@@ -78,24 +78,18 @@ The output of the attestation process is a JSON file with a proprietary structur
     {
       "name": "attestation",
       "message": "ff043bc81f42c85b1cafb66f2af7ba29c61aac0357ae0228ea479d775c908ee412ca857f892c38c300c7e7283298dea535723955448fe6edb906a4dc4738cbb61e86",
-      "digest": "none",
-      "extract": "1:",
       "signature": "3045022100cb411ef6771105a8eb71c85295450fac36edd8abfca7bfcf55dbca0fe9842a0f022056055f6f34f4f0c0bfe6620611b18139fc816b8c64447452ea31d2551c0dcff2",
       "signed_by": "device"
     },
     {
       "name": "device",
       "message": "0210b48081be20280434a28e4185e735964a36b5cd8817cbdde534f2839f04c5f998927a36f08343726de175327fa5272e3929b9c357f36f2128c92e14af359ce0e00734d2c93f4c07",
-      "digest": "none",
-      "extract": "-65:",
       "signature": "30440220181d61b12165b0dd0548cb574577d9f9419a894da56e5b1323375c3b9435622a0220290a29b2a06bbd481b0d0587abadddee39c002ed7f269ac11b23917e7c5c615e",
       "signed_by": "root"
     },
     {
       "name": "ui",
       "message": "52534b3a48534d3a55493a045993ce2195967539196548251c78d1b75b73cc39424dc2570f73c1f89fd55f8eb96538377f31ee0a68799d151b56e3bc539995e61206b09a30878560702c1157",
-      "digest": "none",
-      "extract": ":",
       "signature": "304402207744f1f7080766b560d83e35a33bd624a5cabf3ae0b63545e3b42cbbca7fe1f002207d476d3c0fb55c19aeca8e186cd40ba5f6c8957e297cab1dea364e6a94c180a2",
       "signed_by": "attestation",
       "tweak": "4b73dc1bdd565dd2c7af9587ae33b7db65fbb95fc174fd701d45c70df8bb4f51"
@@ -103,8 +97,6 @@ The output of the attestation process is a JSON file with a proprietary structur
     {
       "name": "signer",
       "message": "52534b3a48534d3a5349474e45523aaed652b48a8306bfc023c19be3a5273a284feaf381f115bcd5450552319a9320",
-      "digest": "none",
-      "extract": ":",
       "signature": "304402202ebb12c6a780eedb8f3f9e811cea3e920f06308a91e527cc2b24ed1923d1d1110220576bcaa97e0042e1c3e4da7d6f735155078a7c8c55b7c745f9e474fadd176dd9",
       "signed_by": "attestation",
       "tweak": "26ec706760ea301358d40fe669edc4422dc8ec3cdfe898a4332b7d33b6ba2e96"
@@ -118,15 +110,31 @@ Following is an explanation of the different components in the example:
 - The `version` field just indicates the version of the format (`1`), which determines the semantics of the rest of the file.
 - The `targets` field is a string array indicating which elements are to be validated. In this case, both `ui` and `signer` are to be independently validated.
 - The `elements` is an array containing each of the elements of the certificate. The role of each of the elements' fields is explained below:
-  - The `name` field is a unique identifier for the element throughout the file. It allows for referencing from the `targets` and `elements.signed_by` fields.
+  - The `name` field is a unique identifier for the element throughout the file. It allows for referencing from the `targets` and `elements.signed_by` fields. The only allowed values for this field are `device`, `attestation`, `ui` and `signer`.
   - The `message` contains the hex-encoded message signed in that element.
   - The `signature` contains the hex-encoded signature for that element's `message`.
-  - The `digest` indicates whether the `message` needs to be digested for validation against the `signature`. Possible values in version 1 are `none` and `sha256`.
   - The `signed_by` contains either the name of another element within the file (e.g., `attestation` for the `signer` element), or the value `root`. It is used to find the public key of the signer of the element at hand. In the case of referencing an element, that element's `message` (combined with its `extract` field) is used as the public key. In the case of `root`, the root issuer's public key (normally Ledger) is to be used for validation. This public key can be fed manually through e.g. tooling.
-  - The `extract` element is a reduced _a la python_ array slice specifier with no striding (see [the documentation](https://docs.python.org/3.8/reference/expressions.html?highlight=slice#slicings) for details). It indicates which part of the `message` constitutes the `value` of the element at hand (which could serve as a validator public key for another element, or could have a different use if at the top of the chain - e.g., the hash of the public keys in the case of the `signer` element).
   - The optional `tweak` element is a hex-encoded hash that indicates whether the signer public key should be tweaked for validation (see [the implementation](../middleware/admin/certificate.py) for details).
 
-The validation process _for each of the targets_ is fairly straightforward, and can even be done manually with the aid of basic ECDSA and hashing tools: walk the element chain "upwards" until the element signed by `root` is found. Then start by validating that element's signature against the root public key and extracting that element's public key. Repeat the process walking the chain "downwards" until the target is reached. Fail if at any point an element's signature is invalid. Otherwise the target is valid and its value can be extracted from its `message` field and interpreted accordingly (in the case of the `ui` element, the custom certification authority; in the case of the `signer`, the hash of the authorized public keys).
+Additionally, we define a function `extract` that takes an element and returns the `value` portion of its `message` component. This `value` will then serve as either a validator public key for a child element, or for end-user validation purposes if at a leaf - e.g., the hash of the public keys in the case of the `signer` element. The definition uses _a la python_ slicing notation, and general python-like code, and is:
+
+```
+def extract(element):
+  message = decode_hex_string(element.message)
+
+  if element.name == "device":
+    return message[-65:]
+
+  if element.name == "attestation":
+    return message[1:]
+  
+  if element.name == "ui" or element.name == "signer":
+    return message
+
+  raise "Invalid element"
+```
+
+The validation process _for each of the targets_ is fairly straightforward, and can even be done manually with the aid of basic ECDSA and hashing tools: walk the element chain "upwards" until the element signed by `root` is found. Then start by validating that element's signature against the root public key and extracting that element's public key. Repeat the process walking the chain "downwards" until the target is reached. Fail if at any point an element's signature is invalid. Otherwise the target is valid and its value can be extracted from its `message` field and interpreted accordingly (in the case of the `ui` element, the user-defined value, public key and custom certification authority; in the case of the `signer`, the hash of the authorized public keys).
 
 ## Tooling
 
