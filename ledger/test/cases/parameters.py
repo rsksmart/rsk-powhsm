@@ -40,7 +40,7 @@ class GetBlockchainParameters(TestCase):
             self.params["minimum_difficulty"] = params.min_required_difficulty
             self.params["network"] = params.network.name.lower()
 
-            #Accept "minimum_difficulty" param as int or str
+            # Accept "minimum_difficulty" param as int or str
             key = "minimum_difficulty"
             if type(self.expected[key]) == str:
                 self.expected[key] = self._parse_int(self.expected[key])
