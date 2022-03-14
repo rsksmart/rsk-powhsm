@@ -42,7 +42,7 @@ Throughout the rest of the document, we will refer to a middleware development e
 
 ### Manager
 
-The manager is the main middleware component. Its role is to provide a high-level abstraction layer over the low-level powHSM dongle USB interface. It does this by starting a TCP service in a certain interface and port and implementing the [protocol](../docs/protocol.md) on top by means of interactions with the connected powHSM dongle. The entrypoint to the manager is the `manager.py` script. In order to start the powHSM manager, issue:
+The manager is the main middleware component. Its role is to provide a high-level abstraction layer over the low-level powHSM dongle USB interface. It does this by starting a TCP service in a certain interface and port and implementing the [protocol](../docs/protocol.md) on top by means of interactions with the connected powHSM dongle. The entrypoint to the powHSM manager is the `manager.py` script. In order to start it, issue:
 
 ```
 (mware)> python manager.py
@@ -50,25 +50,25 @@ The manager is the main middleware component. Its role is to provide a high-leve
 
 Hit CTRL-C at any time to stop it.
 
-### Simulator
+### TCP Manager
 
-The simulator is a middleware component that implements both the manager and the powHSM dongle at the same time, meaning that there's no need for an actual physical powHSM device to be present. That is, it simulates a powHSM dongle and all its supported operations. This piece of software should be updated alongside the manager as the middleware evolves. The entrypoint to the simulator is the `sim.py` script. In order to start the powHSM simulator, issue:
+This is an implementation of the Manager that connects to a dongle via a TCP/IP connection. Its main use is along the TCPSigner (an x86 implementation of the Signer component) for integration tests and the like. It's important to mention that Manager and TCP Manager share most of the code, and that the main difference lies in the dongle proxy used and available user options. The entrypoint to the TCP manager is the `manager-tcp.py` script. In order to start it, issue:
 
 ```
-(mware)> python sim.py
+(mware)> python manager-tcp.py
 ```
 
 Hit CTRL-C at any time to stop it.
 
 ### Administrative utilities
 
-Aside from the main `manager.py` and `sim.py` scripts, there are other three scripts to consider:
+Aside from the main `manager.py` and `manager-tcp.py` scripts, there are other three scripts to consider:
 
 - `adm.py`: administrative utility for a powHSM dongle. It provides common utilities that can be performed on a powHSM dongle.
 - `lbutils.py`: common frontend to some of the `ledgerblue` modules. In particular, it ultimately serves the purpose of being able to build a binary for these utilities.
 - `signapp.py`: ledger app signer. Serves the purpose of signing firmware builds. Can be used to sign with a powHSM Certificate Signer Ledger app (see [the ledger readme](`../ledger/README.md`) for details) or with a manually input key (for testing purposes).
 
-The remaining `client.py` is a shorthand client utility for manually testing communication with a running manager or simulator.
+The remaining `client.py` is a shorthand client utility for manually testing communication with a running manager or TCP manager.
 
 ## Unit tests
 
@@ -103,6 +103,6 @@ that should build (or rebuild in case the `Dockerfile` has changed) the correspo
 Distribution of the middleware is done in the form of `.tgz` archives containing the binaries - main file and dependencies -, which are first built using the python tool [pyinstaller](https://www.pyinstaller.org/) and then packed for distribution. Scripts for building binaries for each main tool can be found under the `middleware/build` directory. These scripts place the output under the `middleware/bin` directory. There are also two scripts that are shorthand for serial building:
 
 - `middleware/build/all`: builds all the tools.
-- `middleware/build/dist`: builds all the tools that are meant for distribution (i.e., all but `sim.py`).
+- `middleware/build/dist`: builds all the tools that are meant for distribution (i.e., all but `manager-tcp.py`).
 
 Within the same docker image, utility builds are bytewise reproducible.
