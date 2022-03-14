@@ -1050,7 +1050,7 @@ class TestHSM2ProtocolLedger(TestCase):
 
     def test_get_blockchain_parameters_ok(self):
         self.dongle.get_signer_parameters.return_value = HSM2FirmwareParameters(
-            "minimum-difficulty",
+            0x32,
             "the-checkpoint",
             HSM2FirmwareParameters.Network.MAINNET
         )
@@ -1060,7 +1060,7 @@ class TestHSM2ProtocolLedger(TestCase):
                 "errorcode": 0,
                 "parameters": {
                     "checkpoint": "the-checkpoint",
-                    "minimum_difficulty": "minimum-difficulty",
+                    "minimum_difficulty": 0x32,
                     "network": "mainnet",
                 },
             },
