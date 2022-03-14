@@ -130,8 +130,6 @@ def do_attestation(options):
         HSMCertificateElement({
             "name": "ui",
             "message": ui_attestation["message"],
-            "extract": ":",
-            "digest": HSMCertificateElement.DIGEST.NONE,
             "signature": ui_attestation["signature"],
             "signed_by": "attestation",
             "tweak": ui_attestation["app_hash"],
@@ -140,8 +138,6 @@ def do_attestation(options):
         HSMCertificateElement({
             "name": "signer",
             "message": signer_attestation["message"],
-            "extract": ":",
-            "digest": HSMCertificateElement.DIGEST.NONE,
             "signature": signer_attestation["signature"],
             "signed_by": "attestation",
             "tweak": signer_attestation["app_hash"],
