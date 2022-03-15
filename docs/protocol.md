@@ -244,6 +244,34 @@ This operation can return `0` and generic errors. See the error codes section fo
 **Error codes:**
 This operation can return `0`, `-201`, `-203`, `-204`, and generic errors. See the error codes section for details.
 
+### Get Blockchain Parameters
+
+#### Request
+```
+{
+    "command": "blockchainParameters",
+    "version": 2
+}
+```
+
+#### Response
+```
+{
+    "errorcode": i,
+    "parameters": {
+        "checkpoint": "hhhh", // (*)
+        "minimum_difficulty": "hhhh", // (**)
+        "network": "regtest" | "testnet" | "mainnet",
+    }
+}
+
+// (*) Value corresponds to an RSK block hash (32 bytes)
+// (**) Value corresponds to a big-endian unsigned integer (36 bytes)
+```
+
+**Error codes:**
+This operation can return `0` and generic errors. See the error codes section for details.
+
 ### Error and success codes
 
 The following are all the possible error and success codes:
