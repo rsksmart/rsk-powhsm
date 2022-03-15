@@ -261,13 +261,12 @@ This operation can return `0`, `-201`, `-203`, `-204`, and generic errors. See t
     "parameters": {
         "checkpoint": "hhhh", // (*)
         "minimum_difficulty": "hhhh", // (**)
-        "network": "xxxx", // (***)
+        "network": "regtest" | "testnet" | "mainnet",
     }
 }
 
 // (*) Value corresponds to an RSK block hash (32 bytes)
 // (**) Value corresponds to a big-endian unsigned integer (36 bytes)
-// (***) Value corresponds to a lowercase string (7 bytes)
 ```
 
 **Error codes:**
