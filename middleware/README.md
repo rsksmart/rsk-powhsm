@@ -66,7 +66,7 @@ Aside from the main `manager.py` and `sim.py` scripts, there are other three scr
 
 - `adm.py`: administrative utility for a powHSM dongle. It provides common utilities that can be performed on a powHSM dongle.
 - `lbutils.py`: common frontend to some of the `ledgerblue` modules. In particular, it ultimately serves the purpose of being able to build a binary for these utilities.
-- `signapp.py`: ledger app signer. Serves the purpose of signing firmware builds. Can be used to sign with a powHSM Certificate Signer Ledger app (see [the ledger readme](`../ledger/README.md`) for details) or with a manually input key (for testing purposes).
+- `signapp.py`: ledger app signer. Serves the purpose of signing firmware builds. Can be used to sign with a powHSM Certificate Signer Ledger app (see [the ledger readme](../ledger/README.md) for details) or with a manually input key (for testing purposes).
 
 The remaining `client.py` is a shorthand client utility for manually testing communication with a running manager or simulator.
 

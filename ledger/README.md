@@ -41,13 +41,13 @@ See [Ledger's documentation](http://ledger.readthedocs.io) to get a reference on
 There are some tests written in Python that serve the purpose of smoke testing the powHSM signer when either installed and running on a Ledger Nano S or via a fresh TCPSigner build. To run them against a TCPSigner, issue:
 
 ```
-~/repo/ledger/src/tests> ./test-all
+~/repo/ledger/test> ./test-all
 ```
 
 To run them against a Ledger Nano S, issue:
 
 ```
-~/repo/ledger/src/tests> ./test-all dongle
+~/repo/ledger/test> ./test-all dongle
 ```
 
 Make sure that the Ledger is unlocked and with the signer app running for the tests to run correctly.
