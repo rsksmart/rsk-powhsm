@@ -21,7 +21,9 @@
 # SOFTWARE.
 
 SRCDIR = ../../src
-CFLAGS = -I $(SRCDIR) -DFEDHM_EMULATOR -DDEBUG_DIFF
+COMMONPATH = ../../../common/src ../../../common/test/memutil
+
+CFLAGS = -I $(SRCDIR) -I $(COMMONPATH) -DFEDHM_EMULATOR -DDEBUG_DIFF
 
 PROG = test.out
 OBJS = bigdigits.o bc_diff.o test_difficulty.o

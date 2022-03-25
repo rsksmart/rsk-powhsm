@@ -25,7 +25,9 @@
 #include <string.h>
 
 #include "bc_diff.h"
+#include "bc_err.h"
 #include "dbg.h"
+#include "memutil.h"
 
 /*
  * Initialize a big integer. This is kind of tricky because the way big
@@ -175,6 +177,10 @@ diff_result check_difficulty(DIGIT_T difficulty[], const uint8_t* mm_hdr_hash) {
 DIGIT_T accum_difficulty(DIGIT_T difficulty[], DIGIT_T total_difficulty[]) {
     DIGIT_T aux[BIGINT_LEN];
     DIGIT_T carry = mpAdd(aux, difficulty, total_difficulty, BIGINT_LEN);
-    memcpy(total_difficulty, aux, sizeof(DIGIT_T) * BIGINT_LEN);
+    SAFE_MEMMOVE(total_difficulty, sizeof(DIGIT_T) * BIGINT_LEN, 0,
+                aux, sizeof(aux), 0,
+                sizeof(DIGIT_T) * BIGINT_LEN,
+                FAIL(BUFFER_OVERFLOW));
+
     return carry;
 }
