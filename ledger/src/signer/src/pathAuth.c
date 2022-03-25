@@ -24,6 +24,7 @@
 
 #include <string.h>
 #include <stdbool.h>
+#include "memutil.h"
 #include "pathAuth.h"
 
 /* Paths that require authorization
@@ -87,7 +88,14 @@ bool pathRequireAuth(unsigned char *path) {
     for (unsigned int i = 0; i < sizeof(authPaths) / sizeof(authPaths[0]);
          i++) {
         // Dont memcmp flash to RAM
-        memcpy(cmpbuf, authPaths[i], sizeof(cmpbuf));
+        SAFE_MEMMOVE(cmpbuf,
+                     sizeof(cmpbuf),
+                     MEMMOVE_ZERO_OFFSET,
+                     authPaths[i],
+                     sizeof(authPaths[i]),
+                     MEMMOVE_ZERO_OFFSET,
+                     sizeof(cmpbuf),
+                     { return false; });
         if (!memcmp(path, cmpbuf, sizeof(cmpbuf)))
             return true;
     }
@@ -102,7 +110,14 @@ bool pathDontRequireAuth(unsigned char *path) {
     for (unsigned int i = 0; i < sizeof(noAuthPaths) / sizeof(noAuthPaths[0]);
          i++) {
         // Dont memcmp flash to RAM
-        memcpy(cmpbuf, noAuthPaths[i], sizeof(cmpbuf));
+        SAFE_MEMMOVE(cmpbuf,
+                     sizeof(cmpbuf),
+                     MEMMOVE_ZERO_OFFSET,
+                     noAuthPaths[i],
+                     sizeof(noAuthPaths[i]),
+                     MEMMOVE_ZERO_OFFSET,
+                     sizeof(cmpbuf),
+                     { return false; });
         if (!memcmp(path, cmpbuf, sizeof(cmpbuf)))
             return true;
     }

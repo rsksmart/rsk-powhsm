@@ -106,7 +106,7 @@ static void trie_cb(const trie_cb_event_t event) {
                      auth.trie.offset,
                      auth.trie.ctx.raw,
                      sizeof(auth.trie.ctx.raw),
-                     0,
+                     MEMMOVE_ZERO_OFFSET,
                      auth.trie.ctx.raw_size,
                      THROW(AUTH_ERR_INVALID_DATA_SIZE));
         auth.trie.offset += auth.trie.ctx.raw_size;
@@ -133,7 +133,7 @@ static void trie_cb(const trie_cb_event_t event) {
                      auth.trie.offset,
                      auth.trie.ctx.raw,
                      sizeof(auth.trie.ctx.raw),
-                     0,
+                     MEMMOVE_ZERO_OFFSET,
                      auth.trie.ctx.raw_size,
                      THROW(AUTH_ERR_INVALID_DATA_SIZE));
         auth.trie.offset += auth.trie.ctx.raw_size;

@@ -67,7 +67,7 @@ static void wa_store(const uint8_t* buf, uint16_t size) {
                  block.wa_off,
                  buf,
                  size,
-                 0,
+                 MEMMOVE_ZERO_OFFSET,
                  size,
                  FAIL(BUFFER_OVERFLOW));
 

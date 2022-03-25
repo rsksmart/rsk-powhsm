@@ -24,6 +24,7 @@
 
 #include <stdint.h>
 #include <string.h>
+#include "memutil.h"
 
 #include "trie.h"
 #include "svarint.h"
@@ -143,7 +144,17 @@ uint8_t trie_consume(uint8_t *buf, const uint8_t len) {
             break;
         case TRIE_ST_SHARED_PREFIX_LENGTH_VAR:
             processed = svarint_consume(buf + i, len - i);
-            memcpy(ctx->raw, buf + i, processed);
+            SAFE_MEMMOVE(ctx->raw,
+                         sizeof(ctx->raw),
+                         MEMMOVE_ZERO_OFFSET,
+                         buf,
+                         len,
+                         i,
+                         processed,
+                         {
+                             ctx->state = TRIE_ERR_INVALID;
+                             return processed;
+                         });
             ctx->raw_size += processed;
             i += processed - 1;
             ctx->remaining_bytes -= processed;
@@ -222,7 +233,17 @@ uint8_t trie_consume(uint8_t *buf, const uint8_t len) {
             if (svarint_notstarted())
                 ctx->raw_size = 0;
             processed = svarint_consume(buf + i, len - i);
-            memcpy(ctx->raw + ctx->raw_size, buf + i, processed);
+            SAFE_MEMMOVE(ctx->raw,
+                         sizeof(ctx->raw),
+                         ctx->raw_size,
+                         buf,
+                         len,
+                         i,
+                         processed,
+                         {
+                             ctx->state = TRIE_ERR_INVALID;
+                             return processed;
+                         });
             ctx->raw_size += processed;
             i += processed - 1;
             ctx->remaining_bytes -= processed;
