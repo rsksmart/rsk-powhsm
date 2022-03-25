@@ -133,3 +133,14 @@ All notable changes to this project will be documented in this file.
 
 - Correctly parsing one-byte tree sizes in partial merkle tries
 - Updating middleware dependencies due to reported vulnerabilities
+
+## [2.3.4] - 25/03/2022
+
+### Features/enhancements
+
+- Added more documentation
+
+### Fixes
+
+- Fixed middleware docker image build due to drop in support for unauthenticated git protocol
+- Fixed minor attestation file format issue
