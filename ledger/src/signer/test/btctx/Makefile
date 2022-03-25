@@ -22,10 +22,11 @@
 
 SRCDIR = ../../src
 TCPSIGNERSRCDIR = ../../../tcpsigner
-CFLAGS = -I $(SRCDIR) -I $(TCPSIGNERSRCDIR)
+COMMONPATH = ../../../common/src
+CFLAGS = -I $(SRCDIR) -I $(TCPSIGNERSRCDIR) -I $(COMMONPATH)
 
 PROG = test.out
-OBJS = btctx.o svarint.o hex_reader.o test_btctx.o
+OBJS = btctx.o svarint.o hex_reader.o test_btctx.o bc_err.o os_exceptions.o os.o
 
 all: $(PROG)
 
@@ -38,14 +39,24 @@ btctx.o: $(SRCDIR)/btctx.c
 svarint.o: $(SRCDIR)/svarint.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
+bc_err.o: $(SRCDIR)/bc_err.c
+	$(CC) $(CFLAGS) -c -o $@ $^
+
+os_exceptions.o: $(TCPSIGNERSRCDIR)/os_exceptions.c
+	$(CC) $(CFLAGS) -c -o $@ $^
+
+os.o: $(TCPSIGNERSRCDIR)/os.c
+	$(CC) $(CFLAGS) -c -o $@ $^
+
 hex_reader.o: $(TCPSIGNERSRCDIR)/hex_reader.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
-test_btctx.o: test_btctx.c btctx.o svarint.o hex_reader.o
+test_btctx.o: test_btctx.c btctx.o svarint.o hex_reader.o bc_err.o os_exceptions.o os.o
 
 $(SRCDIR)/btctx.c: $(SRCDIR)/btctx.h
 $(SRCDIR)/svarint.c: $(SRCDIR)/svarint.h
 $(TCPSIGNERSRCDIR)/hex_reader.c: $(TCPSIGNERSRCDIR)/hex_reader.h
+$(SRCDIR)/bc_err.c: $(SRCDIR)/bc_err.h $(TCPSIGNERSRCDIR)/os_exceptions.h
 
 .PHONY: clean test
 clean:

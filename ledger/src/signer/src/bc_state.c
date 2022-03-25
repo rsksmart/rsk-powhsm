@@ -66,7 +66,7 @@ uint8_t INITIAL_BLOCK_HASH[HASH_LEN];
 // Non-volatile initialization flag.
 // Linker rules are different in emulator and Ledger mode.
 // When running in emulator mode we must avoid the const.
-NON_VOLATILE bool N_bc_initialized = 0;
+static NON_VOLATILE bool N_bc_initialized = 0;
 
 /*
  * Initialize blockchain state.
@@ -87,7 +87,7 @@ void bc_init_state() {
 // -----------------------------------------------------------------------
 
 // Non-volatile blockchain validation state
-const bc_state_t N_bc_state_var;
+NON_VOLATILE bc_state_t N_bc_state_var;
 
 /*
  * Dump hash corresponding to hash_codes[hash_ix] to APDU.

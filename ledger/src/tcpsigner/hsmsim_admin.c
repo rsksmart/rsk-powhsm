@@ -38,17 +38,22 @@ bool hsmsim_admin_need_process(unsigned int rx) {
     return APDU_CLA() == HSMSIM_ADMIN_CLA;
 }
 
-static unsigned int hsmsim_admin_ok(unsigned int tx) {
-    G_io_apdu_buffer[tx++] = 0x90;
-    G_io_apdu_buffer[tx++] = 0x00;
-    return tx;
-}
-
 static unsigned int hsmsim_admin_error(uint16_t code) {
     unsigned int tx = 0;
     G_io_apdu_buffer[tx++] = HSMSIM_ADMIN_CLA;
     SET_APDU_AT(tx++, code >> 8);
     SET_APDU_AT(tx++, code);
+    return tx;
+}
+
+static unsigned int hsmsim_admin_ok(unsigned int tx) {
+    if ((tx + 2 * sizeof(G_io_apdu_buffer[0])) > sizeof(G_io_apdu_buffer)) {
+        info("ADMIN: tx exceeds G_io_apdu_buffer size.\n");
+        return hsmsim_admin_error(HSMSIM_ADMIN_ERROR_DATA_SIZE);
+    }
+
+    G_io_apdu_buffer[tx++] = 0x90;
+    G_io_apdu_buffer[tx++] = 0x00;
     return tx;
 }
 

@@ -200,7 +200,14 @@ static void validate_merkle_proof() {
  */
 static void compute_cb_txn_hash() {
     memset(block.wa_buf, 0, CB_MIDSTATE_PREFIX);
-    memcpy(block.wa_buf + CB_MIDSTATE_PREFIX, block.cb_txn, CB_MIDSTATE_DATA);
+    SAFE_MEMMOVE(block.wa_buf,
+                 sizeof(block.wa_buf),
+                 CB_MIDSTATE_PREFIX,
+                 block.cb_txn,
+                 MAX_CB_TXN_SIZE,
+                 0,
+                 CB_MIDSTATE_DATA,
+                 FAIL(BUFFER_OVERFLOW));
     memset(block.wa_buf + CB_MIDSTATE_PREFIX + CB_MIDSTATE_DATA,
            0,
            CB_MIDSTATE_SUFFIX);

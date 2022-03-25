@@ -25,7 +25,9 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "bc_err.h"
 #include "btctx.h"
+#include "memutil.h"
 
 #include "svarint.h"
 
@@ -87,7 +89,14 @@ uint8_t btctx_consume(uint8_t *buf, const uint8_t len) {
             if (svarint_notstarted())
                 ctx->raw_size = 0;
             processed = svarint_consume(buf + i, len - i);
-            memcpy(ctx->raw, buf + i, processed);
+            SAFE_MEMMOVE(ctx->raw,
+                         BTCTX_MAX_RAW_SIZE,
+                         0,
+                         buf,
+                         len,
+                         i,
+                         processed,
+                         FAIL(BUFFER_OVERFLOW));
             ctx->raw_size += processed;
             i += processed - 1;
 

@@ -22,10 +22,11 @@
 
 SRCDIR = ../../src
 TCPSIGNERSRCDIR = ../../../tcpsigner
-CFLAGS = -I $(SRCDIR) -I $(TCPSIGNERSRCDIR)
+COMMONPATH = ../../../common/src
+CFLAGS = -I $(SRCDIR) -I $(TCPSIGNERSRCDIR) -I $(COMMONPATH)
 
 PROG = test.out
-OBJS = trie.o svarint.o hex_reader.o test_trie.o
+OBJS = trie.o svarint.o hex_reader.o os.o os_exceptions.o bc_err.o test_trie.o
 
 all: $(PROG)
 
@@ -41,7 +42,16 @@ svarint.o: $(SRCDIR)/svarint.c
 hex_reader.o: $(TCPSIGNERSRCDIR)/hex_reader.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
-test_trie.o: test_trie.c trie.o svarint.o hex_reader.o
+bc_err.o: $(SRCDIR)/bc_err.c
+	$(CC) $(CFLAGS) -c -o $@ $^
+
+os_exceptions.o: $(TCPSIGNERSRCDIR)/os_exceptions.c
+	$(CC) $(CFLAGS) -c -o $@ $^
+
+os.o: $(TCPSIGNERSRCDIR)/os.c
+	$(CC) $(CFLAGS) -c -o $@ $^
+
+test_trie.o: test_trie.c trie.o svarint.o hex_reader.o os.o os_exceptions.o bc_err.o
 
 $(SRCDIR)/trie.c: $(SRCDIR)/trie.h
 $(SRCDIR)/svarint.c: $(SRCDIR)/svarint.h
