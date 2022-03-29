@@ -24,7 +24,6 @@
 
 #include <string.h>
 #include <stdbool.h>
-#include "bc_err.h"
 #include "memutil.h"
 #include "pathAuth.h"
 
@@ -96,7 +95,7 @@ bool pathRequireAuth(unsigned char *path) {
                      sizeof(authPaths[i]),
                      0,
                      sizeof(cmpbuf),
-                     FAIL(BUFFER_OVERFLOW));
+                     { return false; });
         if (!memcmp(path, cmpbuf, sizeof(cmpbuf)))
             return true;
     }
@@ -118,7 +117,7 @@ bool pathDontRequireAuth(unsigned char *path) {
                      sizeof(noAuthPaths[i]),
                      0,
                      sizeof(cmpbuf),
-                     FAIL(BUFFER_OVERFLOW));
+                     { return false; });
         if (!memcmp(path, cmpbuf, sizeof(cmpbuf)))
             return true;
     }

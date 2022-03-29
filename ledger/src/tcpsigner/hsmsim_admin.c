@@ -48,8 +48,9 @@ static unsigned int hsmsim_admin_error(uint16_t code) {
 
 static unsigned int hsmsim_admin_ok(unsigned int tx) {
     if ((tx + 2 * sizeof(G_io_apdu_buffer[0])) > sizeof(G_io_apdu_buffer)) {
-        info("ADMIN: tx exceeds G_io_apdu_buffer size.\n");
-        return hsmsim_admin_error(HSMSIM_ADMIN_ERROR_DATA_SIZE);
+        info("ADMIN: Buffer overflow on G_io_apdu_buffer when trying to reply "
+             "to the host.\n");
+        return hsmsim_admin_error(HSMSIM_ADMIN_ERROR_BUFFER_OVERFLOW);
     }
 
     G_io_apdu_buffer[tx++] = 0x90;

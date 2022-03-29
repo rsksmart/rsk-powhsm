@@ -40,6 +40,7 @@
 #define HSMSIM_ADMIN_ERROR_INVALID_PROTOCOL 0x6f00
 #define HSMSIM_ADMIN_ERROR_DATA_SIZE 0x6f01
 #define HSMSIM_ADMIN_ERROR_INVALID_STATE 0x6f02
+#define HSMSIM_ADMIN_ERROR_BUFFER_OVERFLOW 0x6f03
 
 typedef struct hsmsim_admin_data_s {
     bool ancestor_receipts_root_set;

@@ -25,7 +25,6 @@
 #include <string.h>
 
 #include "bc_diff.h"
-#include "bc_err.h"
 #include "dbg.h"
 #include "memutil.h"
 
@@ -172,7 +171,11 @@ diff_result check_difficulty(DIGIT_T difficulty[], const uint8_t* mm_hdr_hash) {
  *
  * @arg[in] difficulty difficulty to accumulate
  * @arg[in/out] total_difficulty difficulty accumulator
- * @ret 1 if there's carry, zero othwerwise
+ *
+ * @return
+ *   1 if there's carry
+ *   0 if there's no carry
+ *   BCDIFF_ERR_INVALID if an error occurs
  */
 DIGIT_T accum_difficulty(DIGIT_T difficulty[], DIGIT_T total_difficulty[]) {
     DIGIT_T aux[BIGINT_LEN];
@@ -184,7 +187,7 @@ DIGIT_T accum_difficulty(DIGIT_T difficulty[], DIGIT_T total_difficulty[]) {
                  sizeof(aux),
                  0,
                  sizeof(DIGIT_T) * BIGINT_LEN,
-                 FAIL(BUFFER_OVERFLOW));
+                 { return BCDIFF_ERR_INVALID; });
 
     return carry;
 }

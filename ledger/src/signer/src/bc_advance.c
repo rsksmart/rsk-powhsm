@@ -204,7 +204,7 @@ static void compute_cb_txn_hash() {
                  sizeof(block.wa_buf),
                  CB_MIDSTATE_PREFIX,
                  block.cb_txn,
-                 MAX_CB_TXN_SIZE,
+                 sizeof(block.cb_txn),
                  0,
                  CB_MIDSTATE_DATA,
                  FAIL(BUFFER_OVERFLOW));

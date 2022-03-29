@@ -24,7 +24,6 @@
 
 #include <stdint.h>
 #include <string.h>
-#include "bc_err.h"
 #include "memutil.h"
 
 #include "trie.h"
@@ -145,14 +144,11 @@ uint8_t trie_consume(uint8_t *buf, const uint8_t len) {
             break;
         case TRIE_ST_SHARED_PREFIX_LENGTH_VAR:
             processed = svarint_consume(buf + i, len - i);
-            SAFE_MEMMOVE(ctx->raw,
-                         TRIE_MAX_RAW_SIZE,
-                         0,
-                         buf,
-                         len,
-                         i,
-                         processed,
-                         FAIL(BUFFER_OVERFLOW));
+            SAFE_MEMMOVE(
+                ctx->raw, sizeof(ctx->raw), 0, buf, len, i, processed, {
+                    ctx->state = TRIE_ERR_INVALID;
+                    return processed;
+                });
             ctx->raw_size += processed;
             i += processed - 1;
             ctx->remaining_bytes -= processed;
@@ -232,13 +228,16 @@ uint8_t trie_consume(uint8_t *buf, const uint8_t len) {
                 ctx->raw_size = 0;
             processed = svarint_consume(buf + i, len - i);
             SAFE_MEMMOVE(ctx->raw,
-                         TRIE_MAX_RAW_SIZE,
+                         sizeof(ctx->raw),
                          ctx->raw_size,
                          buf,
                          len,
                          i,
                          processed,
-                         FAIL(BUFFER_OVERFLOW));
+                         {
+                             ctx->state = TRIE_ERR_INVALID;
+                             return processed;
+                         });
             ctx->raw_size += processed;
             i += processed - 1;
             ctx->remaining_bytes -= processed;
