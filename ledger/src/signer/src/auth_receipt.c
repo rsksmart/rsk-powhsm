@@ -173,7 +173,7 @@ static void str_chunk(const uint8_t* chunk, const size_t size) {
                      auth.receipt.aux_offset,
                      chunk,
                      size,
-                     0,
+                     MEMMOVE_ZERO_OFFSET,
                      size,
                      THROW(AUTH_ERR_INVALID_DATA_SIZE));
         auth.receipt.aux_offset += size;

@@ -720,10 +720,10 @@ int is_app_version_allowed(application_t *app) {
     currentHash = (unsigned char *)PIC(N_SignerHashList[0]);
     SAFE_MEMMOVE(cmpbuf,
                  sizeof(cmpbuf),
-                 0,
+                 MEMMOVE_ZERO_OFFSET,
                  currentHash,
                  sizeof(N_SignerHashList[0]),
-                 0,
+                 MEMMOVE_ZERO_OFFSET,
                  COMPRESSEDHASHSIZE,
                  { return 0; });
     // Compare the first COMPRESSEDHASHSIZE bytes
@@ -734,10 +734,10 @@ int is_app_version_allowed(application_t *app) {
         currentHash = (unsigned char *)PIC(N_SignerHashList[i]);
         SAFE_MEMMOVE(cmpbuf,
                      sizeof(cmpbuf),
-                     0,
+                     MEMMOVE_ZERO_OFFSET,
                      currentHash,
                      sizeof(N_SignerHashList[i]),
-                     0,
+                     MEMMOVE_ZERO_OFFSET,
                      COMPRESSEDHASHSIZE,
                      { return 0; })
         // Compare the first COMPRESSEDHASHSIZE bytes
@@ -751,20 +751,24 @@ int is_app_version_allowed(application_t *app) {
         oldHash = (unsigned char *)PIC(N_SignerHashList[i - 1]);
         SAFE_MEMMOVE(cmpbuf,
                      sizeof(cmpbuf),
-                     0,
+                     MEMMOVE_ZERO_OFFSET,
                      oldHash,
                      sizeof(N_SignerHashList[i - 1]),
-                     0,
+                     MEMMOVE_ZERO_OFFSET,
                      COMPRESSEDHASHSIZE,
                      { return 0; });
         nvm_write(currentHash, cmpbuf, COMPRESSEDHASHSIZE);
     }
     // Write new hash in current app hash
     currentHash = (unsigned char *)PIC(N_SignerHashList[0]);
-    SAFE_MEMMOVE(
-        cmpbuf, sizeof(cmpbuf), 0, app->hash, sizeof(app->hash), 0, HASHSIZE, {
-            return 0;
-        });
+    SAFE_MEMMOVE(cmpbuf,
+                 sizeof(cmpbuf),
+                 MEMMOVE_ZERO_OFFSET,
+                 app->hash,
+                 sizeof(app->hash),
+                 MEMMOVE_ZERO_OFFSET,
+                 HASHSIZE,
+                 { return 0; });
     nvm_write((void *)currentHash, cmpbuf, COMPRESSEDHASHSIZE);
     return 1; // New app detected, allow.
 }

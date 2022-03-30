@@ -26,9 +26,9 @@
 #define __RUNTIME
 
 #ifdef HSM_SIMULATOR
-#define NON_VOLATILE static
+#define NON_VOLATILE
 #else
-#define NON_VOLATILE static const
+#define NON_VOLATILE const
 #endif
 
 #endif

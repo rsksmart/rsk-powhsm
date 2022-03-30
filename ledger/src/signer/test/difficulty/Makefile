@@ -21,10 +21,13 @@
 # SOFTWARE.
 
 SRCDIR = ../../src
-CFLAGS = -I $(SRCDIR) -DFEDHM_EMULATOR -DDEBUG_DIFF
+COMMONPATH = ../../../common/src
+TCPSIGNERPATH = ../../../tcpsigner
+
+CFLAGS = -I $(SRCDIR) -I $(COMMONPATH) -I $(TCPSIGNERPATH) -DFEDHM_EMULATOR -DDEBUG_DIFF
 
 PROG = test.out
-OBJS = bigdigits.o bc_diff.o test_difficulty.o
+OBJS = bigdigits.o bc_diff.o os.o test_difficulty.o
 
 all: $(PROG)
 
@@ -34,13 +37,16 @@ $(PROG): $(OBJS)
 bigdigits.o: $(SRCDIR)/bigdigits.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
+os.o: $(TCPSIGNERPATH)/os.c
+	$(CC) $(CFLAGS) -c -o $@ $^
+
 bc_diff.o: $(SRCDIR)/bc_diff.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
-test_difficulty.o: test_difficulty.c bigdigits.o bc_diff.o
+test_difficulty.o: test_difficulty.c bigdigits.o bc_diff.o os.o
 
 $(SRCDIR)/bigdigits.c: $(SRCDIR)/bigdigits.h $(SRCDIR)/bigdtypes.h
-$(SRCDIR)/bc_diff.c: $(SRCDIR)/bc_diff.h $(SRCDIR)/bigdigits.h $(SRCDIR)/bigdtypes.h
+$(SRCDIR)/bc_diff.c: $(SRCDIR)/bc_diff.h $(SRCDIR)/bigdigits.h $(SRCDIR)/bigdtypes.h $(TCPSIGNERPATH)/os_exceptions.h
 
 .PHONY: clean test
 clean:

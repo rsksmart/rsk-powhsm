@@ -94,7 +94,7 @@ static void wa_store(const uint8_t* buf, uint16_t size) {
                  block.wa_off,
                  buf,
                  size,
-                 0,
+                 MEMMOVE_ZERO_OFFSET,
                  size,
                  FAIL(BUFFER_OVERFLOW));
 
@@ -147,7 +147,7 @@ static void store_cb_txn_bytes(const uint8_t* chunk, uint16_t size) {
                  block.cb_off,
                  chunk,
                  size,
-                 0,
+                 MEMMOVE_ZERO_OFFSET,
                  size,
                  FAIL(CB_TXN_OVERFLOW));
 
@@ -200,7 +200,14 @@ static void validate_merkle_proof() {
  */
 static void compute_cb_txn_hash() {
     memset(block.wa_buf, 0, CB_MIDSTATE_PREFIX);
-    memcpy(block.wa_buf + CB_MIDSTATE_PREFIX, block.cb_txn, CB_MIDSTATE_DATA);
+    SAFE_MEMMOVE(block.wa_buf,
+                 sizeof(block.wa_buf),
+                 CB_MIDSTATE_PREFIX,
+                 block.cb_txn,
+                 sizeof(block.cb_txn),
+                 MEMMOVE_ZERO_OFFSET,
+                 CB_MIDSTATE_DATA,
+                 FAIL(BUFFER_OVERFLOW));
     memset(block.wa_buf + CB_MIDSTATE_PREFIX + CB_MIDSTATE_DATA,
            0,
            CB_MIDSTATE_SUFFIX);
@@ -516,10 +523,10 @@ static void str_start(const uint16_t size) {
         // reduction area
         SAFE_MEMMOVE(block.merkle_proof_left,
                      sizeof(block.merkle_proof_left),
-                     0,
+                     MEMMOVE_ZERO_OFFSET,
                      block.cb_txn_hash,
                      sizeof(block.cb_txn_hash),
-                     0,
+                     MEMMOVE_ZERO_OFFSET,
                      sizeof(block.cb_txn_hash),
                      FAIL(MERKLE_PROOF_INVALID));
     }
@@ -629,10 +636,10 @@ static void str_end() {
 
             SAFE_MEMMOVE(block.umm_root,
                          sizeof(block.umm_root),
-                         0,
+                         MEMMOVE_ZERO_OFFSET,
                          block.wa_buf,
                          sizeof(block.wa_buf),
-                         0,
+                         MEMMOVE_ZERO_OFFSET,
                          block.wa_off,
                          FAIL(UMM_ROOT_INVALID));
         }
@@ -743,10 +750,10 @@ unsigned int bc_advance(volatile unsigned int rx) {
         memset(aux_bc_st.prev_parent_hash, 0, HASH_SIZE);
         SAFE_MEMMOVE(aux_bc_st.total_difficulty,
                      sizeof(aux_bc_st.total_difficulty),
-                     0,
+                     MEMMOVE_ZERO_OFFSET,
                      N_bc_state.updating.total_difficulty,
                      sizeof(N_bc_state.updating.total_difficulty),
-                     0,
+                     MEMMOVE_ZERO_OFFSET,
                      sizeof(aux_bc_st.total_difficulty),
                      FAIL(PROT_INVALID));
 
@@ -779,7 +786,7 @@ unsigned int bc_advance(volatile unsigned int rx) {
         // Read the coinbase transaction hash
         SAFE_MEMMOVE(block.cb_txn_hash,
                      sizeof(block.cb_txn_hash),
-                     0,
+                     MEMMOVE_ZERO_OFFSET,
                      APDU_DATA_PTR,
                      APDU_TOTAL_DATA_SIZE,
                      sizeof(block.mm_rlp_len),

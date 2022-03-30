@@ -70,10 +70,10 @@ int do_pubkey(unsigned int* path,
             pubkey_size = public_key.W_len;
             SAFE_MEMMOVE(dest,
                          dest_size,
-                         0,
+                         MEMMOVE_ZERO_OFFSET,
                          public_key.W,
                          public_key.W_len,
-                         0,
+                         MEMMOVE_ZERO_OFFSET,
                          public_key.W_len,
                          { pubkey_size = DO_PUBKEY_ERROR; })
             // Cleanup public key

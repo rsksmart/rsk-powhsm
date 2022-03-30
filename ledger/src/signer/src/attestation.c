@@ -50,7 +50,7 @@ static void hash_public_key(const char* path,
             // Skip first byte of path when copying (path size byte)
             SAFE_MEMMOVE(att_ctx->path,
                          sizeof(att_ctx->path),
-                         0,
+                         MEMMOVE_ZERO_OFFSET,
                          (unsigned int*)path,
                          path_size,
                          1,
@@ -110,10 +110,10 @@ static unsigned int generate_message_to_sign(att_t* att_ctx) {
     // Copy the message prefix
     SAFE_MEMMOVE(att_ctx->msg,
                  sizeof(att_ctx->msg),
-                 0,
+                 MEMMOVE_ZERO_OFFSET,
                  (void*)PIC(ATT_MSG_PREFIX),
                  ATT_MSG_PREFIX_LENGTH,
-                 0,
+                 MEMMOVE_ZERO_OFFSET,
                  ATT_MSG_PREFIX_LENGTH,
                  THROW(ATT_INTERNAL));
 
@@ -156,10 +156,10 @@ unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx) {
 
         SAFE_MEMMOVE(APDU_DATA_PTR,
                      APDU_TOTAL_DATA_SIZE,
-                     0,
+                     MEMMOVE_ZERO_OFFSET,
                      att_ctx->msg,
                      sizeof(att_ctx->msg),
-                     0,
+                     MEMMOVE_ZERO_OFFSET,
                      message_size,
                      THROW(ATT_INTERNAL));
 

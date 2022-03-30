@@ -22,10 +22,11 @@
 
 SRCDIR = ../../src
 TCPSIGNERSRCDIR = ../../../tcpsigner
-CFLAGS = -I $(SRCDIR) -I $(TCPSIGNERSRCDIR)
+COMMONPATH = ../../../common/src
+CFLAGS = -I $(SRCDIR) -I $(TCPSIGNERSRCDIR) -I $(COMMONPATH)
 
 PROG = test.out
-OBJS = btctx.o svarint.o hex_reader.o test_btctx.o
+OBJS = btctx.o svarint.o hex_reader.o os.o test_btctx.o
 
 all: $(PROG)
 
@@ -41,7 +42,10 @@ svarint.o: $(SRCDIR)/svarint.c
 hex_reader.o: $(TCPSIGNERSRCDIR)/hex_reader.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
-test_btctx.o: test_btctx.c btctx.o svarint.o hex_reader.o
+os.o: $(TCPSIGNERSRCDIR)/os.c
+	$(CC) $(CFLAGS) -c -o $@ $^
+
+test_btctx.o: test_btctx.c btctx.o svarint.o hex_reader.o os.o
 
 $(SRCDIR)/btctx.c: $(SRCDIR)/btctx.h
 $(SRCDIR)/svarint.c: $(SRCDIR)/svarint.h

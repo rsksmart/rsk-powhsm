@@ -66,7 +66,7 @@ uint8_t INITIAL_BLOCK_HASH[HASH_LEN];
 // Non-volatile initialization flag.
 // Linker rules are different in emulator and Ledger mode.
 // When running in emulator mode we must avoid the const.
-NON_VOLATILE bool N_bc_initialized = 0;
+static NON_VOLATILE bool N_bc_initialized = 0;
 
 /*
  * Initialize blockchain state.
@@ -87,7 +87,7 @@ void bc_init_state() {
 // -----------------------------------------------------------------------
 
 // Non-volatile blockchain validation state
-const bc_state_t N_bc_state_var;
+NON_VOLATILE bc_state_t N_bc_state_var;
 
 /*
  * Dump hash corresponding to hash_codes[hash_ix] to APDU.
@@ -127,7 +127,7 @@ uint8_t dump_hash(uint8_t hash_code) {
                  1,
                  h,
                  HASH_SIZE,
-                 0,
+                 MEMMOVE_ZERO_OFFSET,
                  HASH_SIZE,
                  FAIL(PROT_INVALID));
 
@@ -149,7 +149,7 @@ uint8_t dump_difficulty() {
         continue;
     SAFE_MEMMOVE(APDU_DATA_PTR,
                  APDU_TOTAL_DATA_SIZE,
-                 0,
+                 MEMMOVE_ZERO_OFFSET,
                  buf,
                  sizeof(buf),
                  start,
@@ -170,7 +170,7 @@ uint8_t bc_dump_initial_block_hash(int offset) {
                  offset,
                  INITIAL_BLOCK_HASH,
                  sizeof(INITIAL_BLOCK_HASH),
-                 0,
+                 MEMMOVE_ZERO_OFFSET,
                  sizeof(INITIAL_BLOCK_HASH),
                  FAIL(PROT_INVALID));
     return sizeof(INITIAL_BLOCK_HASH);
