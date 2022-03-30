@@ -90,10 +90,10 @@ bool pathRequireAuth(unsigned char *path) {
         // Dont memcmp flash to RAM
         SAFE_MEMMOVE(cmpbuf,
                      sizeof(cmpbuf),
-                     0,
+                     MEMMOVE_ZERO_OFFSET,
                      authPaths[i],
                      sizeof(authPaths[i]),
-                     0,
+                     MEMMOVE_ZERO_OFFSET,
                      sizeof(cmpbuf),
                      { return false; });
         if (!memcmp(path, cmpbuf, sizeof(cmpbuf)))
@@ -112,10 +112,10 @@ bool pathDontRequireAuth(unsigned char *path) {
         // Dont memcmp flash to RAM
         SAFE_MEMMOVE(cmpbuf,
                      sizeof(cmpbuf),
-                     0,
+                     MEMMOVE_ZERO_OFFSET,
                      noAuthPaths[i],
                      sizeof(noAuthPaths[i]),
-                     0,
+                     MEMMOVE_ZERO_OFFSET,
                      sizeof(cmpbuf),
                      { return false; });
         if (!memcmp(path, cmpbuf, sizeof(cmpbuf)))

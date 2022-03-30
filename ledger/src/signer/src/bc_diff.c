@@ -171,8 +171,7 @@ diff_result check_difficulty(DIGIT_T difficulty[], const uint8_t* mm_hdr_hash) {
  *
  * @arg[in] difficulty difficulty to accumulate
  * @arg[in/out] total_difficulty difficulty accumulator
- *
- * @return
+ * @ret
  *   1 if there's carry
  *   0 if there's no carry
  *   BCDIFF_ERR_INVALID if an error occurs
@@ -182,10 +181,10 @@ DIGIT_T accum_difficulty(DIGIT_T difficulty[], DIGIT_T total_difficulty[]) {
     DIGIT_T carry = mpAdd(aux, difficulty, total_difficulty, BIGINT_LEN);
     SAFE_MEMMOVE(total_difficulty,
                  sizeof(DIGIT_T) * BIGINT_LEN,
-                 0,
+                 MEMMOVE_ZERO_OFFSET,
                  aux,
                  sizeof(aux),
-                 0,
+                 MEMMOVE_ZERO_OFFSET,
                  sizeof(DIGIT_T) * BIGINT_LEN,
                  { return BCDIFF_ERR_INVALID; });
 

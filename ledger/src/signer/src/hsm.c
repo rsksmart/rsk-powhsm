@@ -129,10 +129,10 @@ unsigned int hsm_process_apdu(volatile unsigned int rx) {
         // Derive the public key
         SAFE_MEMMOVE(auth.path,
                      sizeof(auth.path),
-                     0,
+                     MEMMOVE_ZERO_OFFSET,
                      APDU_DATA_PTR,
                      APDU_TOTAL_DATA_SIZE,
-                     0,
+                     MEMMOVE_ZERO_OFFSET,
                      RSK_PATH_LEN * sizeof(uint32_t),
                      THROW(0x6A8F));
         tx = do_pubkey(auth.path,

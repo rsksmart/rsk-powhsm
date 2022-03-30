@@ -30,6 +30,8 @@
 
 #include "os.h"
 
+#define MEMMOVE_ZERO_OFFSET 0
+
 #define SAFE_MEMMOVE(                                                       \
     dst, dst_size, dst_off, src, src_size, src_off, n, ERR_EXPR)            \
     if (!safe_memmove(dst, dst_size, dst_off, src, src_size, src_off, n)) { \

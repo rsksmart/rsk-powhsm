@@ -50,7 +50,7 @@ unsigned int auth_sign_handle_path(volatile unsigned int rx) {
     // Read derivation path
     SAFE_MEMMOVE(auth.path,
                  sizeof(auth.path),
-                 0,
+                 MEMMOVE_ZERO_OFFSET,
                  APDU_DATA_PTR,
                  APDU_TOTAL_DATA_SIZE,
                  1, // Skip path length (first byte)
@@ -65,7 +65,7 @@ unsigned int auth_sign_handle_path(volatile unsigned int rx) {
         // Read input index to sign
         SAFE_MEMMOVE(&auth.input_index_to_sign,
                      sizeof(auth.input_index_to_sign),
-                     0,
+                     MEMMOVE_ZERO_OFFSET,
                      APDU_DATA_PTR,
                      APDU_TOTAL_DATA_SIZE,
                      PATH_LEN,
@@ -87,7 +87,7 @@ unsigned int auth_sign_handle_path(volatile unsigned int rx) {
         // Read hash to sign
         SAFE_MEMMOVE(auth.sig_hash,
                      sizeof(auth.sig_hash),
-                     0,
+                     MEMMOVE_ZERO_OFFSET,
                      APDU_DATA_PTR,
                      APDU_TOTAL_DATA_SIZE,
                      PATH_LEN,

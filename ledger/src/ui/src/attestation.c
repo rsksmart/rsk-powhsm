@@ -89,10 +89,10 @@ static size_t compress_pubkey_into(cx_ecfp_public_key_t* pub_key,
                                    size_t dst_size) {
     SAFE_MEMMOVE(dst,
                  dst_size,
-                 0,
+                 MEMMOVE_ZERO_OFFSET,
                  pub_key->W,
                  sizeof(pub_key->W),
-                 0,
+                 MEMMOVE_ZERO_OFFSET,
                  PUBKEYCOMPRESSEDSIZE,
                  THROW(INTERNAL));
     dst[0] = pub_key->W[pub_key->W_len - 1] & 0x01 ? 0x03 : 0x02;
@@ -134,7 +134,7 @@ static void generate_message_to_sign_partial(att_t* att_ctx,
                  att_ctx->msg_offset,
                  PIC(att_msg_prefix),
                  sizeof(att_msg_prefix),
-                 0,
+                 MEMMOVE_ZERO_OFFSET,
                  sizeof(att_msg_prefix),
                  THROW(INTERNAL));
     att_ctx->msg_offset += sizeof(att_msg_prefix);
@@ -143,7 +143,7 @@ static void generate_message_to_sign_partial(att_t* att_ctx,
                  att_ctx->msg_offset,
                  ud_value,
                  ud_value_size,
-                 0,
+                 MEMMOVE_ZERO_OFFSET,
                  ud_value_size,
                  THROW(INTERNAL));
     att_ctx->msg_offset += ud_value_size;
@@ -153,10 +153,10 @@ static void generate_message_to_sign_partial(att_t* att_ctx,
         TRY {
             SAFE_MEMMOVE(att_ctx->path,
                          sizeof(att_ctx->path),
-                         0,
+                         MEMMOVE_ZERO_OFFSET,
                          PIC(key_derivation_path),
                          sizeof(key_derivation_path),
-                         0,
+                         MEMMOVE_ZERO_OFFSET,
                          sizeof(key_derivation_path),
                          THROW(INTERNAL));
             // Derive private key
@@ -185,7 +185,7 @@ static void generate_message_to_sign_partial(att_t* att_ctx,
                          att_ctx->msg_offset,
                          att_ctx->pub_key.W,
                          sizeof(att_ctx->pub_key.W),
-                         0,
+                         MEMMOVE_ZERO_OFFSET,
                          att_ctx->pub_key.W_len,
                          THROW(INTERNAL));
             att_ctx->msg_offset += att_ctx->pub_key.W_len;
@@ -294,10 +294,10 @@ unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx) {
 
         SAFE_MEMMOVE(att_ctx->ca_signed_hash,
                      sizeof(att_ctx->ca_signed_hash),
-                     0,
+                     MEMMOVE_ZERO_OFFSET,
                      APDU_DATA_PTR,
                      APDU_TOTAL_DATA_SIZE,
-                     0,
+                     MEMMOVE_ZERO_OFFSET,
                      HASHSIZE,
                      THROW(INTERNAL));
 
@@ -321,7 +321,7 @@ unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx) {
         att_ctx->ca_signature_length = APDU_DATA_PTR[0];
         SAFE_MEMMOVE(att_ctx->ca_signature,
                      sizeof(att_ctx->ca_signature),
-                     0,
+                     MEMMOVE_ZERO_OFFSET,
                      APDU_DATA_PTR,
                      APDU_TOTAL_DATA_SIZE,
                      1,

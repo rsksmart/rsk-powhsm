@@ -127,7 +127,7 @@ uint8_t dump_hash(uint8_t hash_code) {
                  1,
                  h,
                  HASH_SIZE,
-                 0,
+                 MEMMOVE_ZERO_OFFSET,
                  HASH_SIZE,
                  FAIL(PROT_INVALID));
 
@@ -149,7 +149,7 @@ uint8_t dump_difficulty() {
         continue;
     SAFE_MEMMOVE(APDU_DATA_PTR,
                  APDU_TOTAL_DATA_SIZE,
-                 0,
+                 MEMMOVE_ZERO_OFFSET,
                  buf,
                  sizeof(buf),
                  start,
@@ -170,7 +170,7 @@ uint8_t bc_dump_initial_block_hash(int offset) {
                  offset,
                  INITIAL_BLOCK_HASH,
                  sizeof(INITIAL_BLOCK_HASH),
-                 0,
+                 MEMMOVE_ZERO_OFFSET,
                  sizeof(INITIAL_BLOCK_HASH),
                  FAIL(PROT_INVALID));
     return sizeof(INITIAL_BLOCK_HASH);
