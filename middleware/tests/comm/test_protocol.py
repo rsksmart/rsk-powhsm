@@ -46,7 +46,7 @@ class TestHSM2Protocol(TestCase):
                          {"errorcode": -902})
 
     def test_invalid_request_no_command(self):
-        self.assertEqual(self.protocol.handle_request({"version": "2"}),
+        self.assertEqual(self.protocol.handle_request({"version": "3"}),
                          {"errorcode": -902})
 
     def test_invalid_request_no_version(self):
@@ -62,11 +62,27 @@ class TestHSM2Protocol(TestCase):
             {"errorcode": -904},
         )
 
+    def test_version_2_not_supported(self):
+        self.assertEqual(
+            self.protocol.handle_request({
+                "command": "whatever",
+                "version": 2
+            }),
+            {"errorcode": -904},
+        )
+        self.assertEqual(
+            self.protocol.handle_request({
+                "command": "whatever",
+                "version": 3
+            }),
+            {"errorcode": -903},
+        )
+
     def test_invalid_command(self):
         self.assertEqual(
             self.protocol.handle_request({
                 "command": "invalid",
-                "version": 2
+                "version": 3
             }),
             {"errorcode": -903},
         )
@@ -76,7 +92,7 @@ class TestHSM2Protocol(TestCase):
             self.protocol.handle_request({"command": "version"}),
             {
                 "errorcode": 0,
-                "version": 2
+                "version": 3
             },
         )
 
@@ -88,7 +104,7 @@ class TestHSM2Protocol(TestCase):
         self.assertEqual(
             self.protocol.handle_request({
                 "command": "getPubKey",
-                "version": 2
+                "version": 3
             }),
             {"errorcode": -103},
         )
@@ -97,7 +113,7 @@ class TestHSM2Protocol(TestCase):
         self.assertEqual(
             self.protocol.handle_request({
                 "command": "getPubKey",
-                "version": 2,
+                "version": 3,
                 "keyId": 123
             }),
             {"errorcode": -103},
@@ -107,7 +123,7 @@ class TestHSM2Protocol(TestCase):
         self.assertEqual(
             self.protocol.handle_request({
                 "command": "getPubKey",
-                "version": 2,
+                "version": 3,
                 "keyId": "not-a-key-id"
             }),
             {"errorcode": -103},
@@ -117,14 +133,14 @@ class TestHSM2Protocol(TestCase):
         with self.assertRaises(NotImplementedError):
             self.protocol.handle_request({
                 "command": "getPubKey",
-                "version": 2,
+                "version": 3,
                 "keyId": "m/0/0/0/0/0"
             })
 
     def test_sign_keyId_presence(self):
         self.assertEqual(
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "sign"
             }),
             {"errorcode": -103},
@@ -133,7 +149,7 @@ class TestHSM2Protocol(TestCase):
     def test_sign_keyId_not_a_string(self):
         self.assertEqual(
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "sign",
                 "keyId": 1234
             }),
@@ -143,7 +159,7 @@ class TestHSM2Protocol(TestCase):
     def test_sign_keyId_invalid(self):
         self.assertEqual(
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "sign",
                 "keyId": "not-a-key-id"
             }),
@@ -153,7 +169,7 @@ class TestHSM2Protocol(TestCase):
     def test_sign_auth_type_components(self):
         self.assertEqual(
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "sign",
                 "keyId": "m/0/0/0/0/0",
                 "auth": 123
@@ -163,7 +179,7 @@ class TestHSM2Protocol(TestCase):
 
         self.assertEqual(
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "sign",
                 "keyId": "m/0/0/0/0/0",
                 "auth": ""
@@ -173,7 +189,7 @@ class TestHSM2Protocol(TestCase):
 
         self.assertEqual(
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "sign",
                 "keyId": "m/0/0/0/0/0",
                 "auth": {
@@ -186,7 +202,7 @@ class TestHSM2Protocol(TestCase):
     def test_sign_receipt_presence_type(self):
         self.assertEqual(
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "sign",
                 "keyId": "m/0/0/0/0/0",
                 "auth": {
@@ -198,7 +214,7 @@ class TestHSM2Protocol(TestCase):
 
         self.assertEqual(
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "sign",
                 "keyId": "m/0/0/0/0/0",
                 "auth": {
@@ -211,7 +227,7 @@ class TestHSM2Protocol(TestCase):
 
         self.assertEqual(
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "sign",
                 "keyId": "m/0/0/0/0/0",
                 "auth": {
@@ -224,7 +240,7 @@ class TestHSM2Protocol(TestCase):
 
         self.assertEqual(
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "sign",
                 "keyId": "m/0/0/0/0/0",
                 "auth": {
@@ -238,7 +254,7 @@ class TestHSM2Protocol(TestCase):
     def test_sign_receipt_merkle_proof_presence_type(self):
         self.assertEqual(
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "sign",
                 "keyId": "m/0/0/0/0/0",
                 "auth": {
@@ -250,7 +266,7 @@ class TestHSM2Protocol(TestCase):
 
         self.assertEqual(
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "sign",
                 "keyId": "m/0/0/0/0/0",
                 "auth": {
@@ -263,7 +279,7 @@ class TestHSM2Protocol(TestCase):
 
         self.assertEqual(
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "sign",
                 "keyId": "m/0/0/0/0/0",
                 "auth": {
@@ -276,7 +292,7 @@ class TestHSM2Protocol(TestCase):
 
         self.assertEqual(
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "sign",
                 "keyId": "m/0/0/0/0/0",
                 "auth": {
@@ -289,7 +305,7 @@ class TestHSM2Protocol(TestCase):
 
         self.assertEqual(
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "sign",
                 "keyId": "m/0/0/0/0/0",
                 "auth": {
@@ -302,7 +318,7 @@ class TestHSM2Protocol(TestCase):
 
         self.assertEqual(
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "sign",
                 "keyId": "m/0/0/0/0/0",
                 "auth": {
@@ -316,7 +332,7 @@ class TestHSM2Protocol(TestCase):
     def test_sign_message_presence_type(self):
         self.assertEqual(
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "sign",
                 "keyId": "m/0/0/0/0/0",
                 "auth": {
@@ -329,7 +345,7 @@ class TestHSM2Protocol(TestCase):
 
         self.assertEqual(
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "sign",
                 "keyId": "m/0/0/0/0/0",
                 "auth": {
@@ -343,7 +359,7 @@ class TestHSM2Protocol(TestCase):
 
         self.assertEqual(
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "sign",
                 "keyId": "m/0/0/0/0/0"
             }),
@@ -352,7 +368,7 @@ class TestHSM2Protocol(TestCase):
 
         self.assertEqual(
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "sign",
                 "keyId": "m/0/0/0/0/0",
                 "message": ""
@@ -363,7 +379,7 @@ class TestHSM2Protocol(TestCase):
     def test_sign_tx_input_hash_presence(self):
         self.assertEqual(
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "sign",
                 "keyId": "m/0/0/0/0/0",
                 "auth": {
@@ -379,7 +395,7 @@ class TestHSM2Protocol(TestCase):
 
         self.assertEqual(
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "sign",
                 "keyId": "m/0/0/0/0/0",
                 "auth": {
@@ -395,7 +411,7 @@ class TestHSM2Protocol(TestCase):
 
         self.assertEqual(
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "sign",
                 "keyId": "m/0/0/0/0/0",
                 "auth": {
@@ -411,7 +427,7 @@ class TestHSM2Protocol(TestCase):
 
         self.assertEqual(
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "sign",
                 "keyId": "m/0/0/0/0/0",
                 "auth": {
@@ -428,7 +444,7 @@ class TestHSM2Protocol(TestCase):
 
         self.assertEqual(
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "sign",
                 "keyId": "m/0/0/0/0/0",
                 "auth": {
@@ -445,7 +461,7 @@ class TestHSM2Protocol(TestCase):
 
         self.assertEqual(
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "sign",
                 "keyId": "m/0/0/0/0/0",
                 "auth": {
@@ -462,7 +478,7 @@ class TestHSM2Protocol(TestCase):
 
         self.assertEqual(
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "sign",
                 "keyId": "m/0/0/0/0/0",
                 "auth": {
@@ -478,7 +494,7 @@ class TestHSM2Protocol(TestCase):
 
         self.assertEqual(
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "sign",
                 "keyId": "m/0/0/0/0/0",
                 "auth": {
@@ -494,7 +510,7 @@ class TestHSM2Protocol(TestCase):
 
         self.assertEqual(
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "sign",
                 "keyId": "m/0/0/0/0/0",
                 "auth": {
@@ -510,7 +526,7 @@ class TestHSM2Protocol(TestCase):
 
         self.assertEqual(
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "sign",
                 "keyId": "m/0/0/0/0/0",
                 "auth": {
@@ -528,7 +544,7 @@ class TestHSM2Protocol(TestCase):
         with self.assertRaises(NotImplementedError):
             self.protocol.handle_request({
                 "command": "sign",
-                "version": 2,
+                "version": 3,
                 "keyId": "m/0/0/0/0/0",
                 "auth": {
                     "receipt": "ddeeff",
@@ -543,7 +559,7 @@ class TestHSM2Protocol(TestCase):
         with self.assertRaises(NotImplementedError):
             self.protocol.handle_request({
                 "command": "sign",
-                "version": 2,
+                "version": 3,
                 "keyId": "m/0/0/0/0/0",
                 "auth": {
                     "receipt": "ddeeff",
@@ -556,7 +572,7 @@ class TestHSM2Protocol(TestCase):
 
         with self.assertRaises(NotImplementedError):
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "sign",
                 "keyId": "m/0/0/0/0/0",
                 "message": {
@@ -567,7 +583,7 @@ class TestHSM2Protocol(TestCase):
 
         with self.assertRaises(NotImplementedError):
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "sign",
                 "keyId": "m/0/0/0/0/0",
                 "message": {
@@ -578,7 +594,7 @@ class TestHSM2Protocol(TestCase):
     def test_sign_noauth_message_presence(self):
         self.assertEqual(
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "sign",
                 "keyId": "m/0/0/0/0/0"
             }),
@@ -588,7 +604,7 @@ class TestHSM2Protocol(TestCase):
     def test_sign_noauth_message_notobject(self):
         self.assertEqual(
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "sign",
                 "keyId": "m/0/0/0/0/0",
                 "message": 123
@@ -599,7 +615,7 @@ class TestHSM2Protocol(TestCase):
     def test_sign_noauth_message_hash_notpresent(self):
         self.assertEqual(
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "sign",
                 "keyId": "m/0/0/0/0/0",
                 "message": {
@@ -612,7 +628,7 @@ class TestHSM2Protocol(TestCase):
     def test_sign_noauth_message_hash_invalid(self):
         self.assertEqual(
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "sign",
                 "keyId": "m/0/0/0/0/0",
                 "message": {
@@ -625,7 +641,7 @@ class TestHSM2Protocol(TestCase):
     def test_sign_noauth_notimplemented(self):
         with self.assertRaises(NotImplementedError):
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "sign",
                 "keyId": "m/0/0/0/0/0",
                 "message": {
@@ -636,7 +652,7 @@ class TestHSM2Protocol(TestCase):
     def test_advance_blockchain_blocks_presence(self):
         self.assertEqual(
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "advanceBlockchain"
             }),
             {"errorcode": -204},
@@ -644,7 +660,7 @@ class TestHSM2Protocol(TestCase):
 
         self.assertEqual(
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "advanceBlockchain",
                 "blocks": 123
             }),
@@ -653,7 +669,7 @@ class TestHSM2Protocol(TestCase):
 
         self.assertEqual(
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "advanceBlockchain",
                 "blocks": []
             }),
@@ -662,7 +678,7 @@ class TestHSM2Protocol(TestCase):
 
         self.assertEqual(
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "advanceBlockchain",
                 "blocks": ["ok", 333, "another-ok"],
             }),
@@ -673,7 +689,7 @@ class TestHSM2Protocol(TestCase):
         with self.assertRaises(NotImplementedError):
             self.protocol.handle_request({
                 "command": "advanceBlockchain",
-                "version": 2,
+                "version": 3,
                 "blocks": ["fist-block", "second-block"],
             })
 
@@ -681,17 +697,17 @@ class TestHSM2Protocol(TestCase):
         with self.assertRaises(NotImplementedError):
             self.protocol.handle_request({
                 "command": "resetAdvanceBlockchain",
-                "version": 2
+                "version": 3
             })
 
     def test_blockchain_status_notimplemented(self):
         with self.assertRaises(NotImplementedError):
-            self.protocol.handle_request({"command": "blockchainState", "version": 2})
+            self.protocol.handle_request({"command": "blockchainState", "version": 3})
 
     def test_update_ancestor_block_blocks_presence(self):
         self.assertEqual(
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "updateAncestorBlock"
             }),
             {"errorcode": -204},
@@ -699,7 +715,7 @@ class TestHSM2Protocol(TestCase):
 
         self.assertEqual(
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "updateAncestorBlock",
                 "blocks": 123
             }),
@@ -708,7 +724,7 @@ class TestHSM2Protocol(TestCase):
 
         self.assertEqual(
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "updateAncestorBlock",
                 "blocks": []
             }),
@@ -717,7 +733,7 @@ class TestHSM2Protocol(TestCase):
 
         self.assertEqual(
             self.protocol.handle_request({
-                "version": 2,
+                "version": 3,
                 "command": "updateAncestorBlock",
                 "blocks": ["ok", 333, "another-ok"],
             }),
@@ -728,7 +744,7 @@ class TestHSM2Protocol(TestCase):
         with self.assertRaises(NotImplementedError):
             self.protocol.handle_request({
                 "command": "updateAncestorBlock",
-                "version": 2,
+                "version": 3,
                 "blocks": ["a-block"]
             })
 
@@ -737,6 +753,6 @@ class TestHSM2Protocol(TestCase):
                 "command":
                 "updateAncestorBlock",
                 "version":
-                2,
+                3,
                 "blocks": ["first-block", "second-block", "third-block"],
             })

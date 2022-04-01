@@ -28,7 +28,6 @@ from admin.misc import not_implemented, info, AdminError
 from admin.unlock import do_unlock
 from admin.onboard import do_onboard
 from admin.pubkeys import do_get_pubkeys
-from admin.exit import do_exit
 from admin.changepin import do_changepin
 from admin.attestation import do_attestation
 from admin.verify_attestation import do_verify_attestation
@@ -44,7 +43,6 @@ if __name__ == "__main__":
         "unlock": do_unlock,
         "onboard": do_onboard,
         "pubkeys": do_get_pubkeys,
-        "exit": do_exit,
         "changepin": do_changepin,
         "attestation": do_attestation,
         "verify_attestation": do_verify_attestation,
