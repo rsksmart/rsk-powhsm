@@ -1314,23 +1314,21 @@ class TestHSM2DongleAdvanceBlockchain(_TestHSM2DongleBase):
             self.hsm2dongle.advance_blockchain(blocks_hex, dongle_app_version),
         )
 
-        expect_cb_txn_hash = dongle_app_version >= HSM2FirmwareVersion(2, 1, 0)
-
         self.assert_exchange([
             [0x10, 0x02, 0x00, 0x00, 0x00, 0x03],  # Init, 3 blocks
             [0x10, 0x03, 0x00, 0x4B] +
-            ([0x78, 0x78, 0x78, 0x78] if expect_cb_txn_hash else []),  # Block #1 meta
+            ([0x78, 0x78, 0x78, 0x78]),  # Block #1 meta
             [0x10, 0x04] + list(blocks_spec[0][0][80*0:80*1]),  # Block #1 chunk
             [0x10, 0x04] + list(blocks_spec[0][0][80*1:80*2]),  # Block #1 chunk
             [0x10, 0x04] + list(blocks_spec[0][0][80*2:80*3]),  # Block #1 chunk
             [0x10, 0x04] + list(blocks_spec[0][0][80*3:80*4]),  # Block #1 chunk
             [0x10, 0x03, 0x00, 0x3E] +
-            ([0x64, 0x64, 0x64, 0x64] if expect_cb_txn_hash else []),  # Block #2 meta
+            ([0x64, 0x64, 0x64, 0x64]),  # Block #2 meta
             [0x10, 0x04] + list(blocks_spec[1][0][100*0:100*1]),  # Block #2 chunk
             [0x10, 0x04] + list(blocks_spec[1][0][100*1:100*2]),  # Block #2 chunk
             [0x10, 0x04] + list(blocks_spec[1][0][100*2:100*3]),  # Block #2 chunk
             [0x10, 0x03, 0x00, 0x23] +
-            ([0x38, 0x38, 0x38, 0x38] if expect_cb_txn_hash else []),  # Block #3 meta
+            ([0x38, 0x38, 0x38, 0x38]),  # Block #3 meta
             [0x10, 0x04] + list(blocks_spec[2][0][50*0:50*1]),  # Block #2 chunk
             [0x10, 0x04] + list(blocks_spec[2][0][50*1:50*2]),  # Block #3 chunk
             [0x10, 0x04] + list(blocks_spec[2][0][50*2:50*3]),  # Block #3 chunk
@@ -1413,18 +1411,16 @@ class TestHSM2DongleAdvanceBlockchain(_TestHSM2DongleBase):
             self.hsm2dongle.advance_blockchain(blocks_hex, dongle_app_version),
         )
 
-        expect_cb_txn_hash = dongle_app_version >= HSM2FirmwareVersion(2, 1, 0)
-
         self.assert_exchange([
             [0x10, 0x02, 0x00, 0x00, 0x00, 0x03],  # Init, 3 blocks
             [0x10, 0x03, 0x00, 0x4B] +
-            ([0x78, 0x78, 0x78, 0x78] if expect_cb_txn_hash else []),  # Block #1 meta
+            ([0x78, 0x78, 0x78, 0x78]),  # Block #1 meta
             [0x10, 0x04] + list(blocks_spec[0][0][80*0:80*1]),  # Block #1 chunk
             [0x10, 0x04] + list(blocks_spec[0][0][80*1:80*2]),  # Block #1 chunk
             [0x10, 0x04] + list(blocks_spec[0][0][80*2:80*3]),  # Block #1 chunk
             [0x10, 0x04] + list(blocks_spec[0][0][80*3:80*4]),  # Block #1 chunk
             [0x10, 0x03, 0x00, 0x3E] +
-            ([0x64, 0x64, 0x64, 0x64] if expect_cb_txn_hash else []),  # Block #2 meta
+            ([0x64, 0x64, 0x64, 0x64]),  # Block #2 meta
             [0x10, 0x04] + list(blocks_spec[1][0][100*0:100*1]),  # Block #2 chunk
             [0x10, 0x04] + list(blocks_spec[1][0][100*1:100*2]),  # Block #2 chunk
         ])
@@ -1486,23 +1482,21 @@ class TestHSM2DongleAdvanceBlockchain(_TestHSM2DongleBase):
             self.hsm2dongle.advance_blockchain(blocks_hex, dongle_app_version),
         )
 
-        expect_cb_txn_hash = dongle_app_version >= HSM2FirmwareVersion(2, 1, 0)
-
         self.assert_exchange([
             [0x10, 0x02, 0x00, 0x00, 0x00, 0x03],  # Init, 3 blocks
             [0x10, 0x03, 0x00, 0x4B] +
-            ([0x78, 0x78, 0x78, 0x78] if expect_cb_txn_hash else []),  # Block #1 meta
+            ([0x78, 0x78, 0x78, 0x78]),  # Block #1 meta
             [0x10, 0x04] + list(blocks_spec[0][0][80*0:80*1]),  # Block #1 chunk
             [0x10, 0x04] + list(blocks_spec[0][0][80*1:80*2]),  # Block #1 chunk
             [0x10, 0x04] + list(blocks_spec[0][0][80*2:80*3]),  # Block #1 chunk
             [0x10, 0x04] + list(blocks_spec[0][0][80*3:80*4]),  # Block #1 chunk
             [0x10, 0x03, 0x00, 0x3E] +
-            ([0x64, 0x64, 0x64, 0x64] if expect_cb_txn_hash else []),  # Block #2 meta
+            ([0x64, 0x64, 0x64, 0x64]),  # Block #2 meta
             [0x10, 0x04] + list(blocks_spec[1][0][100*0:100*1]),  # Block #2 chunk
             [0x10, 0x04] + list(blocks_spec[1][0][100*1:100*2]),  # Block #2 chunk
             [0x10, 0x04] + list(blocks_spec[1][0][100*2:100*3]),  # Block #2 chunk
             [0x10, 0x03, 0x00, 0x23] +
-            ([0x38, 0x38, 0x38, 0x38] if expect_cb_txn_hash else []),  # Block #3 meta
+            ([0x38, 0x38, 0x38, 0x38]),  # Block #3 meta
         ])
 
     @patch("ledger.hsm2dongle.rlp_mm_payload_size")

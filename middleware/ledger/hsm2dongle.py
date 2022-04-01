@@ -368,8 +368,6 @@ class HSM2Dongle:
     DONGLE_TIMEOUT = 10  # seconds
 
     # Protocol version dependent features
-    MIN_VERSION_META_CBTXHASH = HSM2FirmwareVersion(2, 1, 0)
-    MIN_VERSION_UI_GET_RETRIES = HSM2FirmwareVersion(2, 1, 0)
     MAX_VERSION_SIGNER_EXIT = HSM2FirmwareVersion(2, 1, 0)
 
     # Maximum pages expected to conform the UI attestation message
@@ -1104,10 +1102,7 @@ class HSM2Dongle:
                     2, byteorder="big", signed=False
                 )
                 cb_txn_hash = bytes([])
-                if (
-                    command == self.CMD.ADVANCE
-                    and version >= self.MIN_VERSION_META_CBTXHASH
-                ):
+                if command == self.CMD.ADVANCE:
                     cb_txn_hash = bytes.fromhex(
                         coinbase_tx_get_hash(get_coinbase_txn(block))
                     )

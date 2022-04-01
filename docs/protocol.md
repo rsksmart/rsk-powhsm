@@ -1,4 +1,4 @@
-# FedHM protocol definition v2.x
+# FedHM protocol definition v3.x
 
 ## Definitions
 
@@ -21,7 +21,7 @@
 #### Response
 ```
 {
-    "version": 2,
+    "version": 3,
     "errorcode": i
 }
 ```
@@ -53,7 +53,7 @@ This format is only valid for the BTC and tBTC key ids (see corresponding sectio
             "hhhh", "hhhh", ..., "hhhh"
         ]
     },
-    "version": 2
+    "version": 3
 }
 
 // (*) the given string must be the
@@ -81,7 +81,7 @@ This format is only valid for the RSK, MST, tRSK and tMST key ids (see correspon
     "message": {
         hash: "hhhh", // (**)
     },
-    "version": 2
+    "version": 3
 }
 
 // (*) the given string must be the
@@ -111,7 +111,7 @@ This operation can return `0`, `-101`, `-102`, `-103`, and generic errors. See t
 {
     "command": "getPubKey",
     "keyId": "xxxxx", // (*)
-    "version": 2
+    "version": 3
 }
 
 // (*) the given string must be the
@@ -139,7 +139,7 @@ This operation can return `0`, `-103`, and generic errors. See the error codes s
     "blocks": [
         "hhhh", "hhhh", ..., "hhhh" // (*)
     ],
-    "version": 2
+    "version": 3
 }
 
 // (*) each element must be the binary serialization of a block header as
@@ -164,7 +164,7 @@ This operation can return `0`, `1`, `-201`, `-202`, `-204`, and generic errors. 
 ```
 {
     "command": "resetAdvanceBlockchain",
-    "version": 2
+    "version": 3
 }
 ```
 
@@ -184,7 +184,7 @@ This operation can return `0` and generic errors. See the error codes section fo
 ```
 {
     "command": "blockchainState",
-    "version": 2
+    "version": 3
 }
 ```
 
@@ -226,7 +226,7 @@ This operation can return `0` and generic errors. See the error codes section fo
     "blocks": [
         "hhhh", "hhhh", ..., "hhhh" // (*)
     ],
-    "version": 2
+    "version": 3
 }
 
 // (*) each element must be the binary serialization of a block header as
@@ -250,7 +250,7 @@ This operation can return `0`, `-201`, `-203`, `-204`, and generic errors. See t
 ```
 {
     "command": "blockchainParameters",
-    "version": 2
+    "version": 3
 }
 ```
 
