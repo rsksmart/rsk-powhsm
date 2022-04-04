@@ -367,9 +367,6 @@ class HSM2Dongle:
     # Dongle exchange timeout
     DONGLE_TIMEOUT = 10  # seconds
 
-    # Protocol version dependent features
-    MAX_VERSION_SIGNER_EXIT = HSM2FirmwareVersion(2, 1, 0)
-
     # Maximum pages expected to conform the UI attestation message
     MAX_PAGES_UI_ATT_MESSAGE = 4
 
@@ -865,7 +862,7 @@ class HSM2Dongle:
     # blocks: list of hex strings
     # (each hex string is a raw block header,
     # which should *always* include merge mining fields)
-    def advance_blockchain(self, blocks, version):
+    def advance_blockchain(self, blocks):
         # Convenient shorthands
         err = self.ERR.ADVANCE
         response = self.RESPONSE.ADVANCE
@@ -899,7 +896,6 @@ class HSM2Dongle:
                 err.TOTAL_DIFF_OVERFLOW: response.ERROR_UNSUPPORTED_CHAIN,
                 err.PROT_INVALID: response.ERROR_BLOCK_DATA,
             },
-            version,
         )
 
     # Ask the device to update its ancestor block and ancestor receipts root
@@ -909,7 +905,7 @@ class HSM2Dongle:
     # which doesn't need to include merge mining fields -
     # those will be stripped for efficiency before being sent
     # to the device anyway)
-    def update_ancestor(self, blocks, version):
+    def update_ancestor(self, blocks):
         # Convenient shorthands
         err = self.ERR.UPD_ANCESTOR
         response = self.RESPONSE.UPD_ANCESTOR
@@ -943,7 +939,6 @@ class HSM2Dongle:
                 err.CHAIN_MISMATCH: response.ERROR_CHAINING_MISMATCH,
                 err.PROT_INVALID: response.ERROR_BLOCK_DATA,
             },
-            version,
         )
 
     def get_ui_attestation(
@@ -1036,7 +1031,6 @@ class HSM2Dongle:
         errors,
         responses,
         chunk_error_mapping,
-        version,
     ):
         # *** Block operation protocol ***
         # The order in which things are required and then sent is:

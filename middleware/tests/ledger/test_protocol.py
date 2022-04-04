@@ -43,7 +43,6 @@ logging.disable(logging.CRITICAL)
 class TestHSM2ProtocolLedger(TestCase):
     def setUp(self):
         self.pin = Mock()
-        self.expected_app_version = HSM2FirmwareVersion(3, 0, 0)
         self.dongle = Mock()
         self.dongle.connect = Mock()
         self.dongle.disconnect = Mock()
@@ -877,7 +876,7 @@ class TestHSM2ProtocolLedger(TestCase):
         )
 
         self.assertEqual(
-            [call(["aabbcc", "ddeeff"], self.expected_app_version)],
+            [call(["aabbcc", "ddeeff"])],
             self.dongle.advance_blockchain.call_args_list,
         )
         self.assertFalse(self.dongle.disconnect.called)
@@ -895,7 +894,7 @@ class TestHSM2ProtocolLedger(TestCase):
         )
 
         self.assertEqual(
-            [call(["aabbcc", "ddeeff"], self.expected_app_version)],
+            [call(["aabbcc", "ddeeff"])],
             self.dongle.advance_blockchain.call_args_list,
         )
         self.assertFalse(self.dongle.disconnect.called)
@@ -913,7 +912,7 @@ class TestHSM2ProtocolLedger(TestCase):
         )
 
         self.assertEqual(
-            [call(["aabbcc", "ddeeff"], self.expected_app_version)],
+            [call(["aabbcc", "ddeeff"])],
             self.dongle.advance_blockchain.call_args_list,
         )
         self.assertFalse(self.dongle.disconnect.called)
@@ -945,7 +944,7 @@ class TestHSM2ProtocolLedger(TestCase):
         )
 
         self.assertEqual(
-            [call(["aabbcc", "ddeeff"], self.expected_app_version)],
+            [call(["aabbcc", "ddeeff"])],
             self.dongle.advance_blockchain.call_args_list,
         )
         self.assertFalse(self.dongle.disconnect.called)
@@ -975,7 +974,7 @@ class TestHSM2ProtocolLedger(TestCase):
         )
 
         self.assertEqual(
-            [call(["aabbcc", "ddeeff"], self.expected_app_version)],
+            [call(["aabbcc", "ddeeff"])],
             self.dongle.update_ancestor.call_args_list,
         )
         self.assertFalse(self.dongle.disconnect.called)
@@ -993,7 +992,7 @@ class TestHSM2ProtocolLedger(TestCase):
         )
 
         self.assertEqual(
-            [call(["aabbcc", "ddeeff"], self.expected_app_version)],
+            [call(["aabbcc", "ddeeff"])],
             self.dongle.update_ancestor.call_args_list,
         )
         self.assertFalse(self.dongle.disconnect.called)
@@ -1011,7 +1010,7 @@ class TestHSM2ProtocolLedger(TestCase):
         )
 
         self.assertEqual(
-            [call(["aabbcc", "ddeeff"], self.expected_app_version)],
+            [call(["aabbcc", "ddeeff"])],
             self.dongle.update_ancestor.call_args_list,
         )
         self.assertFalse(self.dongle.disconnect.called)
@@ -1043,7 +1042,7 @@ class TestHSM2ProtocolLedger(TestCase):
         )
 
         self.assertEqual(
-            [call(["aabbcc", "ddeeff"], self.expected_app_version)],
+            [call(["aabbcc", "ddeeff"])],
             self.dongle.update_ancestor.call_args_list,
         )
         self.assertFalse(self.dongle.disconnect.called)

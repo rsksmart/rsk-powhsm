@@ -70,6 +70,13 @@ class TestHSM2Protocol(TestCase):
             }),
             {"errorcode": -904},
         )
+        self.assertEqual(
+            self.protocol.handle_request({
+                "command": "whatever",
+                "version": 3
+            }),
+            {"errorcode": -903},
+        )
 
     def test_invalid_command(self):
         self.assertEqual(

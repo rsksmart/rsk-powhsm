@@ -387,9 +387,7 @@ class HSM2ProtocolLedger(HSM2Protocol):
     def _advance_blockchain(self, request):
         try:
             self.ensure_connection()
-            advance_result = self.hsm2dongle.advance_blockchain(
-                request["blocks"], self._dongle_app_version
-            )
+            advance_result = self.hsm2dongle.advance_blockchain(request["blocks"])
 
             return (self._translate_advance_result(advance_result[1]), {})
         except (HSM2DongleError, HSM2DongleTimeoutError) as e:
@@ -419,9 +417,7 @@ class HSM2ProtocolLedger(HSM2Protocol):
     def _update_ancestor_block(self, request):
         try:
             self.ensure_connection()
-            update_result = self.hsm2dongle.update_ancestor(
-                request["blocks"], self._dongle_app_version
-            )
+            update_result = self.hsm2dongle.update_ancestor(request["blocks"])
 
             return (self._translate_update_ancestor_result(update_result[1]), {})
         except (HSM2DongleError, HSM2DongleTimeoutError) as e:
