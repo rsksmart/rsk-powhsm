@@ -61,6 +61,14 @@
         (cmd);                                                              \
     }
 
+#define PROCESSING_BLOCK()                   \
+    (APDU_OP() == OP_ADVANCE_HEADER_CHUNK || \
+     APDU_OP() == OP_ADVANCE_HEADER_META)
+
+#define BLOCK_ALREADY_VALID()                                       \
+    (!PROCESSING_BLOCK() && (HAS_FLAG(block.flags, HEADER_VALID) || \
+                             N_bc_state.updating.already_validated))
+
 // Convenience macro for last field contributing to merge mining hash
 #define MM_HASH_LAST_FIELD \
     (block.network_upgrade >= NU_PAPYRUS ? F_UMM_ROOT : F_UMM_ROOT - 1)

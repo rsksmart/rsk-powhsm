@@ -46,7 +46,7 @@ class SignUnauthorized(TestCase):
 
         super().__init__(spec)
 
-    def run(self, dongle, version, debug):
+    def run(self, dongle, debug):
         try:
             # Attempt the signature with each of the valid paths
             for pkey in self.paths:

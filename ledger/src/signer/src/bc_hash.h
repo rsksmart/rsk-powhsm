@@ -57,6 +57,7 @@ typedef cx_sha3_t keccak_ctx_t;
 // Convenience macros to deal with frequent hash ops
 #define HEQ(h0, h1) (memcmp(h0, h1, HASH_SIZE) == 0)
 #define HNEQ(h0, h1) (memcmp(h0, h1, HASH_SIZE) != 0)
+#define HLT(h0, h1) (memcmp(h0, h1, HASH_SIZE) < 0)
 #define HSTORE(dst, src) (memcpy(dst, src, HASH_SIZE))
 
 // Revert hash in place

@@ -2,8 +2,8 @@
     "name": "Get blockchain state after update for Iris",
     "operation": "getState",
     "expected": {
-        "best_block": "f899db73b9fa342be52307f44bb390e0c4bfe85317a94d791d6fc402dee640c3",
-        "newest_valid_block": "98728e6793f9e9557a42f114b25567b58846ae68fabfd76ad624a62b4f3857b8",
+        "best_block": "c38ac27d1f9021e358b0e633536bd381bf586f244d83417116c1d2040fa879fc",
+        "newest_valid_block": "df875149b0cf41c6d97bfdac376c044db6477ad071df61cc847d89a6bcdcc4f9",
         "ancestor_block": "f899db73b9fa342be52307f44bb390e0c4bfe85317a94d791d6fc402dee640c3",
         "ancestor_receipts_root": "fecd2dbfdfef790e31c92fe06f06875805edea30ca1ef51b179e24fd7fe04263"
     }

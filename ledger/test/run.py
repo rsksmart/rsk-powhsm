@@ -79,7 +79,7 @@ if __name__ == "__main__":
         output.info(f"Version: {version}", nl=True)
 
         output.header("Running tests")
-        tests_passed = suite.run(dongle, version, run_on)
+        tests_passed = suite.run(dongle, run_on)
         stats = suite.get_stats()
         output.info(
             f"( {stats['passed']} passed, {stats['failed']} failed, "

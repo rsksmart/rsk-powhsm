@@ -32,6 +32,7 @@ from .block_utils import (
     rlp_mm_payload_size,
     remove_mm_fields_if_present,
     get_coinbase_txn,
+    get_block_hash,
 )
 from comm.pow import coinbase_tx_get_hash
 import logging
@@ -93,6 +94,9 @@ class _AdvanceOps(IntEnum):
     HEADER_CHUNK = 0x04
     PARTIAL = 0x05
     SUCCESS = 0x06
+    BROTHER_LIST_META = 0x07
+    BROTHER_META = 0x08
+    BROTHER_CHUNK = 0x09
 
 
 # Update ancestor command OPs
@@ -219,6 +223,10 @@ class _AdvanceUpdateError(IntEnum):
     TOTAL_DIFF_OVERFLOW = auto()
     ANCESTOR_TIP_MISMATCH = auto()
     CB_TXN_HASH_MISMATCH = auto()
+    BROTHERS_TOO_MANY = auto()
+    BROTHER_PARENT_MISMATCH = auto()
+    BROTHER_SAME_AS_BLOCK = auto()
+    BROTHER_ORDER_INVALID = auto()
 
 
 class _UIError(IntEnum):
@@ -277,6 +285,7 @@ class _AdvanceResponse(IntEnum):
     ERROR_POW_INVALID = -6
     ERROR_CHAINING_MISMATCH = -7
     ERROR_UNSUPPORTED_CHAIN = -8
+    ERROR_INVALID_BROTHERS = -9
     ERROR_UNEXPECTED = -10
 
 
@@ -858,17 +867,31 @@ class HSM2Dongle:
         return True
 
     # Ask the device to update its blockchain references by processing
-    # a given set of blocks.
+    # a given set of blocks and their brothers.
     # blocks: list of hex strings
     # (each hex string is a raw block header,
     # which should *always* include merge mining fields)
-    def advance_blockchain(self, blocks):
+    # brothers: list of list of hex strings
+    # (each list of hex strings is the block's brothers' headers
+    # for the corresponding block header in the same position
+    # of the blocks list)
+    def advance_blockchain(self, blocks, brothers):
         # Convenient shorthands
         err = self.ERR.ADVANCE
         response = self.RESPONSE.ADVANCE
+
+        # Sort each group of brothers by block hash
+        brothers = list(map(lambda brolist:
+                            sorted(brolist,
+                                   key=lambda bh: bytes.fromhex(get_block_hash(bh))
+                                   ),
+                            brothers)
+                        )
+
         return self._do_block_operation(
             "advance",
             blocks,
+            brothers,
             self.CMD.ADVANCE,
             self.OP.ADVANCE,
             err,
@@ -892,6 +915,10 @@ class HSM2Dongle:
                 err.MM_HASH_MISMATCH: response.ERROR_POW_INVALID,
                 err.BTC_DIFF_MISMATCH: response.ERROR_POW_INVALID,
                 err.CB_TXN_HASH_MISMATCH: response.ERROR_POW_INVALID,
+                err.BROTHERS_TOO_MANY: response.ERROR_INVALID_BROTHERS,
+                err.BROTHER_PARENT_MISMATCH: response.ERROR_INVALID_BROTHERS,
+                err.BROTHER_SAME_AS_BLOCK: response.ERROR_INVALID_BROTHERS,
+                err.BROTHER_ORDER_INVALID: response.ERROR_INVALID_BROTHERS,
                 err.CHAIN_MISMATCH: response.ERROR_CHAINING_MISMATCH,
                 err.TOTAL_DIFF_OVERFLOW: response.ERROR_UNSUPPORTED_CHAIN,
                 err.PROT_INVALID: response.ERROR_BLOCK_DATA,
@@ -921,6 +948,7 @@ class HSM2Dongle:
         return self._do_block_operation(
             "updancestor",
             optimized_blocks,
+            None,
             self.CMD.UPD_ANCESTOR,
             self.OP.UPD_ANCESTOR,
             err,
@@ -1021,11 +1049,12 @@ class HSM2Dongle:
         }
 
     # Used both for advance blockchain and update ancestor given the protocol
-    # is the same
+    # is very similar
     def _do_block_operation(
         self,
         operation_name,
         blocks,
+        brothers,
         command,
         ops,
         errors,
@@ -1039,10 +1068,20 @@ class HSM2Dongle:
         # 2.1. Block metadata (single message):
         #   - MM payload size in bytes
         #   (see the block_utils.rlp_mm_payload_size method for details on this)
-        #   - (only for >=2.1.0) In case of an advance blockchain operation,
+        #   - In case of an advance blockchain operation,
         #   coinbase transaction hash (see the block_utils.coinbase_tx_get_hash
         #   for details on this)
         # 2.2. Block chunks: block header pieces as requested by the ledger.
+        # 2.3. Brothers -- only for advance blockchain:
+        # 2.3.1 Brothers metadata (single message):
+        #   - Brother count
+        # 2.3.2 For each brother (if brother count was greater than zero):
+        # 2.3.2.1. Brother metadata (single message):
+        #   - MM payload size in bytes
+        #   (see the block_utils.rlp_mm_payload_size method for details on this)
+        #   - Coinbase transaction hash (see the block_utils.coinbase_tx_get_hash
+        #   for details on this)
+        # 2.3.2.2. Brother chunks: brother header pieces as requested by the ledger.
         #
         # During these exchanges, an exception can be raised at any moment, which
         # would signal failure. Specific error codes come with HSM2DongleErrorResult
@@ -1076,7 +1115,7 @@ class HSM2Dongle:
                 return (False, responses.ERROR_INIT)
             return (False, responses.ERROR_UNEXPECTED)
 
-        # Step 2. Send blocks
+        # Step 2. Send blocks (and brothers, if any)
         total_blocks = len(blocks)
         for block_number, block in enumerate(blocks, 1):
             self.logger.info(
@@ -1086,78 +1125,81 @@ class HSM2Dongle:
                 total_blocks,
             )
 
-            # Step 2.1. Compute and send block metadata
-            # (this will also validate that the block is a valid RLP-encoded list
-            # of the proper size)
-            try:
-                mm_payload_size = rlp_mm_payload_size(block)
-                self.logger.debug("Metadata: MM payload length %d", mm_payload_size)
-                mm_payload_size_bytes = mm_payload_size.to_bytes(
-                    2, byteorder="big", signed=False
-                )
-                cb_txn_hash = bytes([])
-                if command == self.CMD.ADVANCE:
-                    cb_txn_hash = bytes.fromhex(
-                        coinbase_tx_get_hash(get_coinbase_txn(block))
-                    )
-                    self.logger.debug("Metadata: CB txn hash: %s", cb_txn_hash.hex())
-                data = bytes([ops.HEADER_META]) + mm_payload_size_bytes + cb_txn_hash
-                self.logger.info(
-                    "%s: sending metadata - %s", operation_name.capitalize(), data.hex()
-                )
-                response = self._send_command(command, data)
+            response = self._send_block_header(
+                operation_name=operation_name,
+                header_name="block",
+                block=block,
+                command=command,
+                ops=ops,
+                op_meta=ops.HEADER_META,
+                op_chunk=ops.HEADER_CHUNK,
+                responses=responses,
+                errors=errors,
+                chunk_error_mapping=chunk_error_mapping
+            )
+            if not response[0]:
+                return response
 
-                # We expect the device to ask for a block chunk next.
-                # If this doesn't happen, error out
-                if response[self.OFF.OP] != ops.HEADER_CHUNK:
+            # Step 2.3. Send brothers
+            # *** Only for advance blockchain and if requested by the dongle ***
+            if command == self.CMD.ADVANCE and \
+               response[1][self.OFF.OP] == ops.BROTHER_LIST_META:
+
+                # Step 2.3.1. Send brother list metadata
+                brother_list = brothers[block_number-1]
+                brother_count = len(brother_list)
+                brother_count_bytes = brother_count.to_bytes(1,
+                                                             byteorder="big",
+                                                             signed=False)
+                data = bytes([ops.BROTHER_LIST_META]) + brother_count_bytes
+                try:
+                    self.logger.info(
+                        "%s: sending brother list metadata - %s",
+                        operation_name.capitalize(), data.hex()
+                    )
+                    response = [None, self._send_command(command, data)]
+
+                    # If we have at least one brother,
+                    # we expect the device to ask for brother metadata next.
+                    # If this doesn't happen, error out
+                    if brother_count > 0 and response[1][self.OFF.OP] != ops.BROTHER_META:
+                        self.logger.error(
+                            "%s: unexpected response %s",
+                            operation_name.capitalize(),
+                            response[1].hex(),
+                        )
+                        return (False, responses.ERROR_UNEXPECTED)
+                except HSM2DongleErrorResult as e:
                     self.logger.error(
-                        "%s: unexpected response %s",
-                        operation_name.capitalize(),
-                        response.hex(),
+                        "%s returned: %s", operation_name.capitalize(), hex(e.error_code)
                     )
+                    if e.error_code in [errors.PROT_INVALID, errors.BROTHERS_TOO_MANY]:
+                        return (False, responses.ERROR_INVALID_BROTHERS)
                     return (False, responses.ERROR_UNEXPECTED)
 
-                # How many bytes to send as the first block chunk
-                bytes_requested = response[self.OFF.DATA]
-            except ValueError as e:
-                self.logger.error("Computing block metadata: %s", str(e))
-                return (False, responses.ERROR_COMPUTE_METADATA)
-            except HSM2DongleErrorResult as e:
-                self.logger.error(
-                    "%s returned: %s", operation_name.capitalize(), hex(e.error_code)
-                )
-                if e.error_code in [errors.PROT_INVALID]:
-                    return (False, responses.ERROR_METADATA)
-                return (False, responses.ERROR_UNEXPECTED)
+                # Step 2.3.2. Send each brother
+                for brother_number, brother in enumerate(brother_list, 1):
+                    self.logger.info(
+                        "%s: sending brother #%d/%d",
+                        operation_name.capitalize(),
+                        brother_number,
+                        brother_count,
+                    )
 
-            # Step 2.2. Send block data in chunks
-            try:
-                # Next possible operations depending on the specific command
-                # (the advance blockchain operation has also got a "partial" success)
-                next_operations = [ops.HEADER_CHUNK, ops.HEADER_META, ops.SUCCESS]
-                if command == self.CMD.ADVANCE:
-                    next_operations.append(ops.PARTIAL)
-
-                response = self._send_data_in_chunks(
-                    command=command,
-                    operation=ops.HEADER_CHUNK,
-                    next_operations=next_operations,
-                    data=bytes.fromhex(block),
-                    initial_bytes=bytes_requested,
-                    operation_name=operation_name,
-                    data_description="block",
-                )
-
-                if not response[0]:
-                    return (False, responses.ERROR_UNEXPECTED)
-            except HSM2DongleErrorResult as e:
-                self.logger.error(
-                    "%s returned: %s", operation_name.capitalize(), hex(e.error_code)
-                )
-                return (
-                    False,
-                    chunk_error_mapping.get(e.error_code, responses.ERROR_UNEXPECTED),
-                )
+                    response = self._send_block_header(
+                        operation_name=operation_name,
+                        header_name="brother",
+                        block=brother,
+                        command=command,
+                        ops=ops,
+                        op_meta=ops.BROTHER_META,
+                        op_chunk=ops.BROTHER_CHUNK,
+                        responses=responses,
+                        errors=errors,
+                        chunk_error_mapping=chunk_error_mapping
+                    )
+                    if not response[0]:
+                        return response
 
             # Partial success?
             if command == self.CMD.ADVANCE and response[1][self.OFF.OP] == ops.PARTIAL:
@@ -1173,6 +1215,114 @@ class HSM2Dongle:
         msg = "%s: unexpected state" % operation_name.capitalize()
         self.logger.fatal(msg)
         raise HSM2DongleError(msg)
+
+    # Send an individual block header to the device, including computing
+    # and sending metadata
+    # This is used both for advance blockchain (block and brother headers)
+    # and update ancestor given the protocol is very similar
+    def _send_block_header(
+        self,
+        operation_name,
+        header_name,
+        block,
+        command,
+        ops,
+        op_meta,
+        op_chunk,
+        responses,
+        errors,
+        chunk_error_mapping
+    ):
+        # A. Compute and send block metadata
+        # (this will also validate that the block is a valid RLP-encoded list
+        # of the proper size)
+        try:
+            # RLP payload size for merge mining hash
+            mm_payload_size = rlp_mm_payload_size(block)
+            self.logger.debug(
+                "%s metadata: MM payload length %d",
+                header_name.capitalize(),
+                mm_payload_size)
+            mm_payload_size_bytes = mm_payload_size.to_bytes(
+                2, byteorder="big", signed=False
+            )
+            # Coinbase transaction hash
+            cb_txn_hash = bytes([])
+            if command == self.CMD.ADVANCE:
+                cb_txn_hash = bytes.fromhex(
+                    coinbase_tx_get_hash(get_coinbase_txn(block))
+                )
+                self.logger.debug(
+                    "%s Metadata: CB txn hash: %s",
+                    header_name.capitalize(),
+                    cb_txn_hash.hex())
+            # Wrap and send
+            data = bytes([op_meta]) + mm_payload_size_bytes + cb_txn_hash
+            self.logger.info(
+                "%s: sending %s metadata - %s",
+                operation_name.capitalize(),
+                header_name,
+                data.hex()
+            )
+            response = self._send_command(command, data)
+
+            # We expect the device to ask for a block chunk next.
+            # If this doesn't happen, error out
+            if response[self.OFF.OP] != op_chunk:
+                self.logger.error(
+                    "%s: unexpected response %s",
+                    operation_name.capitalize(),
+                    response.hex(),
+                )
+                return (False, responses.ERROR_UNEXPECTED)
+
+            # How many bytes to send as the first block chunk
+            bytes_requested = response[self.OFF.DATA]
+        except ValueError as e:
+            self.logger.error("Computing %s metadata: %s", header_name, str(e))
+            return (False, responses.ERROR_COMPUTE_METADATA)
+        except HSM2DongleErrorResult as e:
+            self.logger.error(
+                "%s returned: %s", operation_name.capitalize(), hex(e.error_code)
+            )
+            if e.error_code in [errors.PROT_INVALID]:
+                return (False, responses.ERROR_METADATA)
+            return (False, responses.ERROR_UNEXPECTED)
+
+        # B. Send block data in chunks
+        try:
+            # Next possible operations depending on the specific command
+            # and type of header we're sending
+            next_operations = [op_chunk, op_meta, ops.SUCCESS]
+            if command == self.CMD.ADVANCE:
+                next_operations.append(ops.PARTIAL)
+                if header_name == "block":
+                    next_operations.append(ops.BROTHER_LIST_META)
+                if header_name == "brother":
+                    next_operations.append(ops.HEADER_META)
+
+            response = self._send_data_in_chunks(
+                command=command,
+                operation=op_chunk,
+                next_operations=next_operations,
+                data=bytes.fromhex(block),
+                initial_bytes=bytes_requested,
+                operation_name=operation_name,
+                data_description=header_name,
+            )
+
+            if not response[0]:
+                return (False, responses.ERROR_UNEXPECTED)
+        except HSM2DongleErrorResult as e:
+            self.logger.error(
+                "%s returned: %s", operation_name.capitalize(), hex(e.error_code)
+            )
+            return (
+                False,
+                chunk_error_mapping.get(e.error_code, responses.ERROR_UNEXPECTED),
+            )
+
+        return response
 
     # Send a specific piece of data in chunks to the device
     # as the device requests bytes from it.

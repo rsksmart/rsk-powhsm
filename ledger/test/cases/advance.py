@@ -31,8 +31,11 @@ class AdvanceBlockchain(TestCase):
 
     def __init__(self, spec):
         self.blocks = spec["blocks"]
+        self.brothers = spec["brothers"]
         self.chunk_size = spec.get("chunkSize", len(self.blocks))
         self.partial = spec.get("partial", False)
+        self.reset_before = spec.get("resetBefore", False)
+        self.skip_brother_sorting = spec.get("skipBrotherSorting", False)
 
         # listLength applies to all blocks
         # (will usually be used to test a single block that fails to validate)
@@ -49,29 +52,41 @@ class AdvanceBlockchain(TestCase):
         bs = bs[:1] + self.list_length + bs[len(self.list_length) + 1:]
         return bs.hex()
 
-    def run(self, dongle, version, debug):
+    def run(self, dongle, debug):
         try:
+            if self.reset_before:
+                debug("Resetting advance blockchain before starting")
+                dongle.reset_advance_blockchain()
+
             debug(f"About to send {len(self.blocks)} blocks")
             offset = 0
             while offset < len(self.blocks):
-                chunk = self.blocks[offset:offset + self.chunk_size]
+                blocks_chunk = self.blocks[offset:offset + self.chunk_size]
+                brothers_chunk = self.brothers[offset:offset + self.chunk_size]
 
                 if self.list_length:
                     # Mock RLP payload size and coinbase tx getters
                     old_rlp_mm_payload_size = ledger.hsm2dongle.rlp_mm_payload_size
-                    first_block_rlp_mm_payload_size = old_rlp_mm_payload_size(chunk[0])
+                    first_block_rlp_mm_payload_size = old_rlp_mm_payload_size(
+                        blocks_chunk[0])
                     ledger.hsm2dongle.rlp_mm_payload_size = (
                         lambda h: first_block_rlp_mm_payload_size)
                     old_get_coinbase_txn = ledger.hsm2dongle.get_coinbase_txn
-                    first_block_coinbase_txn = old_get_coinbase_txn(chunk[0])
+                    first_block_coinbase_txn = old_get_coinbase_txn(blocks_chunk[0])
                     ledger.hsm2dongle.get_coinbase_txn = (
                         lambda h: first_block_coinbase_txn)
                     # Change list lengths
-                    chunk = list(map(self._change_rlp_list_length, chunk))
+                    blocks_chunk = list(map(self._change_rlp_list_length, blocks_chunk))
 
-                debug(f"Sending blocks {offset} to {offset + len(chunk) - 1} "
-                      f"({len(chunk)} blocks)...")
-                result = dongle.advance_blockchain(chunk)
+                if self.skip_brother_sorting:
+                    # Mock block hash getter so that it returns the same
+                    # for any block - sorting is skipped
+                    old_get_block_hash = ledger.hsm2dongle.get_block_hash
+                    ledger.hsm2dongle.get_block_hash = lambda h: "00"
+
+                debug(f"Sending blocks {offset} to {offset + len(blocks_chunk) - 1} "
+                      f"({len(blocks_chunk)} blocks)...")
+                result = dongle.advance_blockchain(blocks_chunk, brothers_chunk)
                 debug(f"Dongle replied with {result}")
 
                 offset += self.chunk_size
@@ -80,6 +95,10 @@ class AdvanceBlockchain(TestCase):
                     # Change mocks back
                     ledger.hsm2dongle.rlp_mm_payload_size = old_rlp_mm_payload_size
                     ledger.hsm2dongle.get_coinbase_txn = old_get_coinbase_txn
+
+                if self.skip_brother_sorting:
+                    # Change mocks back
+                    ledger.hsm2dongle.get_block_hash = old_get_block_hash
 
                 if dongle.last_comm_exception is not None:
                     error_code = dongle.last_comm_exception.sw

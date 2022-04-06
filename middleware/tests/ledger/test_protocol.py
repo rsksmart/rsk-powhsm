@@ -861,6 +861,7 @@ class TestHSM2ProtocolLedger(TestCase):
         ("pow_invalid", (False, -6), -202),
         ("chaining_mismatch", (False, -7), -201),
         ("unsupported_chain", (False, -8), -204),
+        ("invalid_brothers", (False, -9), -205),
         ("unexpected", (False, -10), -906),
         ("unknown", (False, 999), -906),
     ])
@@ -872,11 +873,15 @@ class TestHSM2ProtocolLedger(TestCase):
                 "version": 3,
                 "command": "advanceBlockchain",
                 "blocks": ["aabbcc", "ddeeff"],
+                "brothers": [["b11"], ["b21", "b22"]],
             }),
         )
 
         self.assertEqual(
-            [call(["aabbcc", "ddeeff"])],
+            [call(
+                ["aabbcc", "ddeeff"],
+                [["b11"], ["b21", "b22"]],
+            )],
             self.dongle.advance_blockchain.call_args_list,
         )
         self.assertFalse(self.dongle.disconnect.called)
@@ -890,11 +895,15 @@ class TestHSM2ProtocolLedger(TestCase):
                 "version": 3,
                 "command": "advanceBlockchain",
                 "blocks": ["aabbcc", "ddeeff"],
+                "brothers": [["b11", "b12", "b13"], ["b21", "b22"]],
             }),
         )
 
         self.assertEqual(
-            [call(["aabbcc", "ddeeff"])],
+            [call(
+                ["aabbcc", "ddeeff"],
+                [["b11", "b12", "b13"], ["b21", "b22"]],
+            )],
             self.dongle.advance_blockchain.call_args_list,
         )
         self.assertFalse(self.dongle.disconnect.called)
@@ -908,11 +917,15 @@ class TestHSM2ProtocolLedger(TestCase):
                 "version": 3,
                 "command": "advanceBlockchain",
                 "blocks": ["aabbcc", "ddeeff"],
+                "brothers": [["b11", "b12", "b13"], ["b21", "b22"]],
             }),
         )
 
         self.assertEqual(
-            [call(["aabbcc", "ddeeff"])],
+            [call(
+                ["aabbcc", "ddeeff"],
+                [["b11", "b12", "b13"], ["b21", "b22"]],
+            )],
             self.dongle.advance_blockchain.call_args_list,
         )
         self.assertFalse(self.dongle.disconnect.called)
@@ -926,6 +939,7 @@ class TestHSM2ProtocolLedger(TestCase):
                 "version": 3,
                 "command": "advanceBlockchain",
                 "blocks": ["aabbcc", "ddeeff"],
+                "brothers": [["b11", "b12", "b13"], ["b21", "b22"]],
             }),
         )
 
@@ -940,11 +954,15 @@ class TestHSM2ProtocolLedger(TestCase):
                 "version": 3,
                 "command": "advanceBlockchain",
                 "blocks": ["aabbcc", "ddeeff"],
+                "brothers": [["b11", "b12", "b13"], ["b21", "b22"]],
             }),
         )
 
         self.assertEqual(
-            [call(["aabbcc", "ddeeff"])],
+            [call(
+                ["aabbcc", "ddeeff"],
+                [["b11", "b12", "b13"], ["b21", "b22"]],
+            )],
             self.dongle.advance_blockchain.call_args_list,
         )
         self.assertFalse(self.dongle.disconnect.called)

@@ -387,8 +387,9 @@ class HSM2ProtocolLedger(HSM2Protocol):
     def _advance_blockchain(self, request):
         try:
             self.ensure_connection()
-            advance_result = self.hsm2dongle.advance_blockchain(request["blocks"])
-
+            advance_result = self.hsm2dongle.advance_blockchain(
+                request["blocks"], request["brothers"]
+            )
             return (self._translate_advance_result(advance_result[1]), {})
         except (HSM2DongleError, HSM2DongleTimeoutError) as e:
             self.logger.error("Dongle error in advance blockchain: %s", str(e))
@@ -400,25 +401,26 @@ class HSM2ProtocolLedger(HSM2Protocol):
             return (self.ERROR_CODE_DEVICE,)
 
     def _translate_advance_result(self, result):
+        DERR = HSM2Dongle.RESPONSE.ADVANCE
         return ({
-            HSM2Dongle.RESPONSE.ADVANCE.OK_TOTAL: self.ERROR_CODE_OK,
-            HSM2Dongle.RESPONSE.ADVANCE.OK_PARTIAL: self.ERROR_CODE_OK_PARTIAL,
-            HSM2Dongle.RESPONSE.ADVANCE.ERROR_INIT: self.ERROR_CODE_DEVICE,
-            HSM2Dongle.RESPONSE.ADVANCE.ERROR_COMPUTE_METADATA: self.ERROR_CODE_INVALID_INPUT_BLOCKS,  # noqa E501
-            HSM2Dongle.RESPONSE.ADVANCE.ERROR_METADATA: self.ERROR_CODE_DEVICE,
-            HSM2Dongle.RESPONSE.ADVANCE.ERROR_BLOCK_DATA: self.ERROR_CODE_DEVICE,
-            HSM2Dongle.RESPONSE.ADVANCE.ERROR_INVALID_BLOCK: self.ERROR_CODE_INVALID_INPUT_BLOCKS, # noqa E501
-            HSM2Dongle.RESPONSE.ADVANCE.ERROR_POW_INVALID: self.ERROR_CODE_POW_INVALID,
-            HSM2Dongle.RESPONSE.ADVANCE.ERROR_CHAINING_MISMATCH: self.ERROR_CODE_CHAINING_MISMATCH,  # noqa E501
-            HSM2Dongle.RESPONSE.ADVANCE.ERROR_UNSUPPORTED_CHAIN: self.ERROR_CODE_INVALID_INPUT_BLOCKS,  # noqa E501
-            HSM2Dongle.RESPONSE.ADVANCE.ERROR_UNEXPECTED: self.ERROR_CODE_UNKNOWN,
+            DERR.OK_TOTAL: self.ERROR_CODE_OK,
+            DERR.OK_PARTIAL: self.ERROR_CODE_OK_PARTIAL,
+            DERR.ERROR_INIT: self.ERROR_CODE_DEVICE,
+            DERR.ERROR_COMPUTE_METADATA: self.ERROR_CODE_INVALID_INPUT_BLOCKS,  # noqa E501
+            DERR.ERROR_METADATA: self.ERROR_CODE_DEVICE,
+            DERR.ERROR_BLOCK_DATA: self.ERROR_CODE_DEVICE,
+            DERR.ERROR_INVALID_BLOCK: self.ERROR_CODE_INVALID_INPUT_BLOCKS, # noqa E501
+            DERR.ERROR_POW_INVALID: self.ERROR_CODE_POW_INVALID,
+            DERR.ERROR_CHAINING_MISMATCH: self.ERROR_CODE_CHAINING_MISMATCH,  # noqa E501
+            DERR.ERROR_UNSUPPORTED_CHAIN: self.ERROR_CODE_INVALID_INPUT_BLOCKS,  # noqa E501
+            DERR.ERROR_INVALID_BROTHERS: self.ERROR_CODE_INVALID_BROTHERS,  # noqa E501
+            DERR.ERROR_UNEXPECTED: self.ERROR_CODE_UNKNOWN,
         }).get(result, self.ERROR_CODE_UNKNOWN)
 
     def _update_ancestor_block(self, request):
         try:
             self.ensure_connection()
             update_result = self.hsm2dongle.update_ancestor(request["blocks"])
-
             return (self._translate_update_ancestor_result(update_result[1]), {})
         except (HSM2DongleError, HSM2DongleTimeoutError) as e:
             self.logger.error("Dongle error in update ancestor: %s", str(e))

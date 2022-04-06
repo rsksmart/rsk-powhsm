@@ -65,7 +65,12 @@ The following functions are assumed to exist:
 - `hash`: Given a block header, it computes its hash.
 - `pow_valid`: Given a block header, it returns true iif it has a valid PoW.
 
-Given a current HSM state where `best_block` corresponds to block `B_best`, `newest_valid_block` corresponds to block `B_newest` (such that `B_newest.number` >= `B_best.number`) and we know `n` blocks `B_0...B_(n-1)` such that `hash(B_best) = B_0.parent_hash` and for each `0 <= i < (n-1)`, `hash(B_i) = B_(i+1).parent_hash` (i.e., the `n` blocks are consecutive, starting with the block that follows `B_best`) and there exists a `0 < k < n` such that `sum_from_k_to_(n-1)(B_j.difficulty) >= MINIMUM_CUMULATIVE_DIFFICULTY` (i.e., the last `n-k` blocks have a cumulative difficulty that is at least `MINIMUM_CUMULATIVE_DIFFICULTY`), we can update the HSM's `best_block` and `newest_valid_block` to correspond to `hash(B_(k-1))` and `hash(B_(n-1))` respectively by invoking `advanceBlockchain` an arbitrary number of times such that, in newest-to-oldest order, we end up communicating all of `B_0...B_(n-1)`.
+Given a current HSM state where `best_block` corresponds to block `B_best`, `newest_valid_block` corresponds to block `B_newest` (such that `B_newest.number` >= `B_best.number`) and we know `n` blocks `B_0...B_(n-1)` with brothers `Brs_0...Brs_(n-1)`(**) such that `hash(B_best) = B_0.parent_hash` and for each `0 <= i < (n-1)`, `hash(B_i) = B_(i+1).parent_hash` (i.e., the `n` blocks are consecutive, starting with the block that follows `B_best`) and there exists a `0 < k < n` such that `sum_from_k_to_(n-1)(B_j.total_difficulty) >= MINIMUM_CUMULATIVE_DIFFICULTY` (i.e., the last `n-k` blocks have a brother-inclusive cumulative difficulty that is at least `MINIMUM_CUMULATIVE_DIFFICULTY`), we can update the HSM's `best_block` and `newest_valid_block` to correspond to `hash(B_(k-1))` and `hash(B_(n-1))` respectively by invoking `advanceBlockchain` an arbitrary number of times such that, in newest-to-oldest order and without repeating any blocks, we end up communicating all of `B_0...B_(n-1)` and brothers `Brs_0...Brs_(n-1)`. It is paramount to notice that for any block `B_i` with `0 <= i < n`, `B_i.total_difficulty` denotes the sum of block `B_i`'s individual difficulty plus the individual difficulty of each of its brothers (i.e., `B_i.difficulty + sum_from_0_to_(#Brs_i)(Brs_i_j.difficulty)`). It is important to mention that the choice of brothers to send for each block is entirely up to the caller. The more brothers sent for each block, the less total blocks that need to be sent in order to advance the blockchain.
+
+(**) For each block `B_i` with `0 <= i < n`, `Brs_i` is a (possibly empty) set of (distinct) brothers of `B_i`. We say that a Block `B_p` is a brother of block `B_q` iff:
+- `B_p.parent_hash = B_q.parent_hash` and,
+- `pow_valid(B_p) = true` and,
+- `hash(B_p) <> hash(B_q)`
 
 We define a single invocation of `advanceBlockchain` as follows:
 
@@ -73,7 +78,10 @@ We define a single invocation of `advanceBlockchain` as follows:
 
 The following input must be provided:
 
-- `blocks`: array of `m` instances of a `BlockHeader`, with `0 < m <= n`. Each `BlockHeader` is the binary serialization of a block header as defined by the RSK protocol (it *must* include the bitcoin merged mining header, the bitcoin coinbase transaction and the bitcoin merged mining merkle proof). This `blocks` array is indexed from `0` to `m-1` and blocks must be ordered from newest to oldest, i.e. `blocks[0].number = num_0; blocks[1].number = num_0-1; ...; blocks[n-1].number = num_0-(m-1)`. This order is not assumed, but validated within the operation. Also, it must be the case (although it is also not assumed and therefore validated) that:
+- `blocks`: array of `m` instances of a `BlockHeader`, with `0 < m <= n`. Each `BlockHeader` is the binary serialization of a block header as defined by the RSK protocol (it *must* include the bitcoin merged mining header, the bitcoin coinbase transaction and the bitcoin merged mining merkle proof). This `blocks` array is indexed from `0` to `m-1` and blocks must be ordered from newest to oldest, i.e. `blocks[0].number = num_0; blocks[1].number = num_0-1; ...; blocks[n-1].number = num_0-(m-1)`. This order is not assumed, but validated within the operation. Blocks must also be valid, i.e., `pow_valid(blocks[i]) = true for 0 < i < m`. This is also validated within the operation.
+- `brothers`: array of `m` arrays of `0` to `10` instances of a `BlockHeader`, with `0 < m <= n`. Each `BlockHeader` is the same serialization as defined for the `blocks` elements. For each `0 <= i < n`, with `p` being the length of `brothers[i]`, it must be the case that for every `0 <= j < p`, `blocks[i].parent_hash = brothers[i][j].parent_hash` and `pow_valid(brothers[i][j]) = true` and `hash(blocks[i]) <> hash(brothers[i][j])` and `j < (p-1) => hash(brothers[i][j]) < hash(brothers[i][j+1])`. These conditions are not assumed, but validated within the operation.
+
+Also, it must be the case (although it is also not assumed and therefore validated) that:
 
 - `blockchain_state.updating.in_progress = false` or,
 - `blockchain_state.updating.in_progress = true` and `hash(blocks[0]) = blockchain_state.updating.next_expected_block`
@@ -115,6 +123,27 @@ for i in 0..(m-1) step 1:
 
     if not blockchain_state.updating.found_best_block:
         blockchain_state.updating.total_difficulty += blocks[i].difficulty
+
+        // Take into account the difficulty of this block's brothers
+        if not blockchain_state.updating.found_best_block and len(brothers[i]) > 0:
+            for j in range(len(brothers[i])):
+                if brothers[i][j].parent_hash != blocks[i].parent_hash:
+                    resetAdvanceBlockchain()
+                    return -205 // Brother is not a brother of block
+
+                if hash(brothers[i][j]) == hash(blocks[i])
+                    resetAdvanceBlockchain()
+                    return -205 // Cannot use block as a brother
+
+                if j > 0 and hash(brothers[i][j]) <= hash(brothers[i][j-1]):
+                    resetAdvanceBlockchain()
+                    return -205 // Brothers must be sorted by hash
+
+                if not pow_valid(brothers[i][j]):
+                    resetAdvanceBlockchain()
+                    return -205 // Invalid brother
+
+                blockchain_state.updating.total_difficulty += brothers[i][j].difficulty
 
         if blockchain_state.updating.total_difficulty >= MINIMUM_CUMULATIVE_DIFFICULTY:
             blockchain_state.updating.found_best_block = true
@@ -160,6 +189,7 @@ This operation can either succeed, partially succeed (meaning it needs a further
 - `-201`: Chaining mismatch.
 - `-202`: PoW validation failed.
 - `-204`: Invalid input blocks.
+- `-205`: Invalid input brothers.
 
 ## Updating the known ancestor block
 

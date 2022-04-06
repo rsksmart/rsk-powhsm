@@ -27,6 +27,8 @@ import rsk_block as rsk_block
 import rlp
 import sys
 import hashlib
+import sha3
+import json
 
 sys.path.append("../../../../middleware")
 
@@ -43,10 +45,42 @@ BTC_TX_TEMPLATE = ("711101000000000000000000000000000000000000000000000000000000
 regtest = netparams.NetworkParameters.REGTEST
 
 
-def mine(block_hex, np, mm_mp_nodes):
+def byte_length(n):
+    return ((n.bit_length()-1)//8)+1
+
+
+def to_bytes(n):
+    return n.to_bytes(byte_length(n), byteorder='big', signed=False)
+
+
+def from_bytes(b):
+    return int.from_bytes(b, byteorder='big', signed=False)
+
+
+def mine(block_hex, np, mm_mp_nodes, brothers_difficulties):
     new_block = rlp.decode(
         block_utils.remove_mm_fields_if_present(
             block_hex, leave_btcblock=False, hex=False)) + [b"", b"", b""]
+
+    # Brothers?
+    brothers = []
+
+    if type(brothers_difficulties) == list:
+        brother_index = 0
+        for brother_difficulty in brothers_difficulties:
+            brother = new_block[:]
+            # Change the uncles hash to make the block different
+            brother[1] = sha3.keccak_256(
+                bytes([brother_index])).digest()
+            # Specified difficulty
+            brother[7] = to_bytes(brother_difficulty)
+            brothers.append(
+                rlp.decode(bytes.fromhex(
+                    mine(rlp.encode(brother).hex(), np, 1, None)[0]
+                ))
+            )
+            brother_index += 1
+
     new_block_obj = rsk_block.RskBlockHeader(rlp.encode(new_block).hex(), np, False)
     cbtx = COINBASE_TX_TEMPLATE.replace(MM_HASH_PLACEHOLDER,
                                         new_block_obj.hash_for_merge_mining)
@@ -70,11 +104,12 @@ def mine(block_hex, np, mm_mp_nodes):
             break
         nonce += 1
 
-    return rlp.encode(new_block).hex()
+    return (rlp.encode(new_block).hex(), list(map(
+        lambda bro: rlp.encode(bro).hex(), brothers)))
 
 
 def mine_chain(first_block_hex, np, total_blocks):
-    current_block = mine(first_block_hex, np, 0)
+    current_block = mine(first_block_hex, np, 0, None)[0]
     blocks = [current_block]
     ba = rlp.decode(bytes.fromhex(current_block))
     for i in range(total_blocks - 1):
@@ -85,7 +120,7 @@ def mine_chain(first_block_hex, np, total_blocks):
                                     byteorder="big",
                                     signed=False)
         ba[5] = bytes.fromhex("00" * 32)  # Receipts root does not matter
-        current_block = mine(rlp.encode(ba).hex(), np, 0)
+        current_block = mine(rlp.encode(ba).hex(), np, 0, None)[0]
         blocks.insert(0, current_block)
 
     return blocks
@@ -93,12 +128,22 @@ def mine_chain(first_block_hex, np, total_blocks):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print(f"Usage: {sys.argv[0]} <BLOCK_TO_MINE> [MM_MP_NODES]")
+        print(
+            f"Usage: {sys.argv[0]} <BLOCK_TO_MINE> "
+            "[MM_MP_NODES] [BROTHERS_DIFFICULTIES]")
         sys.exit(1)
 
     mm_mp_nodes = 0
     if len(sys.argv) > 2:
         mm_mp_nodes = int(sys.argv[2])
 
+    brothers_difficulties = None
+    if len(sys.argv) > 3:
+        brothers_difficulties = list(map(lambda d: int(d, 10), sys.argv[3].split(",")))
+
+    res = mine(sys.argv[1], regtest, mm_mp_nodes=mm_mp_nodes,
+               brothers_difficulties=brothers_difficulties)
     print("RESULT:")
-    print(mine(sys.argv[1], regtest, mm_mp_nodes=mm_mp_nodes))
+    print("=======")
+    print(f"BLOCK: {res[0]}")
+    print(f"BROTHERS: {json.dumps(res[1])}")
