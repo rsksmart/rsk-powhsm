@@ -110,7 +110,7 @@ def get_signature_hash_for_p2sh_input(raw_tx_hex, input_index):
 
 def get_block_hash_as_int(raw_block_header_hex):
     block_header = _deserialize_block_header(raw_block_header_hex)
-    return int.from_bytes(block_header.GetHash(), byteorder="little", signed=True)
+    return int.from_bytes(block_header.GetHash(), byteorder="little", signed=False)
 
 
 def get_merkle_root(raw_block_header_hex):

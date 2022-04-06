@@ -83,7 +83,7 @@ class TestCase:
     def runs_on(self, run_on):
         return self.run_on == run_on or self.run_on == self.RUN_ON_VALUE_BOTH
 
-    def run(self, dongle, version, debug):
+    def run(self, dongle, debug):
         raise RuntimeError(f"Unable to run generic test case {self.name}")
 
     def _parse_int(self, s):

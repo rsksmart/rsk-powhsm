@@ -1,0 +1,12 @@
+{
+    "name": "Get blockchain state after single block with brothers",
+    "operation": "getState",
+    "expected": {
+        "updating.in_progress": true,
+        "updating.newest_valid_block": "be8f23723cf0445f357e6933ffa2c26c69caa1f0e1cf64e12fc655f1f12ebf5c",
+        "updating.best_block": "0000000000000000000000000000000000000000000000000000000000000000",
+        "updating.next_expected_block": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "updating.total_difficulty": 10,
+        "updating.already_validated": false
+    }
+}

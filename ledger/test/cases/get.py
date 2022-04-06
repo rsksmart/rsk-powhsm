@@ -31,7 +31,7 @@ class GetBlockchainState(TestCase):
     def __init__(self, spec):
         super().__init__(spec)
 
-    def run(self, dongle, version, debug):
+    def run(self, dongle, debug):
         try:
             state = dongle.get_blockchain_state()
             debug(f"State: {state}")
@@ -40,6 +40,6 @@ class GetBlockchainState(TestCase):
                 for key in self.expected:
                     if state.get(key) != self.expected[key]:
                         raise TestCaseError(f"Expected {key} to be {self.expected[key]} "
-                                            "but got {state.get(key)}")
+                                            f"but got {state.get(key)}")
         except RuntimeError as e:
             raise TestCaseError(str(e))

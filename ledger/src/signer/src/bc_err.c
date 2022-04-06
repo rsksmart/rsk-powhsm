@@ -58,6 +58,11 @@ static struct err_entry {
 
     {ANCESTOR_TIP_MISMATCH, "Ancestor tip mismatch"},
     {CB_TXN_HASH_MISMATCH, "Coinbase transaction hash mismatch"},
+
+    {BROTHERS_TOO_MANY, "Too many brothers"},
+    {BROTHER_PARENT_MISMATCH, "Brother parent hash mismatch"},
+    {BROTHER_SAME_AS_BLOCK, "Brother cannot be same as block"},
+    {BROTHER_ORDER_INVALID, "Invalid ordering of brothers"},
 };
 
 void show_error(err_code_t errcode) {

@@ -139,6 +139,9 @@ This operation can return `0`, `-103`, and generic errors. See the error codes s
     "blocks": [
         "hhhh", "hhhh", ..., "hhhh" // (*)
     ],
+    "brothers": [
+        ["hhhh", ..., "hhhh"], ..., ["hhhh", ..., "hhhh"] // (**)
+    ],
     "version": 3
 }
 
@@ -146,6 +149,15 @@ This operation can return `0`, `-103`, and generic errors. See the error codes s
 // defined by the RSK protocol (it must include the bitcoin merged mining
 // header, the bitcoin coinbase transaction and the bitcoin merged mining
 // merkle proof).
+// (**) the ith element (with 0 <= i < n, n being the number of blocks)
+// must be an array with up to 10 elements, each of these being the binary 
+// serialization - same as in (*) - of a brother of the ith block.
+// We say a block B' is a brother of block B iff:
+// i) B' and B have the same parent block, and
+// ii) B' is a valid block,
+// iii) B and B' are distinct
+// For each block, the list of brothers must not contain duplicates.
+// The order of the brothers is not relevant.
 ```
 
 #### Response
@@ -156,7 +168,7 @@ This operation can return `0`, `-103`, and generic errors. See the error codes s
 ```
 
 **Error codes:**
-This operation can return `0`, `1`, `-201`, `-202`, `-204`, and generic errors. See the error codes section for details.
+This operation can return `0`, `1`, `-201`, `-202`, `-204`, `-205`, and generic errors. See the error codes section for details.
 
 ### Reset Advance Blockchain
 
@@ -290,6 +302,7 @@ The following are all the possible error and success codes:
 - `-202`: PoW validation failed
 - `-203`: Tip mismatch
 - `-204`: Invalid or not enough input blocks
+- `-205`: Invalid brothers
 
 #### Generic errors (`9xx`).
 

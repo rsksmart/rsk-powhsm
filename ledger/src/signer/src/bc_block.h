@@ -42,7 +42,7 @@
 // of the state.
 
 typedef struct {
-    uint16_t size; // Block size in bytes
+    uint16_t size; // Block (or brother) size in bytes
     uint16_t recv; // Received bytes so far
     uint8_t field; // Current field number (1-based)
     uint8_t depth; // RLP nesting depth, must not exceed 1
@@ -50,12 +50,17 @@ typedef struct {
 
     uint32_t number;         // Block number
     uint8_t network_upgrade; // Block's network upgrade
+    uint8_t brother_count;   // Brother count
 
     uint16_t mm_rlp_len; // Cached mm RLP length
 
-    uint8_t parent_hash[HASH_SIZE]; // Parent hash
-    uint8_t block_hash[HASH_SIZE];  // Block hash
-    uint8_t hash_for_mm[HASH_SIZE]; // Merge mining hash from block
+    uint8_t parent_hash[HASH_SIZE];     // Parent hash
+    uint8_t block_hash[HASH_SIZE];      // Block hash
+    uint8_t main_block_hash[HASH_SIZE]; // Block hash
+    union {
+        uint8_t hash_for_mm[HASH_SIZE];       // Merge mining hash from block
+        uint8_t prev_brother_hash[HASH_SIZE]; // Previous brother hash
+    };
     DIGIT_T difficulty[BIGINT_LEN]; // Block's difficulty
 
     uint8_t umm_root[UMM_ROOT_SIZE]; // Block UMM root, only set if present

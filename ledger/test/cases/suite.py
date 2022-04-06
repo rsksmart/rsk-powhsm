@@ -56,7 +56,7 @@ class TestSuite:
         self.cases = cases
         self.debug = False
 
-    def run(self, dongle, version, run_on):
+    def run(self, dongle, run_on):
         debug_fn = debug if self.debug else noop
         self._passed = 0
         self._failed = 0
@@ -65,7 +65,7 @@ class TestSuite:
             for case in self.cases:
                 output.info(case.name)
                 if case.runs_on(run_on):
-                    case.run(dongle, version, debug_fn)
+                    case.run(dongle, debug_fn)
                     output.ok()
                     self._passed += 1
                 else:

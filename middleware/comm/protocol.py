@@ -55,6 +55,7 @@ class HSM2Protocol:
     ERROR_CODE_POW_INVALID = -202
     ERROR_CODE_TIP_MISMATCH = -203
     ERROR_CODE_INVALID_INPUT_BLOCKS = -204
+    ERROR_CODE_INVALID_BROTHERS = -205
 
     # Generic error codes
     ERROR_CODE_FORMAT_ERROR = -901
@@ -179,6 +180,23 @@ class HSM2Protocol:
         if not all(type(item) == str for item in request["blocks"]):
             self.logger.info("Some of the blocks elements are not strings")
             return self.ERROR_CODE_INVALID_INPUT_BLOCKS
+
+        # Validate brothers presence, type and length
+        if (
+            "brothers" not in request
+            or type(request["brothers"]) != list
+            or len(request["brothers"]) != len(request["blocks"])
+        ):
+            self.logger.info("Brothers field not present, not an array or "
+                             "different in length to Blocks field")
+            return self.ERROR_CODE_INVALID_BROTHERS
+
+        # Validate brother elements are lists of strings
+        if not all(type(item) == list for item in request["brothers"]) or \
+           not all(type(item) == str for brother_list in request["brothers"]
+                   for item in brother_list):
+            self.logger.info("Some of the brother list elements are not strings")
+            return self.ERROR_CODE_INVALID_BROTHERS
 
         return self.ERROR_CODE_OK
 

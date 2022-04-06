@@ -41,6 +41,9 @@
 #define MM_HASH_PREFIX_SIZE 20
 #define MM_HASH_SUFFIX_SIZE 4
 
+// Brothers
+#define MAX_BROTHERS 10
+
 // Coinbase transaction constants
 #define CB_MAX_RSK_TAG_POSITION 64
 #define CB_MAX_AFTER_MM_HASH 128

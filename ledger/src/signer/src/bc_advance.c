@@ -288,7 +288,7 @@ static void validate_mm_hash() {
 }
 
 /*
- * Blockchain advance prologue: call once we have the firt block's hash.
+ * Blockchain advance prologue: call once we have the first block's hash.
  */
 static void bc_adv_prologue() {
     if (N_bc_state.updating.in_progress &&
@@ -308,6 +308,7 @@ static void bc_adv_prologue() {
  * Accumulate total blockchain difficulty. Only call this once you
  * know that the current block is valid. If there is enough difficulty
  * accumulated, record in the state that we found our new best block.
+ * Also used to accumulate each brother's difficulty once its parsed.
  */
 static void bc_adv_accum_diff() {
     // Nothing to do it we already have a best block
@@ -347,7 +348,7 @@ static void bc_adv_accum_diff() {
 
     // Enough difficulty accumulated? We found our best block!
     set_bc_state_flag(&N_bc_state.updating.found_best_block);
-    NVM_WRITE(N_bc_state.updating.best_block, block.block_hash, HASH_SIZE);
+    NVM_WRITE(N_bc_state.updating.best_block, block.main_block_hash, HASH_SIZE);
 }
 
 /*
@@ -366,7 +367,7 @@ static void bc_adv_success() {
  */
 static void bc_adv_partial_success() {
     NVM_WRITE(N_bc_state_var.updating.next_expected_block,
-              block.parent_hash,
+              aux_bc_st.prev_parent_hash,
               HASH_SIZE);
     NVM_WRITE(N_bc_state.updating.total_difficulty,
               aux_bc_st.total_difficulty,
@@ -380,25 +381,35 @@ static void bc_adv_partial_success() {
  *  - Finish block.hash_for_mm computation
  */
 static void bc_mm_header_received() {
-    // First block: perform blockchain advance prologue
-    // Otherwise: verify block chains to parent
-    if (curr_block == 0) {
-        bc_adv_prologue();
-    } else if (HNEQ(aux_bc_st.prev_parent_hash, block.block_hash)) {
-        FAIL(CHAIN_MISMATCH);
-    }
-    // Store parent hash to validate chaining for next block
-    // (next block hash must match this block's parent hash)
-    HSTORE(aux_bc_st.prev_parent_hash, block.parent_hash);
+    if (PROCESSING_BLOCK()) {
+        // First block: perform blockchain advance prologue
+        // Otherwise: verify block chains to parent
+        if (curr_block == 0) {
+            bc_adv_prologue();
+        } else if (HNEQ(aux_bc_st.prev_parent_hash, block.block_hash)) {
+            LOG_HEX("PAR", aux_bc_st.prev_parent_hash, HASH_LEN);
+            LOG_HEX("BLK", block.block_hash, HASH_LEN);
+            FAIL(CHAIN_MISMATCH);
+        }
+        // Store parent hash to validate chaining for next block
+        // (next block hash must match this block's parent hash)
+        HSTORE(aux_bc_st.prev_parent_hash, block.parent_hash);
 
-    // If we already validated the current block, signal that.
-    if (HEQ(block.block_hash, N_bc_state.newest_valid_block)) {
-        set_bc_state_flag(&N_bc_state.updating.already_validated);
+        // Store block hash to validate against brothers
+        // and use after we finished processing this block
+        HSTORE(block.main_block_hash, block.block_hash);
+
+        // If we already validated the current block, signal that.
+        if (HEQ(block.block_hash, N_bc_state.newest_valid_block)) {
+            set_bc_state_flag(&N_bc_state.updating.already_validated);
+        }
     }
 
     // If block is known to be valid, set HEADER_VALID flag.
-    // Otherwise perform valdiations enabled by having the mm header.
-    if (N_bc_state.updating.already_validated) {
+    // Otherwise perform validations enabled by having the mm header.
+    // This optimization is not valid for brothers, only for blocks
+    // on the chain given that it depends on chaining.
+    if (PROCESSING_BLOCK() && N_bc_state.updating.already_validated) {
         SET_FLAG(block.flags, HEADER_VALID);
     } else {
         // Check difficulty
@@ -511,8 +522,8 @@ static void str_start(const uint16_t size) {
 
     // Prepare for the processing of the merkle proof
     // if we don't already know this block is valid
-    if (block.field == F_MERKLE_PROOF && !HAS_FLAG(block.flags, HEADER_VALID) &&
-        !N_bc_state.updating.already_validated) {
+    // or we are processing a brother
+    if (block.field == F_MERKLE_PROOF && !BLOCK_ALREADY_VALID()) {
         if (size % HASH_SIZE != 0) {
             FAIL(MERKLE_PROOF_INVALID);
         }
@@ -574,8 +585,7 @@ static void str_chunk(const uint8_t* chunk, const size_t size) {
         wa_store(chunk, size);
     }
 
-    if (block.field == F_MERKLE_PROOF && !HAS_FLAG(block.flags, HEADER_VALID) &&
-        !N_bc_state.updating.already_validated) {
+    if (block.field == F_MERKLE_PROOF && !BLOCK_ALREADY_VALID()) {
         process_merkle_proof(chunk, size);
     }
 
@@ -601,6 +611,14 @@ static void str_chunk(const uint8_t* chunk, const size_t size) {
 static void str_end() {
     if (block.field == F_PARENT_HASH) {
         HSTORE(block.parent_hash, block.wa_buf);
+
+        // If we're processing a brother, then its parent hash
+        // must match the main block's parent hash
+        // (i.e., validate they are actually brothers)
+        if (!PROCESSING_BLOCK() &&
+            HNEQ(aux_bc_st.prev_parent_hash, block.parent_hash)) {
+            FAIL(BROTHER_PARENT_MISMATCH);
+        }
     }
 
     if (block.field == F_BLOCK_DIFF) {
@@ -652,6 +670,20 @@ static void str_end() {
     //   - Signal the merge mining header was received
     if (block.field == F_MM_HEADER) {
         KECCAK_FINAL(&block.block_ctx, block.block_hash);
+
+        // Check that the brother is not the same as the main block
+        if (!PROCESSING_BLOCK() &&
+            HEQ(block.main_block_hash, block.block_hash)) {
+            FAIL(BROTHER_SAME_AS_BLOCK);
+        }
+
+        // Check that the brothers are sent in ascending order
+        // wrt their block hash
+        if (!PROCESSING_BLOCK() &&
+            !HLT(block.prev_brother_hash, block.block_hash)) {
+            FAIL(BROTHER_ORDER_INVALID);
+        }
+
         KECCAK_FINAL(&block.mm_ctx, block.hash_for_mm);
         HSTORE(block.merkle_root, block.wa_buf + MERKLE_ROOT_OFFSET);
 
@@ -660,7 +692,8 @@ static void str_end() {
         // validation. We do this here because if within this part of the RLP
         // processing there's also a portion of the mm merkle proof, then the
         // wa_buf will be overwritten.
-        if (!N_bc_state.updating.already_validated) {
+        // We also always do this in case we are processing a brother
+        if (!PROCESSING_BLOCK() || !N_bc_state.updating.already_validated) {
             // Compute merge mining header hash
             double_sha256_rev(
                 &block.ctx, block.wa_buf, BTC_HEADER_SIZE, block.mm_hdr_hash);
@@ -672,9 +705,9 @@ static void str_end() {
     // We have finished processing the merkle proof.
     // Validate the reduction against the stored coinbase
     // transaction hash.
-    // All this given that the block hasn't been marked as valid.
-    if (block.field == F_MERKLE_PROOF && !HAS_FLAG(block.flags, HEADER_VALID) &&
-        !N_bc_state.updating.already_validated) {
+    // All this given that the block hasn't been marked as valid and is not a
+    // brother.
+    if (block.field == F_MERKLE_PROOF && !BLOCK_ALREADY_VALID()) {
         validate_merkle_proof();
     }
 
@@ -695,6 +728,33 @@ static const rlp_callbacks_t callbacks = {
     list_start,
     list_end,
 };
+
+static unsigned int handle_end_of_block() {
+    // Successfully advanced the blockchain: leave with success
+    if (N_bc_state.updating.found_best_block &&
+        HEQ(N_bc_state.best_block, aux_bc_st.prev_parent_hash)) {
+        bc_adv_success();
+        expected_state = OP_ADVANCE_INIT;
+        SET_APDU_OP(OP_ADVANCE_SUCCESS);
+        return TX_NO_DATA();
+    }
+
+    // Current block valid, yet no success.
+    // If no more blocks available, leave with partial success
+    ++curr_block;
+    if (curr_block == expected_blocks) {
+        bc_adv_partial_success();
+        expected_state = OP_ADVANCE_INIT;
+        SET_APDU_OP(OP_ADVANCE_PARTIAL);
+        return TX_NO_DATA();
+    }
+
+    // Current block valid, yet no success.
+    // More blocks available, ask for them and continue.
+    expected_state = OP_ADVANCE_HEADER_META;
+    SET_APDU_OP(OP_ADVANCE_HEADER_META);
+    return TX_NO_DATA();
+}
 
 // -----------------------------------------------------------------------
 // Blockchain advance protocol implementation
@@ -727,12 +787,16 @@ unsigned int bc_advance(volatile unsigned int rx) {
     if (op == OP_ADVANCE_INIT && APDU_DATA_SIZE(rx) != sizeof(uint32_t)) {
         FAIL(PROT_INVALID);
     }
-    if (op == OP_ADVANCE_HEADER_META &&
+    if ((op == OP_ADVANCE_HEADER_META || op == OP_ADVANCE_BROTHER_META) &&
         APDU_DATA_SIZE(rx) !=
             (sizeof(block.mm_rlp_len) + sizeof(block.cb_txn_hash))) {
         FAIL(PROT_INVALID);
     }
-    if (op == OP_ADVANCE_HEADER_CHUNK) {
+    if (op == OP_ADVANCE_BROTHER_LIST_META &&
+        APDU_DATA_SIZE(rx) != sizeof(block.brother_count)) {
+        FAIL(PROT_INVALID);
+    }
+    if (op == OP_ADVANCE_HEADER_CHUNK || op == OP_ADVANCE_BROTHER_CHUNK) {
         uint16_t expected_txlen =
             block.size > 0 ? MIN(block.size - block.recv, MAX_CHUNK_SIZE)
                            : MAX_CHUNK_SIZE;
@@ -768,13 +832,53 @@ unsigned int bc_advance(volatile unsigned int rx) {
     }
 
     // -------------------------------------------------------------------
-    // OP_HEADER_META
+    // OP_BROTHER_LIST_META
     // -------------------------------------------------------------------
-    if (op == OP_ADVANCE_HEADER_META) {
-        LOG("---- Block %u of %u\n", curr_block + 1, expected_blocks);
+    if (op == OP_ADVANCE_BROTHER_LIST_META) {
+        // Read the brother count
+        BIGENDIAN_FROM(APDU_DATA_PTR, block.brother_count);
 
-        // Clear block data
-        memset(&block, 0, sizeof(block));
+        // No brothers? => we've finished processing the current block
+        if (!block.brother_count) {
+            return handle_end_of_block();
+        }
+
+        // Validate brother count
+        if (block.brother_count > MAX_BROTHERS) {
+            LOG("Too many brothers");
+            FAIL(BROTHERS_TOO_MANY);
+        }
+
+        // Set previous brother hash to initial value
+        memset(block.prev_brother_hash, 0, sizeof(block.prev_brother_hash));
+
+        // Now expecting the first brother's meta
+        expected_state = OP_ADVANCE_BROTHER_META;
+        SET_APDU_OP(OP_ADVANCE_BROTHER_META);
+        return TX_NO_DATA();
+    }
+
+    // -------------------------------------------------------------------
+    // OP_HEADER_META or OP_BROTHER_META
+    // -------------------------------------------------------------------
+    if (op == OP_ADVANCE_HEADER_META || op == OP_ADVANCE_BROTHER_META) {
+        if (PROCESSING_BLOCK()) {
+            LOG("---- Block %u of %u\n", curr_block + 1, expected_blocks);
+
+            // Clear block data
+            memset(&block, 0, sizeof(block));
+        } else { // Processing brother
+            LOG("---- Brother (%u remaining)\n", block.brother_count);
+
+            // Init brother header data
+            // (keep some of the current block data)
+            block.size = 0;
+            block.recv = 0;
+            block.field = 0;
+            block.depth = 0;
+            block.flags = 0;
+        }
+        // Init RLP parser
         rlp_start(&callbacks);
 
         // Network upgrade unknown until we get to the block number
@@ -794,7 +898,7 @@ unsigned int bc_advance(volatile unsigned int rx) {
                      FAIL(PROT_INVALID));
 
         // Block hash computation: encode and hash payload len
-
+        // (mm payload len + BTC header len)
         // Sanity check: make sure given mm_rlp_len plus BTC_HEADER_RLP_LEN does
         // not overflow
         if ((uint16_t)(block.mm_rlp_len + BTC_HEADER_RLP_LEN) <
@@ -812,18 +916,19 @@ unsigned int bc_advance(volatile unsigned int rx) {
         KECCAK_INIT(&block.mm_ctx);
         mm_hash_rlp_list_prefix(&block.mm_ctx, block.mm_rlp_len);
 
-        // Now waiting for block data
-        expected_state = OP_ADVANCE_HEADER_CHUNK;
-        SET_APDU_OP(OP_ADVANCE_HEADER_CHUNK);
+        // Now waiting for either block or brother data
+        expected_state = PROCESSING_BLOCK() ? OP_ADVANCE_HEADER_CHUNK
+                                            : OP_ADVANCE_BROTHER_CHUNK;
+        SET_APDU_OP(expected_state);
         SET_APDU_TXLEN(MAX_CHUNK_SIZE);
 
         return TX_FOR_DATA_SIZE(1);
     }
 
     // -------------------------------------------------------------------
-    // OP_HEADER_CHUNK
+    // OP_HEADER_CHUNK || OP_BROTHER_CHUNK
     // -------------------------------------------------------------------
-    if (op == OP_ADVANCE_HEADER_CHUNK) {
+    if (op == OP_ADVANCE_HEADER_CHUNK || op == OP_ADVANCE_BROTHER_CHUNK) {
         if (rlp_consume(APDU_DATA_PTR, APDU_DATA_SIZE(rx)) < 0) {
             FAIL(RLP_INVALID);
         }
@@ -860,34 +965,48 @@ unsigned int bc_advance(volatile unsigned int rx) {
             // enough difficulty.
             bc_adv_accum_diff();
 
-            // Successfully advanced the blockchain: leave with success
-            if (N_bc_state.updating.found_best_block &&
-                HEQ(N_bc_state.best_block, block.parent_hash)) {
-                bc_adv_success();
-                expected_state = OP_ADVANCE_INIT;
-                SET_APDU_OP(OP_ADVANCE_SUCCESS);
-                return TX_NO_DATA();
-            }
+            if (PROCESSING_BLOCK()) {
+                // If we haven't yet found our new best block,
+                // then request any brothers of this block
+                // in order to accumulate their difficulty too
+                if (!N_bc_state.updating.found_best_block) {
+                    // Request brother list meta information
+                    expected_state = OP_ADVANCE_BROTHER_LIST_META;
+                    SET_APDU_OP(OP_ADVANCE_BROTHER_LIST_META);
+                    SET_APDU_TXLEN(0);
 
-            // Current block valid, yet no success.
-            // If no more blocks available, leave with partial success
-            ++curr_block;
-            if (curr_block == expected_blocks) {
-                bc_adv_partial_success();
-                expected_state = OP_ADVANCE_INIT;
-                SET_APDU_OP(OP_ADVANCE_PARTIAL);
-                return TX_NO_DATA();
-            }
+                    return TX_NO_DATA();
+                }
 
-            // Current block valid, yet no success.
-            // More blocks available, ask for them and continue.
-            expected_state = OP_ADVANCE_HEADER_META;
-            SET_APDU_OP(OP_ADVANCE_HEADER_META);
-            return TX_NO_DATA();
+                return handle_end_of_block();
+            } else { // Processing brother
+                // Have we finished parsing this brother?
+                if (block.size == block.recv) {
+                    --block.brother_count;
+
+                    // Have we finished parsing all the brothers?
+                    if (!block.brother_count) {
+                        return handle_end_of_block();
+                    }
+
+                    // Remember this brother's hash to
+                    // compare against the next one
+                    HSTORE(block.prev_brother_hash, block.block_hash);
+
+                    // Request next brother meta
+                    expected_state = OP_ADVANCE_BROTHER_META;
+                    SET_APDU_OP(OP_ADVANCE_BROTHER_META);
+                    SET_APDU_TXLEN(0);
+                    return TX_NO_DATA();
+                }
+            }
         }
 
         // Current block header not exhausted, ask for next chunk
-        SET_APDU_OP(OP_ADVANCE_HEADER_CHUNK);
+        expected_state = (op == OP_ADVANCE_HEADER_CHUNK)
+                             ? OP_ADVANCE_HEADER_CHUNK
+                             : OP_ADVANCE_BROTHER_CHUNK;
+        SET_APDU_OP(expected_state);
         SET_APDU_TXLEN(MIN(block.size - block.recv, MAX_CHUNK_SIZE));
         return TX_FOR_DATA_SIZE(1);
     }
@@ -920,7 +1039,6 @@ static uint8_t dump_min_req_difficulty(int offset) {
 
 /*
  * Get advance blockchain protocol precompiled parameters.
- *
  * Dump format:
  * Bytes 0-31: initial block hash
  * Bytes 32-67: minimum required difficulty (big endian)

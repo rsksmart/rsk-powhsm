@@ -53,6 +53,11 @@ typedef enum {
 
     ANCESTOR_TIP_MISMATCH, // Ancestor tip mismatch
     CB_TXN_HASH_MISMATCH,  // Coinbase transaction mismatch
+
+    BROTHERS_TOO_MANY,       // Too many brothers
+    BROTHER_PARENT_MISMATCH, // Brother parent hash mismatch
+    BROTHER_SAME_AS_BLOCK,   // Brother cannot be same as block
+    BROTHER_ORDER_INVALID,   // Invalid ordering of brothers
 } err_code_t;
 
 /*
