@@ -1,0 +1,23 @@
+#!/bin/bash
+
+if [[ -z "$1" ]]; then
+    echo "No main script specified"
+    exit 1
+fi
+
+# Main script name to pack (no extension)
+TARGET=$1
+
+# Go to script directory
+pushd $(dirname $0) > /dev/null
+
+# Bin path
+BINPATH=../bin
+
+# Strip symbols
+find $BINPATH/$TARGET -type f | xargs strip --remove-section=".note.gnu.build-id" --remove-section=".comment" --remove-section=".gnu_debuglink" 2> /dev/null
+
+# Create archive
+GZIP=-n tar --sort=name --mtime=1960-10-30 --owner=0 --group=0 --numeric-owner -czf $BINPATH/$TARGET.tgz -C $BINPATH/$TARGET . 2> /dev/null
+
+popd > /dev/null

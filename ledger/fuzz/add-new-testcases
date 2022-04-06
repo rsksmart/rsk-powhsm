@@ -1,0 +1,45 @@
+#! /usr/bin/env bash
+# set -exo pipefail
+
+function usage {
+    echo "Usage: $0 <path to new testcases> <opt: path to output>"
+    exit 1
+}
+
+if [[ $# -lt 1 ]]; then
+    usage
+fi
+
+if [[ $# -gt 2 ]]; then
+    usage
+fi
+
+
+pushd $(dirname $0) > /dev/null
+FUZZ_ROOT=$(pwd)
+popd > /dev/null
+
+HSM_ROOT=$(realpath $FUZZ_ROOT/../../)
+DOCKER_IMAGE=hsm:afl
+source $FUZZ_ROOT/../../docker/check-image
+
+DOCKER_USER="$(id -u):$(id -g)"
+
+source $(dirname $0)/env
+CHECKPOINT="${CHECKPOINT:-0xbdcb3c17c7aee714cec8ad900341bfd987b452280220dcbd6e7191f67ea4209b}"
+DIFFICULTY="${DIFFICULTY:-0x32}"
+NETWORK="${NETWORK:-regtest}"
+CMD="./tcpsigner --checkpoint $CHECKPOINT --difficulty $DIFFICULTY --network $NETWORK -i @@"
+
+TESTCASES="$1"
+OUTPUT="$2"
+if [[ -z "$OUTPUT" ]]; then
+    OUTPUT="$HSM_ROOT/ledger/fuzz/output"
+fi
+
+NEW_SEEDS_CMD="afl-fuzz -S newseeds -i /testcases -o /output $CMD"
+# no tmux needed as this should not take a long time...
+docker run -ti --rm --env AFL_BENCH_JUST_ONE=1 --env AFL_FAST_CAL=1 \
+    --user $DOCKER_USER -w /hsm2/ledger/src/tcpsigner \
+    -v "$TESTCASES":/testcases -v "$OUTPUT":/output \
+    -v "$HSM_ROOT":/hsm2 ${DOCKER_IMAGE} /bin/bash -c "$NEW_SEEDS_CMD"

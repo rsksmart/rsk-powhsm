@@ -1,0 +1,31 @@
+#!/bin/bash
+
+if [[ -z "$1" ]]; then
+    echo "No workdir specified"
+    exit 1
+fi
+
+if [[ -z "$2" ]]; then
+    echo "No script specified"
+    exit 1
+fi
+
+# Script directory
+pushd $(dirname $0) > /dev/null
+DOCKER_ROOT=$(pwd)
+popd > /dev/null
+
+# Root directory
+HSM_ROOT=$DOCKER_ROOT/../../
+
+# Check docker image exists
+DOCKER_IMAGE=hsm:mware
+source $DOCKER_ROOT/../check-image
+
+DOCKER_USER="$(id -u):$(id -g)"
+
+WORKDIR=$1; shift
+BINARY=$1; shift
+ARGS=$@
+
+docker run -t --rm --name hsm-mware-notty --user $DOCKER_USER -v $HSM_ROOT:/hsm2 -w $WORKDIR $DOCKER_IMAGE $BINARY $ARGS

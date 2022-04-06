@@ -1,0 +1,132 @@
+#! /usr/bin/env bash
+
+# set -exo pipefail
+
+function usage {
+    echo "Usage: $0 <opt: cores to use> <opt: path to testcases> <opt: path to output> <opt: path to dictionary> <opt: path to coverage dir>"
+    exit 1
+}
+
+if [[ $# -gt 5 ]]; then
+    usage
+fi
+
+
+if [[ "$1" -gt $(nproc) ]]; then
+    echo "WARNING: Spinning up more instances than cores available"
+    echo "WARNING: This may result in degraded performance"
+    read -p "Are you sure you want to continue? [y/N]" -r
+    echo
+    if [[ !($REPLY =~ ^[Yy]$) ]]; then
+        exit 1
+    fi
+fi
+
+
+pushd $(dirname $0) > /dev/null
+FUZZ_ROOT=$(pwd)
+popd > /dev/null
+
+HSM_ROOT=$(realpath $FUZZ_ROOT/../../)
+DOCKER_IMAGE=hsm:afl
+source $FUZZ_ROOT/../../docker/check-image
+
+DOCKER_USER="$(id -u):$(id -g)"
+
+source $(dirname $0)/env
+CHECKPOINT="${CHECKPOINT:-0xbdcb3c17c7aee714cec8ad900341bfd987b452280220dcbd6e7191f67ea4209b}"
+DIFFICULTY="${DIFFICULTY:-0x32}"
+NETWORK="${NETWORK:-regtest}"
+CMD="./tcpsigner --checkpoint $CHECKPOINT --difficulty $DIFFICULTY --network $NETWORK -i @@"
+
+RAW_CORES="$1"
+if [[ -z "$RAW_CORES" ]]; then
+    # nproc will return sockets * threads * cpus per socket
+    RAW_CORES=$(nproc)
+fi
+
+if [[ "$RAW_CORES" -lt 1 ]]; then
+    usage
+    echo "ERR: can not use zero cores"
+    exit 1
+fi
+
+TESTCASES="$2"
+if [[ -z "$TESTCASES" ]]; then
+    TESTCASES="$HSM_ROOT/ledger/fuzz/testcases"
+fi
+
+OUTPUT="$3"
+if [[ -z "$OUTPUT" ]]; then
+    OUTPUT="$HSM_ROOT/ledger/fuzz/output"
+fi
+
+DICT="$4"
+if [[ -z "$DICT" ]]; then
+    DICT="$HSM_ROOT/ledger/fuzz/dict"
+fi
+
+COVERAGE_DIR="$5"
+if [[ -z "$COVERAGE_DIR" ]]; then
+    COVERAGE_DIR="$HSM_ROOT/ledger/fuzz/.coverage-build"
+fi
+
+if [[ -d "$OUTPUT/cov" ]]; then
+    echo "ERR: coverage directory exists"
+    echo "ERR: do something with previous result"
+    echo "ERR: and delete the $OUTPUT/cov dir"
+    exit 1
+fi
+
+# Create coverage session
+COVERAGE_CMD="afl-cov -d /output --live  --coverage-cmd \
+    '$CMD' \
+    --code-dir . --lcov-web-all"
+tmux new -d -s coverage \
+    docker run -ti --rm --user $DOCKER_USER -w /hsm2-cov/tcpsigner \
+    -v ${COVERAGE_DIR}:/hsm2-cov -v ${OUTPUT}:/output -v \
+    "$HSM_ROOT":/hsm2 ${DOCKER_IMAGE} /bin/bash -c "$COVERAGE_CMD"
+sleep 0.5 # give some time to coverage to start...
+
+# Create main tmux session and init the fuzzer in there
+MAIN_FUZZ_CMD="afl-fuzz -x /dict -D -M main -i /testcases -o /output $CMD"
+tmux new -d -s main \
+    docker run -ti --rm --env AFL_AUTORESUME=1 --env AFL_TESTCACHE_SIZE=500 \
+    --user $DOCKER_USER -w /hsm2/ledger/src/tcpsigner \
+    -v "$DICT":/dict -v "$TESTCASES":/testcases -v "$OUTPUT":/output \
+    -v "$HSM_ROOT":/hsm2 ${DOCKER_IMAGE} /bin/bash -c "$MAIN_FUZZ_CMD"
+sleep 0.1 # starting too many instances of AFL too quickly seems to mess things up
+
+# For every core available, create annother dettached session and start a fuzzer there
+CORES=$((RAW_CORES - 1)) # one already used by the main fuzzer
+
+# see https://github.com/mboehme/aflfast for more information on
+# power schedules
+POWER_SCHEDULES=("fast" "explore" "coe" "lin" "quad" "exploit" "rare")
+POWER_SCHEDULES_LEN=${#POWER_SCHEDULES[@]}
+
+CORE=1
+while [[ $CORE -lt $CORES ]]; do
+    SELECTED_PW=$((i % POWER_SCHEDULES_LEN))
+    PW=${POWER_SCHEDULES[$SELECTED_PW]}
+    ENV="AFL_IMPORT_FIRST=1"
+    NAME="secondary-$CORE"
+    QUEUE=""
+
+    # last two will run with the old queue cycle, if enough cores
+    if [ $CORES -gt 6 -a $CORE -gt $(( $CORES - 3 )) ]; then
+        QUEUE="-Z"
+    fi
+
+    SECONDARY_FUZZ_CMD="$ENV afl-fuzz $QUEUE -b $CORE -p $PW -x /dict -S $NAME -i /testcases -o /output $CMD"
+    tmux new -d -s secondary-$CORE \
+        docker run -ti --rm \
+        --env AFL_AUTORESUME=1 --env AFL_TESTCACHE_SIZE=500 \
+        --user $DOCKER_USER -w /hsm2/ledger/src/tcpsigner \
+        -v "$DICT":/dict -v "$TESTCASES":/testcases -v "$OUTPUT":/output \
+        -v "$HSM_ROOT":/hsm2 ${DOCKER_IMAGE} /bin/bash -c "$SECONDARY_FUZZ_CMD"
+    CORE=$(( CORE+1 ))
+    sleep 0.1 # i don't like it either but apparently necessary
+done
+
+tmux attach -t main

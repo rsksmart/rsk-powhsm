@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# Script directory
+pushd $(dirname $0) > /dev/null
+MIDDLEWARE_ROOT=$(pwd)
+popd > /dev/null
+
+CMD="/bin/bash"
+if [[ -n "$@" ]]; then
+    CMD="$@"
+fi
+
+$MIDDLEWARE_ROOT/../docker/mware/do /hsm2/middleware "$CMD"

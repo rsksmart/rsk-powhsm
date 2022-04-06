@@ -1,0 +1,21 @@
+#! /usr/bin/env bash
+
+if [[ $# -ne 0 ]]; then
+    echo "Usage: $0"
+    exit 1
+fi
+
+pushd $(dirname $0) > /dev/null
+BUILD_ROOT=$(pwd)
+popd > /dev/null
+
+HSM_ROOT=$(realpath $BUILD_ROOT/../../)
+
+DOCKER_IMAGE=hsm:mware
+source $BUILD_ROOT/../../docker/check-image
+
+BUILD_CMD="make clean all"
+
+DOCKER_USER="$(id -u):$(id -g)"
+
+docker run -t --rm --user $DOCKER_USER -w /hsm2/ledger/src/tcpsigner -v ${HSM_ROOT}:/hsm2 ${DOCKER_IMAGE} /bin/bash -c "$BUILD_CMD"

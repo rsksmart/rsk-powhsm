@@ -1,0 +1,23 @@
+pipeline {
+  agent {
+    label 'ecs-jenkins-slave'
+  }
+  stages {
+    stage('SonarQube analysis') {
+      tools {
+        jdk "jdk-11"
+      }
+      environment {
+        scannerHome = tool 'SonarQubeScanner'; 
+      }
+      steps {
+        withSonarQubeEnv('Sonar') {
+          sh "${env.scannerHome}/bin/sonar-scanner \
+           -Dsonar.projectKey=rsk-powhsm \
+           -Dsonar.sources=. \
+           -X"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,6 @@
+bin
+firmware
+public-keys.txt
+pin.txt
+attestation.json
+device_attestation.json

@@ -1,0 +1,33 @@
+#!/bin/bash
+
+if [[ -z "$1" ]]; then
+    echo "No workdir specified"
+    exit 1
+fi
+
+if [[ -z "$2" ]]; then
+    echo "No script specified"
+    exit 1
+fi
+
+# Script directory
+pushd $(dirname $0) > /dev/null
+DOCKER_ROOT=$(pwd)
+popd > /dev/null
+
+# Root directory
+HSM_ROOT=$DOCKER_ROOT/../../
+
+# Check docker image exists
+DOCKER_IMAGE=hsm:ledger
+source $DOCKER_ROOT/../check-image
+
+DOCKER_USER="$(id -u):$(id -g)"
+
+if [[ "$(basename $0)" == "do" ]]; then
+    INTERACTIVE="-i"
+else
+    INTERACTIVE=""
+fi
+
+docker run -t $INTERACTIVE --rm --name hsm-ledger --user $DOCKER_USER -v $HSM_ROOT:/hsm2 -w $1 $DOCKER_IMAGE $2

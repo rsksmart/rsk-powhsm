@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+
+if [[ $# -ne 0 ]]; then
+    echo "Usage: $0"
+    exit 1
+fi
+
+# Script directory
+pushd $(dirname $0) > /dev/null
+FUZZ_ROOT=$(pwd)
+popd > /dev/null
+$FUZZ_ROOT/../build/build-tcpsigner
+
+TEST_ROOT="$FUZZ_ROOT/../test"
+
+RESOURCES="$(ls -1 "$TEST_ROOT/resources/")"
+RES_AMOUNT="$(ls -1 "$TEST_ROOT/resources/" | wc -l)"
+
+TESTCASES=$FUZZ_ROOT/testcases-raw
+mkdir -p $TESTCASES
+
+echo "$RES_AMOUNT resources found. Test will be ran all from zero to N, until N equals $RES_AMOUNT"
+for ((N=1; N<=$RES_AMOUNT; N++)); do
+    echo "Running loop $N / $RES_AMOUNT"
+
+    REPLICA="replica-$N.out"
+    rm ../../ledger/src/tcpsigner/replica-$N.out 2> /dev/null || true
+
+    $TEST_ROOT/../../docker/mware/do-notty-nousb /hsm2/ledger/src/tcpsigner ./tcpsigner -r "$REPLICA" --checkpoint 0xbdcb3c17c7aee714cec8ad900341bfd987b452280220dcbd6e7191f67ea4209b --difficulty 0x32 --network regtest > /dev/null &
+    sleep 1
+
+    CMD="docker exec -t -w /hsm2/ledger/test hsm-mware-notty python run.py --filter"
+    echo "$RESOURCES" | head -n "$N" | xargs -n 1 $CMD
+
+    docker cp hsm-mware-notty:/hsm2/ledger/src/tcpsigner/replica-$N.out $TESTCASES
+    rm ../../ledger/src/tcpsigner/replica-$N.out 2> /dev/null || true
+
+    # Kill (and remove) container
+    docker kill hsm-mware-notty > /dev/null
+
+    echo "Input replica in /hsm2/ledger/src/tcpsinger/$REPLICA"
+done

@@ -1,0 +1,11 @@
+{
+    "name": "Sign unauthorized with invalid length paths",
+    "operation": "signUnauthorized",
+    "expected": "0x6a87",
+    "paths": [
+        "m/0'/1'/0/2",
+        "m/44'/55/55",
+        "m/44'"
+    ],
+    "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+}

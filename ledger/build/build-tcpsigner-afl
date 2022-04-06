@@ -1,0 +1,50 @@
+#! /usr/bin/env bash
+
+if [[ $# -gt 2 ]]; then
+    echo "Usage: $0 <path to coverage directory> <optional: --force>"
+    exit 1
+fi
+
+pushd $(dirname $0) > /dev/null
+BUILD_ROOT=$(pwd)
+popd > /dev/null
+
+HSM_ROOT=$(realpath $BUILD_ROOT/../../)
+
+COVERAGE_DIR="$1"
+if [[ -z "$COVERAGE_DIR" ]]; then
+    COVERAGE_DIR="$HSM_ROOT/ledger/fuzz/.coverage-build"
+fi
+
+if [[ -z "$2" || "$2" != "--force" ]]; then
+    echo "Coverage build needs a copy of the sources files."
+    echo "The destination for that copy is $COVERAGE_DIR"
+    echo "That folder will be DELETED and populated with the source files"
+    read -p "Are you sure you want to continue? [y/N]" -r
+    echo
+else
+    REPLY="Y"
+fi
+
+
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    rm -rf $COVERAGE_DIR
+    mkdir -p $COVERAGE_DIR
+    cp -rf $HSM_ROOT/ledger/src/tcpsigner $COVERAGE_DIR/tcpsigner
+    cp -rf $HSM_ROOT/ledger/src/signer $COVERAGE_DIR/signer
+    cp -rf $HSM_ROOT/ledger/src/common $COVERAGE_DIR/common
+else
+    exit 1
+fi
+
+DOCKER_IMAGE=hsm:afl
+source $BUILD_ROOT/../../docker/check-image
+DOCKER_USER="$(id -u):$(id -g)"
+
+
+COVERAGE_CMD="CC=\"gcc-7 --coverage\" CXX=g++-7 make clean all"
+docker run -ti --rm --user $DOCKER_USER -w /hsm2-cov/tcpsigner -v ${COVERAGE_DIR}:/hsm2-cov ${DOCKER_IMAGE} /bin/bash -c "$COVERAGE_CMD"
+
+# Good luck modifying this line. I don't recommend it.
+BUILD_CMD="AFL_CC=gcc-7 AFL_CXX=g++-7 CC=afl-gcc-fast CXX=afl-g++-fast make clean all"
+docker run -ti --rm --user $DOCKER_USER -w /hsm2/ledger/src/tcpsigner -v ${HSM_ROOT}:/hsm2 ${DOCKER_IMAGE} /bin/bash -c "$BUILD_CMD"

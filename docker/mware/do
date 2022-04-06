@@ -1,0 +1,32 @@
+#!/bin/bash
+
+if [[ -z "$1" ]]; then
+    echo "No workdir specified"
+    exit 1
+fi
+
+if [[ -z "$2" ]]; then
+    echo "No script specified"
+    exit 1
+fi
+
+# Script directory
+pushd $(dirname $0) > /dev/null
+DOCKER_ROOT=$(pwd)
+popd > /dev/null
+
+# Root directory
+HSM_ROOT=$DOCKER_ROOT/../../
+
+# Check docker image exists
+DOCKER_IMAGE=hsm:mware
+source $DOCKER_ROOT/../check-image
+
+# Default port
+PORT=9999
+
+WORKDIR=$1; shift
+BINARY=$1; shift
+ARGS=$@
+
+docker run -ti --rm --name hsm-mware -v $HSM_ROOT:/hsm2 -v /dev/bus/usb:/dev/bus/usb --privileged -p$PORT:$PORT -w $WORKDIR $DOCKER_IMAGE $BINARY $ARGS

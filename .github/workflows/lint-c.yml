@@ -1,0 +1,19 @@
+name: Lint C code
+
+on: [push]
+
+jobs:
+  run-c-linter:
+    name: Run C linter
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v2
+
+      - name: Build the ledger docker image
+        run: docker/ledger/build
+
+      - name: Lint
+        run: ./lint-c
+
