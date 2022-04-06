@@ -71,7 +71,7 @@ class AdvanceBlockchain(TestCase):
 
                 debug(f"Sending blocks {offset} to {offset + len(chunk) - 1} "
                       f"({len(chunk)} blocks)...")
-                result = dongle.advance_blockchain(chunk, version)
+                result = dongle.advance_blockchain(chunk)
                 debug(f"Dongle replied with {result}")
 
                 offset += self.chunk_size
