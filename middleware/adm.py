@@ -36,10 +36,9 @@ DEFAULT_PIN_FILE = "pin.txt"
 DEFAULT_PIN_CHANGE_FILE = "changePIN"
 DEFAULT_ATT_UD_SOURCE = "https://public-node.rsk.co"
 
-if __name__ == "__main__":
-    logging.disable(logging.CRITICAL)
 
-    actions = {
+def create_actions():
+    return {
         "unlock": do_unlock,
         "onboard": do_onboard,
         "pubkeys": do_get_pubkeys,
@@ -48,6 +47,8 @@ if __name__ == "__main__":
         "verify_attestation": do_verify_attestation,
     }
 
+
+def create_parser(actions):
     parser = ArgumentParser(description="powHSM Administrative tool")
     parser.add_argument("operation", choices=list(actions.keys()))
     parser.add_argument("-p", "--pin", dest="pin", help="PIN.")
@@ -71,7 +72,7 @@ if __name__ == "__main__":
         "--output",
         dest="output_file_path",
         help="Output file (only valid for 'onboard', 'pubkeys' and 'attestation' "
-             "operations).",
+        "operations).",
     )
     parser.add_argument(
         "-u",
@@ -79,7 +80,7 @@ if __name__ == "__main__":
         dest="no_unlock",
         action="store_const",
         help="Do not attempt to unlock (only valid for 'changepin' and 'pubkeys' "
-             "operations).",
+        "operations).",
         default=False,
         const=True,
     )
@@ -89,7 +90,7 @@ if __name__ == "__main__":
         dest="no_exec",
         action="store_const",
         help="Do not attempt to execute the signer after unlocking (only valid for the "
-             "'unlock' operation).",
+        "'unlock' operation).",
         default=False,
         const=True,
     )
@@ -98,21 +99,21 @@ if __name__ == "__main__":
         "--ca",
         dest="ca",
         help="CA info in the <pubkey>:<hash>:<signature> format (only valid for "
-             "'attestation' operation).",
+        "'attestation' operation).",
     )
     parser.add_argument(
         "-t",
         "--attcert",
         dest="attestation_certificate_file_path",
         help="Attestation key certificate file (only valid for 'attestation' and "
-             "'verify_attestation' operations).",
+        "'verify_attestation' operations).",
     )
     parser.add_argument(
         "-r",
         "--root",
         dest="root_authority",
         help="Root attestation authority (only valid for 'verify_attestation' "
-             "operation). Defaults to Ledger's root authority.",
+        "operation). Defaults to Ledger's root authority.",
     )
     parser.add_argument(
         "-b",
@@ -125,9 +126,9 @@ if __name__ == "__main__":
         dest="attestation_ud_source",
         default=DEFAULT_ATT_UD_SOURCE,
         help="JSON-RPC endpoint used to retrieve the latest RSK block hash used "
-             "as the user defined value for the attestation (defaults to "
-             f"{DEFAULT_ATT_UD_SOURCE}). Can also specify a 32-byte hex string to use as"
-             " the value.",
+        "as the user defined value for the attestation (defaults to "
+        f"{DEFAULT_ATT_UD_SOURCE}). Can also specify a 32-byte hex string to use as"
+        " the value.",
     )
     parser.add_argument(
         "-v",
@@ -138,6 +139,14 @@ if __name__ == "__main__":
         default=False,
         const=True,
     )
+
+    return parser
+
+
+if __name__ == "__main__":
+    logging.disable(logging.CRITICAL)
+    actions = create_actions()
+    parser = create_parser(actions)
     options = parser.parse_args()
 
     try:
