@@ -20,11 +20,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-if __name__ == "__main__":
-    import runpy
-    import sys
-
-    utilities = {
+def get_utilities():
+    return {
         "load": "loadApp",
         "delete": "deleteApp",
         "setupCA": "setupCustomCA",
@@ -32,14 +29,28 @@ if __name__ == "__main__":
         "genCA": "genCAPair",
     }
 
-    if len(sys.argv) < 2 or sys.argv[1] not in utilities:
+
+def parse_args(argv):
+    utilities = get_utilities()
+
+    if len(argv) < 2 or argv[1] not in utilities:
         commands = ", ".join(utilities.keys())
         print("Ledgerblue utilities")
-        print(f"usage: {sys.argv[0]} {{{commands}}} [options]")
+        print(f"usage: {argv[0]} {{{commands}}} [options]")
         sys.exit(99)
 
-    module = f"ledgerblue.{utilities[sys.argv[1]]}"
-    sys.argv = [f"{sys.argv[0]} {sys.argv[1]}"] + sys.argv[2:]
+    module = f"ledgerblue.{utilities[argv[1]]}"
+    sys_argv = [f"{argv[0]} {argv[1]}"] + argv[2:]
+
+    return module, sys_argv
+
+
+if __name__ == "__main__":
+    import runpy
+    import sys
+
+    module, sys.argv = parse_args(sys.argv)
+
     try:
         res = runpy.run_module(module, run_name="__main__")
         sys.exit(0)
