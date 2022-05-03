@@ -43,16 +43,14 @@ OP_SIGN_MSG_HASH = bytes.fromhex("800000")
 def compute_app_hash(path):
     # Taken from
     # https://github.com/LedgerHQ/blue-loader-python/blob/0.1.31/ledgerblue/hashApp.py
-    parser = IntelHexParser(options.app_path)
+    parser = IntelHexParser(path)
     digest = sha256()
     for a in parser.getAreas():
         digest.update(a.data)
     return digest.digest()
 
 
-if __name__ == "__main__":
-    logging.disable(logging.CRITICAL)
-
+def create_parser():
     parser = ArgumentParser(description="powHSM App Signer")
     parser.add_argument("operation", choices=["key", "ledger", "hash"])
     parser.add_argument(
@@ -93,8 +91,10 @@ if __name__ == "__main__":
         default=False,
         const=True,
     )
-    options = parser.parse_args()
+    return parser
 
+
+def do_main(options):
     try:
         hsm = None
 
@@ -160,3 +160,10 @@ if __name__ == "__main__":
         sys.exit(1)
     finally:
         dispose_hsm(hsm)
+
+
+if __name__ == "__main__":
+    logging.disable(logging.CRITICAL)
+    parser = create_parser()
+    options = parser.parse_args()
+    do_main(options)
