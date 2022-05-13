@@ -21,9 +21,9 @@
 # SOFTWARE.
 
 from unittest import TestCase
-from unittest.mock import Mock, patch
-from adm import create_actions, create_parser
-from admin.misc import AdminError, not_implemented
+from unittest.mock import Mock, call, patch
+from adm import main
+from admin.misc import AdminError
 from ledger.hsm2dongle import HSM2Dongle
 
 import logging
@@ -33,70 +33,64 @@ logging.disable(logging.CRITICAL)
 
 @patch("sys.stdout.write")
 @patch("admin.changepin.get_hsm")
-@patch("ledger.hsm2dongle.HSM2Dongle")
 class TestChangepin(TestCase):
     VALID_PIN = '1234ABCD'
     INVALID_PIN = '123456789'
 
     def setUp(self):
-        self.actions = create_actions()
-        self.parser = create_parser(self.actions)
+        self.dongle = Mock()
 
-    def test_changepin(self, dongle, get_hsm, _):
-        get_hsm.return_value = dongle
+    def test_changepin(self, get_hsm, _):
+        get_hsm.return_value = self.dongle
 
-        dongle.get_current_mode = Mock()
-        dongle.is_onboarded = Mock()
-        dongle.new_pin = Mock()
+        self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.BOOTLOADER)
+        self.dongle.is_onboarded = Mock(return_value=True)
+        self.dongle.new_pin = Mock(return_value=True)
 
-        dongle.get_current_mode.return_value = HSM2Dongle.MODE.BOOTLOADER
-        dongle.is_onboarded.return_value = True
-        dongle.new_pin.return_value = True
+        with patch('sys.argv', ['adm.py', '-n', self.VALID_PIN, '-u', 'changepin']):
+            main()
+        self.assertTrue(self.dongle.new_pin.called)
+        self.assertEqual([call(self.VALID_PIN.encode())],
+                         self.dongle.new_pin.call_args_list)
 
-        options = self.parser.parse_args(['-n', self.VALID_PIN, '-u', 'changepin'])
-        self.actions.get(options.operation, not_implemented)(options)
+    def test_changepin_invalid_mode(self, get_hsm, _):
+        get_hsm.return_value = self.dongle
 
-    def test_changepin_invalid_mode(self, dongle, get_hsm, _):
-        get_hsm.return_value = dongle
+        self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.APP)
+        self.dongle.is_onboarded = Mock(return_value=True)
+        self.dongle.new_pin = Mock(return_value=True)
 
-        dongle.get_current_mode = Mock()
-        dongle.is_onboarded = Mock()
-        dongle.new_pin = Mock()
+        with patch('sys.argv', ['adm.py', '-n', self.VALID_PIN, '-u', 'changepin']):
+            with self.assertRaises(AdminError) as e:
+                main()
+        self.assertTrue(str(e.exception).startswith('Device not in bootloader mode.'))
+        self.assertFalse(self.dongle.new_pin.called)
 
-        dongle.get_current_mode.return_value = HSM2Dongle.MODE.APP
-        dongle.is_onboarded.return_value = True
-        dongle.new_pin.return_value = True
+    def test_changepin_invalid_pin(self, get_hsm, _):
+        get_hsm.return_value = self.dongle
 
-        options = self.parser.parse_args(['-n', self.VALID_PIN, '-u', 'changepin'])
-        with self.assertRaises(AdminError):
-            self.actions.get(options.operation, not_implemented)(options)
+        self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.BOOTLOADER)
+        self.dongle.is_onboarded = Mock(return_value=True)
+        self.dongle.new_pin = Mock(return_value=True)
 
-    def test_changepin_invalid_pin(self, dongle, get_hsm, _):
-        get_hsm.return_value = dongle
+        with patch('sys.argv', ['adm.py', '-n', self.INVALID_PIN, '-u', 'changepin']):
+            with self.assertRaises(AdminError) as e:
+                main()
+        self.assertTrue(str(e.exception).startswith('Invalid pin given.'))
+        self.assertFalse(self.dongle.new_pin.called)
 
-        dongle.get_current_mode = Mock()
-        dongle.is_onboarded = Mock()
-        dongle.new_pin = Mock()
+    def test_changepin_newpin_error(self, get_hsm, _):
+        get_hsm.return_value = self.dongle
 
-        dongle.get_current_mode.return_value = HSM2Dongle.MODE.BOOTLOADER
-        dongle.is_onboarded.return_value = True
-        dongle.new_pin.return_value = True
+        self.dongle.get_current_mode = Mock()
+        self.dongle.is_onboarded = Mock()
+        self.dongle.new_pin = Mock()
 
-        options = self.parser.parse_args(['-n', self.INVALID_PIN, '-u', 'changepin'])
-        with self.assertRaises(AdminError):
-            self.actions.get(options.operation, not_implemented)(options)
+        self.dongle.get_current_mode.return_value = HSM2Dongle.MODE.BOOTLOADER
+        self.dongle.is_onboarded.return_value = True
+        self.dongle.new_pin.return_value = False
 
-    def test_changepin_newpin_error(self, dongle, get_hsm, _):
-        get_hsm.return_value = dongle
-
-        dongle.get_current_mode = Mock()
-        dongle.is_onboarded = Mock()
-        dongle.new_pin = Mock()
-
-        dongle.get_current_mode.return_value = HSM2Dongle.MODE.BOOTLOADER
-        dongle.is_onboarded.return_value = True
-        dongle.new_pin.return_value = False
-
-        options = self.parser.parse_args(['-n', self.VALID_PIN, '-u', 'changepin'])
-        with self.assertRaises(AdminError):
-            self.actions.get(options.operation, not_implemented)(options)
+        with patch('sys.argv', ['adm.py', '-n', self.VALID_PIN, '-u', 'changepin']):
+            with self.assertRaises(AdminError) as e:
+                main()
+        self.assertEqual('Failed to change pin', str(e.exception))

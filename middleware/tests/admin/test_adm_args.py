@@ -20,197 +20,224 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from argparse import Namespace
 from unittest import TestCase
-from adm import create_actions, create_parser
-from admin.attestation import do_attestation
-from admin.changepin import do_changepin
-from admin.onboard import do_onboard
-from admin.pubkeys import do_get_pubkeys
-from admin.unlock import do_unlock
-from admin.verify_attestation import do_verify_attestation
-
+from unittest.mock import call, patch
+from adm import main, DEFAULT_ATT_UD_SOURCE
 import logging
 
 logging.disable(logging.CRITICAL)
 
 
 class TestAdmArgs(TestCase):
-    def setUp(self):
-        self.actions = create_actions()
-        self.parser = create_parser(self.actions)
+    @patch("adm.do_unlock")
+    def test_unlock(self, do_unlock):
+        expected_options = {
+            'any_pin': False,
+            'attestation_certificate_file_path': None,
+            'attestation_ud_source': DEFAULT_ATT_UD_SOURCE,
+            'ca': None,
+            'new_pin': None,
+            'no_exec': False,
+            'no_unlock': False,
+            'operation': 'unlock',
+            'output_file_path': None,
+            'pin': 'a-pin',
+            'pubkeys_file_path': None,
+            'root_authority': None,
+            'verbose': False
+        }
+        expected_call_args_list = [
+            call(Namespace(**expected_options)),
+            call(Namespace(**expected_options))
+        ]
 
-    def test_create_actions(self):
-        self.assertEqual(self.actions["unlock"], do_unlock)
-        self.assertEqual(self.actions["onboard"], do_onboard)
-        self.assertEqual(self.actions["pubkeys"], do_get_pubkeys)
-        self.assertEqual(self.actions["changepin"], do_changepin)
-        self.assertEqual(self.actions["attestation"], do_attestation)
-        self.assertEqual(self.actions["verify_attestation"], do_verify_attestation)
+        with patch('sys.argv', ['adm.py', '-p', 'a-pin', 'unlock']):
+            main()
+        with patch('sys.argv', ['adm.py', '--pin', 'a-pin', 'unlock']):
+            main()
 
-    def test_unlock_args(self):
-        options = self.parser.parse_args(['-p', 'a-pin', 'unlock'])
-        self.assertEqual(options.operation, 'unlock')
-        self.assertEqual(options.pin, 'a-pin')
-        self.assertFalse(options.no_exec)
-        self.assertFalse(options.verbose)
+        self.assertTrue(do_unlock.called)
+        self.assertEqual(do_unlock.call_count, 2)
+        self.assertEqual(expected_call_args_list, do_unlock.call_args_list)
 
-    def test_unlock_args_long(self):
-        options = self.parser.parse_args(['--pin', 'a-pin', 'unlock'])
-        self.assertEqual(options.operation, 'unlock')
-        self.assertEqual(options.pin, 'a-pin')
-        self.assertFalse(options.no_exec)
-        self.assertFalse(options.verbose)
+    @patch("adm.do_onboard")
+    def test_onboard(self, do_onboard):
+        expected_options = {
+            'any_pin': False,
+            'attestation_certificate_file_path': None,
+            'attestation_ud_source': DEFAULT_ATT_UD_SOURCE,
+            'ca': None,
+            'new_pin': None,
+            'no_exec': False,
+            'no_unlock': False,
+            'operation': 'onboard',
+            'output_file_path': 'a-path',
+            'pin': 'a-pin',
+            'pubkeys_file_path': None,
+            'root_authority': None,
+            'verbose': False
+        }
 
-    def test_onboard_args(self):
-        options = self.parser.parse_args(['-p', 'a-pin', '-o', 'a-path', 'onboard'])
-        self.assertEqual(options.operation, 'onboard')
-        self.assertEqual(options.pin, 'a-pin')
-        self.assertEqual(options.output_file_path, 'a-path')
-        self.assertFalse(options.verbose)
+        expected_call_args_list = [
+            call(Namespace(**expected_options)),
+            call(Namespace(**expected_options))
+        ]
 
-    def test_onboard_args_long(self):
-        options = self.parser.parse_args(
-            ['--pin', 'a-pin', '--output', 'a-path', 'onboard'])
-        self.assertEqual(options.operation, 'onboard')
-        self.assertEqual(options.pin, 'a-pin')
-        self.assertEqual(options.output_file_path, 'a-path')
-        self.assertFalse(options.verbose)
+        with patch('sys.argv', ['adm.py', '-p', 'a-pin', '-o', 'a-path', 'onboard']):
+            main()
+        with patch('sys.argv',
+                   ['adm.py', '--pin', 'a-pin', '--output', 'a-path', 'onboard']):
+            main()
+        self.assertTrue(do_onboard.called)
+        self.assertEqual(expected_call_args_list, do_onboard.call_args_list)
 
-    def test_pubkeys_args(self):
-        options = self.parser.parse_args(['-p', 'a-pin', '-o', 'a-path', '-u', 'pubkeys'])
-        self.assertEqual(options.operation, 'pubkeys')
-        self.assertEqual(options.pin, 'a-pin')
-        self.assertEqual(options.output_file_path, 'a-path')
-        self.assertTrue(options.no_unlock)
-        self.assertFalse(options.verbose)
+    @patch("adm.do_get_pubkeys")
+    def test_pubkeys(self, do_get_pubkeys):
+        expected_options = {
+            'any_pin': False,
+            'attestation_certificate_file_path': None,
+            'attestation_ud_source': DEFAULT_ATT_UD_SOURCE,
+            'ca': None,
+            'new_pin': None,
+            'no_exec': False,
+            'no_unlock': True,
+            'operation': 'pubkeys',
+            'output_file_path': 'a-path',
+            'pin': 'a-pin',
+            'pubkeys_file_path': None,
+            'root_authority': None,
+            'verbose': False
+        }
 
-    def test_pubkeys_args_long(self):
-        options = self.parser.parse_args(
-            ['--pin', 'a-pin', '--output', 'a-path', '--nounlock', 'pubkeys'])
-        self.assertEqual(options.operation, 'pubkeys')
-        self.assertEqual(options.pin, 'a-pin')
-        self.assertEqual(options.output_file_path, 'a-path')
-        self.assertTrue(options.no_unlock)
-        self.assertFalse(options.verbose)
+        expected_call_args_list = [
+            call(Namespace(**expected_options)),
+            call(Namespace(**expected_options))
+        ]
 
-    def test_pubkeys_no_unlock_args(self):
-        options = self.parser.parse_args(['-p', 'a-pin', '-o', 'a-path', '-u', 'pubkeys'])
-        self.assertEqual(options.operation, 'pubkeys')
-        self.assertEqual(options.pin, 'a-pin')
-        self.assertEqual(options.output_file_path, 'a-path')
-        self.assertTrue(options.no_unlock)
-        self.assertFalse(options.verbose)
+        with patch('sys.argv', ['adm.py', '-p', 'a-pin', '-o', 'a-path', '-u',
+                                'pubkeys']):
+            main()
+        with patch('sys.argv',
+                   ['adm.py',
+                    '--pin', 'a-pin',
+                    '--output', 'a-path',
+                    '--nounlock',
+                    'pubkeys']):
+            main()
+        self.assertTrue(do_get_pubkeys.called)
+        self.assertEqual(expected_call_args_list, do_get_pubkeys.call_args_list)
 
-    def test_pubkeys_no_unlock_args_long(self):
-        options = self.parser.parse_args(
-            ['--pin', 'a-pin', '--output', 'a-path', '--nounlock', 'pubkeys'])
-        self.assertEqual(options.operation, 'pubkeys')
-        self.assertEqual(options.pin, 'a-pin')
-        self.assertEqual(options.output_file_path, 'a-path')
-        self.assertTrue(options.no_unlock)
-        self.assertFalse(options.verbose)
+    @patch("adm.do_changepin")
+    def test_changepin(self, do_changepin):
+        expected_options = {
+            'any_pin': True,
+            'attestation_certificate_file_path': None,
+            'attestation_ud_source': DEFAULT_ATT_UD_SOURCE,
+            'ca': None,
+            'new_pin': 'new-pin',
+            'no_exec': False,
+            'no_unlock': False,
+            'operation': 'changepin',
+            'output_file_path': None,
+            'pin': None,
+            'pubkeys_file_path': None,
+            'root_authority': None,
+            'verbose': False
+        }
+        expected_call_args_list = [
+            call(Namespace(**expected_options)),
+            call(Namespace(**expected_options))
+        ]
 
-    def test_changepin_args(self):
-        options = self.parser.parse_args(['-p', 'a-pin', '-n', 'new-pin', 'changepin'])
-        self.assertEqual(options.operation, 'changepin')
-        self.assertEqual(options.pin, 'a-pin')
-        self.assertEqual(options.new_pin, 'new-pin')
-        self.assertFalse(options.no_unlock)
-        self.assertFalse(options.verbose)
-        self.assertFalse(options.any_pin)
+        with patch('sys.argv', ['adm.py', '-n', 'new-pin', '-a', 'changepin']):
+            main()
+        with patch('sys.argv', ['adm.py',
+                                '--newpin', 'new-pin', '--anypin', 'changepin']):
+            main()
 
-    def test_changepin_args_long(self):
-        options = self.parser.parse_args(
-            ['--pin', 'a-pin', '--newpin', 'new-pin', 'changepin'])
-        self.assertEqual(options.operation, 'changepin')
-        self.assertEqual(options.pin, 'a-pin')
-        self.assertEqual(options.new_pin, 'new-pin')
-        self.assertFalse(options.no_unlock)
-        self.assertFalse(options.verbose)
-        self.assertFalse(options.any_pin)
+        self.assertTrue(do_changepin.called)
+        self.assertEqual(do_changepin.call_count, 2)
+        self.assertEqual(expected_call_args_list, do_changepin.call_args_list)
 
-    def test_changepin_anypin_args(self):
-        options = self.parser.parse_args(
-            ['-p', 'a-pin', '-n', 'new-pin', '-a', 'changepin'])
-        self.assertEqual(options.operation, 'changepin')
-        self.assertEqual(options.pin, 'a-pin')
-        self.assertEqual(options.new_pin, 'new-pin')
-        self.assertFalse(options.no_unlock)
-        self.assertFalse(options.verbose)
-        self.assertTrue(options.any_pin)
+    @patch("adm.do_attestation")
+    def test_attestation(self, do_attestation):
+        expected_options = {
+            'any_pin': False,
+            'attestation_certificate_file_path': 'certification-path',
+            'attestation_ud_source': DEFAULT_ATT_UD_SOURCE,
+            'ca': 'ca-info',
+            'new_pin': None,
+            'no_exec': False,
+            'no_unlock': False,
+            'operation': 'attestation',
+            'output_file_path': 'out-path',
+            'pin': 'a-pin',
+            'pubkeys_file_path': None,
+            'root_authority': None,
+            'verbose': False
+        }
+        expected_call_args_list = [
+            call(Namespace(**expected_options)),
+            call(Namespace(**expected_options))
+        ]
 
-    def test_changepin_anypin_args_long(self):
-        options = self.parser.parse_args(
-            ['--pin', 'a-pin', '--newpin', 'new-pin', '--anypin', 'changepin'])
-        self.assertEqual(options.operation, 'changepin')
-        self.assertEqual(options.pin, 'a-pin')
-        self.assertEqual(options.new_pin, 'new-pin')
-        self.assertFalse(options.no_unlock)
-        self.assertFalse(options.verbose)
-        self.assertTrue(options.any_pin)
+        with patch('sys.argv', ['adm.py',
+                                '-p', 'a-pin',
+                                '-o', 'out-path',
+                                '-c', 'ca-info',
+                                '-t', 'certification-path',
+                                'attestation']):
+            main()
+        with patch('sys.argv', ['adm.py',
+                                '--pin', 'a-pin',
+                                '--output', 'out-path',
+                                '--ca', 'ca-info',
+                                '--attcert', 'certification-path',
+                                'attestation']):
+            main()
 
-    def test_changepin_no_unlock_args(self):
-        options = self.parser.parse_args(
-            ['-p', 'a-pin', '-n', 'new-pin', '-u', 'changepin'])
-        self.assertEqual(options.operation, 'changepin')
-        self.assertEqual(options.pin, 'a-pin')
-        self.assertEqual(options.new_pin, 'new-pin')
-        self.assertTrue(options.no_unlock)
-        self.assertFalse(options.verbose)
+        self.assertTrue(do_attestation.called)
+        self.assertEqual(do_attestation.call_count, 2)
+        self.assertEqual(expected_call_args_list, do_attestation.call_args_list)
 
-    def test_changepin_no_unlock_args_long(self):
-        options = self.parser.parse_args(
-            ['--pin', 'a-pin', '--newpin', 'new-pin', '--nounlock', 'changepin'])
-        self.assertEqual(options.operation, 'changepin')
-        self.assertEqual(options.pin, 'a-pin')
-        self.assertEqual(options.new_pin, 'new-pin')
-        self.assertTrue(options.no_unlock)
-        self.assertFalse(options.verbose)
+    @patch("adm.do_verify_attestation")
+    def test_verify_attestation(self, do_verify_attestation):
+        expected_options = {
+            'any_pin': False,
+            'attestation_certificate_file_path': 'certification-path',
+            'attestation_ud_source': DEFAULT_ATT_UD_SOURCE,
+            'ca': None,
+            'new_pin': None,
+            'no_exec': False,
+            'no_unlock': False,
+            'operation': 'verify_attestation',
+            'output_file_path': None,
+            'pin': 'a-pin',
+            'pubkeys_file_path': 'pubkeys-path',
+            'root_authority': 'root-authority',
+            'verbose': False
+        }
+        expected_call_args_list = [
+            call(Namespace(**expected_options)),
+            call(Namespace(**expected_options))
+        ]
 
-    def test_attestation_args(self):
-        options = self.parser.parse_args([
-            '-p', 'a-pin', '-o', 'out-path', '-c', 'ca-info', '-t', 'certification-path',
-            'attestation'
-        ])
-        self.assertEqual(options.operation, 'attestation')
-        self.assertEqual(options.pin, 'a-pin')
-        self.assertEqual(options.output_file_path, 'out-path')
-        self.assertEqual(options.ca, 'ca-info')
-        self.assertEqual(options.attestation_certificate_file_path, 'certification-path')
-        self.assertFalse(options.verbose)
+        with patch('sys.argv', ['adm.py',
+                                '-p', 'a-pin',
+                                '-t', 'certification-path',
+                                '-r', 'root-authority',
+                                '-b', 'pubkeys-path',
+                                'verify_attestation']):
+            main()
+        with patch('sys.argv', ['adm.py',
+                                '--pin', 'a-pin',
+                                '--attcert', 'certification-path',
+                                '--root', 'root-authority',
+                                '--pubkeys', 'pubkeys-path',
+                                'verify_attestation']):
+            main()
 
-    def test_attestation_args_long(self):
-        options = self.parser.parse_args([
-            '--pin', 'a-pin', '--output', 'out-path', '--ca', 'ca-info', '--attcert',
-            'certification-path', 'attestation'
-        ])
-        self.assertEqual(options.operation, 'attestation')
-        self.assertEqual(options.pin, 'a-pin')
-        self.assertEqual(options.output_file_path, 'out-path')
-        self.assertEqual(options.ca, 'ca-info')
-        self.assertEqual(options.attestation_certificate_file_path, 'certification-path')
-        self.assertFalse(options.verbose)
-
-    def test_verify_attestation_args(self):
-        options = self.parser.parse_args([
-            '-p', 'a-pin', '-t', 'certification-path', '-r', 'root-authority', '-b',
-            'pubkeys-path', 'verify_attestation'
-        ])
-        self.assertEqual(options.operation, 'verify_attestation')
-        self.assertEqual(options.pin, 'a-pin')
-        self.assertEqual(options.attestation_certificate_file_path, 'certification-path')
-        self.assertEqual(options.root_authority, 'root-authority')
-        self.assertEqual(options.pubkeys_file_path, 'pubkeys-path')
-        self.assertFalse(options.verbose)
-
-    def test_verify_attestation_args_long(self):
-        options = self.parser.parse_args([
-            '--pin', 'a-pin', '--attcert', 'certification-path', '--root',
-            'root-authority', '--pubkeys', 'pubkeys-path', 'verify_attestation'
-        ])
-        self.assertEqual(options.operation, 'verify_attestation')
-        self.assertEqual(options.pin, 'a-pin')
-        self.assertEqual(options.attestation_certificate_file_path, 'certification-path')
-        self.assertEqual(options.root_authority, 'root-authority')
-        self.assertEqual(options.pubkeys_file_path, 'pubkeys-path')
-        self.assertFalse(options.verbose)
+        self.assertTrue(do_verify_attestation.called)
+        self.assertEqual(do_verify_attestation.call_count, 2)
+        self.assertEqual(expected_call_args_list, do_verify_attestation.call_args_list)

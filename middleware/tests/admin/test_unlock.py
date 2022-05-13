@@ -21,9 +21,9 @@
 # SOFTWARE.
 
 from unittest import TestCase
-from unittest.mock import Mock, patch
-from adm import create_actions, create_parser
-from admin.misc import AdminError, not_implemented
+from unittest.mock import Mock, call, patch
+from adm import main
+from admin.misc import AdminError
 from ledger.hsm2dongle import HSM2Dongle
 
 import logging
@@ -33,50 +33,70 @@ logging.disable(logging.CRITICAL)
 
 @patch("sys.stdout.write")
 @patch("admin.unlock.get_hsm")
-@patch("ledger.hsm2dongle.HSM2Dongle")
 class TestUnlock(TestCase):
     VALID_PIN = '1234ABCD'
     INVALID_PIN = '123456789'
 
     def setUp(self):
-        self.actions = create_actions()
-        self.parser = create_parser(self.actions)
+        self.dongle = Mock()
 
-    def test_unlock(self, dongle, get_hsm, _):
-        get_hsm.return_value = dongle
+    @patch("admin.unlock.info")
+    def test_unlock(self, info_mock, get_hsm, _):
+        get_hsm.return_value = self.dongle
+        self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.BOOTLOADER)
+        self.dongle.is_onboarded = Mock(return_value=True)
 
-        dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.BOOTLOADER)
-        dongle.is_onboarded = Mock(return_value=True)
+        with patch('sys.argv', ['adm.py', '-p', self.VALID_PIN, 'unlock']):
+            main()
+        self.assertEqual(call('PIN accepted'), info_mock.call_args_list[7])
 
-        options = self.parser.parse_args(['-p', self.VALID_PIN, 'unlock'])
-        self.actions.get(options.operation, not_implemented)(options)
+    def test_unlock_invalid_pin(self, get_hsm, _):
+        get_hsm.return_value = self.dongle
 
-    def test_unlock_invalid_pin(self, dongle, get_hsm, _):
-        get_hsm.return_value = dongle
+        self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.BOOTLOADER)
+        self.dongle.is_onboarded = Mock(return_value=True)
 
-        dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.BOOTLOADER)
-        dongle.is_onboarded = Mock(return_value=True)
+        with patch('sys.argv', ['adm.py', '-p', self.INVALID_PIN, 'unlock']):
+            with self.assertRaises(AdminError) as e:
+                main()
+        self.assertTrue(str(e.exception).startswith('Invalid pin given.'))
 
-        options = self.parser.parse_args(['-p', self.INVALID_PIN, 'unlock'])
-        with self.assertRaises(AdminError):
-            self.actions.get(options.operation, not_implemented)(options)
+    def test_unlock_not_onboarded(self, get_hsm, _):
+        get_hsm.return_value = self.dongle
 
-    def test_unlock_not_onboarded(self, dongle, get_hsm, _):
-        get_hsm.return_value = dongle
+        self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.BOOTLOADER)
+        self.dongle.is_onboarded = Mock(return_value=False)
 
-        dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.BOOTLOADER)
-        dongle.is_onboarded = Mock(return_value=False)
+        with patch('sys.argv', ['adm.py', '-p', self.VALID_PIN, 'unlock']):
+            with self.assertRaises(AdminError) as e:
+                main()
+        self.assertEqual('Device not onboarded', str(e.exception))
 
-        options = self.parser.parse_args(['-p', self.VALID_PIN, 'unlock'])
-        with self.assertRaises(AdminError):
-            self.actions.get(options.operation, not_implemented)(options)
+    def test_unlock_invalid_mode(self, get_hsm, _):
+        get_hsm.return_value = self.dongle
 
-    def test_unlock_mode(self, dongle, get_hsm, _):
-        get_hsm.return_value = dongle
+        self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.APP)
+        self.dongle.is_onboarded = Mock(return_value=True)
 
-        dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.APP)
-        dongle.is_onboarded = Mock(return_value=True)
+        with patch('sys.argv', ['adm.py', '-p', self.VALID_PIN, 'unlock']):
+            with self.assertRaises(AdminError) as e:
+                main()
+        self.assertEqual('Device already unlocked and in app mode', str(e.exception))
 
-        options = self.parser.parse_args(['-p', self.VALID_PIN, 'unlock'])
-        with self.assertRaises(AdminError):
-            self.actions.get(options.operation, not_implemented)(options)
+        self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.UNKNOWN)
+        with patch('sys.argv', ['adm.py', '-p', self.VALID_PIN, 'unlock']):
+            with self.assertRaises(AdminError) as e:
+                main()
+        self.assertTrue(str(e.exception).startswith('Device mode unknown.'))
+
+    def test_unlock_wrong_pin(self, get_hsm, _):
+        get_hsm.return_value = self.dongle
+
+        self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.BOOTLOADER)
+        self.dongle.is_onboarded = Mock(return_value=True)
+        self.dongle.unlock = Mock(return_value=False)
+
+        with patch('sys.argv', ['adm.py', '-p', self.VALID_PIN, 'unlock']):
+            with self.assertRaises(AdminError) as e:
+                main()
+        self.assertEqual('Unable to unlock: PIN mismatch', str(e.exception))

@@ -21,171 +21,242 @@
 # SOFTWARE.
 
 from unittest import TestCase
-from unittest.mock import Mock, patch
-from signapp import create_parser, do_main
+from unittest.mock import Mock, call, mock_open, patch
+from admin.misc import AdminError
+from signapp import main, compute_app_hash, COMMAND_SIGN, DEFAULT_PATH
+from thirdparty.sha256 import SHA256
+import io
 
+import ecdsa
 import logging
+import random
 
 logging.disable(logging.CRITICAL)
 
 RETURN_SUCCESS = 0
 
+USAGE = ('usage: signapp.py [-h] -a APP_PATH [-o OUTPUT_PATH] [-p PATH] [-k KEY] [-v]\n'
+         '                  {key,ledger,hash}\n')
 
-@patch("sys.stdout.write")
+
+@patch("signapp.info")
+@patch("signapp.IntelHexParser")
 class TestSignApp(TestCase):
     def setUp(self):
-        self.parser = create_parser()
+        app_data = bytearray.fromhex('%032x' % random.randrange(16**32))
+        hash = SHA256()
+        hash.update(app_data)
 
-    def test_args(self, _):
-        options = self.parser.parse_args([
-            '-a', 'a-path',
-            '-o', 'out-path',
-            '-p', 'sign-path',
-            '-k', '11223344556677',
-            '-v',
-            'hash'
-        ])
-        self.assertEqual(options.app_path, 'a-path')
-        self.assertEqual(options.output_path, 'out-path')
-        self.assertEqual(options.path, 'sign-path')
-        self.assertEqual(options.key, '11223344556677')
-        self.assertEqual(options.verbose, True)
-        self.assertEqual(options.operation, 'hash')
+        self.app_hash = hash.digest()
+        self.area_mock = Mock()
+        self.area_mock.data = app_data
+        self.priv_key = ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1)
 
-    @patch("signapp.compute_app_hash", return_value=b"1122334455")
-    def test_key(self, *_):
-        key = '112233445566778899aabbccddeeff00112233445566778899aabbccddeeff00'
-        options = self.parser.parse_args([
-            '-a', 'a-path',
-            '-o', 'out-path',
-            '-k', key,
-            'key'
-        ])
+    def test_compute_app_hash(self, parser_mock, _):
+        parser_mock.return_value.getAreas.return_value = [self.area_mock]
+        self.assertEqual(self.app_hash, compute_app_hash('a-path'))
 
-        with self.assertRaises(SystemExit) as exit:
-            do_main(options)
-        self.assertEqual(exit.exception.code, RETURN_SUCCESS)
+    def test_hash(self, parser_mock, info_mock):
+        parser_mock.return_value.getAreas.return_value = [self.area_mock]
+        with patch('sys.argv', ['signapp.py', '-a', 'a-path', 'hash']):
+            main()
 
-    @patch("signapp.compute_app_hash", side_effect=Exception)
-    def test_key_invalid_app_hash(self, *_):
-        key = '112233445566778899aabbccddeeff00112233445566778899aabbccddeeff00'
-        options = self.parser.parse_args([
-            '-a', 'a-path',
-            '-o', 'out-path',
-            '-k', key,
-            'key'
-        ])
+        self.assertEqual(
+            [call('Computing app hash...'),
+             call(f'App hash: {self.app_hash.hex()}')], info_mock.call_args_list)
 
-        with self.assertRaises(SystemExit) as exit:
-            do_main(options)
-        self.assertNotEqual(exit.exception.code, RETURN_SUCCESS)
+    @patch("sys.stderr", new_callable=io.StringIO)
+    def test_hash_no_app(self, err_mock, parser_mock, _):
+        parser_mock.return_value.getAreas.return_value = [self.area_mock]
+        with patch('sys.argv', ['signapp.py', 'hash']):
+            with self.assertRaises(SystemExit) as exit:
+                main()
+            self.assertNotEqual(exit.exception.code, RETURN_SUCCESS)
 
-    @patch("signapp.compute_app_hash", return_value=b"1122334455")
-    def test_key_no_key(self, *_):
-        options = self.parser.parse_args([
-            '-a', 'a-path',
-            '-o', 'out-path',
-            'key'
-        ])
+        error_msg = (f'{USAGE}signapp.py: error: the following arguments are required:'
+                     ' -a/--app\n')
+        self.assertEqual(error_msg, err_mock.getvalue())
 
-        with self.assertRaises(SystemExit) as exit:
-            do_main(options)
-        self.assertNotEqual(exit.exception.code, RETURN_SUCCESS)
+    def test_hash_invalid_app(self, parser_mock, _):
+        parser_mock.side_effect = Exception("error-message")
+        with patch('sys.argv', ['signapp.py', '-a', 'a-path', 'hash']):
+            with self.assertRaises(Exception) as e:
+                main()
+            self.assertEqual(str(e.exception), "error-message")
 
-    @patch("signapp.compute_app_hash", return_value=b"1122334455")
-    def test_key_invalid_key(self, *_):
-        key = '11223344'
-        options = self.parser.parse_args([
-            '-a', 'a-path',
-            '-o', 'out-path',
-            '-k', key,
-            'key'
-        ])
+    def test_key(self, parser_mock, info_mock):
+        parser_mock.return_value.getAreas.return_value = [self.area_mock]
+        self.assertEqual(self.app_hash, compute_app_hash('a-path'))
+        pub_key = self.priv_key.get_verifying_key()
+        out_path = 'out-path'
 
-        with self.assertRaises(SystemExit) as exit:
-            do_main(options)
-        self.assertNotEqual(exit.exception.code, RETURN_SUCCESS)
+        with patch('sys.argv', [
+                'signapp.py', '-a', 'a-path', '-o', out_path, '-k',
+                self.priv_key.to_string().hex(), 'key'
+        ]):
+            with patch('builtins.open', mock_open()) as file_mock:
+                main()
+                self.assertEqual([call(out_path, 'wb')], file_mock.call_args_list)
+                self.assertEqual([
+                    call('Computing app hash...'),
+                    call(f'App hash: {self.app_hash.hex()}'),
+                    call('Signing with key...'),
+                    call(f'Signature saved to {out_path}')
+                ], info_mock.call_args_list)
+                retreived_hash = info_mock.call_args_list[1][0][0].split()[-1]
+                retreived_sig = file_mock.return_value.write.call_args_list[0][0][0]
+                self.assertEqual(self.app_hash.hex(), retreived_hash)
+                signature = bytes.fromhex(retreived_sig.decode())
+                hash = bytes.fromhex(retreived_hash)
+                self.assertTrue(
+                    pub_key.verify_digest(signature,
+                                          hash,
+                                          sigdecode=ecdsa.util.sigdecode_der))
 
-    @patch("signapp.compute_app_hash", return_value=b"1122334455")
-    def test_hash(self, *_):
-        options = self.parser.parse_args([
-            '-a', 'a-path',
-            '-o', 'out-path',
-            'hash'
-        ])
+    def test_key_default_path(self, parser_mock, info_mock):
+        parser_mock.return_value.getAreas.return_value = [self.area_mock]
+        self.assertEqual(self.app_hash, compute_app_hash('a-path'))
+        pub_key = self.priv_key.get_verifying_key()
 
-        with self.assertRaises(SystemExit) as exit:
-            do_main(options)
-        self.assertEqual(exit.exception.code, RETURN_SUCCESS)
+        with patch('sys.argv',
+                   ['signapp.py', '-a', 'a-path', '-k',
+                    self.priv_key.to_string().hex(), 'key']):
+            with patch('builtins.open', mock_open()) as file_mock:
+                main()
+                self.assertEqual([call('a-path.sig', 'wb')], file_mock.call_args_list)
+                self.assertEqual([
+                    call('Computing app hash...'),
+                    call(f'App hash: {self.app_hash.hex()}'),
+                    call('Signing with key...'),
+                    call('Signature saved to a-path.sig')
+                ], info_mock.call_args_list)
+                retreived_hash = info_mock.call_args_list[1][0][0].split()[-1]
+                retreived_sig = file_mock.return_value.write.call_args_list[0][0][0]
+                self.assertEqual(self.app_hash.hex(), retreived_hash)
+                signature = bytes.fromhex(retreived_sig.decode())
+                hash = bytes.fromhex(retreived_hash)
+                self.assertTrue(
+                    pub_key.verify_digest(signature,
+                                          hash,
+                                          sigdecode=ecdsa.util.sigdecode_der))
 
-    @patch("signapp.compute_app_hash", side_effect=Exception)
-    def test_hash_invalid_app_hash(self, *_):
-        options = self.parser.parse_args([
-            '-a', 'a-path',
-            '-o', 'out-path',
-            'hash'
-        ])
+    def test_key_no_key(self, parser_mock, _):
+        parser_mock.return_value.getAreas.return_value = [self.area_mock]
+        self.assertEqual(self.app_hash, compute_app_hash('a-path'))
+        with patch('sys.argv', ['signapp.py', '-a', 'a-path', 'key']):
+            with self.assertRaises(AdminError) as e:
+                main()
+            error_msg = "Must provide a signing key with '-k/--key'"
+            self.assertEqual(error_msg, str(e.exception))
 
-        with self.assertRaises(SystemExit) as exit:
-            do_main(options)
-        self.assertNotEqual(exit.exception.code, RETURN_SUCCESS)
+    def test_key_invalid_key(self, parser_mock, _):
+        parser_mock.return_value.getAreas.return_value = [self.area_mock]
+        self.assertEqual(self.app_hash, compute_app_hash('a-path'))
+        key = 'aabbccddeeff'
+        with patch('sys.argv', ['signapp.py', '-a', 'a-path', '-k', key, 'key']):
+            with self.assertRaises(AdminError) as e:
+                main()
+            error_msg = f"Invalid key '{key}'"
+            self.assertEqual(error_msg, str(e.exception))
 
-    @patch("signapp.compute_app_hash", return_value=b"1122334455")
-    @patch("ecdsa.VerifyingKey.verify_digest", return_value=True)
     @patch("signapp.get_hsm")
-    @patch("ledger.hsm2dongle.HSM2Dongle")
-    def test_ledger(self, dongle, get_hsm, *_):
-        key = bytes.fromhex('04b76bfeb41e93536c95d2ea28125bc5016889f4fdd32515bdecc4b0d2cea0d2633b732d7a092b1125b05c07053cc96f30094467811da87a85bc9d0b24efceaa1f')  # noqa E501
-        get_hsm.return_value = dongle
-        dongle._send_command = Mock(return_value=key)
+    @patch("admin.misc.info")
+    def test_ledger(self, _, get_hsm, parser_mock, info_mock):
+        pub_key = self.priv_key.get_verifying_key()
+        path = "m/44'/0'/0'/0/0"
 
-        options = self.parser.parse_args([
-            '-a', 'a-path',
-            '-o', 'out-path',
-            '-p', "m/44'/0'/0'/0/0",
-            'ledger'
-        ])
+        def send_command_mock(command, _):
+            if command == COMMAND_SIGN:
+                return self.priv_key.sign_digest(self.app_hash,
+                                                 sigencode=ecdsa.util.sigencode_der)
+            else:
+                return pub_key.to_string()
 
-        with self.assertRaises(SystemExit) as exit:
-            do_main(options)
-        self.assertEqual(exit.exception.code, RETURN_SUCCESS)
+        parser_mock.return_value.getAreas.return_value = [self.area_mock]
+        self.assertEqual(self.app_hash, compute_app_hash('a-path'))
+        dongle_mock = Mock()
+        get_hsm.return_value = dongle_mock
+        dongle_mock._send_command = Mock(side_effect=send_command_mock)
+        with patch(
+            'sys.argv',
+                ['signapp.py', '-a', 'a-path', '-p', path, '-o', 'out-path', 'ledger']):
+            with patch('builtins.open', mock_open()) as file_mock:
+                main()
+                self.assertEqual([
+                    call('Computing app hash...'),
+                    call(f'App hash: {self.app_hash.hex()}'),
+                    call(f"Retrieving public key for path '{str(path)}'..."),
+                    call(f"Public key: {pub_key.to_string().hex()}"),
+                    call("Signing with dongle..."),
+                    call("Verifying signature..."),
+                    call("Signature saved to out-path")
+                ], info_mock.call_args_list)
+                retreived_hash = info_mock.call_args_list[1][0][0].split()[-1]
+                retreived_sig = file_mock.return_value.write.call_args_list[0][0][0]
+                signature = bytes.fromhex(retreived_sig.decode())
+                hash = bytes.fromhex(retreived_hash)
+                self.assertTrue(
+                    pub_key.verify_digest(signature,
+                                          hash,
+                                          sigdecode=ecdsa.util.sigdecode_der))
 
-    @patch("signapp.compute_app_hash", side_effect=Exception)
-    @patch("ecdsa.VerifyingKey.verify_digest", return_value=True)
     @patch("signapp.get_hsm")
-    @patch("ledger.hsm2dongle.HSM2Dongle")
-    def test_ledger_invalid_app_hash(self, dongle, get_hsm, *_):
-        key = bytes.fromhex('04b76bfeb41e93536c95d2ea28125bc5016889f4fdd32515bdecc4b0d2cea0d2633b732d7a092b1125b05c07053cc96f30094467811da87a85bc9d0b24efceaa1f')  # noqa E501
-        get_hsm.return_value = dongle
-        dongle._send_command = Mock(return_value=key)
+    @patch("admin.misc.info")
+    def test_ledger_default_path(self, _, get_hsm, parser_mock, info_mock):
+        pub_key = self.priv_key.get_verifying_key()
+        path = DEFAULT_PATH
 
-        options = self.parser.parse_args([
-            '-a', 'a-path',
-            '-o', 'out-path',
-            '-p', "m/44'/0'/0'/0/0",
-            'ledger'
-        ])
+        def send_command_mock(command, _):
+            if command == COMMAND_SIGN:
+                return self.priv_key.sign_digest(self.app_hash,
+                                                 sigencode=ecdsa.util.sigencode_der)
+            else:
+                return pub_key.to_string()
 
-        with self.assertRaises(SystemExit) as exit:
-            do_main(options)
-        self.assertNotEqual(exit.exception.code, RETURN_SUCCESS)
+        parser_mock.return_value.getAreas.return_value = [self.area_mock]
+        self.assertEqual(self.app_hash, compute_app_hash('a-path'))
+        dongle_mock = Mock()
+        get_hsm.return_value = dongle_mock
+        dongle_mock._send_command = Mock(side_effect=send_command_mock)
+        with patch('sys.argv',
+                   ['signapp.py', '-a', 'a-path', '-o', 'out-path', 'ledger']):
+            with patch('builtins.open', mock_open()) as file_mock:
+                main()
+                self.assertEqual([
+                    call('Computing app hash...'),
+                    call(f'App hash: {self.app_hash.hex()}'),
+                    call(f"Retrieving public key for path '{str(path)}'..."),
+                    call(f"Public key: {pub_key.to_string().hex()}"),
+                    call("Signing with dongle..."),
+                    call("Verifying signature..."),
+                    call("Signature saved to out-path")
+                ], info_mock.call_args_list)
+                retreived_hash = info_mock.call_args_list[1][0][0].split()[-1]
+                retreived_sig = file_mock.return_value.write.call_args_list[0][0][0]
+                signature = bytes.fromhex(retreived_sig.decode())
+                hash = bytes.fromhex(retreived_hash)
+                self.assertTrue(
+                    pub_key.verify_digest(signature,
+                                          hash,
+                                          sigdecode=ecdsa.util.sigdecode_der))
 
-    @patch("signapp.compute_app_hash", return_value=b"1122334455")
-    @patch("ecdsa.VerifyingKey.verify_digest", return_value=True)
+    def test_ledger_invalid_bip_path(self, parser_mock, _):
+        path = "invalid-path"
+        parser_mock.return_value.getAreas.return_value = [self.area_mock]
+        self.assertEqual(self.app_hash, compute_app_hash('a-path'))
+        with patch(
+            'sys.argv',
+                ['signapp.py', '-p', path, '-a', 'a-path', '-o', 'out-path', 'ledger']):
+            with self.assertRaises(ValueError):
+                main()
+
     @patch("signapp.get_hsm")
-    @patch("ledger.hsm2dongle.HSM2Dongle")
-    def test_ledger_invalid_key(self, dongle, get_hsm, *_):
-        key = bytes.fromhex('11223344')
-        get_hsm.return_value = dongle
-        dongle._send_command = Mock(return_value=key)
-
-        options = self.parser.parse_args([
-            '-a', 'a-path',
-            '-o', 'out-path',
-            '-p', "m/44'/0'/0'/0/0",
-            'ledger'
-        ])
-
-        with self.assertRaises(SystemExit) as exit:
-            do_main(options)
-        self.assertNotEqual(exit.exception.code, RETURN_SUCCESS)
+    @patch("admin.misc.info")
+    def test_ledger_invalid_app(self, _1, get_hsm, parser_mock, _2):
+        parser_mock.side_effect = Exception("error-message")
+        get_hsm.return_value = Mock()
+        with patch('sys.argv',
+                   ['signapp.py', '-a', 'a-path', '-o', 'out-path', 'ledger']):
+            with self.assertRaises(Exception) as e:
+                main()
+            self.assertEqual(str(e.exception), "error-message")

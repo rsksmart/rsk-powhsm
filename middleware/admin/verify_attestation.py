@@ -156,7 +156,7 @@ def do_verify_attestation(options):
     if signer_message[mh_len:] != pubkeys_hash:
         raise AdminError(
             f"Signer attestation public keys hash mismatch: expected {pubkeys_hash.hex()}"
-            " but attestation reports {signer_message[mh_len:].hex()}"
+            f" but attestation reports {signer_message[mh_len:].hex()}"
         )
 
     head(

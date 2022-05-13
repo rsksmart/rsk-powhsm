@@ -20,8 +20,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-def get_utilities():
-    return {
+import sys
+
+
+def main():
+    import runpy
+
+    utilities = {
         "load": "loadApp",
         "delete": "deleteApp",
         "setupCA": "setupCustomCA",
@@ -29,30 +34,20 @@ def get_utilities():
         "genCA": "genCAPair",
     }
 
-
-def parse_args(argv):
-    utilities = get_utilities()
-
-    if len(argv) < 2 or argv[1] not in utilities:
+    if len(sys.argv) < 2 or sys.argv[1] not in utilities:
         commands = ", ".join(utilities.keys())
         print("Ledgerblue utilities")
-        print(f"usage: {argv[0]} {{{commands}}} [options]")
+        print(f"usage: {sys.argv[0]} {{{commands}}} [options]")
         sys.exit(99)
 
-    module = f"ledgerblue.{utilities[argv[1]]}"
-    sys_argv = [f"{argv[0]} {argv[1]}"] + argv[2:]
-
-    return module, sys_argv
+    module = f"ledgerblue.{utilities[sys.argv[1]]}"
+    sys.argv = [f"{sys.argv[0]} {sys.argv[1]}"] + sys.argv[2:]
+    runpy.run_module(module, run_name="__main__")
 
 
 if __name__ == "__main__":
-    import runpy
-    import sys
-
-    module, sys.argv = parse_args(sys.argv)
-
     try:
-        res = runpy.run_module(module, run_name="__main__")
+        main()
         sys.exit(0)
     except Exception as e:
         print(f"Error: {str(e)}")

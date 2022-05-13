@@ -46,14 +46,6 @@ ENDORSEMENT_CERTIFICATE = b"RSK_ENDORSEMENT_OK"
 SEED_SIZE = 32
 
 
-def get_user_answer():
-    return sys.stdin.readline().rstrip()
-
-
-def wait_user_confirmation():
-    return sys.stdin.readline()
-
-
 def do_onboard(options):
     head("### -> Onboarding and attestation setup", fill="#")
     hsm = None
@@ -103,7 +95,7 @@ def do_onboard(options):
     ])
     while True:
         info("> ", False)
-        answer = get_user_answer()
+        answer = sys.stdin.readline().rstrip()
         if answer.lower() in ["n", "no"]:
             raise AdminError("Cancelled by user")
         if answer.lower() == "yes":
@@ -138,7 +130,7 @@ def do_onboard(options):
         ],
         nl=False,
     )
-    wait_user_confirmation()
+    sys.stdin.readline()
 
     # Wait for the dongle
     wait_for_reconnection()

@@ -21,11 +21,14 @@
 # SOFTWARE.
 
 from unittest import TestCase
-from unittest.mock import Mock, patch
-from adm import create_actions, create_parser
-from admin.misc import AdminError, not_implemented
+from unittest.mock import Mock, call, patch, mock_open
+from adm import main
+from admin.misc import AdminError
+from admin.pubkeys import PATHS
 from ledger.hsm2dongle import HSM2Dongle
 
+import ecdsa
+import json
 import logging
 
 logging.disable(logging.CRITICAL)
@@ -33,51 +36,122 @@ logging.disable(logging.CRITICAL)
 
 @patch("sys.stdout.write")
 @patch("admin.pubkeys.get_hsm")
-@patch("ledger.hsm2dongle.HSM2Dongle")
 class TestPubkeys(TestCase):
-    VALID_PUBLIC_KEY = '04ef25f25c6b142785e4912b78eb08e8a47c03722af4d3c1705631e97868a5bddb4eaa821560b6a55942466084cabfba9233bfc564e60293663a0667cd3b6807e6' # noqa E501
-    INVALID_PUBLIC_KEY = '04aabbccddee'
-
     def setUp(self):
-        self.actions = create_actions()
-        self.parser = create_parser(self.actions)
+        self.dongle = Mock()
+        self.invalid_public_key = 'aa' * 65
 
-    def test_pubkeys(self, dongle, get_hsm, _):
-        get_hsm.return_value = dongle
+        self.public_keys = {}
+        for path in PATHS:
+            pubkey = ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1).get_verifying_key()
+            self.public_keys[path] = pubkey.to_string().hex()
 
-        dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.APP)
-        dongle.get_public_key = Mock(return_value=self.VALID_PUBLIC_KEY)
-        dongle.is_onboarded = Mock(return_value=True)
+    @patch("admin.pubkeys.do_unlock")
+    def test_pubkeys(self, unlock_mock, get_hsm, _):
+        def get_pubkey_mock(path):
+            path_name = list(PATHS.keys())[list(PATHS.values()).index(path)]
+            return self.public_keys[path_name]
 
-        options = self.parser.parse_args(['-u', 'pubkeys'])
-        self.actions.get(options.operation, not_implemented)(options)
+        self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.APP)
+        self.dongle.get_public_key = Mock(side_effect=get_pubkey_mock)
+        self.dongle.is_onboarded = Mock(return_value=True)
+        get_hsm.return_value = self.dongle
 
-    def test_pubkeys_invalid_pubkey(self, dongle, get_hsm, _):
-        get_hsm.return_value = dongle
+        with patch('sys.argv', ['adm.py', '-o', 'outfile', 'pubkeys']):
+            with patch('builtins.open', mock_open()) as file_mock:
+                main()
+        self.assertEqual([call('outfile', 'w'), call('outfile.json', 'w')],
+                         file_mock.call_args_list)
 
-        dongle.get_current_mode = Mock()
-        dongle.get_public_key = Mock()
-        dongle.is_onboarded = Mock()
+        json_dict = {}
+        path_name_padding = max(map(len, PATHS))
+        expected_call_list = [call(f"{'*' * 80}\n"),
+                              call('Name \t\t\t Path \t\t\t\t Pubkey\n'),
+                              call('==== \t\t\t ==== \t\t\t\t ======\n')]
+        for path_name in PATHS.keys():
+            pubkey = ecdsa.VerifyingKey.from_string(bytes.fromhex(
+                self.public_keys[path_name]), curve=ecdsa.SECP256k1)
+            pubkey_compressed = pubkey.to_string("compressed").hex()
+            pubkey_uncompressed = pubkey.to_string("uncompressed").hex()
+            expected_call_list.append(call(f'{path_name.ljust(path_name_padding)} '
+                                           f'\t\t {PATHS[path_name]} '
+                                           f'\t\t {pubkey_compressed}\n'))
+            json_dict[str(PATHS[path_name])] = pubkey_uncompressed
+        expected_call_list.append(call('*' * 80 + '\n'))
+        expected_call_list.append(call('%s\n' % json.dumps(json_dict, indent=2)))
 
-        dongle.get_current_mode.return_value = HSM2Dongle.MODE.APP
-        dongle.get_public_key.return_value = self.INVALID_PUBLIC_KEY
-        dongle.is_onboarded.return_value = True
+        self.assertEqual(expected_call_list, file_mock.return_value.write.call_args_list)
+        self.assertTrue(unlock_mock.called)
 
-        options = self.parser.parse_args(['-u', 'pubkeys'])
-        with self.assertRaises(AdminError):
-            self.actions.get(options.operation, not_implemented)(options)
+    @patch("admin.pubkeys.do_unlock")
+    def test_pubkeys_no_unlock(self, unlock_mock, get_hsm, _):
+        def get_pubkey_mock(path):
+            path_name = list(PATHS.keys())[list(PATHS.values()).index(path)]
+            return self.public_keys[path_name]
 
-    def test_pubkeys_invalid_mode(self, dongle, get_hsm, _):
-        get_hsm.return_value = dongle
+        self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.APP)
+        self.dongle.get_public_key = Mock(side_effect=get_pubkey_mock)
+        self.dongle.is_onboarded = Mock(return_value=True)
+        get_hsm.return_value = self.dongle
 
-        dongle.get_current_mode = Mock()
-        dongle.get_public_key = Mock()
-        dongle.is_onboarded = Mock()
+        with patch('sys.argv', ['adm.py', '-u', '-o', 'outfile', 'pubkeys']):
+            with patch('builtins.open', mock_open()) as file_mock:
+                main()
+        self.assertEqual([call('outfile', 'w'), call('outfile.json', 'w')],
+                         file_mock.call_args_list)
 
-        dongle.get_current_mode.return_value = HSM2Dongle.MODE.BOOTLOADER
-        dongle.get_public_key.return_value = self.VALID_PUBLIC_KEY
-        dongle.is_onboarded.return_value = True
+        json_dict = {}
+        path_name_padding = max(map(len, PATHS))
+        expected_call_list = [call(f"{'*' * 80}\n"),
+                              call('Name \t\t\t Path \t\t\t\t Pubkey\n'),
+                              call('==== \t\t\t ==== \t\t\t\t ======\n')]
+        for path_name in PATHS.keys():
+            pubkey = ecdsa.VerifyingKey.from_string(bytes.fromhex(
+                self.public_keys[path_name]), curve=ecdsa.SECP256k1)
+            pubkey_compressed = pubkey.to_string("compressed").hex()
+            pubkey_uncompressed = pubkey.to_string("uncompressed").hex()
+            expected_call_list.append(call(f'{path_name.ljust(path_name_padding)} '
+                                           f'\t\t {PATHS[path_name]} '
+                                           f'\t\t {pubkey_compressed}\n'))
+            json_dict[str(PATHS[path_name])] = pubkey_uncompressed
+        expected_call_list.append(call('*' * 80 + '\n'))
+        expected_call_list.append(call('%s\n' % json.dumps(json_dict, indent=2)))
 
-        options = self.parser.parse_args(['-u', 'pubkeys'])
-        with self.assertRaises(AdminError):
-            self.actions.get(options.operation, not_implemented)(options)
+        self.assertEqual(expected_call_list, file_mock.return_value.write.call_args_list)
+        self.assertFalse(unlock_mock.called)
+
+    @patch("admin.pubkeys.do_unlock")
+    def test_pubkeys_unlock_error(self, unlock_mock, get_hsm, _):
+        unlock_mock.side_effect = Exception("unlock-error")
+        self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.APP)
+        self.dongle.is_onboarded = Mock(return_value=True)
+        get_hsm.return_value = self.dongle
+
+        with patch('sys.argv', ['adm.py', '-o', 'outfile', 'pubkeys']):
+            with self.assertRaises(AdminError) as e:
+                main()
+        self.assertTrue(unlock_mock.called)
+        self.assertEqual('Failed to unlock device: unlock-error', str(e.exception))
+
+    def test_pubkeys_invalid_pubkey(self, get_hsm, _):
+        self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.APP)
+        self.dongle.get_public_key = Mock(return_value=self.invalid_public_key)
+        self.dongle.is_onboarded = Mock(return_value=True)
+        get_hsm.return_value = self.dongle
+
+        with patch('sys.argv', ['adm.py', '-u', 'pubkeys']):
+            with self.assertRaises(AdminError) as e:
+                main()
+        self.assertEqual('Error writing output: '
+                         'Invalid X9.62 encoding of the public point',
+                         str(e.exception))
+
+    def test_pubkeys_invalid_mode(self, get_hsm, _):
+        self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.BOOTLOADER)
+        self.dongle.is_onboarded = Mock(return_value=True)
+        get_hsm.return_value = self.dongle
+
+        with patch('sys.argv', ['adm.py', '-u', 'pubkeys']):
+            with self.assertRaises(AdminError) as e:
+                main()
+        self.assertTrue(str(e.exception).startswith('Device not in app mode.'))

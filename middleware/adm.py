@@ -37,8 +37,10 @@ DEFAULT_PIN_CHANGE_FILE = "changePIN"
 DEFAULT_ATT_UD_SOURCE = "https://public-node.rsk.co"
 
 
-def create_actions():
-    return {
+def main():
+    logging.disable(logging.CRITICAL)
+
+    actions = {
         "unlock": do_unlock,
         "onboard": do_onboard,
         "pubkeys": do_get_pubkeys,
@@ -47,8 +49,6 @@ def create_actions():
         "verify_attestation": do_verify_attestation,
     }
 
-
-def create_parser(actions):
     parser = ArgumentParser(description="powHSM Administrative tool")
     parser.add_argument("operation", choices=list(actions.keys()))
     parser.add_argument("-p", "--pin", dest="pin", help="PIN.")
@@ -139,18 +139,13 @@ def create_parser(actions):
         default=False,
         const=True,
     )
-
-    return parser
+    options = parser.parse_args()
+    actions.get(options.operation, not_implemented)(options)
 
 
 if __name__ == "__main__":
-    logging.disable(logging.CRITICAL)
-    actions = create_actions()
-    parser = create_parser(actions)
-    options = parser.parse_args()
-
     try:
-        actions.get(options.operation, not_implemented)(options)
+        main()
         sys.exit(0)
     except AdminError as e:
         info(str(e))

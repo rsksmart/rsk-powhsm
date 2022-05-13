@@ -21,48 +21,52 @@
 # SOFTWARE.
 
 from unittest import TestCase
-from lbutils import get_utilities, parse_args
+from unittest.mock import call, patch
+from lbutils import main
 
 import logging
 
 logging.disable(logging.CRITICAL)
 
 
+@patch("runpy.run_module")
 class TestLbutils(TestCase):
-    def setUp(self):
-        self.expected_utilities = {
-            "load": "loadApp",
-            "delete": "deleteApp",
-            "setupCA": "setupCustomCA",
-            "resetCA": "resetCustomCA",
-            "genCA": "genCAPair",
-        }
-        self.utilities = get_utilities()
+    def test_load(self, run_module):
+        with patch('sys.argv', ['lbutils.py', 'load']):
+            main()
 
-    def test_utilities(self):
-        for key in self.utilities.keys():
-            self.assertEqual(self.utilities[key], self.expected_utilities[key])
+        self.assertTrue(run_module.called)
+        self.assertEqual([call('ledgerblue.loadApp', run_name='__main__')],
+                         run_module.call_args_list)
 
-    def test_load(self):
-        input_argv = ['lnutils.py', 'load', 'an-arg']
-        module, argv = parse_args(input_argv)
-        self.assertEqual(module, 'ledgerblue.loadApp')
-        self.assertEqual(argv, [f"{input_argv[0]} {input_argv[1]}"] + input_argv[2:])
+    def test_delete(self, run_module):
+        with patch('sys.argv', ['lbutils.py', 'delete']):
+            main()
 
-    def test_delete(self):
-        input_argv = ['lnutils.py', 'delete', 'an-arg']
-        module, argv = parse_args(input_argv)
-        self.assertEqual(module, 'ledgerblue.deleteApp')
-        self.assertEqual(argv, [f"{input_argv[0]} {input_argv[1]}"] + input_argv[2:])
+        self.assertTrue(run_module.called)
+        self.assertEqual([call('ledgerblue.deleteApp', run_name='__main__')],
+                         run_module.call_args_list)
 
-    def test_setup_ca(self):
-        input_argv = ['lnutils.py', 'setupCA', 'an-arg']
-        module, argv = parse_args(input_argv)
-        self.assertEqual(module, 'ledgerblue.setupCustomCA')
-        self.assertEqual(argv, [f"{input_argv[0]} {input_argv[1]}"] + input_argv[2:])
+    def test_setup_ca(self, run_module):
+        with patch('sys.argv', ['lbutils.py', 'setupCA']):
+            main()
 
-    def test_gen_ca(self):
-        input_argv = ['lnutils.py', 'genCA', 'an-arg']
-        module, argv = parse_args(input_argv)
-        self.assertEqual(module, 'ledgerblue.genCAPair')
-        self.assertEqual(argv, [f"{input_argv[0]} {input_argv[1]}"] + input_argv[2:])
+        self.assertTrue(run_module.called)
+        self.assertEqual([call('ledgerblue.setupCustomCA', run_name='__main__')],
+                         run_module.call_args_list)
+
+    def test_reset_ca(self, run_module):
+        with patch('sys.argv', ['lbutils.py', 'resetCA']):
+            main()
+
+        self.assertTrue(run_module.called)
+        self.assertEqual([call('ledgerblue.resetCustomCA', run_name='__main__')],
+                         run_module.call_args_list)
+
+    def test_gen_ca(self, run_module):
+        with patch('sys.argv', ['lbutils.py', 'genCA']):
+            main()
+
+        self.assertTrue(run_module.called)
+        self.assertEqual([call('ledgerblue.genCAPair', run_name='__main__')],
+                         run_module.call_args_list)

@@ -50,7 +50,9 @@ def compute_app_hash(path):
     return digest.digest()
 
 
-def create_parser():
+def main():
+    logging.disable(logging.CRITICAL)
+
     parser = ArgumentParser(description="powHSM App Signer")
     parser.add_argument("operation", choices=["key", "ledger", "hash"])
     parser.add_argument(
@@ -65,14 +67,14 @@ def create_parser():
         "--output",
         dest="output_path",
         help="Destination file for the signature (defaults to the app path with "
-             "a '.sig' extension).",
+        "a '.sig' extension).",
     )
     parser.add_argument(
         "-p",
         "--path",
         dest="path",
         help="Path used for signing (only for 'ledger' option). "
-             f"Default \"{DEFAULT_PATH}\"",
+        f"Default \"{DEFAULT_PATH}\"",
         default=DEFAULT_PATH,
     )
     parser.add_argument(
@@ -80,7 +82,7 @@ def create_parser():
         "--key",
         dest="key",
         help="Private key used for signing (only for 'key' option). "
-             "Must be a 32-byte hex-encoded string.",
+        "Must be a 32-byte hex-encoded string.",
     )
     parser.add_argument(
         "-v",
@@ -91,10 +93,8 @@ def create_parser():
         default=False,
         const=True,
     )
-    return parser
+    options = parser.parse_args()
 
-
-def do_main(options):
     try:
         hsm = None
 
@@ -117,7 +117,7 @@ def do_main(options):
 
         # If we only need to compute the hash, then that's it
         if options.operation == "hash":
-            sys.exit(0)
+            return
 
         # Sign the app hash
         if options.operation == "key":
@@ -153,17 +153,16 @@ def do_main(options):
         with open(output_path, "wb") as file:
             file.write(signature.hex().encode())
             info(f"Signature saved to {output_path}")
-
-        sys.exit(0)
     except Exception as e:
-        info(str(e))
-        sys.exit(1)
+        raise e
     finally:
         dispose_hsm(hsm)
 
 
 if __name__ == "__main__":
-    logging.disable(logging.CRITICAL)
-    parser = create_parser()
-    options = parser.parse_args()
-    do_main(options)
+    try:
+        main()
+        sys.exit(0)
+    except Exception as e:
+        info(str(e))
+        sys.exit(1)
