@@ -20,10 +20,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from types import SimpleNamespace
 from unittest import TestCase
 from unittest.mock import Mock, call, patch
-from adm import main
 from admin.misc import AdminError
+from admin.unlock import do_unlock
 from ledger.hsm2dongle import HSM2Dongle
 
 import logging
@@ -34,10 +35,16 @@ logging.disable(logging.CRITICAL)
 @patch("sys.stdout.write")
 @patch("admin.unlock.get_hsm")
 class TestUnlock(TestCase):
-    VALID_PIN = '1234ABCD'
-    INVALID_PIN = '123456789'
-
     def setUp(self):
+        self.valid_pin = '1234ABCD'
+        self.invalid_pin = '123456789'
+
+        options = {
+            'pin': self.valid_pin,
+            'no_exec': None,
+            'verbose': False
+        }
+        self.default_options = SimpleNamespace(**options)
         self.dongle = Mock()
 
     @patch("admin.unlock.info")
@@ -46,57 +53,50 @@ class TestUnlock(TestCase):
         self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.BOOTLOADER)
         self.dongle.is_onboarded = Mock(return_value=True)
 
-        with patch('sys.argv', ['adm.py', '-p', self.VALID_PIN, 'unlock']):
-            main()
+        do_unlock(self.default_options)
         self.assertEqual(call('PIN accepted'), info_mock.call_args_list[7])
 
     def test_unlock_invalid_pin(self, get_hsm, _):
         get_hsm.return_value = self.dongle
-
         self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.BOOTLOADER)
         self.dongle.is_onboarded = Mock(return_value=True)
 
-        with patch('sys.argv', ['adm.py', '-p', self.INVALID_PIN, 'unlock']):
-            with self.assertRaises(AdminError) as e:
-                main()
+        options = self.default_options
+        options.pin = self.invalid_pin
+        with self.assertRaises(AdminError) as e:
+            do_unlock(options)
         self.assertTrue(str(e.exception).startswith('Invalid pin given.'))
 
     def test_unlock_not_onboarded(self, get_hsm, _):
         get_hsm.return_value = self.dongle
-
         self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.BOOTLOADER)
         self.dongle.is_onboarded = Mock(return_value=False)
 
-        with patch('sys.argv', ['adm.py', '-p', self.VALID_PIN, 'unlock']):
-            with self.assertRaises(AdminError) as e:
-                main()
+        with self.assertRaises(AdminError) as e:
+            do_unlock(self.default_options)
         self.assertEqual('Device not onboarded', str(e.exception))
 
     def test_unlock_invalid_mode(self, get_hsm, _):
         get_hsm.return_value = self.dongle
-
         self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.APP)
         self.dongle.is_onboarded = Mock(return_value=True)
 
-        with patch('sys.argv', ['adm.py', '-p', self.VALID_PIN, 'unlock']):
-            with self.assertRaises(AdminError) as e:
-                main()
+        with self.assertRaises(AdminError) as e:
+            do_unlock(self.default_options)
         self.assertEqual('Device already unlocked and in app mode', str(e.exception))
 
         self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.UNKNOWN)
-        with patch('sys.argv', ['adm.py', '-p', self.VALID_PIN, 'unlock']):
-            with self.assertRaises(AdminError) as e:
-                main()
+        with self.assertRaises(AdminError) as e:
+            do_unlock(self.default_options)
+
         self.assertTrue(str(e.exception).startswith('Device mode unknown.'))
 
     def test_unlock_wrong_pin(self, get_hsm, _):
         get_hsm.return_value = self.dongle
-
         self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.BOOTLOADER)
         self.dongle.is_onboarded = Mock(return_value=True)
         self.dongle.unlock = Mock(return_value=False)
 
-        with patch('sys.argv', ['adm.py', '-p', self.VALID_PIN, 'unlock']):
-            with self.assertRaises(AdminError) as e:
-                main()
+        with self.assertRaises(AdminError) as e:
+            do_unlock(self.default_options)
         self.assertEqual('Unable to unlock: PIN mismatch', str(e.exception))

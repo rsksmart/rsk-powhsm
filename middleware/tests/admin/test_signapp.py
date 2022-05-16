@@ -22,8 +22,7 @@
 
 from unittest import TestCase
 from unittest.mock import Mock, call, mock_open, patch
-from admin.misc import AdminError
-from signapp import main, compute_app_hash, COMMAND_SIGN, DEFAULT_PATH
+from signapp import main, COMMAND_SIGN, DEFAULT_PATH
 from thirdparty.sha256 import SHA256
 import io
 
@@ -52,15 +51,13 @@ class TestSignApp(TestCase):
         self.area_mock.data = app_data
         self.priv_key = ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1)
 
-    def test_compute_app_hash(self, parser_mock, _):
-        parser_mock.return_value.getAreas.return_value = [self.area_mock]
-        self.assertEqual(self.app_hash, compute_app_hash('a-path'))
-
     def test_hash(self, parser_mock, info_mock):
         parser_mock.return_value.getAreas.return_value = [self.area_mock]
         with patch('sys.argv', ['signapp.py', '-a', 'a-path', 'hash']):
-            main()
+            with self.assertRaises(SystemExit) as exit:
+                main()
 
+        self.assertEqual(exit.exception.code, RETURN_SUCCESS)
         self.assertEqual(
             [call('Computing app hash...'),
              call(f'App hash: {self.app_hash.hex()}')], info_mock.call_args_list)
@@ -77,16 +74,17 @@ class TestSignApp(TestCase):
                      ' -a/--app\n')
         self.assertEqual(error_msg, err_mock.getvalue())
 
-    def test_hash_invalid_app(self, parser_mock, _):
+    def test_hash_invalid_app(self, parser_mock, info_mock):
         parser_mock.side_effect = Exception("error-message")
         with patch('sys.argv', ['signapp.py', '-a', 'a-path', 'hash']):
-            with self.assertRaises(Exception) as e:
+            with self.assertRaises(SystemExit) as exit:
                 main()
-            self.assertEqual(str(e.exception), "error-message")
+        self.assertNotEqual(exit.exception.code, RETURN_SUCCESS)
+        self.assertTrue(info_mock.called)
+        self.assertEqual(call("error-message"), info_mock.call_args_list[-1])
 
     def test_key(self, parser_mock, info_mock):
         parser_mock.return_value.getAreas.return_value = [self.area_mock]
-        self.assertEqual(self.app_hash, compute_app_hash('a-path'))
         pub_key = self.priv_key.get_verifying_key()
         out_path = 'out-path'
 
@@ -95,69 +93,73 @@ class TestSignApp(TestCase):
                 self.priv_key.to_string().hex(), 'key'
         ]):
             with patch('builtins.open', mock_open()) as file_mock:
-                main()
-                self.assertEqual([call(out_path, 'wb')], file_mock.call_args_list)
-                self.assertEqual([
-                    call('Computing app hash...'),
-                    call(f'App hash: {self.app_hash.hex()}'),
-                    call('Signing with key...'),
-                    call(f'Signature saved to {out_path}')
-                ], info_mock.call_args_list)
-                retreived_hash = info_mock.call_args_list[1][0][0].split()[-1]
-                retreived_sig = file_mock.return_value.write.call_args_list[0][0][0]
-                self.assertEqual(self.app_hash.hex(), retreived_hash)
-                signature = bytes.fromhex(retreived_sig.decode())
-                hash = bytes.fromhex(retreived_hash)
-                self.assertTrue(
-                    pub_key.verify_digest(signature,
-                                          hash,
-                                          sigdecode=ecdsa.util.sigdecode_der))
+                with self.assertRaises(SystemExit) as exit:
+                    main()
+
+        self.assertEqual(exit.exception.code, RETURN_SUCCESS)
+        self.assertEqual([call(out_path, 'wb')], file_mock.call_args_list)
+        self.assertEqual([
+            call('Computing app hash...'),
+            call(f'App hash: {self.app_hash.hex()}'),
+            call('Signing with key...'),
+            call(f'Signature saved to {out_path}')
+        ], info_mock.call_args_list)
+        retreived_hash = info_mock.call_args_list[1][0][0].split()[-1]
+        retreived_sig = file_mock.return_value.write.call_args_list[0][0][0]
+        self.assertEqual(self.app_hash.hex(), retreived_hash)
+        signature = bytes.fromhex(retreived_sig.decode())
+        hash = bytes.fromhex(retreived_hash)
+        self.assertTrue(
+            pub_key.verify_digest(signature,
+                                  hash,
+                                  sigdecode=ecdsa.util.sigdecode_der))
 
     def test_key_default_path(self, parser_mock, info_mock):
         parser_mock.return_value.getAreas.return_value = [self.area_mock]
-        self.assertEqual(self.app_hash, compute_app_hash('a-path'))
         pub_key = self.priv_key.get_verifying_key()
 
         with patch('sys.argv',
                    ['signapp.py', '-a', 'a-path', '-k',
                     self.priv_key.to_string().hex(), 'key']):
             with patch('builtins.open', mock_open()) as file_mock:
-                main()
-                self.assertEqual([call('a-path.sig', 'wb')], file_mock.call_args_list)
-                self.assertEqual([
-                    call('Computing app hash...'),
-                    call(f'App hash: {self.app_hash.hex()}'),
-                    call('Signing with key...'),
-                    call('Signature saved to a-path.sig')
-                ], info_mock.call_args_list)
-                retreived_hash = info_mock.call_args_list[1][0][0].split()[-1]
-                retreived_sig = file_mock.return_value.write.call_args_list[0][0][0]
-                self.assertEqual(self.app_hash.hex(), retreived_hash)
-                signature = bytes.fromhex(retreived_sig.decode())
-                hash = bytes.fromhex(retreived_hash)
-                self.assertTrue(
-                    pub_key.verify_digest(signature,
-                                          hash,
-                                          sigdecode=ecdsa.util.sigdecode_der))
+                with self.assertRaises(SystemExit) as exit:
+                    main()
 
-    def test_key_no_key(self, parser_mock, _):
+        self.assertEqual(exit.exception.code, RETURN_SUCCESS)
+        self.assertEqual([call('a-path.sig', 'wb')], file_mock.call_args_list)
+        self.assertEqual([
+            call('Computing app hash...'),
+            call(f'App hash: {self.app_hash.hex()}'),
+            call('Signing with key...'),
+            call('Signature saved to a-path.sig')
+        ], info_mock.call_args_list)
+        retreived_hash = info_mock.call_args_list[1][0][0].split()[-1]
+        retreived_sig = file_mock.return_value.write.call_args_list[0][0][0]
+        self.assertEqual(self.app_hash.hex(), retreived_hash)
+        signature = bytes.fromhex(retreived_sig.decode())
+        hash = bytes.fromhex(retreived_hash)
+        self.assertTrue(pub_key.verify_digest(signature,
+                                              hash,
+                                              sigdecode=ecdsa.util.sigdecode_der))
+
+    def test_key_no_key(self, parser_mock, info_mock):
         parser_mock.return_value.getAreas.return_value = [self.area_mock]
-        self.assertEqual(self.app_hash, compute_app_hash('a-path'))
         with patch('sys.argv', ['signapp.py', '-a', 'a-path', 'key']):
-            with self.assertRaises(AdminError) as e:
+            with self.assertRaises(SystemExit) as exit:
                 main()
-            error_msg = "Must provide a signing key with '-k/--key'"
-            self.assertEqual(error_msg, str(e.exception))
+        self.assertNotEqual(exit.exception.code, RETURN_SUCCESS)
+        error_msg = "Must provide a signing key with '-k/--key'"
+        self.assertEqual(call(error_msg), info_mock.call_args_list[-1])
 
-    def test_key_invalid_key(self, parser_mock, _):
+    def test_key_invalid_key(self, parser_mock, info_mock):
         parser_mock.return_value.getAreas.return_value = [self.area_mock]
-        self.assertEqual(self.app_hash, compute_app_hash('a-path'))
         key = 'aabbccddeeff'
         with patch('sys.argv', ['signapp.py', '-a', 'a-path', '-k', key, 'key']):
-            with self.assertRaises(AdminError) as e:
+            with self.assertRaises(SystemExit) as exit:
                 main()
             error_msg = f"Invalid key '{key}'"
-            self.assertEqual(error_msg, str(e.exception))
+            self.assertNotEqual(exit.exception.code, RETURN_SUCCESS)
+            self.assertEqual(call(error_msg), info_mock.call_args_list[-1])
 
     @patch("signapp.get_hsm")
     @patch("admin.misc.info")
@@ -173,7 +175,6 @@ class TestSignApp(TestCase):
                 return pub_key.to_string()
 
         parser_mock.return_value.getAreas.return_value = [self.area_mock]
-        self.assertEqual(self.app_hash, compute_app_hash('a-path'))
         dongle_mock = Mock()
         get_hsm.return_value = dongle_mock
         dongle_mock._send_command = Mock(side_effect=send_command_mock)
@@ -181,24 +182,25 @@ class TestSignApp(TestCase):
             'sys.argv',
                 ['signapp.py', '-a', 'a-path', '-p', path, '-o', 'out-path', 'ledger']):
             with patch('builtins.open', mock_open()) as file_mock:
-                main()
-                self.assertEqual([
-                    call('Computing app hash...'),
-                    call(f'App hash: {self.app_hash.hex()}'),
-                    call(f"Retrieving public key for path '{str(path)}'..."),
-                    call(f"Public key: {pub_key.to_string().hex()}"),
-                    call("Signing with dongle..."),
-                    call("Verifying signature..."),
-                    call("Signature saved to out-path")
-                ], info_mock.call_args_list)
-                retreived_hash = info_mock.call_args_list[1][0][0].split()[-1]
-                retreived_sig = file_mock.return_value.write.call_args_list[0][0][0]
-                signature = bytes.fromhex(retreived_sig.decode())
-                hash = bytes.fromhex(retreived_hash)
-                self.assertTrue(
-                    pub_key.verify_digest(signature,
-                                          hash,
-                                          sigdecode=ecdsa.util.sigdecode_der))
+                with self.assertRaises(SystemExit) as exit:
+                    main()
+        self.assertEqual(exit.exception.code, RETURN_SUCCESS)
+        self.assertEqual([
+            call('Computing app hash...'),
+            call(f'App hash: {self.app_hash.hex()}'),
+            call(f"Retrieving public key for path '{str(path)}'..."),
+            call(f"Public key: {pub_key.to_string().hex()}"),
+            call("Signing with dongle..."),
+            call("Verifying signature..."),
+            call("Signature saved to out-path")
+        ], info_mock.call_args_list)
+        retreived_hash = info_mock.call_args_list[1][0][0].split()[-1]
+        retreived_sig = file_mock.return_value.write.call_args_list[0][0][0]
+        signature = bytes.fromhex(retreived_sig.decode())
+        hash = bytes.fromhex(retreived_hash)
+        self.assertTrue(pub_key.verify_digest(signature,
+                                              hash,
+                                              sigdecode=ecdsa.util.sigdecode_der))
 
     @patch("signapp.get_hsm")
     @patch("admin.misc.info")
@@ -214,49 +216,56 @@ class TestSignApp(TestCase):
                 return pub_key.to_string()
 
         parser_mock.return_value.getAreas.return_value = [self.area_mock]
-        self.assertEqual(self.app_hash, compute_app_hash('a-path'))
         dongle_mock = Mock()
         get_hsm.return_value = dongle_mock
         dongle_mock._send_command = Mock(side_effect=send_command_mock)
         with patch('sys.argv',
                    ['signapp.py', '-a', 'a-path', '-o', 'out-path', 'ledger']):
             with patch('builtins.open', mock_open()) as file_mock:
-                main()
-                self.assertEqual([
-                    call('Computing app hash...'),
-                    call(f'App hash: {self.app_hash.hex()}'),
-                    call(f"Retrieving public key for path '{str(path)}'..."),
-                    call(f"Public key: {pub_key.to_string().hex()}"),
-                    call("Signing with dongle..."),
-                    call("Verifying signature..."),
-                    call("Signature saved to out-path")
-                ], info_mock.call_args_list)
-                retreived_hash = info_mock.call_args_list[1][0][0].split()[-1]
-                retreived_sig = file_mock.return_value.write.call_args_list[0][0][0]
-                signature = bytes.fromhex(retreived_sig.decode())
-                hash = bytes.fromhex(retreived_hash)
-                self.assertTrue(
-                    pub_key.verify_digest(signature,
-                                          hash,
-                                          sigdecode=ecdsa.util.sigdecode_der))
+                with self.assertRaises(SystemExit) as exit:
+                    main()
 
-    def test_ledger_invalid_bip_path(self, parser_mock, _):
+        self.assertEqual(exit.exception.code, RETURN_SUCCESS)
+        self.assertEqual([
+            call('Computing app hash...'),
+            call(f'App hash: {self.app_hash.hex()}'),
+            call(f"Retrieving public key for path '{str(path)}'..."),
+            call(f"Public key: {pub_key.to_string().hex()}"),
+            call("Signing with dongle..."),
+            call("Verifying signature..."),
+            call("Signature saved to out-path")
+        ], info_mock.call_args_list)
+        retreived_hash = info_mock.call_args_list[1][0][0].split()[-1]
+        retreived_sig = file_mock.return_value.write.call_args_list[0][0][0]
+        signature = bytes.fromhex(retreived_sig.decode())
+        hash = bytes.fromhex(retreived_hash)
+        self.assertTrue(pub_key.verify_digest(signature,
+                                              hash,
+                                              sigdecode=ecdsa.util.sigdecode_der))
+
+    def test_ledger_invalid_bip_path(self, parser_mock, info_mock):
         path = "invalid-path"
         parser_mock.return_value.getAreas.return_value = [self.area_mock]
-        self.assertEqual(self.app_hash, compute_app_hash('a-path'))
+
         with patch(
             'sys.argv',
                 ['signapp.py', '-p', path, '-a', 'a-path', '-o', 'out-path', 'ledger']):
-            with self.assertRaises(ValueError):
+            with self.assertRaises(SystemExit) as exit:
                 main()
+        self.assertNotEqual(exit.exception.code, RETURN_SUCCESS)
+        self.assertEqual(
+            call("BIP32Path spec must start with 'm/', instead got invalid-path"),
+            info_mock.call_args_list[-1]
+        )
 
     @patch("signapp.get_hsm")
-    @patch("admin.misc.info")
-    def test_ledger_invalid_app(self, _1, get_hsm, parser_mock, _2):
+    @patch("sys.stdout.write")
+    def test_ledger_invalid_app(self, _, get_hsm, parser_mock, info_mock):
         parser_mock.side_effect = Exception("error-message")
         get_hsm.return_value = Mock()
         with patch('sys.argv',
                    ['signapp.py', '-a', 'a-path', '-o', 'out-path', 'ledger']):
-            with self.assertRaises(Exception) as e:
+            with self.assertRaises(SystemExit) as exit:
                 main()
-            self.assertEqual(str(e.exception), "error-message")
+        self.assertNotEqual(exit.exception.code, RETURN_SUCCESS)
+        self.assertEqual(call("error-message"), info_mock.call_args_list[-1])

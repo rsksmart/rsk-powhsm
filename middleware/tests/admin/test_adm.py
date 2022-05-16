@@ -53,9 +53,14 @@ class TestAdmArgs(TestCase):
         ]
 
         with patch('sys.argv', ['adm.py', '-p', 'a-pin', 'unlock']):
-            main()
+            with self.assertRaises(SystemExit) as e:
+                main()
+        self.assertEqual(e.exception.code, 0)
+
         with patch('sys.argv', ['adm.py', '--pin', 'a-pin', 'unlock']):
-            main()
+            with self.assertRaises(SystemExit) as e:
+                main()
+        self.assertEqual(e.exception.code, 0)
 
         self.assertTrue(do_unlock.called)
         self.assertEqual(do_unlock.call_count, 2)
@@ -85,10 +90,16 @@ class TestAdmArgs(TestCase):
         ]
 
         with patch('sys.argv', ['adm.py', '-p', 'a-pin', '-o', 'a-path', 'onboard']):
-            main()
+            with self.assertRaises(SystemExit) as e:
+                main()
+        self.assertEqual(e.exception.code, 0)
+
         with patch('sys.argv',
                    ['adm.py', '--pin', 'a-pin', '--output', 'a-path', 'onboard']):
-            main()
+            with self.assertRaises(SystemExit) as e:
+                main()
+        self.assertEqual(e.exception.code, 0)
+
         self.assertTrue(do_onboard.called)
         self.assertEqual(expected_call_args_list, do_onboard.call_args_list)
 
@@ -117,14 +128,20 @@ class TestAdmArgs(TestCase):
 
         with patch('sys.argv', ['adm.py', '-p', 'a-pin', '-o', 'a-path', '-u',
                                 'pubkeys']):
-            main()
+            with self.assertRaises(SystemExit) as e:
+                main()
+        self.assertEqual(e.exception.code, 0)
+
         with patch('sys.argv',
                    ['adm.py',
                     '--pin', 'a-pin',
                     '--output', 'a-path',
                     '--nounlock',
                     'pubkeys']):
-            main()
+            with self.assertRaises(SystemExit) as e:
+                main()
+        self.assertEqual(e.exception.code, 0)
+
         self.assertTrue(do_get_pubkeys.called)
         self.assertEqual(expected_call_args_list, do_get_pubkeys.call_args_list)
 
@@ -151,10 +168,15 @@ class TestAdmArgs(TestCase):
         ]
 
         with patch('sys.argv', ['adm.py', '-n', 'new-pin', '-a', 'changepin']):
-            main()
+            with self.assertRaises(SystemExit) as e:
+                main()
+        self.assertEqual(e.exception.code, 0)
+
         with patch('sys.argv', ['adm.py',
                                 '--newpin', 'new-pin', '--anypin', 'changepin']):
-            main()
+            with self.assertRaises(SystemExit) as e:
+                main()
+        self.assertEqual(e.exception.code, 0)
 
         self.assertTrue(do_changepin.called)
         self.assertEqual(do_changepin.call_count, 2)
@@ -188,14 +210,19 @@ class TestAdmArgs(TestCase):
                                 '-c', 'ca-info',
                                 '-t', 'certification-path',
                                 'attestation']):
-            main()
+            with self.assertRaises(SystemExit) as e:
+                main()
+        self.assertEqual(e.exception.code, 0)
+
         with patch('sys.argv', ['adm.py',
                                 '--pin', 'a-pin',
                                 '--output', 'out-path',
                                 '--ca', 'ca-info',
                                 '--attcert', 'certification-path',
                                 'attestation']):
-            main()
+            with self.assertRaises(SystemExit) as e:
+                main()
+        self.assertEqual(e.exception.code, 0)
 
         self.assertTrue(do_attestation.called)
         self.assertEqual(do_attestation.call_count, 2)
@@ -229,14 +256,19 @@ class TestAdmArgs(TestCase):
                                 '-r', 'root-authority',
                                 '-b', 'pubkeys-path',
                                 'verify_attestation']):
-            main()
+            with self.assertRaises(SystemExit) as e:
+                main()
+        self.assertEqual(e.exception.code, 0)
+
         with patch('sys.argv', ['adm.py',
                                 '--pin', 'a-pin',
                                 '--attcert', 'certification-path',
                                 '--root', 'root-authority',
                                 '--pubkeys', 'pubkeys-path',
                                 'verify_attestation']):
-            main()
+            with self.assertRaises(SystemExit) as e:
+                main()
+        self.assertEqual(e.exception.code, 0)
 
         self.assertTrue(do_verify_attestation.called)
         self.assertEqual(do_verify_attestation.call_count, 2)

@@ -40,15 +40,15 @@ def main():
         print(f"usage: {sys.argv[0]} {{{commands}}} [options]")
         sys.exit(99)
 
-    module = f"ledgerblue.{utilities[sys.argv[1]]}"
-    sys.argv = [f"{sys.argv[0]} {sys.argv[1]}"] + sys.argv[2:]
-    runpy.run_module(module, run_name="__main__")
-
-
-if __name__ == "__main__":
     try:
-        main()
+        module = f"ledgerblue.{utilities[sys.argv[1]]}"
+        sys.argv = [f"{sys.argv[0]} {sys.argv[1]}"] + sys.argv[2:]
+        runpy.run_module(module, run_name="__main__")
         sys.exit(0)
     except Exception as e:
         print(f"Error: {str(e)}")
         sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

@@ -117,7 +117,7 @@ def main():
 
         # If we only need to compute the hash, then that's it
         if options.operation == "hash":
-            return
+            sys.exit(0)
 
         # Sign the app hash
         if options.operation == "key":
@@ -153,16 +153,13 @@ def main():
         with open(output_path, "wb") as file:
             file.write(signature.hex().encode())
             info(f"Signature saved to {output_path}")
+        sys.exit(0)
     except Exception as e:
-        raise e
+        info(str(e))
+        sys.exit(1)
     finally:
         dispose_hsm(hsm)
 
 
 if __name__ == "__main__":
-    try:
-        main()
-        sys.exit(0)
-    except Exception as e:
-        info(str(e))
-        sys.exit(1)
+    main()

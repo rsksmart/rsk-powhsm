@@ -139,13 +139,10 @@ def main():
         default=False,
         const=True,
     )
-    options = parser.parse_args()
-    actions.get(options.operation, not_implemented)(options)
 
-
-if __name__ == "__main__":
     try:
-        main()
+        options = parser.parse_args()
+        actions.get(options.operation, not_implemented)(options)
         sys.exit(0)
     except AdminError as e:
         info(str(e))
@@ -159,3 +156,7 @@ if __name__ == "__main__":
     except Exception as e:
         info(str(e))
         sys.exit(4)
+
+
+if __name__ == "__main__":
+    main()

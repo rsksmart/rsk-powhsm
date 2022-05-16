@@ -20,9 +20,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from types import SimpleNamespace
 from unittest import TestCase
 from unittest.mock import Mock, call, patch, mock_open
-from adm import main
+from adm import DEFAULT_ATT_UD_SOURCE
+from admin.attestation import do_attestation
 from admin.certificate import HSMCertificate, HSMCertificateElement
 from admin.misc import AdminError
 from ledger.hsm2dongle import HSM2Dongle
@@ -36,6 +38,16 @@ logging.disable(logging.CRITICAL)
 @patch("sys.stdout.write")
 class TestAttestation(TestCase):
     def setUp(self):
+        self.certificate_path = 'cert-path'
+        options = {
+            'output_file_path': self.certificate_path,
+            'attestation_certificate_file_path': 'unused-path',
+            'ca': '112233:445566:778899',
+            'verbose': False,
+            'attestation_ud_source': DEFAULT_ATT_UD_SOURCE
+        }
+        self.default_options = SimpleNamespace(**options)
+
         self.ui_attestation = {
             "app_hash": "1122334455",
             "message": "6677889900",
@@ -79,18 +91,11 @@ class TestAttestation(TestCase):
         self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.BOOTLOADER)
         self.dongle.get_ui_attestation = Mock(return_value=self.ui_attestation)
         self.dongle.get_signer_attestation = Mock(return_value=self.signer_attestation)
-        certificate_path = 'cert-path'
 
-        with patch('sys.argv', [
-                'adm.py',
-                '-o', certificate_path,
-                '-c', '112233:445566:778899',
-                '-t', 'certification-path',
-                'attestation'
-        ]):
-            with patch('builtins.open', mock_open()) as file_mock:
-                main()
-        self.assertEqual([call(certificate_path, 'w')], file_mock.call_args_list)
+        with patch('builtins.open', mock_open()) as file_mock:
+            do_attestation(self.default_options)
+
+        self.assertEqual([call(self.certificate_path, 'w')], file_mock.call_args_list)
         self.assertEqual(
             [call("%s\n" % json.dumps(self.expected_cert.to_dict(), indent=2))],
             file_mock.return_value.write.call_args_list)
@@ -98,15 +103,10 @@ class TestAttestation(TestCase):
     @patch("admin.attestation.HSMCertificate")
     def test_attestation_invalid_certificate(self, certificate, *_):
         certificate.from_jsonfile = Mock(side_effect=Exception('inner error'))
-        with patch('sys.argv', [
-                'adm.py',
-                '-o', 'a-path',
-                '-c', '112233:445566:778899',
-                '-t', 'certification-path',
-                'attestation'
-        ]):
-            with self.assertRaises(AdminError) as e:
-                main()
+
+        with self.assertRaises(AdminError) as e:
+            do_attestation(self.default_options)
+
         self.assertEqual('While loading the attestation certificate file: inner error',
                          str(e.exception))
 
@@ -120,17 +120,10 @@ class TestAttestation(TestCase):
         self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.BOOTLOADER)
         self.dongle.get_ui_attestation = Mock(side_effect=Exception('an-error-msg'))
         self.dongle.get_signer_attestation = Mock(return_value=self.signer_attestation)
-        certificate_path = 'cert-path'
 
-        with patch('sys.argv', [
-                'adm.py',
-                '-o', certificate_path,
-                '-c', '112233:445566:778899',
-                '-t', 'certification-path',
-                'attestation'
-        ]):
-            with self.assertRaises(AdminError) as e:
-                main()
+        with self.assertRaises(AdminError) as e:
+            do_attestation(self.default_options)
+
         self.assertEqual('Failed to gather UI attestation: an-error-msg',
                          str(e.exception))
 
@@ -144,17 +137,10 @@ class TestAttestation(TestCase):
         self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.BOOTLOADER)
         self.dongle.get_ui_attestation = Mock(return_value=self.ui_attestation)
         self.dongle.get_signer_attestation = Mock(side_effect=Exception('an-error-msg'))
-        certificate_path = 'cert-path'
 
-        with patch('sys.argv', [
-                'adm.py',
-                '-o', certificate_path,
-                '-c', '112233:445566:778899',
-                '-t', 'certification-path',
-                'attestation'
-        ]):
-            with self.assertRaises(AdminError) as e:
-                main()
+        with self.assertRaises(AdminError) as e:
+            do_attestation(self.default_options)
+
         self.assertEqual('Failed to gather Signer attestation: an-error-msg',
                          str(e.exception))
 
@@ -164,103 +150,74 @@ class TestAttestation(TestCase):
         certificate.from_jsonfile = Mock(return_value=self.expected_cert)
         unlock_error_msg = 'Unlock error msg'
         unlock_mock.side_effect = Exception(unlock_error_msg)
-        with patch('sys.argv', [
-                'adm.py',
-                '-o', 'a-path',
-                '-c', '112233:445566:778899',
-                '-t', 'certification-path',
-                'attestation'
-        ]):
-            with self.assertRaises(AdminError) as e:
-                main()
+
+        with self.assertRaises(AdminError) as e:
+            do_attestation(self.default_options)
+
         self.assertEqual(f'Failed to unlock device: {unlock_error_msg}', str(e.exception))
 
     def test_attestation_no_out_path(self, *_):
-        with patch('sys.argv', [
-                'adm.py',
-                '-c', '112233:445566:778899',
-                '-t', 'certification-path',
-                'attestation'
-        ]):
-            with self.assertRaises(AdminError) as e:
-                main()
+        options = self.default_options
+        options.output_file_path = None
+        with self.assertRaises(AdminError) as e:
+            do_attestation(options)
+
         self.assertEqual('No output file path given', str(e.exception))
 
     def test_attestation_no_certificate_path(self, *_):
-        with patch('sys.argv', [
-                'sys.argv',
-                '-c', '112233:445566:778899',
-                '-o', 'out-path',
-                'attestation'
-        ]):
-            with self.assertRaises(AdminError) as e:
-                main()
+        options = self.default_options
+        options.attestation_certificate_file_path = None
+        with self.assertRaises(AdminError) as e:
+            do_attestation(options)
+
         self.assertEqual('No attestation certificate file given', str(e.exception))
 
     @patch("admin.attestation.HSMCertificate")
     def test_attestation_no_ca_info(self, certificate, *_):
         certificate.from_jsonfile = Mock(return_value=self.expected_cert)
-        with patch('sys.argv', [
-                'adm.py',
-                '-o', 'a-path',
-                '-t', 'certification-path',
-                'attestation'
-        ]):
-            with self.assertRaises(AdminError) as e:
-                main()
+        options = self.default_options
+        options.ca = None
+        with self.assertRaises(AdminError) as e:
+            do_attestation(options)
+
         self.assertEqual('No CA info given', str(e.exception))
 
     @patch("admin.attestation.HSMCertificate")
     def test_attestation_invalid_ca_info(self, certificate, *_):
         certificate.from_jsonfile = Mock(return_value=self.expected_cert)
-        with patch('sys.argv', [
-                'adm.py',
-                '-o', 'a-path',
-                '-c', 'invalid-ca',
-                '-t', 'certification-path',
-                'attestation'
-        ]):
-            with self.assertRaises(AdminError) as e:
-                main()
+        options = self.default_options
+        options.ca = 'invalid-ca'
+        with self.assertRaises(AdminError) as e:
+            do_attestation(options)
+
         self.assertEqual('Invalid CA info given', str(e.exception))
 
     @patch("admin.attestation.HSMCertificate")
     def test_attestation_invalid_ca_pubkey(self, certificate, *_):
         certificate.from_jsonfile = Mock(return_value=self.expected_cert)
-        with patch('sys.argv', [
-                'adm.py',
-                '-o', 'a-path',
-                '-c', 'INVALID:445566:778899',
-                '-t', 'certification-path',
-                'attestation'
-        ]):
-            with self.assertRaises(AdminError) as e:
-                main()
+        options = self.default_options
+        options.ca = 'INVALID:445566:778899'
+        with self.assertRaises(AdminError) as e:
+            do_attestation(options)
+
         self.assertEqual('Invalid CA public key given', str(e.exception))
 
     @patch("admin.attestation.HSMCertificate")
     def test_attestation_invalid_ca_hash(self, certificate, *_):
         certificate.from_jsonfile = Mock(return_value=self.expected_cert)
-        with patch('sys.argv', [
-                'adm.py',
-                '-o', 'a-path',
-                '-c', '112233:INVALID:778899',
-                '-t', 'certification-path',
-                'attestation'
-        ]):
-            with self.assertRaises(AdminError) as e:
-                main()
+        options = self.default_options
+        options.ca = '112233:INVALID:778899'
+        with self.assertRaises(AdminError) as e:
+            do_attestation(options)
+
         self.assertEqual('Invalid CA hash given', str(e.exception))
 
     @patch("admin.attestation.HSMCertificate")
     def test_attestation_invalid_ca_signature(self, certificate, *_):
         certificate.from_jsonfile = Mock(return_value=self.expected_cert)
-        with patch('sys.argv', [
-                'adm.py',
-                '-o', 'a-path',
-                '-c', '112233:445566:INVALID',
-                '-t', 'certification-path', 'attestation'
-        ]):
-            with self.assertRaises(AdminError) as e:
-                main()
+        options = self.default_options
+        options.ca = '112233:445566:INVALID'
+        with self.assertRaises(AdminError) as e:
+            do_attestation(options)
+
         self.assertEqual('Invalid CA signature given', str(e.exception))

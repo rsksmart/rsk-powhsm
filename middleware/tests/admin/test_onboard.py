@@ -20,11 +20,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from types import SimpleNamespace
 from unittest import TestCase
 from unittest.mock import Mock, call, patch, mock_open
-from adm import main
 from admin.certificate import HSMCertificate, HSMCertificateElement
 from admin.misc import AdminError
+from admin.onboard import do_onboard
 import json
 from ledger.hsm2dongle import HSM2Dongle, HSM2DongleError
 
@@ -60,6 +61,15 @@ class TestOnboard(TestCase):
     }
 
     def setUp(self):
+        self.certificate_path = 'cert-path'
+        options = {
+            'pin': self.VALID_PIN,
+            'output_file_path': self.certificate_path,
+            'no_exec': False,
+            'verbose': False
+        }
+        self.default_options = SimpleNamespace(**options)
+
         self.expected_cert = HSMCertificate()
         self.expected_cert.add_element(
             HSMCertificateElement({
@@ -95,31 +105,23 @@ class TestOnboard(TestCase):
         self.dongle.setup_endorsement_key = Mock(return_value=self.ENDORSEMENT_KEY)
         self.dongle.handshake = Mock()
         self.dongle.onboard = Mock()
-
-        certificate_path = 'cert-path'
-
         readline.return_value = "yes\n"
 
-        with patch('sys.argv',
-                   ['adm.py',
-                    '-p', self.VALID_PIN,
-                    '-o', certificate_path,
-                    'onboard']):
-            with patch('builtins.open', mock_open()) as file_mock:
-                main()
+        with patch('builtins.open', mock_open()) as file_mock:
+            do_onboard(self.default_options)
 
-            self.assertTrue(info_mock.call_args_list[5][0][0] == 'Onboarded: Yes')
-            self.assertTrue(info_mock.call_args_list[10][0][0] == 'Onboarded')
-            self.assertTrue(info_mock.call_args_list[14][0][0] == 'Device key gathered')
-            self.assertTrue(info_mock.call_args_list[16][0][0] ==
-                            'Attestation key setup complete')
+        self.assertTrue(info_mock.call_args_list[5][0][0] == 'Onboarded: Yes')
+        self.assertTrue(info_mock.call_args_list[10][0][0] == 'Onboarded')
+        self.assertTrue(info_mock.call_args_list[14][0][0] == 'Device key gathered')
+        self.assertTrue(info_mock.call_args_list[16][0][0] ==
+                        'Attestation key setup complete')
 
-            self.assertEqual([call(certificate_path, 'w')], file_mock.call_args_list)
-            self.assertEqual([call("%s\n" %
-                             json.dumps(self.expected_cert.to_dict(), indent=2))],
-                             file_mock.return_value.write.call_args_list)
-            self.assertTrue(self.dongle.onboard.called)
-            self.assertTrue(self.dongle.handshake.called)
+        self.assertEqual([call(self.certificate_path, 'w')], file_mock.call_args_list)
+        self.assertEqual([call("%s\n" %
+                               json.dumps(self.expected_cert.to_dict(), indent=2))],
+                         file_mock.return_value.write.call_args_list)
+        self.assertTrue(self.dongle.onboard.called)
+        self.assertTrue(self.dongle.handshake.called)
 
     @patch("admin.onboard.get_admin_hsm")
     @patch("admin.unlock.get_hsm")
@@ -136,25 +138,18 @@ class TestOnboard(TestCase):
         self.dongle.setup_endorsement_key = Mock()
         self.dongle.handshake = Mock()
         self.dongle.onboard = Mock(side_effect=HSM2DongleError('error-msg'))
-
-        certificate_path = 'cert-path'
-
         readline.return_value = "yes\n"
 
-        with patch('sys.argv',
-                   ['adm.py',
-                    '-p', self.VALID_PIN,
-                    '-o', certificate_path,
-                    'onboard']):
-            with patch('builtins.open', mock_open()) as file_mock:
-                with self.assertRaises(HSM2DongleError) as e:
-                    main()
-            self.assertTrue(self.dongle.onboard.called)
-            self.assertEqual('error-msg', str(e.exception))
-            self.assertFalse(self.dongle.get_device_key.called)
-            self.assertFalse(self.dongle.setup_endorsement_key.called)
-            self.assertFalse(self.dongle.handshake.called)
-            self.assertFalse(file_mock.return_value.write.called)
+        with patch('builtins.open', mock_open()) as file_mock:
+            with self.assertRaises(HSM2DongleError) as e:
+                do_onboard(self.default_options)
+
+        self.assertTrue(self.dongle.onboard.called)
+        self.assertEqual('error-msg', str(e.exception))
+        self.assertFalse(self.dongle.get_device_key.called)
+        self.assertFalse(self.dongle.setup_endorsement_key.called)
+        self.assertFalse(self.dongle.handshake.called)
+        self.assertFalse(file_mock.return_value.write.called)
 
     @patch("admin.onboard.get_admin_hsm")
     @patch("admin.unlock.get_hsm")
@@ -171,25 +166,18 @@ class TestOnboard(TestCase):
         self.dongle.setup_endorsement_key = Mock()
         self.dongle.handshake = Mock(side_effect=HSM2DongleError('error-msg'))
         self.dongle.onboard = Mock()
-
-        certificate_path = 'cert-path'
-
         readline.return_value = "yes\n"
 
-        with patch('sys.argv',
-                   ['adm.py',
-                    '-p', self.VALID_PIN,
-                    '-o', certificate_path,
-                    'onboard']):
-            with patch('builtins.open', mock_open()) as file_mock:
-                with self.assertRaises(HSM2DongleError) as e:
-                    main()
-            self.assertEqual('error-msg', str(e.exception))
-            self.assertTrue(self.dongle.onboard.called)
-            self.assertTrue(self.dongle.handshake.called)
-            self.assertFalse(self.dongle.get_device_key.called)
-            self.assertFalse(self.dongle.setup_endorsement_key.called)
-            self.assertFalse(file_mock.return_value.write.called)
+        with patch('builtins.open', mock_open()) as file_mock:
+            with self.assertRaises(HSM2DongleError) as e:
+                do_onboard(self.default_options)
+
+        self.assertEqual('error-msg', str(e.exception))
+        self.assertTrue(self.dongle.onboard.called)
+        self.assertTrue(self.dongle.handshake.called)
+        self.assertFalse(self.dongle.get_device_key.called)
+        self.assertFalse(self.dongle.setup_endorsement_key.called)
+        self.assertFalse(file_mock.return_value.write.called)
 
     @patch("admin.onboard.get_admin_hsm")
     @patch("admin.unlock.get_hsm")
@@ -206,25 +194,18 @@ class TestOnboard(TestCase):
         self.dongle.setup_endorsement_key = Mock()
         self.dongle.handshake = Mock()
         self.dongle.onboard = Mock()
-
-        certificate_path = 'cert-path'
-
         readline.return_value = "yes\n"
 
-        with patch('sys.argv',
-                   ['adm.py',
-                    '-p', self.VALID_PIN,
-                    '-o', certificate_path,
-                    'onboard']):
-            with patch('builtins.open', mock_open()) as file_mock:
-                with self.assertRaises(HSM2DongleError) as e:
-                    main()
-            self.assertEqual('error-msg', str(e.exception))
-            self.assertTrue(self.dongle.onboard.called)
-            self.assertTrue(self.dongle.handshake.called)
-            self.assertTrue(self.dongle.get_device_key.called)
-            self.assertFalse(self.dongle.setup_endorsement_key.called)
-            self.assertFalse(file_mock.return_value.write.called)
+        with patch('builtins.open', mock_open()) as file_mock:
+            with self.assertRaises(HSM2DongleError) as e:
+                do_onboard(self.default_options)
+
+        self.assertEqual('error-msg', str(e.exception))
+        self.assertTrue(self.dongle.onboard.called)
+        self.assertTrue(self.dongle.handshake.called)
+        self.assertTrue(self.dongle.get_device_key.called)
+        self.assertFalse(self.dongle.setup_endorsement_key.called)
+        self.assertFalse(file_mock.return_value.write.called)
 
     @patch("admin.onboard.get_admin_hsm")
     @patch("admin.unlock.get_hsm")
@@ -241,25 +222,18 @@ class TestOnboard(TestCase):
         self.dongle.setup_endorsement_key = Mock(side_effect=HSM2DongleError('error-msg'))
         self.dongle.handshake = Mock()
         self.dongle.onboard = Mock()
-
-        certificate_path = 'cert-path'
-
         readline.return_value = "yes\n"
 
-        with patch('sys.argv',
-                   ['adm.py',
-                    '-p', self.VALID_PIN,
-                    '-o', certificate_path,
-                    'onboard']):
-            with patch('builtins.open', mock_open()) as file_mock:
-                with self.assertRaises(HSM2DongleError) as e:
-                    main()
-            self.assertEqual('error-msg', str(e.exception))
-            self.assertTrue(self.dongle.onboard.called)
-            self.assertTrue(self.dongle.handshake.called)
-            self.assertTrue(self.dongle.get_device_key.called)
-            self.assertTrue(self.dongle.setup_endorsement_key.called)
-            self.assertFalse(file_mock.return_value.write.called)
+        with patch('builtins.open', mock_open()) as file_mock:
+            with self.assertRaises(HSM2DongleError) as e:
+                do_onboard(self.default_options)
+
+        self.assertEqual('error-msg', str(e.exception))
+        self.assertTrue(self.dongle.onboard.called)
+        self.assertTrue(self.dongle.handshake.called)
+        self.assertTrue(self.dongle.get_device_key.called)
+        self.assertTrue(self.dongle.setup_endorsement_key.called)
+        self.assertFalse(file_mock.return_value.write.called)
 
     @patch("admin.onboard.get_admin_hsm")
     @patch("admin.unlock.get_hsm")
@@ -272,17 +246,12 @@ class TestOnboard(TestCase):
         self.dongle.is_onboarded = Mock(return_value=True)
         self.dongle.onboard = Mock()
         hsm_admin.return_value = self.dongle
-        certificate_path = 'cert-path'
         readline.return_value = "no\n"
 
-        with patch('sys.argv',
-                   ['adm.py',
-                    '-p', self.VALID_PIN,
-                    '-o', certificate_path,
-                    'onboard']):
-            with patch('builtins.open', mock_open()) as file_mock:
-                with self.assertRaises(AdminError) as e:
-                    main()
+        with patch('builtins.open', mock_open()) as file_mock:
+            with self.assertRaises(AdminError) as e:
+                do_onboard(self.default_options)
+
         self.assertEqual('Cancelled by user', str(e.exception))
         self.assertFalse(self.dongle.onboard.called)
         self.assertFalse(self.dongle.get_device_key.called)
@@ -298,23 +267,20 @@ class TestOnboard(TestCase):
         self.dongle.is_onboarded = Mock(return_value=True)
         self.dongle.onboard = Mock()
 
-        with patch('sys.argv',
-                   ['adm.py',
-                    '-p', self.VALID_PIN,
-                    'onboard']):
-            with self.assertRaises(AdminError) as e:
-                main()
+        options = self.default_options
+        options.output_file_path = None
+        with self.assertRaises(AdminError) as e:
+            do_onboard(options)
+
         self.assertEqual('No output file path given', str(e.exception))
         self.assertFalse(self.dongle.onboard.called)
 
     def test_onboard_invalid_pin(self, *_):
-        with patch('sys.argv',
-                   ['adm.py',
-                    '-p', self.INVALID_PIN,
-                    '-o', 'a-path',
-                    'onboard']):
-            with self.assertRaises(AdminError) as e:
-                main()
+        options = self.default_options
+        options.pin = self.INVALID_PIN
+        with self.assertRaises(AdminError) as e:
+            do_onboard(options)
+
         self.assertTrue(str(e.exception).startswith('Invalid pin given.'))
 
     def test_onboard_invalid_mode(self, get_hsm, *_):
@@ -322,13 +288,9 @@ class TestOnboard(TestCase):
         self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.APP)
         self.dongle.is_onboarded = Mock(return_value=True)
 
-        with patch('sys.argv',
-                   ['adm.py',
-                    '-p', self.VALID_PIN,
-                    '-o', 'a-path',
-                    'onboard']):
-            with self.assertRaises(AdminError) as e:
-                main()
+        with self.assertRaises(AdminError) as e:
+            do_onboard(self.default_options)
+
         self.assertTrue(str(e.exception).startswith('Device not in bootloader mode.'))
 
     @patch("admin.onboard.get_admin_hsm")
@@ -344,20 +306,13 @@ class TestOnboard(TestCase):
         self.dongle.is_onboarded = Mock(return_value=True)
         self.dongle.get_device_key = Mock(return_value=self.INVALID_KEY)
         self.dongle.setup_endorsement_key = Mock(return_value=self.ENDORSEMENT_KEY)
-
-        certificate_path = 'cert-path'
-
         readline.return_value = "yes\n"
 
-        with patch('sys.argv',
-                   ['adm.py',
-                    '-p', self.VALID_PIN,
-                    '-o', certificate_path,
-                    'onboard']):
-            with self.assertRaises(ValueError) as e:
-                main()
-            self.assertEqual(('Missing or invalid message for HSM certificate element'
-                              ' device'), str(e.exception))
+        with self.assertRaises(ValueError) as e:
+            do_onboard(self.default_options)
+
+        self.assertEqual(('Missing or invalid message for HSM certificate element'
+                          ' device'), str(e.exception))
 
     @patch("admin.onboard.get_admin_hsm")
     @patch("admin.unlock.get_hsm")
@@ -372,17 +327,10 @@ class TestOnboard(TestCase):
         self.dongle.is_onboarded = Mock(return_value=True)
         self.dongle.get_device_key = Mock(return_value=self.DEVICE_KEY)
         self.dongle.setup_endorsement_key = Mock(return_value=self.INVALID_KEY)
-
-        certificate_path = 'cert-path'
-
         readline.return_value = "yes\n"
 
-        with patch('sys.argv',
-                   ['adm.py',
-                    '-p', self.VALID_PIN,
-                    '-o', certificate_path,
-                    'onboard']):
-            with self.assertRaises(ValueError) as e:
-                main()
-            self.assertEqual(('Missing or invalid message for HSM certificate element'
-                              ' attestation'), str(e.exception))
+        with self.assertRaises(ValueError) as e:
+            do_onboard(self.default_options)
+
+        self.assertEqual(('Missing or invalid message for HSM certificate element'
+                          ' attestation'), str(e.exception))

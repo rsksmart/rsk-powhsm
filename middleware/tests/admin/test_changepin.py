@@ -20,9 +20,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from types import SimpleNamespace
 from unittest import TestCase
 from unittest.mock import Mock, call, patch
-from adm import main
+from admin.changepin import do_changepin
 from admin.misc import AdminError
 from ledger.hsm2dongle import HSM2Dongle
 
@@ -38,31 +39,54 @@ class TestChangepin(TestCase):
     INVALID_PIN = '123456789'
 
     def setUp(self):
+        options = {
+            'new_pin': self.VALID_PIN,
+            'no_unlock': False,
+            'any_pin': False,
+            'verbose': False,
+            'pin': self.VALID_PIN
+        }
+        self.default_options = SimpleNamespace(**options)
         self.dongle = Mock()
 
-    def test_changepin(self, get_hsm, _):
+    @patch("admin.changepin.do_unlock")
+    def test_changepin(self, do_unlock_mock, get_hsm, _):
         get_hsm.return_value = self.dongle
-
         self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.BOOTLOADER)
         self.dongle.is_onboarded = Mock(return_value=True)
         self.dongle.new_pin = Mock(return_value=True)
 
-        with patch('sys.argv', ['adm.py', '-n', self.VALID_PIN, '-u', 'changepin']):
-            main()
+        do_changepin(self.default_options)
+
+        self.assertTrue(do_unlock_mock.called)
         self.assertTrue(self.dongle.new_pin.called)
         self.assertEqual([call(self.VALID_PIN.encode())],
                          self.dongle.new_pin.call_args_list)
 
-    def test_changepin_invalid_mode(self, get_hsm, _):
+    @patch("admin.changepin.do_unlock")
+    def test_changepin_unlock_error(self, do_unlock_mock, get_hsm, _):
         get_hsm.return_value = self.dongle
+        do_unlock_mock.side_effect = Exception('unlock-error')
+        self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.BOOTLOADER)
+        self.dongle.is_onboarded = Mock(return_value=True)
+        self.dongle.new_pin = Mock(return_value=True)
 
+        with self.assertRaises(AdminError) as e:
+            do_changepin(self.default_options)
+
+        self.assertEqual('Failed to unlock device: unlock-error', str(e.exception))
+
+    @patch("admin.changepin.do_unlock")
+    def test_changepin_invalid_mode(self, do_unlock_mock, get_hsm, _):
+        get_hsm.return_value = self.dongle
         self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.APP)
         self.dongle.is_onboarded = Mock(return_value=True)
         self.dongle.new_pin = Mock(return_value=True)
 
-        with patch('sys.argv', ['adm.py', '-n', self.VALID_PIN, '-u', 'changepin']):
-            with self.assertRaises(AdminError) as e:
-                main()
+        with self.assertRaises(AdminError) as e:
+            do_changepin(self.default_options)
+
+        self.assertTrue(do_unlock_mock.called)
         self.assertTrue(str(e.exception).startswith('Device not in bootloader mode.'))
         self.assertFalse(self.dongle.new_pin.called)
 
@@ -73,24 +97,23 @@ class TestChangepin(TestCase):
         self.dongle.is_onboarded = Mock(return_value=True)
         self.dongle.new_pin = Mock(return_value=True)
 
-        with patch('sys.argv', ['adm.py', '-n', self.INVALID_PIN, '-u', 'changepin']):
-            with self.assertRaises(AdminError) as e:
-                main()
+        options = self.default_options
+        options.new_pin = self.INVALID_PIN
+        with self.assertRaises(AdminError) as e:
+            do_changepin(options)
+
         self.assertTrue(str(e.exception).startswith('Invalid pin given.'))
         self.assertFalse(self.dongle.new_pin.called)
 
-    def test_changepin_newpin_error(self, get_hsm, _):
+    @patch("admin.changepin.do_unlock")
+    def test_changepin_newpin_error(self, do_unlock_mock, get_hsm, _):
         get_hsm.return_value = self.dongle
+        self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.BOOTLOADER)
+        self.dongle.is_onboarded = Mock(return_value=True)
+        self.dongle.new_pin = Mock(return_value=False)
 
-        self.dongle.get_current_mode = Mock()
-        self.dongle.is_onboarded = Mock()
-        self.dongle.new_pin = Mock()
+        with self.assertRaises(AdminError) as e:
+            do_changepin(self.default_options)
 
-        self.dongle.get_current_mode.return_value = HSM2Dongle.MODE.BOOTLOADER
-        self.dongle.is_onboarded.return_value = True
-        self.dongle.new_pin.return_value = False
-
-        with patch('sys.argv', ['adm.py', '-n', self.VALID_PIN, '-u', 'changepin']):
-            with self.assertRaises(AdminError) as e:
-                main()
+        self.assertTrue(do_unlock_mock.called)
         self.assertEqual('Failed to change pin', str(e.exception))

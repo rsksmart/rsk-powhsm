@@ -33,40 +33,50 @@ logging.disable(logging.CRITICAL)
 class TestLbutils(TestCase):
     def test_load(self, run_module):
         with patch('sys.argv', ['lbutils.py', 'load']):
-            main()
+            with self.assertRaises(SystemExit) as e:
+                main()
 
         self.assertTrue(run_module.called)
         self.assertEqual([call('ledgerblue.loadApp', run_name='__main__')],
                          run_module.call_args_list)
+        self.assertEqual(e.exception.code, 0)
 
     def test_delete(self, run_module):
         with patch('sys.argv', ['lbutils.py', 'delete']):
-            main()
+            with self.assertRaises(SystemExit) as e:
+                main()
 
         self.assertTrue(run_module.called)
         self.assertEqual([call('ledgerblue.deleteApp', run_name='__main__')],
                          run_module.call_args_list)
+        self.assertEqual(e.exception.code, 0)
 
     def test_setup_ca(self, run_module):
         with patch('sys.argv', ['lbutils.py', 'setupCA']):
-            main()
+            with self.assertRaises(SystemExit) as e:
+                main()
 
         self.assertTrue(run_module.called)
         self.assertEqual([call('ledgerblue.setupCustomCA', run_name='__main__')],
                          run_module.call_args_list)
+        self.assertEqual(e.exception.code, 0)
 
     def test_reset_ca(self, run_module):
         with patch('sys.argv', ['lbutils.py', 'resetCA']):
-            main()
+            with self.assertRaises(SystemExit) as e:
+                main()
 
         self.assertTrue(run_module.called)
         self.assertEqual([call('ledgerblue.resetCustomCA', run_name='__main__')],
                          run_module.call_args_list)
+        self.assertEqual(e.exception.code, 0)
 
     def test_gen_ca(self, run_module):
         with patch('sys.argv', ['lbutils.py', 'genCA']):
-            main()
+            with self.assertRaises(SystemExit) as e:
+                main()
 
         self.assertTrue(run_module.called)
         self.assertEqual([call('ledgerblue.genCAPair', run_name='__main__')],
                          run_module.call_args_list)
+        self.assertEqual(e.exception.code, 0)
