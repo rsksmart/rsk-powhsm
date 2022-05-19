@@ -43,14 +43,14 @@ OP_SIGN_MSG_HASH = bytes.fromhex("800000")
 def compute_app_hash(path):
     # Taken from
     # https://github.com/LedgerHQ/blue-loader-python/blob/0.1.31/ledgerblue/hashApp.py
-    parser = IntelHexParser(options.app_path)
+    parser = IntelHexParser(path)
     digest = sha256()
     for a in parser.getAreas():
         digest.update(a.data)
     return digest.digest()
 
 
-if __name__ == "__main__":
+def main():
     logging.disable(logging.CRITICAL)
 
     parser = ArgumentParser(description="powHSM App Signer")
@@ -67,14 +67,14 @@ if __name__ == "__main__":
         "--output",
         dest="output_path",
         help="Destination file for the signature (defaults to the app path with "
-             "a '.sig' extension).",
+        "a '.sig' extension).",
     )
     parser.add_argument(
         "-p",
         "--path",
         dest="path",
         help="Path used for signing (only for 'ledger' option). "
-             f"Default \"{DEFAULT_PATH}\"",
+        f"Default \"{DEFAULT_PATH}\"",
         default=DEFAULT_PATH,
     )
     parser.add_argument(
@@ -82,7 +82,7 @@ if __name__ == "__main__":
         "--key",
         dest="key",
         help="Private key used for signing (only for 'key' option). "
-             "Must be a 32-byte hex-encoded string.",
+        "Must be a 32-byte hex-encoded string.",
     )
     parser.add_argument(
         "-v",
@@ -153,10 +153,13 @@ if __name__ == "__main__":
         with open(output_path, "wb") as file:
             file.write(signature.hex().encode())
             info(f"Signature saved to {output_path}")
-
         sys.exit(0)
     except Exception as e:
         info(str(e))
         sys.exit(1)
     finally:
         dispose_hsm(hsm)
+
+
+if __name__ == "__main__":
+    main()

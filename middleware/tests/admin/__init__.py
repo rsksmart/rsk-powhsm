@@ -19,36 +19,3 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
-import sys
-
-
-def main():
-    import runpy
-
-    utilities = {
-        "load": "loadApp",
-        "delete": "deleteApp",
-        "setupCA": "setupCustomCA",
-        "resetCA": "resetCustomCA",
-        "genCA": "genCAPair",
-    }
-
-    if len(sys.argv) < 2 or sys.argv[1] not in utilities:
-        commands = ", ".join(utilities.keys())
-        print("Ledgerblue utilities")
-        print(f"usage: {sys.argv[0]} {{{commands}}} [options]")
-        sys.exit(99)
-
-    try:
-        module = f"ledgerblue.{utilities[sys.argv[1]]}"
-        sys.argv = [f"{sys.argv[0]} {sys.argv[1]}"] + sys.argv[2:]
-        runpy.run_module(module, run_name="__main__")
-        sys.exit(0)
-    except Exception as e:
-        print(f"Error: {str(e)}")
-        sys.exit(1)
-
-
-if __name__ == "__main__":
-    main()
