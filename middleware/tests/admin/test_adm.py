@@ -20,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import sys
 from argparse import Namespace
 from unittest import TestCase
 from unittest.mock import call, patch
@@ -29,23 +30,38 @@ import logging
 logging.disable(logging.CRITICAL)
 
 
-class TestAdmArgs(TestCase):
+class TestAdm(TestCase):
+    def setUp(self):
+        self.old_stderr = sys.stderr
+        # sys.stderr = Mock()
+        self.old_stdout = sys.stdout
+        # sys.stdout = Mock()
+        self.DEFAULT_OPTIONS = {
+            "any_pin": False,
+            "attestation_certificate_file_path": None,
+            "attestation_ud_source": DEFAULT_ATT_UD_SOURCE,
+            "new_pin": None,
+            "no_exec": False,
+            "no_unlock": False,
+            "operation": None,
+            "output_file_path": None,
+            "pin": None,
+            "pubkeys_file_path": None,
+            "root_authority": None,
+            "signer_authorization_file_path": None,
+            "verbose": False,
+        }
+
+    def tearDown(self):
+        sys.stderr = self.old_stderr
+        sys.stdout = self.old_stdout
+
     @patch("adm.do_unlock")
     def test_unlock(self, do_unlock):
         expected_options = {
-            'any_pin': False,
-            'attestation_certificate_file_path': None,
-            'attestation_ud_source': DEFAULT_ATT_UD_SOURCE,
-            'ca': None,
-            'new_pin': None,
-            'no_exec': False,
-            'no_unlock': False,
+            **self.DEFAULT_OPTIONS,
             'operation': 'unlock',
-            'output_file_path': None,
             'pin': 'a-pin',
-            'pubkeys_file_path': None,
-            'root_authority': None,
-            'verbose': False
         }
         expected_call_args_list = [
             call(Namespace(**expected_options)),
@@ -69,19 +85,10 @@ class TestAdmArgs(TestCase):
     @patch("adm.do_onboard")
     def test_onboard(self, do_onboard):
         expected_options = {
-            'any_pin': False,
-            'attestation_certificate_file_path': None,
-            'attestation_ud_source': DEFAULT_ATT_UD_SOURCE,
-            'ca': None,
-            'new_pin': None,
-            'no_exec': False,
-            'no_unlock': False,
+            **self.DEFAULT_OPTIONS,
             'operation': 'onboard',
             'output_file_path': 'a-path',
             'pin': 'a-pin',
-            'pubkeys_file_path': None,
-            'root_authority': None,
-            'verbose': False
         }
 
         expected_call_args_list = [
@@ -106,19 +113,11 @@ class TestAdmArgs(TestCase):
     @patch("adm.do_get_pubkeys")
     def test_pubkeys(self, do_get_pubkeys):
         expected_options = {
-            'any_pin': False,
-            'attestation_certificate_file_path': None,
-            'attestation_ud_source': DEFAULT_ATT_UD_SOURCE,
-            'ca': None,
-            'new_pin': None,
-            'no_exec': False,
+            **self.DEFAULT_OPTIONS,
             'no_unlock': True,
             'operation': 'pubkeys',
             'output_file_path': 'a-path',
             'pin': 'a-pin',
-            'pubkeys_file_path': None,
-            'root_authority': None,
-            'verbose': False
         }
 
         expected_call_args_list = [
@@ -148,32 +147,26 @@ class TestAdmArgs(TestCase):
     @patch("adm.do_changepin")
     def test_changepin(self, do_changepin):
         expected_options = {
+            **self.DEFAULT_OPTIONS,
             'any_pin': True,
-            'attestation_certificate_file_path': None,
-            'attestation_ud_source': DEFAULT_ATT_UD_SOURCE,
-            'ca': None,
             'new_pin': 'new-pin',
-            'no_exec': False,
-            'no_unlock': False,
             'operation': 'changepin',
-            'output_file_path': None,
-            'pin': None,
-            'pubkeys_file_path': None,
-            'root_authority': None,
-            'verbose': False
+            'pin': 'old-pin',
         }
         expected_call_args_list = [
             call(Namespace(**expected_options)),
             call(Namespace(**expected_options))
         ]
 
-        with patch('sys.argv', ['adm.py', '-n', 'new-pin', '-a', 'changepin']):
+        with patch('sys.argv', ['adm.py', '-p', 'old-pin', '-n', 'new-pin',
+                                '-a', 'changepin']):
             with self.assertRaises(SystemExit) as e:
                 main()
         self.assertEqual(e.exception.code, 0)
 
         with patch('sys.argv', ['adm.py',
-                                '--newpin', 'new-pin', '--anypin', 'changepin']):
+                                '--newpin', 'new-pin', '--anypin', 'changepin',
+                                '--pin', 'old-pin']):
             with self.assertRaises(SystemExit) as e:
                 main()
         self.assertEqual(e.exception.code, 0)
@@ -185,19 +178,12 @@ class TestAdmArgs(TestCase):
     @patch("adm.do_attestation")
     def test_attestation(self, do_attestation):
         expected_options = {
-            'any_pin': False,
+            **self.DEFAULT_OPTIONS,
             'attestation_certificate_file_path': 'certification-path',
-            'attestation_ud_source': DEFAULT_ATT_UD_SOURCE,
-            'ca': 'ca-info',
-            'new_pin': None,
-            'no_exec': False,
-            'no_unlock': False,
+            'attestation_ud_source': 'user-defined-source',
             'operation': 'attestation',
             'output_file_path': 'out-path',
             'pin': 'a-pin',
-            'pubkeys_file_path': None,
-            'root_authority': None,
-            'verbose': False
         }
         expected_call_args_list = [
             call(Namespace(**expected_options)),
@@ -207,8 +193,8 @@ class TestAdmArgs(TestCase):
         with patch('sys.argv', ['adm.py',
                                 '-p', 'a-pin',
                                 '-o', 'out-path',
-                                '-c', 'ca-info',
                                 '-t', 'certification-path',
+                                '--attudsource', 'user-defined-source',
                                 'attestation']):
             with self.assertRaises(SystemExit) as e:
                 main()
@@ -217,8 +203,8 @@ class TestAdmArgs(TestCase):
         with patch('sys.argv', ['adm.py',
                                 '--pin', 'a-pin',
                                 '--output', 'out-path',
-                                '--ca', 'ca-info',
                                 '--attcert', 'certification-path',
+                                '--attudsource', 'user-defined-source',
                                 'attestation']):
             with self.assertRaises(SystemExit) as e:
                 main()
@@ -231,19 +217,12 @@ class TestAdmArgs(TestCase):
     @patch("adm.do_verify_attestation")
     def test_verify_attestation(self, do_verify_attestation):
         expected_options = {
-            'any_pin': False,
+            **self.DEFAULT_OPTIONS,
             'attestation_certificate_file_path': 'certification-path',
-            'attestation_ud_source': DEFAULT_ATT_UD_SOURCE,
-            'ca': None,
-            'new_pin': None,
-            'no_exec': False,
-            'no_unlock': False,
             'operation': 'verify_attestation',
-            'output_file_path': None,
             'pin': 'a-pin',
             'pubkeys_file_path': 'pubkeys-path',
             'root_authority': 'root-authority',
-            'verbose': False
         }
         expected_call_args_list = [
             call(Namespace(**expected_options)),
@@ -273,3 +252,36 @@ class TestAdmArgs(TestCase):
         self.assertTrue(do_verify_attestation.called)
         self.assertEqual(do_verify_attestation.call_count, 2)
         self.assertEqual(expected_call_args_list, do_verify_attestation.call_args_list)
+
+    @patch("adm.do_authorize_signer")
+    def test_authorize_signer(self, do_authorize_signer):
+        expected_options = {
+            **self.DEFAULT_OPTIONS,
+            'operation': 'authorize_signer',
+            'pin': 'a-pin',
+            'signer_authorization_file_path': 'a-file-path',
+        }
+        expected_call_args_list = [
+            call(Namespace(**expected_options)),
+            call(Namespace(**expected_options))
+        ]
+
+        with patch('sys.argv', ['adm.py',
+                                '-p', 'a-pin',
+                                '-z', 'a-file-path',
+                                'authorize_signer']):
+            with self.assertRaises(SystemExit) as e:
+                main()
+        self.assertEqual(e.exception.code, 0)
+
+        with patch('sys.argv', ['adm.py',
+                                '--pin', 'a-pin',
+                                '--signauth', 'a-file-path',
+                                'authorize_signer']):
+            with self.assertRaises(SystemExit) as e:
+                main()
+        self.assertEqual(e.exception.code, 0)
+
+        self.assertTrue(do_authorize_signer.called)
+        self.assertEqual(do_authorize_signer.call_count, 2)
+        self.assertEqual(expected_call_args_list, do_authorize_signer.call_args_list)

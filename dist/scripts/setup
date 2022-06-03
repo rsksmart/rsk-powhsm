@@ -16,9 +16,6 @@ LBUTILS="$LBUTILS_DIR/lbutils"
 ADMIN_DIR="$ROOT_DIR/bin/adm"
 ADMIN_BUNDLE="$ADMIN_DIR.tgz"
 ADMIN="$ADMIN_DIR/adm"
-SIGNAPP_DIR="$ROOT_DIR/bin/signapp"
-SIGNAPP_BUNDLE="$SIGNAPP_DIR.tgz"
-SIGNAPP="$SIGNAPP_DIR/signapp"
 
 function cleanBinaries() {
     rm -rf $LBUTILS_DIR
@@ -33,9 +30,6 @@ function expandBinaries() {
 
     mkdir -p $ADMIN_DIR
     tar -xzmf $ADMIN_BUNDLE -C $ADMIN_DIR
-
-    mkdir -p $SIGNAPP_DIR
-    tar -xzmf $SIGNAPP_BUNDLE -C $SIGNAPP_DIR
 }
 
 expandBinaries
@@ -54,14 +48,12 @@ ATTESTATION_FILE="$EXPORT_DIR/attestation.json"
 # (so that the user only needs to confirm once)
 ROOTKEY=$($LBUTILS genCA | grep Private | sed 's/Private key: //g')
 
-# Custom CA plus a custom signature and hash from it (use the signer's)
+# Custom CA
 RSK_CA="$(cat $ROOT_DIR/scripts/rsk-ca.txt)"
-RSK_CA_HASH=$($SIGNAPP hash -a $FIRMWARE_DIR/signer.hex | grep "App hash:" | sed "s/App hash: //g")
-RSK_CA_SIG="$(cat $FIRMWARE_DIR/signer.hex.sig)"
 
 function checkFirmware() {
     # Check for firmware files
-    FILES="$FIRMWARE_DIR/signer.hex $FIRMWARE_DIR/signer.icon.hex $FIRMWARE_DIR/signer.hex.sig $FIRMWARE_DIR/ui.hex $FIRMWARE_DIR/ui.icon.hex $FIRMWARE_DIR/ui.hex.sig"
+    FILES="$FIRMWARE_DIR/signer.hex $FIRMWARE_DIR/signer.icon.hex $FIRMWARE_DIR/ui.hex $FIRMWARE_DIR/ui.icon.hex $FIRMWARE_DIR/ui.hex.sig"
     for f in ${FILES}; do
         if [[ ! -e $f ]]; then
             echo -e "\e[1;31m Firmware file '$(basename $f)' does not exist. \e[0m"
@@ -122,7 +114,7 @@ function installSigner() {
             --fileName $FIRMWARE_DIR/signer.hex \
             --icon "$ICON" \
             --appName "RSK Sign" \
-            --appVersion "2.0.0" \
+            --appVersion "3" \
             --path "" \
             --signature "$SIG" \
             --rootPrivateKey $ROOTKEY > /dev/null 2> /dev/null
@@ -136,7 +128,7 @@ function installUI() {
             --fileName $FIRMWARE_DIR/ui.hex \
             --icon "$ICON" \
             --appName "UX" \
-            --appVersion "2.0.0" \
+            --appVersion "3" \
             --path "" \
             --signature "$SIG" \
             --rootPrivateKey $ROOTKEY > /dev/null 2> /dev/null
@@ -159,7 +151,7 @@ function keys() {
 }
 
 function attestation() {
-    $ADMIN attestation -t $DEVICE_ATTESTATION_FILE -o $ATTESTATION_FILE -c $RSK_CA:$RSK_CA_HASH:$RSK_CA_SIG
+    $ADMIN attestation -t $DEVICE_ATTESTATION_FILE -o $ATTESTATION_FILE
     error
 }
 

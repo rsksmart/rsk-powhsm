@@ -50,14 +50,14 @@
 #include "defs.h"
 #include "err.h"
 #include "attestation.h"
+#include "signer_authorization.h"
 #include "memutil.h"
-
-// Signer hash blacklist
-#define SIGNER_LOG_SIZE 100
-const char N_SignerHashList[SIGNER_LOG_SIZE][COMPRESSEDHASHSIZE];
 
 // Onboarded with the UI flag
 const unsigned char N_onboarded_ui[1] = {0};
+
+// PIN cache used for authenticated operations
+unsigned char G_pin_cache[MAX_PIN_LENGTH + 1];
 
 #ifdef OS_IO_SEPROXYHAL
 
@@ -422,6 +422,9 @@ void io_seproxyhal_display(const bagl_element_t *element) {
 // Attestation context shorthand
 #define attestation_ctx (G_bolos_ux_context.attestation)
 
+// Signer authorization context shorthand
+#define sigaut_ctx (G_bolos_ux_context.sigaut)
+
 /*
  * Do pin validations on the given pin buffer
  * If pin validations fail, throw
@@ -464,6 +467,7 @@ static void reset_if_starting(unsigned char cmd) {
                        sizeof(G_bolos_ux_context.string_buffer));
         G_bolos_ux_context.words_buffer_length = 0;
         reset_attestation(&attestation_ctx);
+        reset_signer_authorization(&sigaut_ctx);
     }
 }
 
@@ -477,6 +481,9 @@ static void sample_main(void) {
 
     // Initialize current operation
     curr_cmd = 0; // 0 = no operation being executed
+
+    // Initialize signer authorization
+    init_signer_authorization();
 
     // DESIGN NOTE: the bootloader ignores the way APDU are fetched. The only
     // goal is to retrieve APDU.
@@ -519,8 +526,15 @@ static void sample_main(void) {
                 case RSK_PIN_CMD: // Send pin_buffer
                     reset_if_starting(RSK_META_CMD_UIOP);
                     pin = APDU_AT(2);
-                    if ((pin >= 0) && (pin <= MAX_PIN_LENGTH))
+                    if ((pin >= 0) && (pin <= MAX_PIN_LENGTH)) {
                         G_bolos_ux_context.pin_buffer[pin] = APDU_AT(3);
+                        // We don't need the prepended length for the pin
+                        // cache, so it is one byte smaller
+                        if (pin < sizeof(G_pin_cache) - 1) {
+                            G_pin_cache[pin] = APDU_AT(3);
+                            G_pin_cache[pin + 1] = 0;
+                        }
+                    }
                     THROW(0x9000);
                     break;
                 case RSK_IS_ONBOARD: // Wheter it's onboarded or not
@@ -593,16 +607,6 @@ static void sample_main(void) {
                     // Clear pin buffer
                     explicit_bzero(G_bolos_ux_context.pin_buffer,
                                    sizeof(G_bolos_ux_context.pin_buffer));
-                    // Clear app hash blacklist
-                    // (we reuse string_buffer to avoid allocating a new buffer)
-                    os_memset(G_bolos_ux_context.string_buffer,
-                              0,
-                              COMPRESSEDHASHSIZE);
-                    for (i = 0; i < SIGNER_LOG_SIZE; i++) {
-                        nvm_write((void *)PIC(N_SignerHashList[i]),
-                                  G_bolos_ux_context.string_buffer,
-                                  COMPRESSEDHASHSIZE);
-                    }
                     // Turn the onboarding flag on to mark onboarding
                     // has been done using the UI
                     aux = 1;
@@ -646,6 +650,11 @@ static void sample_main(void) {
                 case INS_ATTESTATION:
                     reset_if_starting(INS_ATTESTATION);
                     tx = get_attestation(rx, &attestation_ctx);
+                    THROW(0x9000);
+                    break;
+                case INS_SIGNER_AUTHORIZATION:
+                    reset_if_starting(INS_SIGNER_AUTHORIZATION);
+                    tx = do_authorize_signer(rx, &sigaut_ctx);
                     THROW(0x9000);
                     break;
                 case RSK_RETRIES:
@@ -707,70 +716,10 @@ return_to_dashboard:
 }
 
 // Check if we allow this version of the app to execute.
-// Note: If we arrived to this function, it means the APP signature
-// is ALREADY validated. This doesn't check for a valid signature, just hash.
-//
-// Reuse string_buffer because of lack of stack memory
-#define cmpbuf G_bolos_ux_context.string_buffer
 int is_app_version_allowed(application_t *app) {
-    unsigned char *currentHash;
-    unsigned char *oldHash;
-    int i;
-    // Check is app is latest version
-    currentHash = (unsigned char *)PIC(N_SignerHashList[0]);
-    SAFE_MEMMOVE(cmpbuf,
-                 sizeof(cmpbuf),
-                 MEMMOVE_ZERO_OFFSET,
-                 currentHash,
-                 sizeof(N_SignerHashList[0]),
-                 MEMMOVE_ZERO_OFFSET,
-                 COMPRESSEDHASHSIZE,
-                 { return 0; });
-    // Compare the first COMPRESSEDHASHSIZE bytes
-    if (!memcmp(app->hash, cmpbuf, COMPRESSEDHASHSIZE))
-        return 1; // Latest app detected, allow.
-    // App is not latest. Check if it's on the blacklist.
-    for (i = 1; i < SIGNER_LOG_SIZE; i++) {
-        currentHash = (unsigned char *)PIC(N_SignerHashList[i]);
-        SAFE_MEMMOVE(cmpbuf,
-                     sizeof(cmpbuf),
-                     MEMMOVE_ZERO_OFFSET,
-                     currentHash,
-                     sizeof(N_SignerHashList[i]),
-                     MEMMOVE_ZERO_OFFSET,
-                     COMPRESSEDHASHSIZE,
-                     { return 0; })
-        // Compare the first COMPRESSEDHASHSIZE bytes
-        if (!memcmp(app->hash, cmpbuf, COMPRESSEDHASHSIZE))
-            return 0; // App in blacklist! deny execution
-    }
-    // App is not in blacklist, new app detected
-    for (i = SIGNER_LOG_SIZE - 1; i > 0;
-         i--) { // make space for current app hash
-        currentHash = (unsigned char *)PIC(N_SignerHashList[i]);
-        oldHash = (unsigned char *)PIC(N_SignerHashList[i - 1]);
-        SAFE_MEMMOVE(cmpbuf,
-                     sizeof(cmpbuf),
-                     MEMMOVE_ZERO_OFFSET,
-                     oldHash,
-                     sizeof(N_SignerHashList[i - 1]),
-                     MEMMOVE_ZERO_OFFSET,
-                     COMPRESSEDHASHSIZE,
-                     { return 0; });
-        nvm_write(currentHash, cmpbuf, COMPRESSEDHASHSIZE);
-    }
-    // Write new hash in current app hash
-    currentHash = (unsigned char *)PIC(N_SignerHashList[0]);
-    SAFE_MEMMOVE(cmpbuf,
-                 sizeof(cmpbuf),
-                 MEMMOVE_ZERO_OFFSET,
-                 app->hash,
-                 sizeof(app->hash),
-                 MEMMOVE_ZERO_OFFSET,
-                 HASHSIZE,
-                 { return 0; });
-    nvm_write((void *)currentHash, cmpbuf, COMPRESSEDHASHSIZE);
-    return 1; // New app detected, allow.
+    if (is_authorized_signer(app->hash))
+        return 1;
+    return 0;
 }
 
 // run the first non ux application
@@ -779,12 +728,6 @@ void run_first_app(void) {
     while (i < os_registry_count()) {
         application_t app;
         os_registry_get(i, &app);
-#ifndef DEBUG_BUILD
-        // Reject app if not signed
-        if ((app.flags & (APPLICATION_FLAG_ISSUER | APPLICATION_FLAG_CUSTOM_CA |
-                          APPLICATION_FLAG_SIGNED)) == 0)
-            return;
-#endif
         if (!(app.flags & APPLICATION_FLAG_BOLOS_UX)) {
             if (is_app_version_allowed(&app)) {
                 G_bolos_ux_context.app_auto_started = 1;
@@ -1019,15 +962,24 @@ void bolos_ux_main(void) {
             screen_dashboard_prepare();
             G_bolos_ux_context.exit_code = BOLOS_UX_OK;
             break;
+
         case BOLOS_UX_CONSENT_APP_ADD:
-            // PIN is invalidated so we must check it again
-            os_global_pin_check((unsigned char *)G_bolos_ux_context.pin_buffer,
-                                strlen(G_bolos_ux_context.pin_buffer));
+            if (is_authorized_signer(
+                    G_bolos_ux_context.parameters.u.appadd.appentry.hash)) {
+                // PIN is invalidated so we must check it again
+                os_global_pin_check(G_pin_cache, strlen(G_pin_cache));
+                G_bolos_ux_context.exit_code = BOLOS_UX_OK;
+                break;
+            } else {
+                G_bolos_ux_context.exit_code = BOLOS_UX_CANCEL;
+            }
+
             screen_wake_up();
             break;
 
         case BOLOS_UX_CONSENT_APP_DEL:
             screen_wake_up();
+            G_bolos_ux_context.exit_code = BOLOS_UX_OK;
             break;
 
         case BOLOS_UX_CONSENT_ISSUER_KEY:

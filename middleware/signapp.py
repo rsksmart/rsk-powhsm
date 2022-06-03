@@ -21,14 +21,15 @@
 # SOFTWARE.
 
 import sys
+from os.path import isfile
 from argparse import ArgumentParser
 import logging
-from hashlib import sha256
 import ecdsa
-from ledgerblue.hexParser import IntelHexParser
 from admin.misc import get_hsm, dispose_hsm, info, AdminError
 from comm.utils import is_hex_string_of_length
 from comm.bip32 import BIP32Path
+from admin.signer_authorization import SignerAuthorization, SignerVersion
+from admin.ledger_utils import eth_message_to_printable, compute_app_hash
 
 # Default signing path
 DEFAULT_PATH = "m/44'/137'/0'/31/32"
@@ -40,34 +41,36 @@ OP_SIGN_MSG_PATH = bytes.fromhex("70")
 OP_SIGN_MSG_HASH = bytes.fromhex("800000")
 
 
-def compute_app_hash(path):
-    # Taken from
-    # https://github.com/LedgerHQ/blue-loader-python/blob/0.1.31/ledgerblue/hashApp.py
-    parser = IntelHexParser(path)
-    digest = sha256()
-    for a in parser.getAreas():
-        digest.update(a.data)
-    return digest.digest()
-
-
 def main():
     logging.disable(logging.CRITICAL)
 
-    parser = ArgumentParser(description="powHSM App Signer")
-    parser.add_argument("operation", choices=["key", "ledger", "hash"])
+    parser = ArgumentParser(description="powHSM Signer Authorization Generator")
+    parser.add_argument("operation", choices=["hash", "message", "key",
+                                              "ledger", "manual"])
     parser.add_argument(
-        "-a",
-        "--app",
-        dest="app_path",
-        help="Path to the app to be signed.",
-        required=True,
+        "-s",
+        "--signer",
+        dest="signer_path",
+        help="Signer path (used to compute the signer hash and authorization message).",
+    )
+    parser.add_argument(
+        "-i",
+        "--iteration",
+        dest="iteration",
+        help="Signer iteration (used to compute the authorization message).",
     )
     parser.add_argument(
         "-o",
         "--output",
         dest="output_path",
-        help="Destination file for the signature (defaults to the app path with "
-        "a '.sig' extension).",
+        help="Destination file for the authorization.",
+    )
+    parser.add_argument(
+        "-k",
+        "--key",
+        dest="key",
+        help="Private key used for signing (only for 'key' option)."
+        "Must be a 32-byte hex-encoded string.",
     )
     parser.add_argument(
         "-p",
@@ -75,14 +78,14 @@ def main():
         dest="path",
         help="Path used for signing (only for 'ledger' option). "
         f"Default \"{DEFAULT_PATH}\"",
-        default=DEFAULT_PATH,
+        default=DEFAULT_PATH
     )
     parser.add_argument(
-        "-k",
-        "--key",
-        dest="key",
-        help="Private key used for signing (only for 'key' option). "
-        "Must be a 32-byte hex-encoded string.",
+        "-g",
+        "--signature",
+        dest="signature",
+        help="Signature to add to signer authorization (only for 'manual' option)."
+        "Must be a hex-encoded, der-encoded SECP256k1 signature.",
     )
     parser.add_argument(
         "-v",
@@ -98,6 +101,23 @@ def main():
     try:
         hsm = None
 
+        # Require an output path for certain operations
+        if options.operation not in ["hash", "message"] and \
+           options.output_path is None:
+            raise AdminError("Must provide an output path (-o/--output)")
+
+        # Manual addition of signatures is radically different from the rest
+        if options.operation == "manual":
+            if options.signature is None:
+                raise AdminError("Must provide a signature (-g/--signature)")
+            info(f"Opening signer authorization file {options.output_path}...")
+            signer_authorization = SignerAuthorization.from_jsonfile(options.output_path)
+            info("Adding signature...")
+            signer_authorization.add_signature(options.signature)
+            signer_authorization.save_to_jsonfile(options.output_path)
+            info(f"Signer authorization saved to {options.output_path}")
+            sys.exit(0)
+
         if options.operation == "key":
             # Validate key
             if options.key is None:
@@ -111,12 +131,38 @@ def main():
             # Get dongle access (must be opened in the signer)
             hsm = get_hsm(options.verbose)
 
-        info("Computing app hash...")
-        app_hash = compute_app_hash(options.app_path)
-        info(f"App hash: {app_hash.hex()}")
+        # Is there an existing signer authorization? Read it
+        signer_authorization = None
+        if options.operation not in ["message", "hash"] and \
+           options.output_path is not None and \
+           isfile(options.output_path):
+            info(f"Opening signer authorization file {options.output_path}...")
+            signer_authorization = SignerAuthorization.from_jsonfile(options.output_path)
+            signer_version = signer_authorization.signer_version
+        else:
+            if options.signer_path is None:
+                raise AdminError("Must provide a signer path with '-s/--signer'")
 
-        # If we only need to compute the hash, then that's it
-        if options.operation == "hash":
+            if options.operation != "hash" and options.iteration is None:
+                raise AdminError("Must provide a signer iteration with '-i/--iteration'")
+
+            info("Computing hash...")
+            signer_hash = compute_app_hash(options.signer_path).hex()
+            if options.operation == "hash":
+                info(f"Computed hash: {signer_hash}")
+                sys.exit(0)
+
+            info("Computing signer authorization message...")
+            signer_version = SignerVersion(signer_hash, options.iteration)
+            signer_authorization = SignerAuthorization.for_signer_version(signer_version)
+
+        if options.operation == "message":
+            signer_authorization_msg = signer_version.get_authorization_msg()
+            if options.output_path is None:
+                info(eth_message_to_printable(signer_authorization_msg))
+            else:
+                signer_authorization.save_to_jsonfile(options.output_path)
+                info(f"Signer authorization saved to {options.output_path}")
             sys.exit(0)
 
         # Sign the app hash
@@ -124,7 +170,8 @@ def main():
             info("Signing with key...")
             sk = ecdsa.SigningKey.from_string(bytes.fromhex(options.key),
                                               curve=ecdsa.SECP256k1)
-            signature = sk.sign_digest(app_hash, sigencode=ecdsa.util.sigencode_der)
+            signature = sk.sign_digest(signer_version.get_authorization_digest(),
+                                       sigencode=ecdsa.util.sigencode_der)
         else:
             # We use private dongle methods to do this, since we don't want
             # to implement legacy signing (i.e., 1.0/1.1) in the HSM2Dongle class
@@ -137,22 +184,22 @@ def main():
 
             info("Signing with dongle...")
             hsm._send_command(COMMAND_SIGN, OP_SIGN_MSG_PATH + path.to_binary())
-            signature = hsm._send_command(COMMAND_SIGN, OP_SIGN_MSG_HASH + app_hash)
+            signature = hsm._send_command(COMMAND_SIGN, OP_SIGN_MSG_HASH +
+                                          signer_version.get_authorization_digest())
             info("Verifying signature...")
             vkey = ecdsa.VerifyingKey.from_string(pubkey, curve=ecdsa.SECP256k1)
             try:
                 if not vkey.verify_digest(
-                        signature, app_hash, sigdecode=ecdsa.util.sigdecode_der):
+                        signature, signer_version.get_authorization_digest(),
+                        sigdecode=ecdsa.util.sigdecode_der):
                     raise Exception()
             except Exception:
                 raise AdminError(f"Bad signature from dongle! (got '{signature.hex}')")
 
-        # Save the signature to disk
-        output_path = (options.output_path
-                       if options.output_path is not None else f"{options.app_path}.sig")
-        with open(output_path, "wb") as file:
-            file.write(signature.hex().encode())
-            info(f"Signature saved to {output_path}")
+        # Add the signature to the authorization and save it to disk
+        signer_authorization.add_signature(signature.hex())
+        signer_authorization.save_to_jsonfile(options.output_path)
+        info(f"Signer authorization saved to {options.output_path}")
         sys.exit(0)
     except Exception as e:
         info(str(e))

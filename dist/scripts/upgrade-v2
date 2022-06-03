@@ -22,9 +22,6 @@ LBUTILS="$LBUTILS_DIR/lbutils"
 ADMIN_DIR="$ROOT_DIR/bin/adm"
 ADMIN_BUNDLE="$ADMIN_DIR.tgz"
 ADMIN="$ADMIN_DIR/adm"
-SIGNAPP_DIR="$ROOT_DIR/bin/signapp"
-SIGNAPP_BUNDLE="$SIGNAPP_DIR.tgz"
-SIGNAPP="$SIGNAPP_DIR/signapp"
 
 function cleanBinaries() {
     rm -rf $LBUTILS_DIR
@@ -39,9 +36,6 @@ function expandBinaries() {
 
     mkdir -p $ADMIN_DIR
     tar -xzmf $ADMIN_BUNDLE -C $ADMIN_DIR
-
-    mkdir -p $SIGNAPP_DIR
-    tar -xzmf $SIGNAPP_BUNDLE -C $SIGNAPP_DIR
 }
 
 expandBinaries
@@ -50,17 +44,14 @@ FIRMWARE_DIR=$ROOT_DIR/firmware
 
 # File with the current pin
 PIN_FILE="$ROOT_DIR/pin.txt"
+# Signer authorization file
+SIGNER_AUTH_FILE="$FIRMWARE_DIR/signer_auth.json"
 # File where public keys will be saved after upgrading is done
 EXPORT_DIR="$ROOT_DIR/export"
 PUBLIC_KEY_FILE="$EXPORT_DIR/public-keys.txt"
 PUBLIC_KEY_FILE_JSON="$EXPORT_DIR/public-keys.json"
 DEVICE_ATTESTATION_FILE="$ROOT_DIR/device_attestation.json"
 ATTESTATION_FILE="$EXPORT_DIR/attestation.json"
-
-# Custom CA plus a custom signature and hash from it (use the signer's)
-RSK_CA="$(cat $ROOT_DIR/scripts/rsk-ca.txt)"
-RSK_CA_HASH=$($SIGNAPP hash -a $FIRMWARE_DIR/signer.hex | grep "App hash:" | sed "s/App hash: //g")
-RSK_CA_SIG="$(cat $FIRMWARE_DIR/signer.hex.sig)"
 
 function error() {
     if [ $? -ne 0 ]; then
@@ -78,6 +69,14 @@ function checkForPinFile() {
     fi
 }
 
+function checkForSignerAuthFile() {
+    if [[ ! -e $SIGNER_AUTH_FILE ]]; then
+        echo -e "\e[1;31m Signer authorization file '$(basename $SIGNER_AUTH_FILE)' not found. \e[0m"
+        cleanBinaries
+        exit 1
+    fi
+}
+
 function checkForAttestationFile() {
     if [[ ! -e $DEVICE_ATTESTATION_FILE ]]; then
         echo -e "\e[1;31m Attestation file '$(basename $DEVICE_ATTESTATION_FILE)' not found. \e[0m"
@@ -88,7 +87,7 @@ function checkForAttestationFile() {
 
 function checkFirmware() {
     # Check for firmware files
-    FILES="$FIRMWARE_DIR/signer.hex $FIRMWARE_DIR/signer.icon.hex $FIRMWARE_DIR/signer.hex.sig"
+    FILES="$FIRMWARE_DIR/signer.hex $FIRMWARE_DIR/signer.icon.hex"
     for f in ${FILES}; do
         if [[ ! -e $f ]]; then
             echo -e "\e[1;31m Firmware file '$(basename $f)' does not exist. \e[0m"
@@ -96,6 +95,11 @@ function checkFirmware() {
             exit 1
         fi
     done
+}
+
+function authorizeSigner() {
+    $ADMIN authorize_signer -p$(cat $PIN_FILE) -z$SIGNER_AUTH_FILE
+    error
 }
 
 function unlockToMenu() {
@@ -110,14 +114,12 @@ function removeSigner() {
 
 function installSigner() {
     ICON="$(cat $FIRMWARE_DIR/signer.icon.hex)"
-    SIG="$(cat $FIRMWARE_DIR/signer.hex.sig)"
     $LBUTILS load --delete --targetId $TARGET_ID --appFlags 0x00 \
             --fileName $FIRMWARE_DIR/signer.hex \
             --icon "$ICON" \
             --appName "RSK Sign" \
-            --appVersion "2.0.0" \
-            --path "" \
-            --signature "$SIG" > /dev/null 2> /dev/null
+            --appVersion "3" \
+            --path "" > /dev/null 2> /dev/null
     error
 }
 
@@ -137,7 +139,7 @@ function keys() {
 }
 
 function attestation() {
-    $ADMIN attestation -p$(cat $PIN_FILE) -t $DEVICE_ATTESTATION_FILE -o $ATTESTATION_FILE -c $RSK_CA:$RSK_CA_HASH:$RSK_CA_SIG
+    $ADMIN attestation -p$(cat $PIN_FILE) -t $DEVICE_ATTESTATION_FILE -o $ATTESTATION_FILE
     error
 }
 
@@ -151,6 +153,7 @@ echo -e "\e[1;32mPlease make sure your HSM is onboarded before continuing with t
 echo
 checkFirmware
 checkForPinFile
+checkForSignerAuthFile
 
 if [[ "$DO_ATTESTATION" == "yes" ]]; then
     checkForAttestationFile
@@ -160,6 +163,9 @@ echo -e "\e[1;33mConnect your ledger.\e[0m"
 echo -e "Press [Enter] to continue"
 read continue
 sleep 2
+echo
+echo -e "\e[1;32mAuthorising the new RSK Signer App...\e[0m"
+authorizeSigner
 unlockToMenu
 sleep 2
 echo

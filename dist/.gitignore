@@ -1,6 +1,7 @@
 bin
 firmware
 public-keys.txt
+public-keys.json
 pin.txt
 attestation.json
 device_attestation.json

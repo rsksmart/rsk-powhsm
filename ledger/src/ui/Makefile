@@ -42,7 +42,7 @@ ifeq ($(TARGET_ID),)
 	TARGET_ID := $(shell cat $(BOLOS_SDK)/include/bolos_target.h | grep 0x | cut -f3 -d' ')
 endif
 APPNAME = UX
-APPVERSION = 2.0.0
+APPVERSION = 3
 VERSION = ux$(APPVERSION)
 # By default, don't build debug code.
 DEBUG_BUILD = 0
@@ -138,6 +138,26 @@ CFLAGS   += -DDEBUG_BUILD=${DEBUG_BUILD}
 endif
 CFLAGS   += -fropi --target=armv6m-none-eabi
 #CFLAGS   += -finline-limit-0 -funsigned-bitfields
+
+# Convert signer hash to what the compiler expects
+ifneq ($(SIGNER_HASH),)
+CONVERTED_SIGNER_HASH = $(shell python make-initial-signer-hash.py $(SIGNER_HASH))
+$(info Building with signer hash set to "$(SIGNER_HASH)")
+CFLAGS += -DPARAM_INITIAL_SIGNER_HASH="$(CONVERTED_SIGNER_HASH)"
+endif
+
+# Convert signer iteration to what the compiler expects
+ifneq ($(SIGNER_ITERATION),)
+CONVERTED_SIGNER_ITERATION = $(shell python make-initial-signer-iteration.py $(SIGNER_ITERATION))
+$(info Building with signer hash set to "$(SIGNER_ITERATION)")
+CFLAGS += -DPARAM_INITIAL_SIGNER_ITERATION="$(CONVERTED_SIGNER_ITERATION)"
+endif
+
+# Pass the signers file name to the compiler
+ifneq ($(SIGNERS_FILE),)
+$(info Building with signers file set to "$(SIGNERS_FILE).h")
+CFLAGS += -DPARAM_SIGNERS_FILE="$(SIGNERS_FILE)"
+endif
 
 AS     := $(GCCPATH)/arm-none-eabi-gcc
 AFLAGS += -ggdb2 -O3 -Os -mcpu=cortex-m0 -fno-common -mtune=cortex-m0

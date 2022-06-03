@@ -26,7 +26,7 @@ Whether new to the project or just wanting to quickly get an environment up and 
 - Build firmware binaries:
 ```
 ~/repo> ledger/build/build-signer <checkpoint> <difficulty> <network> # Build signer
-~/repo> ledger/build/build-ui # Build UI
+~/repo> ledger/build/build-ui <signer_hash> <signer_iteration> <signers_file> # Build UI
 ```
 
 - Build middleware binaries:
@@ -34,7 +34,7 @@ Whether new to the project or just wanting to quickly get an environment up and 
 ~/repo> middleware/build/all
 ```
 
-- Build a complete powHSM distribution (will need an [additional certification step](./dist/README.md#using-a-distribution)):
+- Build a complete powHSM distribution:
 ```
-~/repo> ./build-dist <destination-dir> <checkpoint> <difficulty> <network>
+~/repo> ./build-dist <destination path> <checkpoint> <minimum difficulty> <network> <ui_iteration> <ui_authorizers>
 ```

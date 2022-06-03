@@ -57,7 +57,38 @@ The signer authorization is implemented by means of:
 - An updated UI attestation, including the values for `authorized_signer_hash` and
   `authorized_signer_iteration`, and removing the CCA present up to version 2.3 entirely.
 - A middleware toolset that allows for the generation of the aforementioned signatures.
-- An updated setup and upgrade process that includes the Signer authorization step.
+- An updated upgrade process that includes the Signer authorization step.
+
+### Authorizing a signer
+
+In order to simplify and standardize the authorization of signer versions by holders of
+the authorising private keys, we use [EIP-712](https://eips.ethereum.org/EIPS/eip-712)'s
+encoding of bytestrings in order to generate the digests to be signed. Therefore, any user
+of e.g. MetaMask can act as an authoriser for a given signer version without the need for
+additional hardware or software. The message to be signed is as follows:
+
+```
+RSK_powHSM_signer_<HASH>_iteration_<ITERATION>
+```
+
+where `<HASH>` corresponds to the ASCII-encoded, hex-encoded 32-byte hash of the signer,
+and `<ITERATION>` corresponds to the ASCII-encoded decimal value for the signer iteration.
+For example, if we had to authorize a signer version with hash
+`e1baa18564fc0c2c70ac4019609c6db643adbf12711c8b319f838e6a74b0da2c` and iteration `45`, the
+message would be:
+
+```
+RSK_powHSM_signer_e1baa18564fc0c2c70ac4019609c6db643adbf12711c8b319f838e6a74b0da2c_iteration_45
+```
+
+When signing with e.g. MetaMask for the Ethereum network, EIP-712's encoding is applied
+automatically, whereas if we had to manually sign the message, we'd have to manually apply
+said encoding before signing. That is, the digest to sign would be the `keccak256` hash
+of:
+
+```
+\x19Ethereum Signed Message:\n95RSK_powHSM_signer_e1baa18564fc0c2c70ac4019609c6db643adbf12711c8b319f838e6a74b0da2c_iteration_45
+```
 
 ### Considerations
 

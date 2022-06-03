@@ -45,6 +45,7 @@
 #include "os_io_seproxyhal.h"
 
 #include "attestation.h"
+#include "signer_authorization.h"
 
 #ifdef HAVE_BOLOS_UX
 
@@ -159,7 +160,10 @@ typedef struct bolos_ux_context {
                                     // 128) + HMAC_LENGTH*2 = 256
         };
 
-        att_t attestation;
+        union {
+            att_t attestation;
+            sigaut_t sigaut;
+        };
     };
 
 #define MAX_PIN_LENGTH 8

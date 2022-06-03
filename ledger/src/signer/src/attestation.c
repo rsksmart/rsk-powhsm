@@ -33,8 +33,7 @@
 #include "memutil.h"
 
 // Attestation message prefix
-#define ATT_MSG_PREFIX_LENGTH 14
-const char ATT_MSG_PREFIX[ATT_MSG_PREFIX_LENGTH] = "HSM:SIGNER:2.1";
+const char att_msg_prefix[ATT_MSG_PREFIX_LENGTH] = ATT_MSG_PREFIX;
 
 // -----------------------------------------------------------------------
 // Protocol implementation

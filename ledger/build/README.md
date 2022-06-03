@@ -7,22 +7,24 @@ The Docker image for ledger builds (see [the ledger readme](../README.md)) provi
 To build the UI, just issue:
 
 ```bash
-~/repo> ledger/build/build-ui
+~/repo> ledger/build/build-ui <signer_hash> <signer_iteration> <signers_file>
 ```
 
-There is also a *debug* version of the UI, which disables downgrade prevention. That is, it disables three features: disallowing running of blacklisted applications, disallowing running of non-certified applications and disallowing PINs with no alpha characters. This debug version is intended for debugging purposes only, and to build it, just issue:
+where `<signer_hash>` is the hash of the authorized signer version (only this signer can be opened in the UI once running), `<signer_iteration>` is the iteration of the authorized signer version (used for downgrade prevention) and `<signers_file>` is the basename of the signer authorizers header file (the file to be included for the build process should be at `~/ledger/src/ui/src/signer_authorization_signers/<signers_file>.h`).
+
+There is also a *debug* version of the UI, which disables disallowing PINs with no alpha characters, therefore allowing for testing UI (and Signer) builds granting access to recovery mode without the need for wiping the device each time. This debug version is intended for development purposes only, and to build it, just issue:
 
 ```bash
-~/repo> ledger/build/build-ui-debug
+~/repo> ledger/build/build-ui-debug <signer_hash> <signer_iteration> <signers_file>
 ```
 
-To build the signer, just do:
+To build the signer, just issue:
 
 ```bash
-~/repo> ledger/build/build-signer <checkpoint> <minimum_difficulty> <network> [<docker_image>]
+~/repo> ledger/build/build-signer <checkpoint> <minimum_difficulty> <network>
 ```
 
-where `<checkpoint>` is the desired blockchain checkpoint hash, `<minimum_difficulty>` is the minimum required difficulty (can be specified as a decimal number or as a hexadecimal - prefixed with `0x`), and `<network>` is the desired network the build is to target (one of `mainnet`, `testnet` or `regtest`). If your docker image has a different tag than `hsm:latest`, you can specify that as the last parameter.
+where `<checkpoint>` is the desired blockchain checkpoint hash, `<minimum_difficulty>` is the minimum required difficulty (can be specified as a decimal number or as a hexadecimal - prefixed with `0x`), and `<network>` is the desired network the build is to target (one of `mainnet`, `testnet` or `regtest`).
 
 For example, to build the signer with checkpoint `0x00f06dcff26ec8b4d373fbd53ee770e9348d9bd6a247ad4c86e82ceb3c2130ac`, minimum cumulative difficulty of `0x7c50933098` and the `testnet` network, issue:
 

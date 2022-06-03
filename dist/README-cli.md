@@ -8,7 +8,7 @@ The computer on which the powHSM setup and onboarding is to be executed needs th
 
 ## Scripts
 
-This can be used to setup a new device as well as to upgrade a device from a legacy HSM 1.x to powHSM. 
+This can be used to setup a new device as well as to upgrade a device with powHSM to a newer Signer version.
 
 ### Setup
 
@@ -16,20 +16,6 @@ To setup a brand new device, within the `/path/to/dist` directory, issue:
 
 ```
 /path/to/dist> ./setup-new-device
-```
-
-and follow the instructions.
-
-### Upgrade a legacy HSM 1.x to powHSM
-
-To upgrade an existing HSM 1.x device, you will first need:
-
-- A file `/path/to/dist/pin.txt` with the current device's pin.
-
-Then, to execute the upgrade process, within the `/path/to/dist` directory, issue:
-
-```
-/path/to/dist> ./upgrade-v1-device
 ```
 
 and follow the instructions.
