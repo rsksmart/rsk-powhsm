@@ -31,6 +31,7 @@ from admin.pubkeys import do_get_pubkeys
 from admin.changepin import do_changepin
 from admin.attestation import do_attestation
 from admin.verify_attestation import do_verify_attestation
+from admin.authorize_signer import do_authorize_signer
 
 DEFAULT_PIN_FILE = "pin.txt"
 DEFAULT_PIN_CHANGE_FILE = "changePIN"
@@ -47,6 +48,7 @@ def main():
         "changepin": do_changepin,
         "attestation": do_attestation,
         "verify_attestation": do_verify_attestation,
+        "authorize_signer": do_authorize_signer,
     }
 
     parser = ArgumentParser(description="powHSM Administrative tool")
@@ -95,13 +97,6 @@ def main():
         const=True,
     )
     parser.add_argument(
-        "-c",
-        "--ca",
-        dest="ca",
-        help="CA info in the <pubkey>:<hash>:<signature> format (only valid for "
-        "'attestation' operation).",
-    )
-    parser.add_argument(
         "-t",
         "--attcert",
         dest="attestation_certificate_file_path",
@@ -129,6 +124,13 @@ def main():
         "as the user defined value for the attestation (defaults to "
         f"{DEFAULT_ATT_UD_SOURCE}). Can also specify a 32-byte hex string to use as"
         " the value.",
+    )
+    parser.add_argument(
+        "-z",
+        "--signauth",
+        dest="signer_authorization_file_path",
+        help="Signer authorization file (only valid for 'authorize_signer' "
+        "operations).",
     )
     parser.add_argument(
         "-v",

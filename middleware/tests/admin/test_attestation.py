@@ -42,7 +42,6 @@ class TestAttestation(TestCase):
         options = {
             'output_file_path': self.certificate_path,
             'attestation_certificate_file_path': 'unused-path',
-            'ca': '112233:445566:778899',
             'verbose': False,
             'attestation_ud_source': DEFAULT_ATT_UD_SOURCE
         }
@@ -171,53 +170,3 @@ class TestAttestation(TestCase):
             do_attestation(options)
 
         self.assertEqual('No attestation certificate file given', str(e.exception))
-
-    @patch("admin.attestation.HSMCertificate")
-    def test_attestation_no_ca_info(self, certificate, *_):
-        certificate.from_jsonfile = Mock(return_value=self.expected_cert)
-        options = self.default_options
-        options.ca = None
-        with self.assertRaises(AdminError) as e:
-            do_attestation(options)
-
-        self.assertEqual('No CA info given', str(e.exception))
-
-    @patch("admin.attestation.HSMCertificate")
-    def test_attestation_invalid_ca_info(self, certificate, *_):
-        certificate.from_jsonfile = Mock(return_value=self.expected_cert)
-        options = self.default_options
-        options.ca = 'invalid-ca'
-        with self.assertRaises(AdminError) as e:
-            do_attestation(options)
-
-        self.assertEqual('Invalid CA info given', str(e.exception))
-
-    @patch("admin.attestation.HSMCertificate")
-    def test_attestation_invalid_ca_pubkey(self, certificate, *_):
-        certificate.from_jsonfile = Mock(return_value=self.expected_cert)
-        options = self.default_options
-        options.ca = 'INVALID:445566:778899'
-        with self.assertRaises(AdminError) as e:
-            do_attestation(options)
-
-        self.assertEqual('Invalid CA public key given', str(e.exception))
-
-    @patch("admin.attestation.HSMCertificate")
-    def test_attestation_invalid_ca_hash(self, certificate, *_):
-        certificate.from_jsonfile = Mock(return_value=self.expected_cert)
-        options = self.default_options
-        options.ca = '112233:INVALID:778899'
-        with self.assertRaises(AdminError) as e:
-            do_attestation(options)
-
-        self.assertEqual('Invalid CA hash given', str(e.exception))
-
-    @patch("admin.attestation.HSMCertificate")
-    def test_attestation_invalid_ca_signature(self, certificate, *_):
-        certificate.from_jsonfile = Mock(return_value=self.expected_cert)
-        options = self.default_options
-        options.ca = '112233:445566:INVALID'
-        with self.assertRaises(AdminError) as e:
-            do_attestation(options)
-
-        self.assertEqual('Invalid CA signature given', str(e.exception))

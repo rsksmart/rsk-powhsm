@@ -62,6 +62,7 @@ class _Command(IntEnum):
     WIPE = 0x07
     UI_ATT = 0x50
     SIGNER_ATT = 0x50
+    SIGNER_AUTH = 0x51
     RETRIES = 0x45
 
 
@@ -110,12 +111,9 @@ class _UpdateAncestorOps(IntEnum):
 # UI attestation OPs
 class _UIAttestationOps(IntEnum):
     OP_UD_VALUE = 0x01
-    OP_PUBKEY = 0x02
-    OP_HASH = 0x03
-    OP_SIGNATURE = 0x04
-    OP_GET_MSG = 0x05
-    OP_GET = 0x06
-    OP_APP_HASH = 0x07
+    OP_GET_MSG = 0x02
+    OP_GET = 0x03
+    OP_APP_HASH = 0x04
 
 
 # Signer attestation OPs
@@ -123,6 +121,14 @@ class _SignerAttestationOps(IntEnum):
     OP_GET = 0x01
     OP_GET_MESSAGE = 0x02
     OP_APP_HASH = 0x03
+
+
+# Signer authorization OPs (and results)
+class _SignerAuthorizationOps(IntEnum):
+    OP_SIGVER = 0x01
+    OP_SIGN = 0x02
+    OP_SIGN_RES_MORE = 0x01
+    OP_SIGN_RES_SUCCESS = 0x02
 
 
 # Command Ops
@@ -134,6 +140,7 @@ class _Ops:
     UPD_ANCESTOR = _UpdateAncestorOps
     UI_ATT = _UIAttestationOps
     SIGNER_ATT = _SignerAttestationOps
+    SIGNER_AUTH = _SignerAuthorizationOps
 
 
 # Protocol offsets
@@ -235,14 +242,20 @@ class _UIError(IntEnum):
 
 class _UIAttestationError(IntEnum):
     PROT_INVALID = 0x6A01
-    CA_MISMATCH = 0x6A02
-    NO_ONBOARD = 0x6A03
-    INTERNAL = 0x6B04
+    NO_ONBOARD = 0x6A02
+    INTERNAL = 0x6A99
 
 
 class _SignerAttestationError(IntEnum):
     PROT_INVALID = 0x6B00
     INTERNAL = 0x6B01
+
+
+class _SignerAuthorizationError(IntEnum):
+    PROT_INVALID = 0x6A01
+    INVALID_ITERATION = 0x6a03
+    INVALID_SIGNATURE = 0x6a04
+    INVALID_AUTH_INVALID_INDEX = 0x6a05
 
 
 # Error codes
@@ -254,6 +267,7 @@ class _Error:
     UI = _UIError
     UI_ATT = _UIAttestationError
     SIGNER_ATT = _SignerAttestationError
+    SIGNER_AUTH = _SignerAuthorizationError
 
     # Whether a given code is in the
     # user-defined (RSK firmware) specific error code range
@@ -378,6 +392,9 @@ class HSM2Dongle:
 
     # Maximum pages expected to conform the UI attestation message
     MAX_PAGES_UI_ATT_MESSAGE = 4
+
+    # Size of the iteration parameter for the signer authorization
+    SIGNER_AUTH_ITERATION_SIZE = 2
 
     def __init__(self, debug):
         self.logger = logging.getLogger("dongle")
@@ -969,14 +986,9 @@ class HSM2Dongle:
             },
         )
 
-    def get_ui_attestation(
-        self, ud_value_hex, ca_pubkey_hex, ca_hash_hex, ca_signature_hex
-    ):
+    def get_ui_attestation(self, ud_value_hex):
         # Parse hexadecimal values
         ud_value = bytes.fromhex(ud_value_hex)
-        ca_pubkey = bytes.fromhex(ca_pubkey_hex)
-        ca_hash = bytes.fromhex(ca_hash_hex)
-        ca_signature = bytes.fromhex(ca_signature_hex)
 
         # Get UI hash
         ui_hash = self._send_command(
@@ -985,18 +997,6 @@ class HSM2Dongle:
 
         # Send UD value
         data = bytes([self.OP.UI_ATT.OP_UD_VALUE]) + ud_value
-        self._send_command(self.CMD.UI_ATT, data)
-
-        # Send pubkey
-        data = bytes([self.OP.UI_ATT.OP_PUBKEY]) + ca_pubkey
-        self._send_command(self.CMD.UI_ATT, data)
-
-        # Send hash
-        data = bytes([self.OP.UI_ATT.OP_HASH]) + ca_hash
-        self._send_command(self.CMD.UI_ATT, data)
-
-        # Send signature
-        data = bytes([self.OP.UI_ATT.OP_SIGNATURE, len(ca_signature)]) + ca_signature
         self._send_command(self.CMD.UI_ATT, data)
 
         # Retrieve message
@@ -1047,6 +1047,30 @@ class HSM2Dongle:
             "message": message.hex(),
             "signature": attestation.hex(),
         }
+
+    def authorize_signer(self, signer_authorization):
+        # Send signer version
+        self._send_command(self.CMD.SIGNER_AUTH,
+                           bytes([self.OP.SIGNER_AUTH.OP_SIGVER]) +
+                           bytes.fromhex(signer_authorization.signer_version.hash) +
+                           signer_authorization.signer_version.iteration.to_bytes(
+                               self.SIGNER_AUTH_ITERATION_SIZE,
+                               byteorder='big', signed=False))
+
+        # Send signatures one by one
+        result = None
+        for signature in signer_authorization.signatures:
+            result = self._send_command(self.CMD.SIGNER_AUTH,
+                                        bytes([self.OP.SIGNER_AUTH.OP_SIGN]) +
+                                        bytes.fromhex(signature))[self.OFF.DATA]
+            # Are we done?
+            if result == self.OP.SIGNER_AUTH.OP_SIGN_RES_SUCCESS:
+                return True
+
+        # Are we not done after all signatures were sent?
+        if result != self.OP.SIGNER_AUTH.OP_SIGN_RES_SUCCESS:
+            raise HSM2DongleError("Not enough signatures given. "
+                                  "Signer authorization failed")
 
     # Used both for advance blockchain and update ancestor given the protocol
     # is very similar

@@ -63,12 +63,51 @@
 //
 // NOTE 1: Avoid lossy conversions: sizeof(n) must be <= size
 // NOTE 2: Avoid buffer overflow: buffer length must be >= size
-#define VAR_BIGENDIAN_TO(buf, n, size)                         \
-    {                                                          \
-        memset(buf, 0, size);                                  \
-        for (unsigned int __i = 0; __i < size; __i++) {        \
-            (buf)[__i] = (n >> (8 * (size - __i - 1))) & 0xFF; \
-        }                                                      \
+#define VAR_BIGENDIAN_TO(buf, n, size)                           \
+    {                                                            \
+        memset((buf), 0, (size));                                \
+        for (unsigned int __i = 0; __i < (size); __i++) {        \
+            (buf)[__i] = ((n) >> (8 * ((size)-__i - 1))) & 0xFF; \
+        }                                                        \
+    }
+
+// Convert an unsigned integer to a decimal string, outputting
+// it to the given buffer.
+//
+// @arg buf buffer to write
+// @arg n unsigned integer to convert
+//
+// NOTE: this macro assumes buf is big enough to hold the
+// decimal string representation of n
+// (number of digits plus the null termination byte).
+#define UINT_TO_DECSTR(buf, n)                               \
+    {                                                        \
+        int __i = 0;                                         \
+        int __div = 1;                                       \
+        while (((n) / __div > 0) > 0) {                      \
+            __div *= 10;                                     \
+            ++__i;                                           \
+        }                                                    \
+        (buf)[__i] = 0;                                      \
+        __div = 1;                                           \
+        while (__i > 0) {                                    \
+            (buf)[--__i] = '0' + (char)(((n) / __div) % 10); \
+            __div *= 10;                                     \
+        }                                                    \
+    }
+
+#define NIBBLE_TO_HEXCHAR(chr, n)         \
+    {                                     \
+        if (((n)&0xf) < 10)               \
+            (chr) = '0' + ((n)&0xf);      \
+        else                              \
+            (chr) = 'a' + ((n)&0xf) - 10; \
+    }
+
+#define BYTE_TO_HEXSTR(buf, n)                        \
+    {                                                 \
+        NIBBLE_TO_HEXCHAR((buf)[0], ((n)&0xf0) >> 4); \
+        NIBBLE_TO_HEXCHAR((buf)[1], (n)&0x0f);        \
     }
 
 #endif

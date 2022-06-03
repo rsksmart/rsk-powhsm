@@ -28,10 +28,17 @@
 // Error codes for RSK operations
 typedef enum {
     PROT_INVALID = 0x6a01, // Ledger got invalid or unexpected message
-    CA_MISMATCH =
-        0x6a02, // Public key doesn't match the device's custom CA public key
-    NO_ONBOARD = 0x6a03, // Device not onboarded using the UI
-    INTERNAL = 0x6a04,   // Internal error while generating attestation
+
+    ATT_NO_ONBOARD = 0x6a02, // Attestation: device not onboarded using the UI
+
+    SIG_AUT_INVALID_ITERATION =
+        0x6a03, // Signer authorization: invalid iteration given
+    SIG_AUT_INVALID_SIGNATURE =
+        0x6a04, // Signer authorization: invalid signature given
+    SIG_AUT_INVALID_AUTH_INVALID_INDEX =
+        0x6a05, // Signer authorization: invalid authorizer index
+
+    INTERNAL = 0x6a99, // Internal error while generating attestation
 } err_code_rsk_t;
 
 #endif

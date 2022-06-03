@@ -8,6 +8,5 @@ echo "Building all..."
 QUIET=1 $BUILDDIR/manager && \
 QUIET=1 $BUILDDIR/manager-tcp && \
 QUIET=1 $BUILDDIR/adm && \
-QUIET=1 $BUILDDIR/signapp && \
 QUIET=1 $BUILDDIR/lbutils && \
 echo "" && sha256sum $BINDIR/*.tgz

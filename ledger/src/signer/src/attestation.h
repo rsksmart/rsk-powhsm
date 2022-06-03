@@ -32,6 +32,10 @@
 // Keys attestation
 // -----------------------------------------------------------------------
 
+// Attestation message prefix
+#define ATT_MSG_PREFIX "HSM:SIGNER:3.0"
+#define ATT_MSG_PREFIX_LENGTH (sizeof(ATT_MSG_PREFIX) - sizeof(""))
+
 // -----------------------------------------------------------------------
 // Protocol
 // -----------------------------------------------------------------------

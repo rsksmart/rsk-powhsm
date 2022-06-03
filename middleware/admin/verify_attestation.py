@@ -27,16 +27,22 @@ from .misc import info, head, AdminError
 from .utils import is_nonempty_hex_string
 from .certificate import HSMCertificate
 
-UI_MESSAGE_HEADER = b"HSM:UI:2.1"
-SIGNER_MESSAGE_HEADER = b"HSM:SIGNER:2.1"
+
+UI_MESSAGE_HEADER = b"HSM:UI:3.0"
+SIGNER_MESSAGE_HEADER = b"HSM:SIGNER:3.0"
 UI_DERIVATION_PATH = "m/44'/0'/0'/0/0"
 UD_VALUE_LENGTH = 32
 PUBKEY_COMPRESSED_LENGTH = 33
+SIGNER_HASH_LENGTH = 32
+SIGNER_ITERATION_LENGTH = 2
 
 # Ledger's root authority
 # (according to
-# https://github.com/LedgerHQ/blue-loader-python/blob/master/ledgerblue/endorsementSetup.py#L138): # noqa E501
-DEFAULT_ROOT_AUTHORITY = "0490f5c9d15a0134bb019d2afd0bf297149738459706e7ac5be4abc350a1f818057224fce12ec9a65de18ec34d6e8c24db927835ea1692b14c32e9836a75dad609" # noqa E501
+# https://github.com/LedgerHQ/blue-loader-python/blob/master/ledgerblue/
+# endorsementSetup.py#L138)
+DEFAULT_ROOT_AUTHORITY = "0490f5c9d15a0134bb019d2afd0bf297149738459706e7ac5be4abc350a1f8"\
+                         "18057224fce12ec9a65de18ec34d6e8c24db927835ea1692b14c32e9836a75"\
+                         "dad609"
 
 
 def do_verify_attestation(options):
@@ -120,18 +126,26 @@ def do_verify_attestation(options):
         raise AdminError(
             f"Invalid UI attestation message header: {ui_message[:mh_len].hex()}")
 
-    # Extract UD value, UI public key and CA public key from message
+    # Extract UD value, UI public key and signer version from message
     ud_value = ui_message[mh_len:mh_len + UD_VALUE_LENGTH].hex()
     ui_public_key = ui_message[mh_len + UD_VALUE_LENGTH:mh_len + UD_VALUE_LENGTH +
                                PUBKEY_COMPRESSED_LENGTH].hex()
-    ca_public_key = ui_message[mh_len + UD_VALUE_LENGTH + PUBKEY_COMPRESSED_LENGTH:].hex()
+    signer_hash = ui_message[mh_len + UD_VALUE_LENGTH + PUBKEY_COMPRESSED_LENGTH:
+                             mh_len + UD_VALUE_LENGTH + PUBKEY_COMPRESSED_LENGTH +
+                             SIGNER_HASH_LENGTH].hex()
+    signer_iteration = ui_message[mh_len + UD_VALUE_LENGTH + PUBKEY_COMPRESSED_LENGTH +
+                                  SIGNER_HASH_LENGTH:
+                                  mh_len + UD_VALUE_LENGTH + PUBKEY_COMPRESSED_LENGTH +
+                                  SIGNER_HASH_LENGTH + SIGNER_ITERATION_LENGTH]
+    signer_iteration = int.from_bytes(signer_iteration, byteorder='big', signed=False)
 
     head(
         [
             "UI verified with:",
             f"UD value: {ud_value}",
-            f"CA: {ca_public_key}",
             f"Derived public key ({UI_DERIVATION_PATH}): {ui_public_key}",
+            f"Authorized signer hash: {signer_hash}",
+            f"Authorized signer iteration: {signer_iteration}",
             f"Installed UI hash: {ui_hash.hex()}",
         ],
         fill="-",

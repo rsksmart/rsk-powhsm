@@ -1,7 +1,7 @@
 #! /usr/bin/env bash
 
 if [[ $# -lt 3 ]]; then
-    echo "Usage: $0 <checkpoint> <minimum_difficulty> <network> [<docker_image>]"
+    echo "Usage: $0 <checkpoint> <minimum_difficulty> <network>"
     exit 1
 fi
 

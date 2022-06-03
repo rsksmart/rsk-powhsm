@@ -44,7 +44,7 @@ include $(BOLOS_SDK)/Makefile.defines
 
 # Main app configuration
 APPNAME = "RSK Sign"
-APPVERSION = 2.0.0
+APPVERSION = 3
 APP_LOAD_PARAMS = --appFlags 0x00 $(COMMON_LOAD_PARAMS)
 PROG = "app"
 
@@ -106,9 +106,6 @@ icon.hex:
 # *** Don't forget to build the app first!
 .PHONY: load delete
 load: bin/app.hex
-	$(eval SIG := $(shell cat bin/$(PROG).hex.sig))
-	$(eval SIGPARAM := $(if $(strip $(SIG)),--signature $(SIG),))
-	
 	python -m ledgerblue.loadApp \
 		--delete \
 		--targetId $(TARGET_ID)  \
@@ -117,7 +114,7 @@ load: bin/app.hex
 		--appName $(APPNAME) \
 		--appVersion $(APPVERSION) \
 		--icon `cat icon.hex` \
-		--path "" $(SIGPARAM)
+		--path ""
 
 bin/app.hex:
 	$(error "Build the app first!")

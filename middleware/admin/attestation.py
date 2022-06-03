@@ -21,7 +21,7 @@
 # SOFTWARE.
 
 from .misc import info, head, get_hsm, dispose_hsm, AdminError, wait_for_reconnection
-from .utils import is_nonempty_hex_string, is_hex_string_of_length, normalize_hex_string
+from .utils import is_hex_string_of_length, normalize_hex_string
 from .unlock import do_unlock
 from .certificate import HSMCertificate, HSMCertificateElement
 from .rsk_client import RskClient, RskClientError
@@ -45,26 +45,6 @@ def do_attestation(options):
         att_cert = HSMCertificate.from_jsonfile(options.attestation_certificate_file_path)
     except Exception as e:
         raise AdminError(f"While loading the attestation certificate file: {str(e)}")
-
-    # Validate the CA fields
-    if options.ca is None:
-        raise AdminError("No CA info given")
-
-    ca_fields = options.ca.split(":")
-    if len(ca_fields) != 3:
-        raise AdminError("Invalid CA info given")
-
-    ca_pubkey = ca_fields[0]
-    if not is_nonempty_hex_string(ca_pubkey):
-        raise AdminError("Invalid CA public key given")
-
-    ca_hash = ca_fields[1]
-    if not is_nonempty_hex_string(ca_hash):
-        raise AdminError("Invalid CA hash given")
-
-    ca_signature = ca_fields[2]
-    if not is_nonempty_hex_string(ca_signature):
-        raise AdminError("Invalid CA signature given")
 
     # Get the UD value for the UI attestation
     info("Gathering user-defined UI attestation value... ", options.verbose)
@@ -98,8 +78,7 @@ def do_attestation(options):
     # UI Attestation
     info("Gathering UI attestation... ", options.verbose)
     try:
-        ui_attestation = hsm.get_ui_attestation(ud_value, ca_pubkey, ca_hash,
-                                                ca_signature)
+        ui_attestation = hsm.get_ui_attestation(ud_value)
     except Exception as e:
         raise AdminError(f"Failed to gather UI attestation: {str(e)}")
     info("UI attestation gathered")

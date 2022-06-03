@@ -23,21 +23,17 @@
 from types import SimpleNamespace
 from unittest import TestCase
 from unittest.mock import Mock, call, patch, mock_open
-
 from admin.misc import AdminError
 from admin.pubkeys import PATHS
-from admin.verify_attestation import (do_verify_attestation,
-                                      UI_MESSAGE_HEADER, SIGNER_MESSAGE_HEADER,
-                                      UI_DERIVATION_PATH, UD_VALUE_LENGTH,
-                                      PUBKEY_COMPRESSED_LENGTH)
-
+from admin.verify_attestation import do_verify_attestation
 import ecdsa
 import secp256k1 as ec
 import hashlib
-
 import logging
 
 logging.disable(logging.CRITICAL)
+
+EXPECTED_UI_DERIVATION_PATH = "m/44'/0'/0'/0/0"
 
 
 @patch("sys.stdout.write")
@@ -71,11 +67,17 @@ class TestVerifyAttestation(TestCase):
             )
         self.pubkeys_hash = pubkeys_hash.digest()
 
-        self.ui_msg = bytes.fromhex(UI_MESSAGE_HEADER.hex() + 'aa' * 132)
-        self.ui_hash = bytes.fromhex('bb' * 32)
-        self.signer_msg = bytes.fromhex(SIGNER_MESSAGE_HEADER.hex() +
-                                        self.pubkeys_hash.hex())
-        self.signer_hash = bytes.fromhex('cc' * 32)
+        self.ui_msg = b"HSM:UI:3.0" + \
+            bytes.fromhex("aa"*32) + \
+            bytes.fromhex("bb"*33) + \
+            bytes.fromhex("cc"*32) + \
+            bytes.fromhex("0123")
+        self.ui_hash = bytes.fromhex("ee" * 32)
+
+        self.signer_msg = b"HSM:SIGNER:3.0" + \
+            bytes.fromhex(self.pubkeys_hash.hex())
+        self.signer_hash = bytes.fromhex("ff" * 32)
+
         self.result = {}
         self.result['ui'] = (True, self.ui_msg.hex(), self.ui_hash.hex())
         self.result['signer'] = (True, self.signer_msg.hex(), self.signer_hash.hex())
@@ -100,29 +102,24 @@ class TestVerifyAttestation(TestCase):
         self.assertEqual([call(self.certification_path)],
                          certificate_mock.from_jsonfile.call_args_list)
 
-        mh_len = len(UI_MESSAGE_HEADER)
-        ud_value = self.ui_msg[mh_len:mh_len + UD_VALUE_LENGTH]
-        ca_pubkey = self.ui_msg[mh_len + UD_VALUE_LENGTH + PUBKEY_COMPRESSED_LENGTH:]
-        ui_pubkey = self.ui_msg[mh_len + UD_VALUE_LENGTH:mh_len + UD_VALUE_LENGTH +
-                                PUBKEY_COMPRESSED_LENGTH]
         expected_call_ui = call(
             [
                 "UI verified with:",
-                f"UD value: {ud_value.hex()}",
-                f"CA: {ca_pubkey.hex()}",
-                f"Derived public key ({UI_DERIVATION_PATH}): {ui_pubkey.hex()}",
-                f"Installed UI hash: {self.ui_hash.hex()}",
+                f"UD value: {'aa'*32}",
+                f"Derived public key ({EXPECTED_UI_DERIVATION_PATH}): {'bb'*33}",
+                f"Authorized signer hash: {'cc'*32}",
+                "Authorized signer iteration: 291",
+                f"Installed UI hash: {'ee'*32}",
             ],
             fill="-",
         )
         self.assertEqual(expected_call_ui, head_mock.call_args_list[1])
 
-        mh_len = len(SIGNER_MESSAGE_HEADER)
         expected_call_signer = call(
             ["Signer verified with public keys:"] + self.expected_pubkeys_output + [
                 "",
-                f"Hash: {self.signer_msg[mh_len:].hex()}",
-                f"Installed Signer hash: {self.signer_hash.hex()}",
+                f"Hash: {self.pubkeys_hash.hex()}",
+                f"Installed Signer hash: {'ff'*32}",
             ],
             fill="-",
         )
@@ -167,7 +164,7 @@ class TestVerifyAttestation(TestCase):
     @patch("json.loads")
     def test_verify_attestation_no_ui_derivation_key(self, loads_mock, _):
         incomplete_pubkeys = self.public_keys
-        incomplete_pubkeys.pop(UI_DERIVATION_PATH, None)
+        incomplete_pubkeys.pop(EXPECTED_UI_DERIVATION_PATH, None)
         loads_mock.return_value = incomplete_pubkeys
 
         with patch('builtins.open', mock_open(read_data='')) as file_mock:
@@ -175,8 +172,8 @@ class TestVerifyAttestation(TestCase):
                 do_verify_attestation(self.default_options)
 
         self.assertEqual([call(self.pubkeys_path, 'r')], file_mock.call_args_list)
-        self.assertEqual((f'Public key with path {UI_DERIVATION_PATH} not present '
-                          'in public key file'),
+        self.assertEqual((f'Public key with path {EXPECTED_UI_DERIVATION_PATH} '
+                          'not present in public key file'),
                          str(e.exception))
 
     @patch("admin.verify_attestation.HSMCertificate")
