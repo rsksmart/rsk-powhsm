@@ -1,6 +1,6 @@
 # The MIT License (MIT)
 #
-# Copyright (c) 2021 RSK Labs Ltd
+# Copyright (c) 2022 RSK Labs Ltd
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -20,153 +20,256 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import json
+
 from types import SimpleNamespace
 from unittest import TestCase
 from unittest.mock import Mock, call, patch, mock_open
-from adm import DEFAULT_ATT_UD_SOURCE
 from admin.attestation import do_attestation
-from admin.certificate import HSMCertificate, HSMCertificateElement
+from admin.certificate import HSMCertificate
 from admin.misc import AdminError
-from ledger.hsm2dongle import HSM2Dongle
-
-import json
-import logging
-
-logging.disable(logging.CRITICAL)
+from admin.rsk_client import RskClientError
 
 
 @patch("sys.stdout.write")
+@patch("time.sleep")
+@patch("admin.attestation.do_unlock")
+@patch("admin.attestation.get_hsm")
+@patch("admin.attestation.HSMCertificate.from_jsonfile")
 class TestAttestation(TestCase):
-    def setUp(self):
-        self.certificate_path = 'cert-path'
-        options = {
-            'output_file_path': self.certificate_path,
-            'attestation_certificate_file_path': 'unused-path',
-            'verbose': False,
-            'attestation_ud_source': DEFAULT_ATT_UD_SOURCE
-        }
-        self.default_options = SimpleNamespace(**options)
+    def setupMocks(self, from_jsonfile, get_hsm):
+        from_jsonfile.return_value = HSMCertificate()
+        get_hsm.return_value = Mock()
+        hsm = get_hsm.return_value
+        hsm.get_ui_attestation = Mock(return_value={
+            'message':   'aa' * 32,
+            'signature': 'bb' * 32,
+            'app_hash':  'cc' * 32
+        })
+        hsm.exit_menu = Mock()
+        hsm.disconnect = Mock()
+        hsm.get_signer_attestation = Mock(return_value={
+            'message':   'dd' * 32,
+            'signature': 'ee' * 32,
+            'app_hash':  'ff' * 32
+        })
 
-        self.ui_attestation = {
-            "app_hash": "1122334455",
-            "message": "6677889900",
-            "signature": "AABBCCDDEE",
-        }
+    def setupDefaultOptions(self):
+        options = SimpleNamespace()
+        options.output_file_path = 'out-path'
+        options.attestation_certificate_file_path = 'att-cert-path'
+        options.verbose = False
+        options.attestation_ud_source = 'aa' * 32
+        return options
 
-        self.signer_attestation = {
-            "app_hash": "aabbccddee",
-            "message": "ffeeddccbb",
-            "signature": "9988776655",
-        }
-
-        self.expected_cert = HSMCertificate()
-        self.expected_cert.add_element(
-            HSMCertificateElement({
-                "name": "ui",
-                "message": self.ui_attestation["message"],
-                "signature": self.ui_attestation["signature"],
-                "signed_by": "attestation",
-                "tweak": self.ui_attestation["app_hash"]
-            }))
-        self.expected_cert.add_element(
-            HSMCertificateElement({
-                "name": "signer",
-                "message": self.signer_attestation["message"],
-                "signature": self.signer_attestation["signature"],
-                "signed_by": "attestation",
-                "tweak": self.signer_attestation["app_hash"]
-            }))
-        self.expected_cert.add_target("ui")
-        self.expected_cert.add_target("signer")
-        self.dongle = Mock()
-
-    @patch("admin.attestation.do_unlock")
-    @patch("admin.attestation.HSMCertificate")
-    @patch("admin.attestation.get_hsm")
-    def test_attestation(self, get_hsm, certificate, *_):
-        get_hsm.return_value = self.dongle
-        certificate.from_jsonfile = Mock(return_value=self.expected_cert)
-        self.dongle.is_onboarded = Mock(return_value=True)
-        self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.BOOTLOADER)
-        self.dongle.get_ui_attestation = Mock(return_value=self.ui_attestation)
-        self.dongle.get_signer_attestation = Mock(return_value=self.signer_attestation)
-
+    def test_attestation_ok_provided_ud_value(self, from_jsonfile, get_hsm, *_):
+        self.setupMocks(from_jsonfile, get_hsm)
+        options = self.setupDefaultOptions()
         with patch('builtins.open', mock_open()) as file_mock:
-            do_attestation(self.default_options)
+            do_attestation(options)
 
-        self.assertEqual([call(self.certificate_path, 'w')], file_mock.call_args_list)
-        self.assertEqual(
-            [call("%s\n" % json.dumps(self.expected_cert.to_dict(), indent=2))],
+        self.assertEqual([call(options.attestation_certificate_file_path)],
+                         from_jsonfile.call_args_list)
+        self.assertEqual([call(options.verbose), call(options.verbose)],
+                         get_hsm.call_args_list)
+        self.assertEqual([call(options.output_file_path, 'w')], file_mock.call_args_list)
+        self.assertEqual([call("%s\n" % json.dumps({
+                'version': 1,
+                'targets': [
+                    'ui',
+                    'signer'
+                ],
+                'elements': [
+                    {
+                        'name': 'ui',
+                        'message': 'aa' * 32,
+                        'signature': 'bb' * 32,
+                        'signed_by': 'attestation',
+                        'tweak': 'cc' * 32
+                    },
+                    {
+                        'name': 'signer',
+                        'message': 'dd' * 32,
+                        'signature': 'ee' * 32,
+                        'signed_by': 'attestation',
+                        'tweak': 'ff' * 32
+                    }
+                ]
+            }, indent=2))],
             file_mock.return_value.write.call_args_list)
 
-    @patch("admin.attestation.HSMCertificate")
-    def test_attestation_invalid_certificate(self, certificate, *_):
-        certificate.from_jsonfile = Mock(side_effect=Exception('inner error'))
+    @patch('admin.attestation.RskClient')
+    def test_attestation_ok_get_ud_value(self, RskClient, from_jsonfile, get_hsm, *_):
+        self.setupMocks(from_jsonfile, get_hsm)
+        RskClient.return_value = Mock()
+        rsk_client = RskClient.return_value
+        rsk_client.get_block_by_number = Mock(return_value={'hash': '0x' + 'aa' * 32})
 
-        with self.assertRaises(AdminError) as e:
-            do_attestation(self.default_options)
+        options = self.setupDefaultOptions()
+        options.attestation_ud_source = 'an-url'
+        with patch('builtins.open', mock_open()) as file_mock:
+            do_attestation(options)
 
-        self.assertEqual('While loading the attestation certificate file: inner error',
-                         str(e.exception))
+        self.assertEqual([call(options.attestation_certificate_file_path)],
+                         from_jsonfile.call_args_list)
+        self.assertEqual([call('an-url')], RskClient.call_args_list)
+        self.assertTrue(rsk_client.get_block_by_number.called)
+        self.assertEqual([call(options.verbose), call(options.verbose)],
+                         get_hsm.call_args_list)
+        self.assertEqual([call(options.output_file_path, 'w')], file_mock.call_args_list)
+        self.assertEqual([call("%s\n" % json.dumps({
+                'version': 1,
+                'targets': [
+                    'ui',
+                    'signer'
+                ],
+                'elements': [
+                    {
+                        'name': 'ui',
+                        'message': 'aa' * 32,
+                        'signature': 'bb' * 32,
+                        'signed_by': 'attestation',
+                        'tweak': 'cc' * 32
+                    },
+                    {
+                        'name': 'signer',
+                        'message': 'dd' * 32,
+                        'signature': 'ee' * 32,
+                        'signed_by': 'attestation',
+                        'tweak': 'ff' * 32
+                    }
+                ]
+            }, indent=2))],
+            file_mock.return_value.write.call_args_list)
 
-    @patch("admin.attestation.do_unlock")
-    @patch("admin.attestation.HSMCertificate")
-    @patch("admin.attestation.get_hsm")
-    def test_attestation_invalid_ui_attestation(self, get_hsm, certificate, *_):
-        get_hsm.return_value = self.dongle
-        certificate.from_jsonfile = Mock(return_value=self.expected_cert)
-        self.dongle.is_onboarded = Mock(return_value=True)
-        self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.BOOTLOADER)
-        self.dongle.get_ui_attestation = Mock(side_effect=Exception('an-error-msg'))
-        self.dongle.get_signer_attestation = Mock(return_value=self.signer_attestation)
-
-        with self.assertRaises(AdminError) as e:
-            do_attestation(self.default_options)
-
-        self.assertEqual('Failed to gather UI attestation: an-error-msg',
-                         str(e.exception))
-
-    @patch("admin.attestation.do_unlock")
-    @patch("admin.attestation.HSMCertificate")
-    @patch("admin.attestation.get_hsm")
-    def test_attestation_invalid_signer_attestation(self, get_hsm, certificate, *_):
-        get_hsm.return_value = self.dongle
-        certificate.from_jsonfile = Mock(return_value=self.expected_cert)
-        self.dongle.is_onboarded = Mock(return_value=True)
-        self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.BOOTLOADER)
-        self.dongle.get_ui_attestation = Mock(return_value=self.ui_attestation)
-        self.dongle.get_signer_attestation = Mock(side_effect=Exception('an-error-msg'))
-
-        with self.assertRaises(AdminError) as e:
-            do_attestation(self.default_options)
-
-        self.assertEqual('Failed to gather Signer attestation: an-error-msg',
-                         str(e.exception))
-
-    @patch("admin.attestation.do_unlock")
-    @patch("admin.attestation.HSMCertificate")
-    def test_attestation_unlock_error(self, certificate, unlock_mock, *_):
-        certificate.from_jsonfile = Mock(return_value=self.expected_cert)
-        unlock_error_msg = 'Unlock error msg'
-        unlock_mock.side_effect = Exception(unlock_error_msg)
-
-        with self.assertRaises(AdminError) as e:
-            do_attestation(self.default_options)
-
-        self.assertEqual(f'Failed to unlock device: {unlock_error_msg}', str(e.exception))
-
-    def test_attestation_no_out_path(self, *_):
-        options = self.default_options
+    def test_attestation_no_output_file(self, from_jsonfile, get_hsm, *_):
+        self.setupMocks(from_jsonfile, get_hsm)
+        options = self.setupDefaultOptions()
         options.output_file_path = None
-        with self.assertRaises(AdminError) as e:
-            do_attestation(options)
+        with patch('builtins.open', mock_open()) as file_mock:
+            with self.assertRaises(AdminError):
+                do_attestation(options)
+        self.assertFalse(from_jsonfile.called)
+        self.assertFalse(get_hsm.called)
+        self.assertFalse(file_mock.return_value.write.called)
 
-        self.assertEqual('No output file path given', str(e.exception))
-
-    def test_attestation_no_certificate_path(self, *_):
-        options = self.default_options
+    def test_attestation_no_att_cert_file(self, from_jsonfile, get_hsm, *_):
+        self.setupMocks(from_jsonfile, get_hsm)
+        options = self.setupDefaultOptions()
         options.attestation_certificate_file_path = None
-        with self.assertRaises(AdminError) as e:
-            do_attestation(options)
+        with patch('builtins.open', mock_open()) as file_mock:
+            with self.assertRaises(AdminError):
+                do_attestation(options)
+        self.assertFalse(from_jsonfile.called)
+        self.assertFalse(get_hsm.called)
+        self.assertFalse(file_mock.return_value.write.called)
 
-        self.assertEqual('No attestation certificate file given', str(e.exception))
+    def test_attestation_invalid_jsonfile(self, from_jsonfile, get_hsm, *_):
+        self.setupMocks(from_jsonfile, get_hsm)
+        from_jsonfile.side_effect = AdminError()
+        options = self.setupDefaultOptions()
+        with patch('builtins.open', mock_open()) as file_mock:
+            with self.assertRaises(AdminError):
+                do_attestation(options)
+        self.assertTrue(from_jsonfile.called)
+        self.assertFalse(get_hsm.called)
+        self.assertFalse(file_mock.return_value.write.called)
+
+    @patch('admin.attestation.RskClient')
+    def test_attestation_rsk_client_error(self, RskClient, from_jsonfile, get_hsm, *_):
+        self.setupMocks(from_jsonfile, get_hsm)
+        RskClient.side_effect = RskClientError('error-msg')
+        options = self.setupDefaultOptions()
+        options.attestation_ud_source = 'an-url'
+        with patch('builtins.open', mock_open()) as file_mock:
+            with self.assertRaises(AdminError):
+                do_attestation(options)
+        self.assertTrue(from_jsonfile.called)
+        self.assertFalse(get_hsm.called)
+        self.assertFalse(file_mock.return_value.write.called)
+
+    def test_attestation_unlock_error(self, from_jsonfile, get_hsm, do_unlock, *_):
+        self.setupMocks(from_jsonfile, get_hsm)
+        do_unlock.side_effect = Exception()
+        options = self.setupDefaultOptions()
+        with patch('builtins.open', mock_open()) as file_mock:
+            with self.assertRaises(AdminError):
+                do_attestation(options)
+        self.assertTrue(from_jsonfile.called)
+        self.assertFalse(get_hsm.called)
+        self.assertFalse(file_mock.return_value.write.called)
+
+    def test_attestation_get_hsm_error(self, from_jsonfile, get_hsm, *_):
+        self.setupMocks(from_jsonfile, get_hsm)
+        get_hsm.side_effect = Exception()
+        options = self.setupDefaultOptions()
+        with patch('builtins.open', mock_open()) as file_mock:
+            with self.assertRaises(Exception):
+                do_attestation(options)
+        self.assertTrue(from_jsonfile.called)
+        self.assertTrue(get_hsm.called)
+        self.assertFalse(file_mock.return_value.write.called)
+
+    def test_attestation_get_ui_attestation_error(self, from_jsonfile, get_hsm, *_):
+        self.setupMocks(from_jsonfile, get_hsm)
+        hsm = get_hsm.return_value
+        hsm.get_ui_attestation.side_effect = Exception()
+        options = self.setupDefaultOptions()
+        with patch('builtins.open', mock_open()) as file_mock:
+            with self.assertRaises(AdminError):
+                do_attestation(options)
+        self.assertTrue(from_jsonfile.called)
+        self.assertTrue(get_hsm.called)
+        self.assertFalse(file_mock.return_value.write.called)
+
+    def test_attestation_get_signer_attestation_error(self, from_jsonfile, get_hsm, *_):
+        self.setupMocks(from_jsonfile, get_hsm)
+        hsm = get_hsm.return_value
+        hsm.get_signer_attestation.side_effect = Exception()
+        options = self.setupDefaultOptions()
+        with patch('builtins.open', mock_open()) as file_mock:
+            with self.assertRaises(AdminError):
+                do_attestation(options)
+        self.assertTrue(from_jsonfile.called)
+        self.assertTrue(get_hsm.called)
+        self.assertFalse(file_mock.return_value.write.called)
+
+    @patch("admin.attestation.HSMCertificate.add_element")
+    def test_attestation_add_element_error(self, add_element, from_jsonfile, get_hsm, *_):
+        self.setupMocks(from_jsonfile, get_hsm)
+        add_element.side_effect = Exception()
+        options = self.setupDefaultOptions()
+        with patch('builtins.open', mock_open()) as file_mock:
+            with self.assertRaises(Exception):
+                do_attestation(options)
+        self.assertTrue(from_jsonfile.called)
+        self.assertTrue(get_hsm.called)
+        self.assertFalse(file_mock.return_value.write.called)
+
+    @patch("admin.attestation.HSMCertificate.add_target")
+    def test_attestation_add_target_error(self, add_target, from_jsonfile, get_hsm, *_):
+        self.setupMocks(from_jsonfile, get_hsm)
+        add_target.side_effect = ValueError()
+        options = self.setupDefaultOptions()
+        with patch('builtins.open', mock_open()) as file_mock:
+            with self.assertRaises(ValueError):
+                do_attestation(options)
+        self.assertTrue(from_jsonfile.called)
+        self.assertTrue(get_hsm.called)
+        self.assertFalse(file_mock.return_value.write.called)
+
+    @patch("admin.attestation.HSMCertificate.save_to_jsonfile")
+    def test_attestation_save_to_jsonfile_error(self,
+                                                save_to_jsonfile,
+                                                from_jsonfile,
+                                                get_hsm,
+                                                *_):
+        self.setupMocks(from_jsonfile, get_hsm)
+        save_to_jsonfile.side_effect = Exception()
+        options = self.setupDefaultOptions()
+        with patch('builtins.open', mock_open()) as file_mock:
+            with self.assertRaises(Exception):
+                do_attestation(options)
+        self.assertTrue(from_jsonfile.called)
+        self.assertTrue(get_hsm.called)
+        self.assertFalse(file_mock.return_value.write.called)

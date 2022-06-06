@@ -27,7 +27,6 @@ from admin.misc import AdminError
 from admin.pubkeys import PATHS
 from admin.verify_attestation import do_verify_attestation
 import ecdsa
-import secp256k1 as ec
 import hashlib
 import logging
 
@@ -59,11 +58,10 @@ class TestVerifyAttestation(TestCase):
         for path in sorted(paths):
             pubkey = ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1).get_verifying_key()
             self.public_keys[path] = pubkey.to_string('compressed').hex()
-            pubkey_to_hash = ec.PublicKey(bytes.fromhex(self.public_keys[path]), raw=True)
-            pubkeys_hash.update(pubkey_to_hash.serialize(compressed=False))
+            pubkeys_hash.update(pubkey.to_string('uncompressed'))
             self.expected_pubkeys_output.append(
                 f"{(path + ':').ljust(path_name_padding+1)} "
-                f"{pubkey_to_hash.serialize(compressed=True).hex()}"
+                f"{pubkey.to_string('compressed').hex()}"
             )
         self.pubkeys_hash = pubkeys_hash.digest()
 
