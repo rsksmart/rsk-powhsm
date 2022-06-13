@@ -14,7 +14,7 @@ RUN apt-get install -y \
     libusb-1.0-0-dev=2:1.0.21-1 \
     libudev-dev=232-25+deb9u12 \
     libffi-dev=3.2.1-6 \
-    libjpeg-dev=1:1.5.1-2+deb9u1
+    libjpeg-dev=1:1.5.1-2+deb9u2
 
 COPY requirements.txt /hsm2/requirements.txt
 RUN pip install -r requirements.txt --require-hashes
