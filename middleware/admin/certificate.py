@@ -53,9 +53,6 @@ class HSMCertificate:
         if certificate_map is not None:
             self._parse(certificate_map)
 
-    def is_complete(self):
-        return len(self._targets) > 0 and len(self._elements) > 0
-
     def validate_and_get_values(self, raw_root_pubkey_hex):
         # Parse the root public key
         try:
@@ -111,9 +108,6 @@ class HSMCertificate:
         self._targets.append(target)
 
     def to_dict(self):
-        if not self.is_complete():
-            raise ValueError("HSMCertificate is incomplete")
-
         return {
             "version": self.VERSION,
             "targets": self._targets,

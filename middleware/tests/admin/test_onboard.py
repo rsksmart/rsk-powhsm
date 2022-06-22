@@ -36,6 +36,7 @@ logging.disable(logging.CRITICAL)
 
 
 @patch("sys.stdout.write")
+@patch("time.sleep")
 @patch("admin.onboard.info")
 @patch("admin.onboard.get_hsm")
 class TestOnboard(TestCase):
@@ -94,7 +95,7 @@ class TestOnboard(TestCase):
     @patch("admin.unlock.get_hsm")
     @patch("sys.stdin.readline")
     def test_onboard(self, readline, get_hsm_unlock, get_admin_hsm,
-                     get_hsm_onboard, info_mock, _):
+                     get_hsm_onboard, info_mock, *_):
         get_hsm_onboard.return_value = self.dongle
         get_hsm_unlock.return_value = self.dongle
         get_admin_hsm.return_value = self.dongle
