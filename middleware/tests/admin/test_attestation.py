@@ -38,7 +38,23 @@ from admin.rsk_client import RskClientError
 @patch("admin.attestation.HSMCertificate.from_jsonfile")
 class TestAttestation(TestCase):
     def setupMocks(self, from_jsonfile, get_hsm):
-        from_jsonfile.return_value = HSMCertificate()
+        from_jsonfile.return_value = HSMCertificate({
+            "version": 1,
+            "targets": ["attestation", "device"],
+            "elements": [
+                {
+                    "name": "attestation",
+                    "message": '11' * 32,
+                    "signature": '22' * 32,
+                    "signed_by": "device"
+                },
+                {
+                    "name": "device",
+                    "message": '33' * 32,
+                    "signature": '44' * 32,
+                    "signed_by": "root"
+                }]
+        })
         get_hsm.return_value = Mock()
         hsm = get_hsm.return_value
         hsm.get_ui_attestation = Mock(return_value={
@@ -62,40 +78,60 @@ class TestAttestation(TestCase):
         options.attestation_ud_source = 'aa' * 32
         return options
 
-    def test_attestation_ok_provided_ud_value(self, from_jsonfile, get_hsm, *_):
+    @patch('admin.attestation.RskClient')
+    def test_attestation_ok_provided_ud_value(self,
+                                              RskClient,
+                                              from_jsonfile,
+                                              get_hsm,
+                                              *_):
         self.setupMocks(from_jsonfile, get_hsm)
         options = self.setupDefaultOptions()
         with patch('builtins.open', mock_open()) as file_mock:
             do_attestation(options)
 
+        self.assertEqual([call(options.attestation_ud_source)],
+                         get_hsm.return_value.get_ui_attestation.call_args_list)
+        self.assertEqual([], RskClient.call_args_list)
         self.assertEqual([call(options.attestation_certificate_file_path)],
                          from_jsonfile.call_args_list)
         self.assertEqual([call(options.verbose), call(options.verbose)],
                          get_hsm.call_args_list)
         self.assertEqual([call(options.output_file_path, 'w')], file_mock.call_args_list)
         self.assertEqual([call("%s\n" % json.dumps({
-                'version': 1,
-                'targets': [
-                    'ui',
-                    'signer'
-                ],
-                'elements': [
-                    {
-                        'name': 'ui',
-                        'message': 'aa' * 32,
-                        'signature': 'bb' * 32,
-                        'signed_by': 'attestation',
-                        'tweak': 'cc' * 32
-                    },
-                    {
-                        'name': 'signer',
-                        'message': 'dd' * 32,
-                        'signature': 'ee' * 32,
-                        'signed_by': 'attestation',
-                        'tweak': 'ff' * 32
-                    }
-                ]
-            }, indent=2))],
+            'version': 1,
+            'targets': [
+                'ui',
+                'signer'
+            ],
+            'elements': [
+                {
+                    "name": "attestation",
+                    "message": '11' * 32,
+                    "signature": '22' * 32,
+                    "signed_by": "device"
+                },
+                {
+                    "name": "device",
+                    "message": '33' * 32,
+                    "signature": '44' * 32,
+                    "signed_by": "root"
+                },
+                {
+                    'name': 'ui',
+                    'message': 'aa' * 32,
+                    'signature': 'bb' * 32,
+                    'signed_by': 'attestation',
+                    'tweak': 'cc' * 32
+                },
+                {
+                    'name': 'signer',
+                    'message': 'dd' * 32,
+                    'signature': 'ee' * 32,
+                    'signed_by': 'attestation',
+                    'tweak': 'ff' * 32
+                }
+            ]
+        }, indent=2))],
             file_mock.return_value.write.call_args_list)
 
     @patch('admin.attestation.RskClient')
@@ -103,7 +139,7 @@ class TestAttestation(TestCase):
         self.setupMocks(from_jsonfile, get_hsm)
         RskClient.return_value = Mock()
         rsk_client = RskClient.return_value
-        rsk_client.get_block_by_number = Mock(return_value={'hash': '0x' + 'aa' * 32})
+        rsk_client.get_block_by_number = Mock(return_value={'hash': '0x' + 'bb' * 32})
 
         options = self.setupDefaultOptions()
         options.attestation_ud_source = 'an-url'
@@ -114,32 +150,48 @@ class TestAttestation(TestCase):
                          from_jsonfile.call_args_list)
         self.assertEqual([call('an-url')], RskClient.call_args_list)
         self.assertTrue(rsk_client.get_block_by_number.called)
+        self.assertNotEqual([call(options.attestation_ud_source)],
+                            get_hsm.return_value.get_ui_attestation.call_args_list)
+        self.assertEqual([call('bb' * 32)],
+                         get_hsm.return_value.get_ui_attestation.call_args_list)
         self.assertEqual([call(options.verbose), call(options.verbose)],
                          get_hsm.call_args_list)
         self.assertEqual([call(options.output_file_path, 'w')], file_mock.call_args_list)
         self.assertEqual([call("%s\n" % json.dumps({
-                'version': 1,
-                'targets': [
-                    'ui',
-                    'signer'
-                ],
-                'elements': [
-                    {
-                        'name': 'ui',
-                        'message': 'aa' * 32,
-                        'signature': 'bb' * 32,
-                        'signed_by': 'attestation',
-                        'tweak': 'cc' * 32
-                    },
-                    {
-                        'name': 'signer',
-                        'message': 'dd' * 32,
-                        'signature': 'ee' * 32,
-                        'signed_by': 'attestation',
-                        'tweak': 'ff' * 32
-                    }
-                ]
-            }, indent=2))],
+            'version': 1,
+            'targets': [
+                'ui',
+                'signer'
+            ],
+            'elements': [
+                {
+                    "name": "attestation",
+                    "message": '11' * 32,
+                    "signature": '22' * 32,
+                    "signed_by": "device"
+                },
+                {
+                    "name": "device",
+                    "message": '33' * 32,
+                    "signature": '44' * 32,
+                    "signed_by": "root"
+                },
+                {
+                    'name': 'ui',
+                    'message': 'aa' * 32,
+                    'signature': 'bb' * 32,
+                    'signed_by': 'attestation',
+                    'tweak': 'cc' * 32
+                },
+                {
+                    'name': 'signer',
+                    'message': 'dd' * 32,
+                    'signature': 'ee' * 32,
+                    'signed_by': 'attestation',
+                    'tweak': 'ff' * 32
+                }
+            ]
+        }, indent=2))],
             file_mock.return_value.write.call_args_list)
 
     def test_attestation_no_output_file(self, from_jsonfile, get_hsm, *_):
