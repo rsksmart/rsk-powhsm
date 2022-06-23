@@ -58,7 +58,7 @@ class SignerAuthorization:
 
     def __init__(self, signer_version, signatures):
         self._signer_version = signer_version
-        self._signatures = signatures
+        self._signatures = signatures[:]
 
         if type(self._signer_version) != SignerVersion:
             raise ValueError(f"Invalid signer version given: {signer_version}")
@@ -80,9 +80,6 @@ class SignerAuthorization:
     def add_signature(self, signature):
         self._assert_signature_valid(signature)
         self._signatures.append(signature)
-
-    def is_complete(self):
-        return len(self._signatures) > 0
 
     def to_dict(self):
         return {

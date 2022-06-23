@@ -1853,3 +1853,90 @@ class TestHSM2DongleUpdateAncestor(_TestHSM2DongleBase):
         )
 
         self.assert_exchange([])
+
+    def test_authorize_signer_ok(self):
+        self.dongle.exchange.side_effect = [
+            bytes(),  # Response to hash, iteration - doesn't matter
+            bytes.fromhex("aaaaaa01"),  # Response to first signature, MORE
+            bytes.fromhex("aaaaaa02"),  # Response to second signature, OK
+        ]
+
+        self.assertTrue(self.hsm2dongle.authorize_signer(Mock(
+            signer_version=Mock(hash="ee"*32, iteration=0x4321),
+            signatures=["aa"*20, "bb"*25]
+        )))
+
+        self.assert_exchange([
+            [0x51, 0x01] + [0xee]*32 + [0x43, 0x21],  # Sigver, hash plus iteration
+            [0x51, 0x02] + [0xaa]*20,  # Signature #1
+            [0x51, 0x02] + [0xbb]*25,  # Signature #2
+        ])
+
+    def test_authorize_signer_ok_first_sig(self):
+        self.dongle.exchange.side_effect = [
+            bytes(),  # Response to hash, iteration - doesn't matter
+            bytes.fromhex("aaaaaa02"),  # Response to first signature, OK
+        ]
+
+        self.assertTrue(self.hsm2dongle.authorize_signer(Mock(
+            signer_version=Mock(hash="ee"*32, iteration=0x4321),
+            signatures=["aa"*20, "bb"*25]
+        )))
+
+        self.assert_exchange([
+            [0x51, 0x01] + [0xee]*32 + [0x43, 0x21],  # Sigver, hash plus iteration
+            [0x51, 0x02] + [0xaa]*20,  # Signature #1
+        ])
+
+    def test_authorize_signer_sigver_error(self):
+        self.dongle.exchange.side_effect = [
+            CommException("an-error"),  # Response to hash, iteration - error
+        ]
+
+        with self.assertRaises(HSM2DongleError):
+            self.hsm2dongle.authorize_signer(Mock(
+                signer_version=Mock(hash="ee"*32, iteration=0x4321),
+                signatures=["aa"*20, "bb"*25]
+            ))
+
+        self.assert_exchange([
+            [0x51, 0x01] + [0xee]*32 + [0x43, 0x21],  # Sigver, hash plus iteration
+        ])
+
+    def test_authorize_signer_signature_error(self):
+        self.dongle.exchange.side_effect = [
+            bytes(),  # Response to hash, iteration - doesn't matter
+            bytes.fromhex("aaaaaa01"),  # Response to first signature, MORE
+            CommException("an-error"),  # Response to second signature, ERROR
+        ]
+
+        with self.assertRaises(HSM2DongleError):
+            self.hsm2dongle.authorize_signer(Mock(
+                signer_version=Mock(hash="ee"*32, iteration=0x4321),
+                signatures=["aa"*20, "bb"*25]
+            ))
+
+        self.assert_exchange([
+            [0x51, 0x01] + [0xee]*32 + [0x43, 0x21],  # Sigver, hash plus iteration
+            [0x51, 0x02] + [0xaa]*20,  # Signature #1
+            [0x51, 0x02] + [0xbb]*25,  # Signature #2
+        ])
+
+    def test_authorize_not_enough_signatures(self):
+        self.dongle.exchange.side_effect = [
+            bytes(),  # Response to hash, iteration - doesn't matter
+            bytes.fromhex("aaaaaa01"),  # Response to first signature, MORE
+            bytes.fromhex("aaaaaa01"),  # Response to second signature, MORE
+        ]
+
+        with self.assertRaises(HSM2DongleError):
+            self.hsm2dongle.authorize_signer(Mock(
+                signer_version=Mock(hash="ee"*32, iteration=0x4321),
+                signatures=["aa"*20, "bb"*25]
+            ))
+
+        self.assert_exchange([
+            [0x51, 0x01] + [0xee]*32 + [0x43, 0x21],  # Sigver, hash plus iteration
+            [0x51, 0x02] + [0xaa]*20,  # Signature #1
+            [0x51, 0x02] + [0xbb]*25,  # Signature #2
+        ])
