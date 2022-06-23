@@ -62,7 +62,7 @@ def main():
         sk = ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1)
 
         # Save the public key to disk
-        with open(options.publickey_path, "wb") as file:
+        with open(options.publickey_path.strip(), "wb") as file:
             file.write(sk.get_verifying_key().to_string("uncompressed").hex().encode())
             info(f"Public key saved to {options.publickey_path}")
 

@@ -46,12 +46,11 @@ def do_authorize_signer(options):
     except Exception as e:
         raise AdminError(f"Failed to unlock device: {str(e)}")
 
-    # Connection
-    hsm = get_hsm(options.verbose)
-
     # Signer authorization
+    hsm = None
     info("Authorising signer... ", options.verbose)
     try:
+        hsm = get_hsm(options.verbose)
         hsm.authorize_signer(signer_authorization)
     except Exception as e:
         raise AdminError(f"Failed to authorize signer: {str(e)}")
