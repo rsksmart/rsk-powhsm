@@ -66,7 +66,8 @@ uint8_t INITIAL_BLOCK_HASH[HASH_LEN];
 // Non-volatile initialization flag.
 // Linker rules are different in emulator and Ledger mode.
 // When running in emulator mode we must avoid the const.
-static NON_VOLATILE bool N_bc_initialized = 0;
+static NON_VOLATILE uint8_t N_bc_initialized_var[1] = {0};
+#define N_bc_initialized (((uint8_t*)PIC(N_bc_initialized_var))[0])
 
 /*
  * Initialize blockchain state.
@@ -77,8 +78,8 @@ void bc_init_state() {
         NVM_WRITE(N_bc_state.best_block, INITIAL_BLOCK_HASH, HASH_SIZE);
         NVM_WRITE(N_bc_state.newest_valid_block, INITIAL_BLOCK_HASH, HASH_SIZE);
 
-        bool b = true;
-        NVM_WRITE(&N_bc_initialized, &b, sizeof(b));
+        uint8_t t = 1;
+        NVM_WRITE(&N_bc_initialized, &t, sizeof(t));
     }
 }
 
