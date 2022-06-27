@@ -30,7 +30,7 @@
 // Version and patchlevel
 #define VERSION_MAJOR 0x02
 #define VERSION_MINOR 0x03
-#define VERSION_PATCH 0x04
+#define VERSION_PATCH 0x05
 
 // Instructions
 #define RSK_PIN_CMD 0x41
