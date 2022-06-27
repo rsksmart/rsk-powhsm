@@ -40,6 +40,6 @@ class GetBlockchainState(TestCase):
                 for key in self.expected:
                     if state.get(key) != self.expected[key]:
                         raise TestCaseError(f"Expected {key} to be {self.expected[key]} "
-                                            "but got {state.get(key)}")
+                                            f"but got {state.get(key)}")
         except RuntimeError as e:
             raise TestCaseError(str(e))
