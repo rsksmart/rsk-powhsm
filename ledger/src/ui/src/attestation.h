@@ -56,12 +56,11 @@
 #define PUBKEY_PATH_LENGTH (sizeof(PUBKEY_PATH) - sizeof(""))
 #define PATH_PART_COUNT 5
 
-// Attestation message to sign size (prefix + UD value + BTC public key +
-// authorized signer version + authorized signer iteration)
+// Attestation message to sign size (prefix + UD value + BTC compressed public
+// key + authorized signer version + authorized signer iteration)
 #define ATT_MESSAGE_SIZE                                            \
     (ATT_MSG_PREFIX_LENGTH + UD_VALUE_SIZE + PUBKEYCOMPRESSEDSIZE + \
-     SIGAUT_SIGNER_HASH_SIZE + SIGAUT_SIGNER_ITERATION_SIZE +       \
-     SIGAUT_SIGNER_HASH_SIZE)
+     SIGAUT_SIGNER_HASH_SIZE + SIGAUT_SIGNER_ITERATION_SIZE)
 
 // Attestation SM stages
 typedef enum {
