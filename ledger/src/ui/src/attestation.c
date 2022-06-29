@@ -83,34 +83,23 @@ static void check_apdu_buffer_holds(size_t size) {
  * @arg[in] pub_key public key
  * @arg[in] dst destination
  * @arg[in] dst_size destination size
+ * @arg[in] dst_offset destination offset
  * @ret     size of the compressed public key
  */
 static size_t compress_pubkey_into(cx_ecfp_public_key_t* pub_key,
                                    uint8_t* dst,
-                                   size_t dst_size) {
+                                   size_t dst_size,
+                                   size_t dst_offset) {
     SAFE_MEMMOVE(dst,
                  dst_size,
-                 MEMMOVE_ZERO_OFFSET,
+                 dst_offset,
                  pub_key->W,
                  sizeof(pub_key->W),
                  MEMMOVE_ZERO_OFFSET,
                  PUBKEYCOMPRESSEDSIZE,
                  THROW(INTERNAL));
-    dst[0] = pub_key->W[pub_key->W_len - 1] & 0x01 ? 0x03 : 0x02;
+    dst[dst_offset] = pub_key->W[pub_key->W_len - 1] & 0x01 ? 0x03 : 0x02;
     return PUBKEYCOMPRESSEDSIZE;
-}
-
-/*
- * Given an uncompressed secp256k1 public key,
- * compress it in place, returning the size.
- *
- * @arg[in] pub_key public key
- * @ret     size of the compressed public key
- */
-static size_t compress_pubkey(cx_ecfp_public_key_t* pub_key) {
-    pub_key->W_len =
-        compress_pubkey_into(pub_key, pub_key->W, sizeof(pub_key->W));
-    return pub_key->W_len;
 }
 
 /*
@@ -181,19 +170,11 @@ static void generate_message_to_sign(att_t* att_ctx,
                 CX_CURVE_256K1, &att_ctx->pub_key, &att_ctx->priv_key, 1);
             // Cleanup private key
             explicit_bzero(&att_ctx->priv_key, sizeof(att_ctx->priv_key));
-            // Compress public key in place
-            compress_pubkey(&att_ctx->pub_key);
-            // Copy into message space
-            SAFE_MEMMOVE(att_ctx->msg,
-                         sizeof(att_ctx->msg),
-                         att_ctx->msg_offset,
-                         att_ctx->pub_key.W,
-                         sizeof(att_ctx->pub_key.W),
-                         MEMMOVE_ZERO_OFFSET,
-                         att_ctx->pub_key.W_len,
-                         THROW(INTERNAL));
-            att_ctx->msg_offset += att_ctx->pub_key.W_len;
-
+            // Compress public key into message space
+            att_ctx->msg_offset += compress_pubkey_into(&att_ctx->pub_key,
+                                                        att_ctx->msg,
+                                                        sizeof(att_ctx->msg),
+                                                        att_ctx->msg_offset);
             // Cleanup public key
             explicit_bzero(&att_ctx->pub_key, sizeof(att_ctx->pub_key));
         }
