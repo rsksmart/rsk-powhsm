@@ -25,7 +25,14 @@ from os.path import isfile
 from argparse import ArgumentParser
 import logging
 import ecdsa
-from admin.misc import get_hsm, dispose_hsm, info, AdminError
+from admin.misc import (
+    get_hsm,
+    dispose_hsm,
+    get_eth_dongle,
+    dispose_eth_dongle,
+    info,
+    AdminError
+)
 from comm.utils import is_hex_string_of_length
 from comm.bip32 import BIP32Path
 from admin.signer_authorization import SignerAuthorization, SignerVersion
@@ -33,6 +40,7 @@ from admin.ledger_utils import eth_message_to_printable, compute_app_hash
 
 # Default signing path
 DEFAULT_PATH = "m/44'/137'/0'/31/32"
+DEFAULT_ETH_PATH = "44'/60'/0'/0/0"
 
 # Legacy dongle constants
 COMMAND_SIGN = 0x02
@@ -46,7 +54,7 @@ def main():
 
     parser = ArgumentParser(description="powHSM Signer Authorization Generator")
     parser.add_argument("operation", choices=["hash", "message", "key",
-                                              "ledger", "manual"])
+                                              "ledger", "eth", "manual"])
     parser.add_argument(
         "-s",
         "--signer",
@@ -81,6 +89,14 @@ def main():
         default=DEFAULT_PATH
     )
     parser.add_argument(
+        "-e",
+        "--ethpath",
+        dest="ethpath",
+        help="Path used for signing (only for 'ledger' and 'eth' options). "
+        f"Default \"{DEFAULT_ETH_PATH}\"",
+        default=DEFAULT_ETH_PATH
+    )
+    parser.add_argument(
         "-g",
         "--signature",
         dest="signature",
@@ -100,6 +116,7 @@ def main():
 
     try:
         hsm = None
+        eth = None
 
         # Require an output path for certain operations
         if options.operation not in ["hash", "message"] and \
@@ -130,6 +147,9 @@ def main():
 
             # Get dongle access (must be opened in the signer)
             hsm = get_hsm(options.verbose)
+        elif options.operation == "eth":
+            # Get dongle access (must have ethereum app open)
+            eth = get_eth_dongle(options.verbose)
 
         # Is there an existing signer authorization? Read it
         signer_authorization = None
@@ -172,7 +192,7 @@ def main():
                                               curve=ecdsa.SECP256k1)
             signature = sk.sign_digest(signer_version.get_authorization_digest(),
                                        sigencode=ecdsa.util.sigencode_der)
-        else:
+        elif options.operation == "ledger":
             # We use private dongle methods to do this, since we don't want
             # to implement legacy signing (i.e., 1.0/1.1) in the HSM2Dongle class
             # Essentially we send 2 messages. The first one with the path and the
@@ -195,6 +215,22 @@ def main():
                     raise Exception()
             except Exception:
                 raise AdminError(f"Bad signature from dongle! (got '{signature.hex}')")
+        elif options.operation == "eth":
+            info(f"Retrieving public key for path '{options.ethpath}'...")
+            pubkey = eth.get_pubkey(options.ethpath)
+            info(f"Public key: {pubkey.hex()}")
+
+            info("Signing with dongle...")
+            signature = eth.sign(options.ethpath, signer_version.msg.encode('ascii'))
+            vkey = ecdsa.VerifyingKey.from_string(pubkey, curve=ecdsa.SECP256k1)
+
+            try:
+                if not vkey.verify_digest(
+                        signature, signer_version.get_authorization_digest(),
+                        sigdecode=ecdsa.util.sigdecode_der):
+                    raise Exception()
+            except Exception:
+                raise AdminError(f"Bad signature from dongle! (got '{signature.hex()}')")
 
         # Add the signature to the authorization and save it to disk
         signer_authorization.add_signature(signature.hex())
@@ -206,6 +242,7 @@ def main():
         sys.exit(1)
     finally:
         dispose_hsm(hsm)
+        dispose_eth_dongle(eth)
 
 
 if __name__ == "__main__":

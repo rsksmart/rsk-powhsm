@@ -121,9 +121,12 @@ class SignerVersion:
     def iteration(self):
         return self._iteration
 
+    @property
+    def msg(self):
+        return f"RSK_powHSM_signer_{self._hash}_iteration_{str(self._iteration)}"
+
     def get_authorization_msg(self):
-        msg = f"RSK_powHSM_signer_{self._hash}_iteration_{str(self._iteration)}"
-        return encode_eth_message(msg)
+        return encode_eth_message(self.msg)
 
     def get_authorization_digest(self):
         return sha3.keccak_256(self.get_authorization_msg()).digest()
