@@ -38,6 +38,13 @@ class _Command(IntEnum):
     SIGN_PERSONAL_MSG = 0x08
 
 
+class _Offset(IntEnum):
+    PUBKEY = 1
+    SIG_R = 1
+    SIG_S = 33
+    SIG_S_END = 65
+
+
 # Handles low-level communication with an ledger device running Ethereum App
 class DongleEth:
     # APDU prefix
@@ -45,6 +52,7 @@ class DongleEth:
 
     # Enumeration shorthands
     CMD = _Command
+    OFF = _Offset
 
     @staticmethod
     def _encode_bip32_path(path):
@@ -85,7 +93,7 @@ class DongleEth:
         result = self._send_command(self.CMD.GET_PUBLIC_ADDRESS,
                                     bytes([0x00, 0x00, len(donglePath) + 1,
                                            len(donglePath) // 4]) + donglePath)
-        pubkey = result[1: 1 + result[0]]
+        pubkey = result[self.OFF.PUBKEY:self.OFF.PUBKEY + result[0]]
         return bytes(pubkey)
 
     def sign(self, path, msg):
@@ -97,8 +105,8 @@ class DongleEth:
                                            len(donglePath) // 4])
                                     + donglePath + encodedTx)
 
-        r = result[1:1 + 32].hex()
-        s = result[1 + 32: 1 + 32 + 32].hex()
+        r = result[self.OFF.SIG_R:self.OFF.SIG_S].hex()
+        s = result[self.OFF.SIG_S:self.OFF.SIG_S_END].hex()
 
         return ecdsa.util.sigencode_der(int(r, 16), int(s, 16), 0)
 
