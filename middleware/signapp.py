@@ -40,7 +40,7 @@ from admin.ledger_utils import eth_message_to_printable, compute_app_hash
 
 # Default signing path
 DEFAULT_LEDGER_PATH = "m/44'/137'/0'/31/32"
-DEFAULT_ETH_PATH = "44'/60'/0'/0/0"
+DEFAULT_ETH_PATH = "m/44'/60'/0'/0/0"
 
 # Legacy dongle constants
 COMMAND_SIGN = 0x02
@@ -146,6 +146,9 @@ def main():
             # Get dongle access (must be opened in the signer)
             hsm = get_hsm(options.verbose)
         elif options.operation == "eth":
+            # Parse path
+            path = BIP32Path(options.path)
+
             # Get dongle access (must have ethereum app open)
             eth = get_eth_dongle(options.verbose)
 
@@ -214,12 +217,12 @@ def main():
             except Exception:
                 raise AdminError(f"Bad signature from dongle! (got '{signature.hex}')")
         elif options.operation == "eth":
-            info(f"Retrieving public key for path '{options.path}'...")
-            pubkey = eth.get_pubkey(options.path)
+            info(f"Retrieving public key for path '{str(path)}'...")
+            pubkey = eth.get_pubkey(path)
             info(f"Public key: {pubkey.hex()}")
 
             info("Signing with dongle...")
-            signature = eth.sign(options.path, signer_version.msg.encode('ascii'))
+            signature = eth.sign(path, signer_version.msg.encode('ascii'))
             vkey = ecdsa.VerifyingKey.from_string(pubkey, curve=ecdsa.SECP256k1)
 
             try:

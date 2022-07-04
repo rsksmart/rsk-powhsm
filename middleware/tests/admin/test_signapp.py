@@ -310,8 +310,9 @@ class TestSignAppEth(TestCase):
                          signer_version_mock.call_args_list)
         self.assertEqual([call(signer_version)],
                          signer_authorization_mock.for_signer_version.call_args_list)
-        self.assertEqual([call("44'/60'/0'/0/0")], eth_mock.get_pubkey.call_args_list)
-        self.assertEqual([call("44'/60'/0'/0/0",
+        self.assertEqual([call(BIP32Path("m/44'/60'/0'/0/0"))],
+                         eth_mock.get_pubkey.call_args_list)
+        self.assertEqual([call(BIP32Path("m/44'/60'/0'/0/0"),
                                b"RSK_powHSM_signer_aabbcc_iteration_an-iteration")],
                          eth_mock.sign.call_args_list)
         self.assertEqual(1, signer_authorization.add_signature.call_count)
@@ -351,8 +352,9 @@ class TestSignAppEth(TestCase):
         self.assertFalse(signer_version_mock.called)
         self.assertEqual([call("an-output-path")],
                          signer_authorization_mock.from_jsonfile.call_args_list)
-        self.assertEqual([call("44'/60'/0'/0/0")], eth_mock.get_pubkey.call_args_list)
-        self.assertEqual([call("44'/60'/0'/0/0",
+        self.assertEqual([call(BIP32Path("m/44'/60'/0'/0/0"))],
+                         eth_mock.get_pubkey.call_args_list)
+        self.assertEqual([call(BIP32Path("m/44'/60'/0'/0/0"),
                                b"RSK_powHSM_signer_aabbcc_iteration_an-iteration")],
                          eth_mock.sign.call_args_list)
         self.assertEqual(1, signer_authorization.add_signature.call_count)

@@ -109,10 +109,15 @@ class BIP32Path:
     def elements(self):
         return self._elements
 
-    def to_binary(self):
-        binary = struct.pack("<B", len(self._elements))
+    def to_binary(self, byteorder="little"):
+        if byteorder == "big":
+            order_sign = ">"
+        else:
+            order_sign = "<"
+
+        binary = struct.pack(f"{order_sign}B", len(self._elements))
         for element in self.elements:
-            binary += struct.pack("<I", element.index)
+            binary += struct.pack(f"{order_sign}I", element.index)
         return binary
 
     def __str__(self):

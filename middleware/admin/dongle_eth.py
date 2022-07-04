@@ -54,20 +54,6 @@ class DongleEth:
     CMD = _Command
     OFF = _Offset
 
-    @staticmethod
-    def _encode_bip32_path(path):
-        if len(path) == 0:
-            return b""
-        result = b""
-        elements = path.split('/')
-        for path_element in elements:
-            element = path_element.split('\'')
-            if len(element) == 1:
-                result = result + struct.pack(">I", int(element[0]))
-            else:
-                result = result + struct.pack(">I", 0x80000000 | int(element[0]))
-        return result
-
     def __init__(self, debug):
         self.debug = debug
 
@@ -89,7 +75,8 @@ class DongleEth:
             raise DongleEthError(msg)
 
     def get_pubkey(self, path):
-        dongle_path = self._encode_bip32_path(path)
+        # Skip length byte
+        dongle_path = path.to_binary("big")[1:]
         result = self._send_command(self.CMD.GET_PUBLIC_ADDRESS,
                                     bytes([0x00, 0x00, len(dongle_path) + 1,
                                            len(dongle_path) // 4]) + dongle_path)
@@ -97,7 +84,8 @@ class DongleEth:
         return bytes(pubkey)
 
     def sign(self, path, msg):
-        dongle_path = self._encode_bip32_path(path)
+        # Skip length byte
+        dongle_path = path.to_binary("big")[1:]
         encoded_tx = struct.pack(">I", len(msg)) + msg
         result = self._send_command(self.CMD.SIGN_PERSONAL_MSG,
                                     bytes([0x00, 0x00,

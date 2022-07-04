@@ -21,6 +21,7 @@
 # SOFTWARE.
 
 import ecdsa
+from admin.bip32 import BIP32Path
 from admin.dongle_eth import DongleEth, DongleEthError
 import struct
 from unittest import TestCase
@@ -48,7 +49,7 @@ class TestDongleEth(TestCase):
     def test_get_pubkey_ok(self):
         self.exchange_mock.side_effect = [bytes([0x41]) + self.pubkey]
 
-        eth_path = "44'/60'/0'/0/0"
+        eth_path = BIP32Path("m/44'/60'/0'/0/0")
         self.assertEqual(self.pubkey, self.eth.get_pubkey(eth_path))
 
         encoded_path = bytes.fromhex('8000002c8000003c800000000000000000000000')
@@ -59,7 +60,7 @@ class TestDongleEth(TestCase):
     def test_get_pubkey_dongle_error(self):
         self.exchange_mock.side_effect = Exception('error-msg')
 
-        eth_path = "44'/60'/0'/0/0"
+        eth_path = BIP32Path("m/44'/60'/0'/0/0")
         with self.assertRaises(DongleEthError):
             self.eth.get_pubkey(eth_path)
 
@@ -75,7 +76,7 @@ class TestDongleEth(TestCase):
         self.exchange_mock.side_effect = [bytes.fromhex(v + r + s)]
 
         expected_signature = ecdsa.util.sigencode_der(int(r, 16), int(s, 16), 0)
-        ethpath = "44'/60'/0'/0/0"
+        ethpath = BIP32Path("m/44'/60'/0'/0/0")
         msg = ('aa' * 72).encode()
         self.assertEqual(expected_signature, self.eth.sign(ethpath, msg))
 
@@ -89,7 +90,7 @@ class TestDongleEth(TestCase):
     def test_sign_message_dongle_error(self):
         self.exchange_mock.side_effect = Exception('error-msg')
 
-        ethpath = "44'/60'/0'/0/0"
+        ethpath = BIP32Path("m/44'/60'/0'/0/0")
         msg = ('aa' * 72).encode()
         with self.assertRaises(DongleEthError):
             self.eth.sign(ethpath, msg)
