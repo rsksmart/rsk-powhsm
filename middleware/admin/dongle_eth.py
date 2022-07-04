@@ -60,8 +60,8 @@ class DongleEth:
             return b""
         result = b""
         elements = path.split('/')
-        for pathElement in elements:
-            element = pathElement.split('\'')
+        for path_element in elements:
+            element = path_element.split('\'')
             if len(element) == 1:
                 result = result + struct.pack(">I", int(element[0]))
             else:
@@ -89,21 +89,21 @@ class DongleEth:
             raise DongleEthError(msg)
 
     def get_pubkey(self, path):
-        donglePath = self._encode_bip32_path(path)
+        dongle_path = self._encode_bip32_path(path)
         result = self._send_command(self.CMD.GET_PUBLIC_ADDRESS,
-                                    bytes([0x00, 0x00, len(donglePath) + 1,
-                                           len(donglePath) // 4]) + donglePath)
+                                    bytes([0x00, 0x00, len(dongle_path) + 1,
+                                           len(dongle_path) // 4]) + dongle_path)
         pubkey = result[self.OFF.PUBKEY:self.OFF.PUBKEY + result[0]]
         return bytes(pubkey)
 
     def sign(self, path, msg):
-        donglePath = self._encode_bip32_path(path)
-        encodedTx = struct.pack(">I", len(msg)) + msg
+        dongle_path = self._encode_bip32_path(path)
+        encoded_tx = struct.pack(">I", len(msg)) + msg
         result = self._send_command(self.CMD.SIGN_PERSONAL_MSG,
                                     bytes([0x00, 0x00,
-                                           len(donglePath) + 1 + len(encodedTx),
-                                           len(donglePath) // 4])
-                                    + donglePath + encodedTx)
+                                           len(dongle_path) + 1 + len(encoded_tx),
+                                           len(dongle_path) // 4])
+                                    + dongle_path + encoded_tx)
 
         r = result[self.OFF.SIG_R:self.OFF.SIG_S].hex()
         s = result[self.OFF.SIG_S:self.OFF.SIG_S_END].hex()
