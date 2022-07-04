@@ -54,6 +54,9 @@ class DongleEth:
     CMD = _Command
     OFF = _Offset
 
+    # Maximum size of msg allowed by sign command
+    MAX_MSG_LEN = 255
+
     def __init__(self, debug):
         self.debug = debug
 
@@ -84,6 +87,10 @@ class DongleEth:
         return bytes(pubkey)
 
     def sign(self, path, msg):
+        if len(msg) > self.MAX_MSG_LEN:
+            raise DongleEthError("Message greater than maximum supported size of "
+                                 f"{self.MAX_MSG_LEN} bytes")
+
         # Skip length byte
         dongle_path = path.to_binary("big")[1:]
         encoded_tx = struct.pack(">I", len(msg)) + msg

@@ -101,3 +101,11 @@ class TestDongleEth(TestCase):
                                len(encoded_path) + 1 + len(encoded_tx),
                                len(encoded_path) // 4]) + encoded_path + encoded_tx)],
                          self.exchange_mock.call_args_list)
+
+    def test_sign_msg_too_big(self):
+        ethpath = BIP32Path("m/44'/60'/0'/0/0")
+        msg = ('aa' * 300).encode()
+        with self.assertRaises(DongleEthError):
+            self.eth.sign(ethpath, msg)
+
+        self.assertFalse(self.exchange_mock.called)
