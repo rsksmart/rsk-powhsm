@@ -39,7 +39,7 @@ from admin.signer_authorization import SignerAuthorization, SignerVersion
 from admin.ledger_utils import eth_message_to_printable, compute_app_hash
 
 # Default signing path
-DEFAULT_PATH = "m/44'/137'/0'/31/32"
+DEFAULT_LEDGER_PATH = "m/44'/137'/0'/31/32"
 DEFAULT_ETH_PATH = "44'/60'/0'/0/0"
 
 # Legacy dongle constants
@@ -84,17 +84,8 @@ def main():
         "-p",
         "--path",
         dest="path",
-        help="Path used for signing (only for 'ledger' option). "
-        f"Default \"{DEFAULT_PATH}\"",
-        default=DEFAULT_PATH
-    )
-    parser.add_argument(
-        "-e",
-        "--ethpath",
-        dest="ethpath",
         help="Path used for signing (only for 'ledger' and 'eth' options). "
-        f"Default \"{DEFAULT_ETH_PATH}\"",
-        default=DEFAULT_ETH_PATH
+        f"Default \"{DEFAULT_LEDGER_PATH}\" (ledger) / \"{DEFAULT_ETH_PATH}\" (eth)"
     )
     parser.add_argument(
         "-g",
@@ -117,6 +108,13 @@ def main():
     try:
         hsm = None
         eth = None
+
+        # Default path is different for 'ledger' and 'eth' operations
+        if options.path is None:
+            if options.operation == "ledger":
+                options.path = DEFAULT_LEDGER_PATH
+            elif options.operation == "eth":
+                options.path = DEFAULT_ETH_PATH
 
         # Require an output path for certain operations
         if options.operation not in ["hash", "message"] and \
@@ -216,12 +214,12 @@ def main():
             except Exception:
                 raise AdminError(f"Bad signature from dongle! (got '{signature.hex}')")
         elif options.operation == "eth":
-            info(f"Retrieving public key for path '{options.ethpath}'...")
-            pubkey = eth.get_pubkey(options.ethpath)
+            info(f"Retrieving public key for path '{options.path}'...")
+            pubkey = eth.get_pubkey(options.path)
             info(f"Public key: {pubkey.hex()}")
 
             info("Signing with dongle...")
-            signature = eth.sign(options.ethpath, signer_version.msg.encode('ascii'))
+            signature = eth.sign(options.path, signer_version.msg.encode('ascii'))
             vkey = ecdsa.VerifyingKey.from_string(pubkey, curve=ecdsa.SECP256k1)
 
             try:
