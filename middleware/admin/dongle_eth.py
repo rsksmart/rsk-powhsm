@@ -28,14 +28,25 @@ from ledgerblue.comm import getDongle
 from ledgerblue.commException import CommException
 
 
-class DongleEthError(RuntimeError):
-    pass
-
-
 class _ErrorCode(IntEnum):
     WRONG_APP = 0x6511
     INVALID_PATH = 0x6a15
     DONGLE_LOCKED = 0x6b0c
+
+
+class DongleEthError(RuntimeError):
+    ERR = _ErrorCode
+
+    ERROR_MESSAGES = {
+        ERR.WRONG_APP: "Ethereum app not open",
+        ERR.INVALID_PATH: "Invalid path for Ethereum app",
+        ERR.DONGLE_LOCKED: "Device locked"
+    }
+
+    @staticmethod
+    def from_error_code(code):
+        message = DongleEthError.ERROR_MESSAGES.get(code, "Unknown error")
+        return DongleEthError("Error connecting to device: %s" % message)
 
 
 # Dongle commands
@@ -59,13 +70,6 @@ class DongleEth:
     # Enumeration shorthands
     CMD = _Command
     OFF = _Offset
-    ERR = _ErrorCode
-
-    ERROR_MESSAGES = {
-        ERR.WRONG_APP: "Ethereum app not open",
-        ERR.INVALID_PATH: "Invalid path for Ethereum app",
-        ERR.DONGLE_LOCKED: "Device locked"
-    }
 
     # Maximum size of msg allowed by sign command
     MAX_MSG_LEN = 255
@@ -123,7 +127,6 @@ class DongleEth:
             apdu = bytes([self.CLA, cmd]) + data
             return self.dongle.exchange(apdu)
         except CommException as e:
-            message = self.ERROR_MESSAGES.get(e.sw, "Unknown error")
-            raise DongleEthError("Error sending command: %s" % message)
+            raise DongleEthError.from_error_code(e.sw)
         except BaseException as e:
             raise DongleEthError("Error sending command: %s" % str(e))
