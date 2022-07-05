@@ -95,6 +95,13 @@ def main():
         "Must be a hex-encoded, der-encoded SECP256k1 signature.",
     )
     parser.add_argument(
+        "-b",
+        "--pubkey",
+        dest="pubkey",
+        action="store_true",
+        help="Retrieve pubkic key (only for 'eth' option)."
+    )
+    parser.add_argument(
         "-v",
         "--verbose",
         dest="verbose",
@@ -151,6 +158,20 @@ def main():
 
             # Get dongle access (must have ethereum app open)
             eth = get_eth_dongle(options.verbose)
+
+            # Retrieve public key
+            info(f"Retrieving public key for path '{str(path)}'...")
+            pubkey = eth.get_pubkey(path)
+            info(f"Public key: {pubkey.hex()}")
+
+            # If options.pubkey is True, we just want to retrieve the public key
+            if options.pubkey:
+                info(f"Opening public key file {options.output_path}...")
+                info("Adding public key...")
+                with open(options.output_path, "w") as file:
+                    file.write(pubkey.hex())
+                info(f"Public key saved to {options.output_path}")
+                sys.exit(0)
 
         # Is there an existing signer authorization? Read it
         signer_authorization = None
@@ -217,10 +238,6 @@ def main():
             except Exception:
                 raise AdminError(f"Bad signature from dongle! (got '{signature.hex}')")
         elif options.operation == "eth":
-            info(f"Retrieving public key for path '{str(path)}'...")
-            pubkey = eth.get_pubkey(path)
-            info(f"Public key: {pubkey.hex()}")
-
             info("Signing with dongle...")
             signature = eth.sign(path, signer_version.msg.encode('ascii'))
             vkey = ecdsa.VerifyingKey.from_string(pubkey, curve=ecdsa.SECP256k1)

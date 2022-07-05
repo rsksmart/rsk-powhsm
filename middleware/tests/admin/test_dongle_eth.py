@@ -22,7 +22,12 @@
 
 import ecdsa
 from admin.bip32 import BIP32Path
-from admin.dongle_eth import DongleEth, DongleEthError
+from admin.dongle_eth import (DongleEth,
+                              DongleEthError,
+                              DongleEthInvalidPath,
+                              DongleEthWrongApp,
+                              DongleEthLocked)
+from ledgerblue.commException import CommException
 import struct
 from unittest import TestCase
 from unittest.mock import call, Mock, patch
@@ -54,7 +59,43 @@ class TestDongleEth(TestCase):
 
         encoded_path = bytes.fromhex('8000002c8000003c800000000000000000000000')
         self.assertEqual([call(bytes([0xE0, 0x02, 0x00, 0x00, len(encoded_path) + 1,
-                               len(encoded_path) // 4]) + encoded_path)],
+                               len(eth_path.elements)]) + encoded_path)],
+                         self.exchange_mock.call_args_list)
+
+    def test_get_pubkey_invalid_path(self):
+        self.exchange_mock.side_effect = CommException("msg", 0x6a15)
+
+        eth_path = BIP32Path("m/44'/137'/0'/0/0")
+        with self.assertRaises(DongleEthInvalidPath):
+            self.eth.get_pubkey(eth_path)
+
+        encoded_path = bytes.fromhex('8000002c80000089800000000000000000000000')
+        self.assertEqual([call(bytes([0xE0, 0x02, 0x00, 0x00, len(encoded_path) + 1,
+                               len(eth_path.elements)]) + encoded_path)],
+                         self.exchange_mock.call_args_list)
+
+    def test_get_pubkey_wrong_app(self):
+        self.exchange_mock.side_effect = CommException("msg", 0x6511)
+
+        eth_path = BIP32Path("m/44'/60'/0'/0/0")
+        with self.assertRaises(DongleEthWrongApp):
+            self.eth.get_pubkey(eth_path)
+
+        encoded_path = bytes.fromhex('8000002c8000003c800000000000000000000000')
+        self.assertEqual([call(bytes([0xE0, 0x02, 0x00, 0x00, len(encoded_path) + 1,
+                               len(eth_path.elements)]) + encoded_path)],
+                         self.exchange_mock.call_args_list)
+
+    def test_get_pubkey_device_locked(self):
+        self.exchange_mock.side_effect = CommException("msg", 0x6b0c)
+
+        eth_path = BIP32Path("m/44'/60'/0'/0/0")
+        with self.assertRaises(DongleEthLocked):
+            self.eth.get_pubkey(eth_path)
+
+        encoded_path = bytes.fromhex('8000002c8000003c800000000000000000000000')
+        self.assertEqual([call(bytes([0xE0, 0x02, 0x00, 0x00, len(encoded_path) + 1,
+                               len(eth_path.elements)]) + encoded_path)],
                          self.exchange_mock.call_args_list)
 
     def test_get_pubkey_dongle_error(self):
@@ -66,7 +107,7 @@ class TestDongleEth(TestCase):
 
         encoded_path = bytes.fromhex('8000002c8000003c800000000000000000000000')
         self.assertEqual([call(bytes([0xE0, 0x02, 0x00, 0x00, len(encoded_path) + 1,
-                               len(encoded_path) // 4]) + encoded_path)],
+                               len(eth_path.elements)]) + encoded_path)],
                          self.exchange_mock.call_args_list)
 
     def test_sign_message_ok(self):
@@ -76,30 +117,75 @@ class TestDongleEth(TestCase):
         self.exchange_mock.side_effect = [bytes.fromhex(v + r + s)]
 
         expected_signature = ecdsa.util.sigencode_der(int(r, 16), int(s, 16), 0)
-        ethpath = BIP32Path("m/44'/60'/0'/0/0")
+        eth_path = BIP32Path("m/44'/60'/0'/0/0")
         msg = ('aa' * 72).encode()
-        self.assertEqual(expected_signature, self.eth.sign(ethpath, msg))
+        self.assertEqual(expected_signature, self.eth.sign(eth_path, msg))
 
         encoded_path = bytes.fromhex('8000002c8000003c800000000000000000000000')
         encoded_tx = struct.pack(">I", len(msg)) + msg
         self.assertEqual([call(bytes([0xE0, 0x08, 0x00, 0x00,
                                len(encoded_path) + 1 + len(encoded_tx),
-                               len(encoded_path) // 4]) + encoded_path + encoded_tx)],
+                               len(eth_path.elements)]) + encoded_path + encoded_tx)],
+                         self.exchange_mock.call_args_list)
+
+    def test_sign_message_invalid_path(self):
+        self.exchange_mock.side_effect = CommException("msg", 0x6a15)
+
+        eth_path = BIP32Path("m/44'/137'/0'/0/0")
+        msg = ('aa' * 72).encode()
+        with self.assertRaises(DongleEthInvalidPath):
+            self.eth.sign(eth_path, msg)
+
+        encoded_path = bytes.fromhex('8000002c80000089800000000000000000000000')
+        encoded_tx = struct.pack(">I", len(msg)) + msg
+        self.assertEqual([call(bytes([0xE0, 0x08, 0x00, 0x00,
+                               len(encoded_path) + 1 + len(encoded_tx),
+                               len(eth_path.elements)]) + encoded_path + encoded_tx)],
+                         self.exchange_mock.call_args_list)
+
+    def test_sign_message_wrong_app(self):
+        self.exchange_mock.side_effect = CommException("msg", 0x6511)
+
+        eth_path = BIP32Path("m/44'/60'/0'/0/0")
+        msg = ('aa' * 72).encode()
+        with self.assertRaises(DongleEthWrongApp):
+            self.eth.sign(eth_path, msg)
+
+        encoded_path = bytes.fromhex('8000002c8000003c800000000000000000000000')
+        encoded_tx = struct.pack(">I", len(msg)) + msg
+        self.assertEqual([call(bytes([0xE0, 0x08, 0x00, 0x00,
+                               len(encoded_path) + 1 + len(encoded_tx),
+                               len(eth_path.elements)]) + encoded_path + encoded_tx)],
+                         self.exchange_mock.call_args_list)
+
+    def test_sign_message_device_locked(self):
+        self.exchange_mock.side_effect = CommException("msg", 0x6b0c)
+
+        eth_path = BIP32Path("m/44'/60'/0'/0/0")
+        msg = ('aa' * 72).encode()
+        with self.assertRaises(DongleEthLocked):
+            self.eth.sign(eth_path, msg)
+
+        encoded_path = bytes.fromhex('8000002c8000003c800000000000000000000000')
+        encoded_tx = struct.pack(">I", len(msg)) + msg
+        self.assertEqual([call(bytes([0xE0, 0x08, 0x00, 0x00,
+                               len(encoded_path) + 1 + len(encoded_tx),
+                               len(eth_path.elements)]) + encoded_path + encoded_tx)],
                          self.exchange_mock.call_args_list)
 
     def test_sign_message_dongle_error(self):
         self.exchange_mock.side_effect = Exception('error-msg')
 
-        ethpath = BIP32Path("m/44'/60'/0'/0/0")
+        eth_path = BIP32Path("m/44'/60'/0'/0/0")
         msg = ('aa' * 72).encode()
         with self.assertRaises(DongleEthError):
-            self.eth.sign(ethpath, msg)
+            self.eth.sign(eth_path, msg)
 
         encoded_path = bytes.fromhex('8000002c8000003c800000000000000000000000')
         encoded_tx = struct.pack(">I", len(msg)) + msg
         self.assertEqual([call(bytes([0xE0, 0x08, 0x00, 0x00,
                                len(encoded_path) + 1 + len(encoded_tx),
-                               len(encoded_path) // 4]) + encoded_path + encoded_tx)],
+                               len(eth_path.elements)]) + encoded_path + encoded_tx)],
                          self.exchange_mock.call_args_list)
 
     def test_sign_msg_too_big(self):

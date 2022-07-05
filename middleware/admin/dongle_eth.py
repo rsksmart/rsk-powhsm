@@ -32,6 +32,30 @@ class DongleEthError(RuntimeError):
     pass
 
 
+class DongleEthWrongApp(RuntimeError):
+    @staticmethod
+    def is_wrong_app(e):
+        if type(e) == CommException and e.sw == 0x6511:
+            return True
+        return False
+
+
+class DongleEthInvalidPath(RuntimeError):
+    @staticmethod
+    def is_invalid_path(e):
+        if type(e) == CommException and e.sw == 0x6a15:
+            return True
+        return False
+
+
+class DongleEthLocked(RuntimeError):
+    @staticmethod
+    def is_locked(e):
+        if type(e) == CommException and e.sw == 0x6b0c:
+            return True
+        return False
+
+
 # Dongle commands
 class _Command(IntEnum):
     GET_PUBLIC_ADDRESS = 0x02,
@@ -82,7 +106,7 @@ class DongleEth:
         dongle_path = path.to_binary("big")[1:]
         result = self._send_command(self.CMD.GET_PUBLIC_ADDRESS,
                                     bytes([0x00, 0x00, len(dongle_path) + 1,
-                                           len(dongle_path) // 4]) + dongle_path)
+                                           len(path.elements)]) + dongle_path)
         pubkey = result[self.OFF.PUBKEY:self.OFF.PUBKEY + result[0]]
         return bytes(pubkey)
 
@@ -97,7 +121,7 @@ class DongleEth:
         result = self._send_command(self.CMD.SIGN_PERSONAL_MSG,
                                     bytes([0x00, 0x00,
                                            len(dongle_path) + 1 + len(encoded_tx),
-                                           len(dongle_path) // 4])
+                                           len(path.elements)])
                                     + dongle_path + encoded_tx)
 
         r = result[self.OFF.SIG_R:self.OFF.SIG_S].hex()
@@ -110,4 +134,10 @@ class DongleEth:
             apdu = bytes([self.CLA, cmd]) + data
             return self.dongle.exchange(apdu)
         except (CommException, BaseException) as e:
+            if DongleEthWrongApp.is_wrong_app(e):
+                raise DongleEthWrongApp("Ethereum app not open")
+            if DongleEthInvalidPath.is_invalid_path(e):
+                raise DongleEthInvalidPath("Invalid path for Ethereum app")
+            if DongleEthLocked.is_locked(e):
+                raise DongleEthLocked("Device locked")
             raise DongleEthError("Error sending command: %s" % str(e))
