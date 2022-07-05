@@ -46,7 +46,7 @@ class DongleEthError(RuntimeError):
     @staticmethod
     def from_error_code(code):
         message = DongleEthError.ERROR_MESSAGES.get(code, "Unknown error")
-        return DongleEthError("Error connecting to device: %s" % message)
+        return DongleEthError("Error sending command: %s" % message)
 
 
 # Dongle commands
