@@ -26,6 +26,7 @@ from getpass import getpass
 from ledger.hsm2dongle import HSM2Dongle
 from ledger.pin import BasePin
 from .dongle_admin import DongleAdmin
+from .dongle_eth import DongleEth
 
 PIN_ERROR_MESSAGE = ("Invalid pin given. It must be exactly 8 alphanumeric "
                      "characters with at least one alphabetic character.")
@@ -87,6 +88,23 @@ def dispose_hsm(hsm):
 
     info("Disconnecting from HSM... ", False)
     hsm.disconnect()
+    info("OK")
+
+
+def get_eth_dongle(debug):
+    info("Connecting to Ethereum App... ", False)
+    eth = DongleEth(debug)
+    eth.connect()
+    info("OK")
+    return eth
+
+
+def dispose_eth_dongle(eth):
+    if eth is None:
+        return
+
+    info("Disconnecting from Ethereum App... ", False)
+    eth.disconnect()
     info("OK")
 
 

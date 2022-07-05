@@ -84,12 +84,24 @@ class TestBIP32Path(TestCase):
             BIP32Path("m/44'/137'/0'/0/0").to_binary().hex(),
         )
         self.assertEqual(
+            "058000002c80000089800000000000000000000000",
+            BIP32Path("m/44'/137'/0'/0/0").to_binary("big").hex(),
+        )
+        self.assertEqual(
             "052c00008089000080000000800000000001000000",
             BIP32Path("m/44'/137'/0'/0/1").to_binary().hex(),
         )
         self.assertEqual(
+            "058000002c80000089800000000000000000000001",
+            BIP32Path("m/44'/137'/0'/0/1").to_binary("big").hex(),
+        )
+        self.assertEqual(
             "052c00008000000080000000800000000000000000",
             BIP32Path("m/44'/0'/0'/0/0").to_binary().hex(),
+        )
+        self.assertEqual(
+            "058000002c80000000800000000000000000000000",
+            BIP32Path("m/44'/0'/0'/0/0").to_binary("big").hex(),
         )
 
     def test_spec_invalid(self):

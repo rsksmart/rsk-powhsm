@@ -272,6 +272,99 @@ class TestSignAppLedger(TestCase):
                          signer_authorization.save_to_jsonfile.call_args_list)
 
 
+@patch("signapp.dispose_eth_dongle")
+@patch("signapp.get_eth_dongle")
+@patch("signapp.isfile")
+@patch("signapp.SignerAuthorization")
+@patch("signapp.SignerVersion")
+@patch("signapp.compute_app_hash")
+@patch("signapp.info")
+class TestSignAppEth(TestCase):
+    def test_newfile_ok(self, info_mock, compute_app_hash_mock,
+                        signer_version_mock, signer_authorization_mock, isfile_mock,
+                        get_eth_mock, dispose_eth_mock):
+        compute_app_hash_mock.return_value = bytes.fromhex("aabbcc")
+        signer_version = Mock()
+        signer_version_mock.return_value = signer_version
+        signer_version.get_authorization_digest.return_value = bytes.fromhex("bb"*32)
+        signer_version.msg = "RSK_powHSM_signer_aabbcc_iteration_an-iteration"
+        signer_authorization = Mock()
+        signer_authorization_mock.for_signer_version.return_value = signer_authorization
+        privkey = ecdsa.SigningKey.from_string(bytes.fromhex("aa"*32),
+                                               curve=ecdsa.SECP256k1)
+        pubkey = privkey.get_verifying_key()
+        eth_mock = Mock()
+        eth_mock.get_pubkey.return_value = pubkey.to_string("uncompressed")
+        eth_mock.sign.return_value = privkey.sign_digest(
+            bytes.fromhex("bb"*32), sigencode=ecdsa.util.sigencode_der)
+        get_eth_mock.return_value = eth_mock
+        isfile_mock.return_value = False
+        with patch("sys.argv", ["signapp.py", "eth", "-s", "a-path",
+                                "-i", "an-iteration", "-o", "an-output-path"]):
+            with self.assertRaises(SystemExit) as exit:
+                main()
+
+        self.assertEqual(exit.exception.code, RETURN_SUCCESS)
+        self.assertEqual([call("an-output-path")], isfile_mock.call_args_list)
+        self.assertEqual([call("aabbcc", "an-iteration")],
+                         signer_version_mock.call_args_list)
+        self.assertEqual([call(signer_version)],
+                         signer_authorization_mock.for_signer_version.call_args_list)
+        self.assertEqual([call(BIP32Path("m/44'/60'/0'/0/0"))],
+                         eth_mock.get_pubkey.call_args_list)
+        self.assertEqual([call(BIP32Path("m/44'/60'/0'/0/0"),
+                               b"RSK_powHSM_signer_aabbcc_iteration_an-iteration")],
+                         eth_mock.sign.call_args_list)
+        self.assertEqual(1, signer_authorization.add_signature.call_count)
+        signature = signer_authorization.add_signature.call_args_list[0][0][0]
+        pubkey.verify_digest(bytes.fromhex(signature), bytes.fromhex("bb"*32),
+                             sigdecode=ecdsa.util.sigdecode_der)
+        self.assertEqual([call("an-output-path")],
+                         signer_authorization.save_to_jsonfile.call_args_list)
+
+    def test_existingfile_ok(self, info_mock, compute_app_hash_mock,
+                             signer_version_mock, signer_authorization_mock, isfile_mock,
+                             get_eth_mock, dispose_eth_mock):
+        signer_version = Mock()
+        signer_version.get_authorization_digest.return_value = bytes.fromhex("bb"*32)
+        signer_version.msg = "RSK_powHSM_signer_aabbcc_iteration_an-iteration"
+        signer_authorization = Mock()
+        signer_authorization.signer_version = signer_version
+        signer_authorization_mock.from_jsonfile.return_value = signer_authorization
+        privkey = ecdsa.SigningKey.from_string(bytes.fromhex("aa"*32),
+                                               curve=ecdsa.SECP256k1)
+        pubkey = privkey.get_verifying_key()
+        eth_mock = Mock()
+        eth_mock.get_pubkey.return_value = pubkey.to_string("uncompressed")
+        eth_mock.sign.return_value = privkey.sign_digest(
+            bytes.fromhex("bb"*32), sigencode=ecdsa.util.sigencode_der)
+        get_eth_mock.return_value = eth_mock
+        isfile_mock.return_value = True
+
+        with patch("sys.argv", ["signapp.py", "eth",
+                                "-o", "an-output-path"]):
+            with self.assertRaises(SystemExit) as exit:
+                main()
+
+        self.assertEqual(exit.exception.code, RETURN_SUCCESS)
+
+        self.assertEqual([call("an-output-path")], isfile_mock.call_args_list)
+        self.assertFalse(signer_version_mock.called)
+        self.assertEqual([call("an-output-path")],
+                         signer_authorization_mock.from_jsonfile.call_args_list)
+        self.assertEqual([call(BIP32Path("m/44'/60'/0'/0/0"))],
+                         eth_mock.get_pubkey.call_args_list)
+        self.assertEqual([call(BIP32Path("m/44'/60'/0'/0/0"),
+                               b"RSK_powHSM_signer_aabbcc_iteration_an-iteration")],
+                         eth_mock.sign.call_args_list)
+        self.assertEqual(1, signer_authorization.add_signature.call_count)
+        signature = signer_authorization.add_signature.call_args_list[0][0][0]
+        pubkey.verify_digest(bytes.fromhex(signature), bytes.fromhex("bb"*32),
+                             sigdecode=ecdsa.util.sigdecode_der)
+        self.assertEqual([call("an-output-path")],
+                         signer_authorization.save_to_jsonfile.call_args_list)
+
+
 @patch("signapp.SignerAuthorization")
 @patch("signapp.info")
 class TestSignAppManual(TestCase):
