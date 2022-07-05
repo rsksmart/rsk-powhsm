@@ -22,11 +22,7 @@
 
 import ecdsa
 from admin.bip32 import BIP32Path
-from admin.dongle_eth import (DongleEth,
-                              DongleEthError,
-                              DongleEthInvalidPath,
-                              DongleEthWrongApp,
-                              DongleEthLocked)
+from admin.dongle_eth import DongleEth, DongleEthError
 from ledgerblue.commException import CommException
 import struct
 from unittest import TestCase
@@ -66,7 +62,7 @@ class TestDongleEth(TestCase):
         self.exchange_mock.side_effect = CommException("msg", 0x6a15)
 
         eth_path = BIP32Path("m/44'/137'/0'/0/0")
-        with self.assertRaises(DongleEthInvalidPath):
+        with self.assertRaises(DongleEthError):
             self.eth.get_pubkey(eth_path)
 
         encoded_path = bytes.fromhex('8000002c80000089800000000000000000000000')
@@ -78,7 +74,7 @@ class TestDongleEth(TestCase):
         self.exchange_mock.side_effect = CommException("msg", 0x6511)
 
         eth_path = BIP32Path("m/44'/60'/0'/0/0")
-        with self.assertRaises(DongleEthWrongApp):
+        with self.assertRaises(DongleEthError):
             self.eth.get_pubkey(eth_path)
 
         encoded_path = bytes.fromhex('8000002c8000003c800000000000000000000000')
@@ -90,7 +86,7 @@ class TestDongleEth(TestCase):
         self.exchange_mock.side_effect = CommException("msg", 0x6b0c)
 
         eth_path = BIP32Path("m/44'/60'/0'/0/0")
-        with self.assertRaises(DongleEthLocked):
+        with self.assertRaises(DongleEthError):
             self.eth.get_pubkey(eth_path)
 
         encoded_path = bytes.fromhex('8000002c8000003c800000000000000000000000')
@@ -133,7 +129,7 @@ class TestDongleEth(TestCase):
 
         eth_path = BIP32Path("m/44'/137'/0'/0/0")
         msg = ('aa' * 72).encode()
-        with self.assertRaises(DongleEthInvalidPath):
+        with self.assertRaises(DongleEthError):
             self.eth.sign(eth_path, msg)
 
         encoded_path = bytes.fromhex('8000002c80000089800000000000000000000000')
@@ -148,7 +144,7 @@ class TestDongleEth(TestCase):
 
         eth_path = BIP32Path("m/44'/60'/0'/0/0")
         msg = ('aa' * 72).encode()
-        with self.assertRaises(DongleEthWrongApp):
+        with self.assertRaises(DongleEthError):
             self.eth.sign(eth_path, msg)
 
         encoded_path = bytes.fromhex('8000002c8000003c800000000000000000000000')
@@ -163,7 +159,7 @@ class TestDongleEth(TestCase):
 
         eth_path = BIP32Path("m/44'/60'/0'/0/0")
         msg = ('aa' * 72).encode()
-        with self.assertRaises(DongleEthLocked):
+        with self.assertRaises(DongleEthError):
             self.eth.sign(eth_path, msg)
 
         encoded_path = bytes.fromhex('8000002c8000003c800000000000000000000000')

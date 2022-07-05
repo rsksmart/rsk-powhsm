@@ -169,7 +169,7 @@ def main():
                 info(f"Opening public key file {options.output_path}...")
                 info("Adding public key...")
                 with open(options.output_path, "w") as file:
-                    file.write(pubkey.hex())
+                    file.write("%s\n" % pubkey.hex())
                 info(f"Public key saved to {options.output_path}")
                 sys.exit(0)
 

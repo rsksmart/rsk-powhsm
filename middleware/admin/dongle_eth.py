@@ -32,28 +32,10 @@ class DongleEthError(RuntimeError):
     pass
 
 
-class DongleEthWrongApp(RuntimeError):
-    @staticmethod
-    def is_wrong_app(e):
-        if type(e) == CommException and e.sw == 0x6511:
-            return True
-        return False
-
-
-class DongleEthInvalidPath(RuntimeError):
-    @staticmethod
-    def is_invalid_path(e):
-        if type(e) == CommException and e.sw == 0x6a15:
-            return True
-        return False
-
-
-class DongleEthLocked(RuntimeError):
-    @staticmethod
-    def is_locked(e):
-        if type(e) == CommException and e.sw == 0x6b0c:
-            return True
-        return False
+class _ErrorCode(IntEnum):
+    WRONG_APP = 0x6511
+    INVALID_PATH = 0x6a15
+    DONGLE_LOCKED = 0x6b0c
 
 
 # Dongle commands
@@ -77,6 +59,13 @@ class DongleEth:
     # Enumeration shorthands
     CMD = _Command
     OFF = _Offset
+    ERR = _ErrorCode
+
+    ERROR_MESSAGES = {
+        ERR.WRONG_APP: "Ethereum app not open",
+        ERR.INVALID_PATH: "Invalid path for Ethereum app",
+        ERR.DONGLE_LOCKED: "Device locked"
+    }
 
     # Maximum size of msg allowed by sign command
     MAX_MSG_LEN = 255
@@ -133,11 +122,8 @@ class DongleEth:
         try:
             apdu = bytes([self.CLA, cmd]) + data
             return self.dongle.exchange(apdu)
-        except (CommException, BaseException) as e:
-            if DongleEthWrongApp.is_wrong_app(e):
-                raise DongleEthWrongApp("Ethereum app not open")
-            if DongleEthInvalidPath.is_invalid_path(e):
-                raise DongleEthInvalidPath("Invalid path for Ethereum app")
-            if DongleEthLocked.is_locked(e):
-                raise DongleEthLocked("Device locked")
+        except CommException as e:
+            message = self.ERROR_MESSAGES.get(e.sw, "Unknown error")
+            raise DongleEthError("Error sending command: %s" % message)
+        except BaseException as e:
             raise DongleEthError("Error sending command: %s" % str(e))
