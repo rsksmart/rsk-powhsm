@@ -59,6 +59,10 @@
 
 // Total size of APDU data part
 #define APDU_TOTAL_DATA_SIZE (sizeof(G_io_apdu_buffer) - DATA)
+// Total size of APDU data part for outputting
+// (need to leave space for result code)
+#define APDU_RESULT_CODE_SIZE 2
+#define APDU_TOTAL_DATA_SIZE_OUT (APDU_TOTAL_DATA_SIZE - APDU_RESULT_CODE_SIZE)
 
 // Size of payload in APDU
 #define APDU_DATA_SIZE(rx) ((rx) >= DATA ? (rx)-DATA : 0)

@@ -1031,7 +1031,7 @@ unsigned int bc_advance(volatile unsigned int rx) {
  */
 static uint8_t dump_min_req_difficulty(int offset) {
     // Make sure the minimum required difficulty fits into the output buffer
-    if (APDU_TOTAL_DATA_SIZE < sizeof(MIN_REQUIRED_DIFFICULTY) + offset)
+    if (APDU_TOTAL_DATA_SIZE_OUT < sizeof(MIN_REQUIRED_DIFFICULTY) + offset)
         FAIL(BUFFER_OVERFLOW);
     dump_bigint(APDU_DATA_PTR + offset, MIN_REQUIRED_DIFFICULTY, BIGINT_LEN);
     return sizeof(MIN_REQUIRED_DIFFICULTY);

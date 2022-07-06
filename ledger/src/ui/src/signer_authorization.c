@@ -187,7 +187,7 @@ unsigned int do_authorize_signer(volatile unsigned int rx,
         sanity_check();
 
         SAFE_MEMMOVE(APDU_DATA_PTR,
-                     APDU_TOTAL_DATA_SIZE,
+                     APDU_TOTAL_DATA_SIZE_OUT,
                      MEMMOVE_ZERO_OFFSET,
                      N_current_signer_status.signer.hash,
                      sizeof(N_current_signer_status.signer.hash),
@@ -195,7 +195,7 @@ unsigned int do_authorize_signer(volatile unsigned int rx,
                      sizeof(N_current_signer_status.signer.hash),
                      THROW(INTERNAL));
 
-        if (APDU_TOTAL_DATA_SIZE <
+        if (APDU_TOTAL_DATA_SIZE_OUT <
             sizeof(N_current_signer_status.signer.hash) +
                 sizeof(N_current_signer_status.signer.iteration))
             THROW(INTERNAL);
@@ -313,7 +313,7 @@ unsigned int do_authorize_signer(volatile unsigned int rx,
             THROW(SIG_AUT_INVALID_AUTH_INVALID_INDEX);
 
         SAFE_MEMMOVE(APDU_DATA_PTR,
-                     APDU_TOTAL_DATA_SIZE,
+                     APDU_TOTAL_DATA_SIZE_OUT,
                      MEMMOVE_ZERO_OFFSET,
                      authorizers_pubkeys[auth_index],
                      sizeof(authorizers_pubkeys[auth_index]),
