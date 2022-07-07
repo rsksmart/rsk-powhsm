@@ -33,7 +33,7 @@
 
 // Utility macros to save memory
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
-#define PAGESIZE (APDU_TOTAL_DATA_SIZE - 1)
+#define PAGESIZE (APDU_TOTAL_DATA_SIZE_OUT - 1)
 #define PAGECOUNT(itemcount) (((itemcount) + PAGESIZE - 1) / PAGESIZE)
 
 // Global onboarding flag
@@ -70,7 +70,7 @@ static void check_stage(att_t* att_ctx, att_stage_t expected) {
  * large enough and are just sanity checking
  */
 static void check_apdu_buffer_holds(size_t size) {
-    if (APDU_TOTAL_DATA_SIZE < size) {
+    if (APDU_TOTAL_DATA_SIZE_OUT < size) {
         THROW(INTERNAL);
     }
 }
@@ -279,7 +279,7 @@ unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx) {
         message_size =
             MIN(PAGESIZE, att_ctx->msg_offset - (APDU_DATA_PTR[0] * PAGESIZE));
         SAFE_MEMMOVE(APDU_DATA_PTR,
-                     APDU_TOTAL_DATA_SIZE,
+                     APDU_TOTAL_DATA_SIZE_OUT,
                      1,
                      att_ctx->msg,
                      sizeof(att_ctx->msg),

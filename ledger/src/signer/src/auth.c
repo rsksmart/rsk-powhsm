@@ -92,7 +92,7 @@ unsigned int auth_sign(volatile unsigned int rx) {
                  auth.sig_hash,
                  sizeof(auth.sig_hash),
                  APDU_DATA_PTR,
-                 APDU_TOTAL_DATA_SIZE);
+                 APDU_TOTAL_DATA_SIZE_OUT);
 
     // Error signing?
     if (tx == DO_SIGN_ERROR) {

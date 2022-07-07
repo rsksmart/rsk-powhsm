@@ -701,7 +701,13 @@ static void sample_main(void) {
                     sw = 0x6800 | (e & 0x7FF);
                     break;
                 }
+
                 // Unexpected exception => report
+                // (check for a potential overflow first)
+                if (tx + 2 > sizeof(G_io_apdu_buffer)) {
+                    tx = 0;
+                    sw = 0x6983;
+                }
                 SET_APDU_AT(tx++, sw >> 8);
                 SET_APDU_AT(tx++, sw);
             }

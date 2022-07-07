@@ -131,7 +131,7 @@ unsigned int hsm_process_apdu(volatile unsigned int rx) {
                      sizeof(auth.path),
                      MEMMOVE_ZERO_OFFSET,
                      APDU_DATA_PTR,
-                     APDU_TOTAL_DATA_SIZE,
+                     APDU_TOTAL_DATA_SIZE_OUT,
                      MEMMOVE_ZERO_OFFSET,
                      RSK_PATH_LEN * sizeof(uint32_t),
                      THROW(0x6A8F));
@@ -216,6 +216,11 @@ unsigned int hsm_process_exception(unsigned short code, unsigned int tx) {
     }
 
     // Append resulting code to APDU
+    // (check for a potential overflow first)
+    if (tx + 2 > sizeof(G_io_apdu_buffer)) {
+        tx = 0;
+        sw = 0x6983;
+    }
     SET_APDU_AT(tx++, sw >> 8);
     SET_APDU_AT(tx++, sw);
 
