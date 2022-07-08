@@ -606,32 +606,11 @@ unsigned int screen_dashboard_button(unsigned int button_mask,
                 i++;
             } while (db.app.flags & APPLICATION_FLAG_BOLOS_UX);
 
-            // requested non genuine validation
-            if ((db.app.flags &
-                 (APPLICATION_FLAG_ISSUER | APPLICATION_FLAG_CUSTOM_CA |
-                  APPLICATION_FLAG_SIGNED)) == 0) {
-                G_bolos_ux_context.screen_stack[0]
-                    .element_arrays[0]
-                    .element_array = screen_dashboard_unsigned_app_elements;
-                G_bolos_ux_context.screen_stack[0]
-                    .element_arrays[0]
-                    .element_array_count =
-                    ARRAYLEN(screen_dashboard_unsigned_app_elements);
-                G_bolos_ux_context.screen_stack[0].element_arrays_count = 1;
-                G_bolos_ux_context.screen_stack[0]
-                    .screen_before_element_display_callback =
-                    screen_dashboard_unsigned_app_before_element_display_callback;
-
-                screen_consent_ticker_init(2, 3000, 0);
-                // override the consent callback, just use the logic
-                G_bolos_ux_context.screen_stack[0].button_push_callback =
-                    screen_dashboard_unsigned_app_button;
-            } else {
-                // delegate boot
-                if (is_app_version_allowed(&db.app)) {
-                    screen_dashboard_disable_bolos_before_app();
-                    os_sched_exec(db.os_index); // no return
-                }
+            // only run the requested app if it
+            // is currently authorized
+            if (is_app_version_allowed(&db.app)) {
+                screen_dashboard_disable_bolos_before_app();
+                os_sched_exec(db.os_index); // no return
             }
         } else {
             // show settings (init)
