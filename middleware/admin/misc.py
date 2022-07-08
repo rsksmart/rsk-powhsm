@@ -33,7 +33,7 @@ PIN_ERROR_MESSAGE = ("Invalid pin given. It must be exactly 8 alphanumeric "
 PIN_ERROR_MESSAGE_ANYCHARS = (
     "Invalid pin given. It must be exactly 8 alphanumeric characters.")
 
-SIGNER_WAIT_TIME = 1  # second
+SIGNER_WAIT_TIME = 3  # seconds
 
 
 class AdminError(RuntimeError):
