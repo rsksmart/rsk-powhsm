@@ -31,3 +31,4 @@ from .update import UpdateAncestor
 from .sign_auth import SignAuthorized
 from .sign_noauth import SignUnauthorized
 from .parameters import GetBlockchainParameters
+from .reconnect import ReconnectDongle
