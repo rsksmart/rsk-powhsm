@@ -366,7 +366,7 @@ static void bc_adv_success() {
  * State updates to perform on partial sucess.
  */
 static void bc_adv_partial_success() {
-    NVM_WRITE(N_bc_state_var.updating.next_expected_block,
+    NVM_WRITE(N_bc_state.updating.next_expected_block,
               aux_bc_st.prev_parent_hash,
               HASH_SIZE);
     NVM_WRITE(N_bc_state.updating.total_difficulty,
