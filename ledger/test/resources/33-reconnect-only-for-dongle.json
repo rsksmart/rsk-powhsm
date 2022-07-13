@@ -1,0 +1,5 @@
+{
+    "name": "Reconnect only for dongle",
+    "operation": "reconnectDongle",
+    "runOn": "dongle"
+}

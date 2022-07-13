@@ -1,7 +1,0 @@
-{
-    "name": "Reconnect dongle",
-    "operation": "reconnectDongle",
-    "runOn": "dongle",
-    "pin": "1234567a",
-    "autoUnlock": true
-}

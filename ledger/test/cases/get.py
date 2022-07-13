@@ -31,7 +31,7 @@ class GetBlockchainState(TestCase):
     def __init__(self, spec):
         super().__init__(spec)
 
-    def run(self, dongle, debug):
+    def run(self, dongle, debug, run_args):
         try:
             state = dongle.get_blockchain_state()
             debug(f"State: {state}")

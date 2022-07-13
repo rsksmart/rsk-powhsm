@@ -52,7 +52,7 @@ class AdvanceBlockchain(TestCase):
         bs = bs[:1] + self.list_length + bs[len(self.list_length) + 1:]
         return bs.hex()
 
-    def run(self, dongle, debug):
+    def run(self, dongle, debug, run_args):
         try:
             if self.reset_before:
                 debug("Resetting advance blockchain before starting")

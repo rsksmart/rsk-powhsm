@@ -21,7 +21,7 @@
 # SOFTWARE.
 
 from .case import TestCase, TestCaseError
-from ledger.hsm2dongle import HSM2FirmwareVersion
+from ledger.hsm2dongle import HSM2Dongle
 import time
 
 
@@ -31,61 +31,61 @@ class ReconnectDongle(TestCase):
         return "reconnectDongle"
 
     def __init__(self, spec):
-        self.version = HSM2FirmwareVersion(3, 0, 0)
-        self.pin = spec["pin"].encode()
-        self.auto_unlock = spec.get("autoUnlock", True)
         super().__init__(spec)
 
     def wait_for_reconnection(self):
         time.sleep(3)
 
-    def assert_connected(self, dongle):
-        try:
-            # We use get_version to make sure the dongle is actually connected
-            version = dongle.get_version()
-        except RuntimeError:
-            raise TestCaseError('Device not connected')
-        if version != self.version:
-            raise TestCaseError('Wrong version')
+    def assert_dongle_mode(self, dongle, expected_mode):
+        curr_mode = dongle.get_current_mode()
+        if curr_mode != expected_mode:
+            raise TestCaseError(f'Unexpected dongle mode: {curr_mode} '
+                                f'(expected {expected_mode})')
 
-    def run(self, dongle, debug):
+    def run(self, dongle, debug, run_args):
         try:
+            if run_args[TestCase.RUN_ARGS_PIN_KEY] is None:
+                raise TestCaseError('Device pin missing!')
+            pin = run_args[TestCase.RUN_ARGS_PIN_KEY].encode()
+            manual_unlock = run_args[TestCase.RUN_ARGS_MANUAL_KEY]
+
             print()
             print('Dongle reconnection test')
-            # STEP 1: assert device is connected
-            self.assert_connected(dongle)
 
-            # STEP 2: user unplugs the device
+            # STEP 1: Device is expected to be connected and in APP mode at the begining
+            self.assert_dongle_mode(dongle, HSM2Dongle.MODE.APP)
+
+            # STEP 2: user reconnects the device
             dongle.disconnect()
-            print('Please disconnect the device.')
+            print('Please disconnect and re-connect the device.')
             input('Press [Enter] to continue')
-
-            # STEP 3: user plugs the device again
-            print('Please reconnect the device.')
-            input('Press [Enter] to continue')
-
-            # Connect to bootloader, unlock proccess will fail if user skips reconnection
-            self.wait_reconnection()
+            self.wait_for_reconnection()
             dongle.connect()
-            if self.auto_unlock:
+
+            # STEP 3: Device is expected to be in BOOTLOADER mode after reconnection
+            self.assert_dongle_mode(dongle, HSM2Dongle.MODE.BOOTLOADER)
+
+            # STEP 4: unlock device (can be performed automatically or manually by user)
+            if manual_unlock:
+                print('Please unlock the device...')
+            else:
                 if not dongle.echo():
                     raise TestCaseError("Echo error")
-                if not dongle.unlock(self.pin):
+                if not dongle.unlock(pin):
                     raise TestCaseError('Failed to unlock device')
                 try:
                     dongle.exit_menu(autoexec=True)
                 except Exception:
                     pass
                 print('Device unlocked')
-            else:
-                print('Please unlock the device...')
             input('Press [Enter] to continue')
 
             # Disconnect from bootloader, connect to app
             dongle.disconnect()
-            self.wait_reconnection()
+            self.wait_for_reconnection()
             dongle.connect()
 
-            self.assert_connected(dongle)
+            # Device is expected to be connected and in APP mode at the end of this test
+            self.assert_dongle_mode(dongle, HSM2Dongle.MODE.APP)
         except RuntimeError as e:
             raise TestCaseError(str(e))
