@@ -50,12 +50,11 @@ if __name__ == "__main__":
         run_args = {}
 
         if options.dongle:
-            if options.pin is None:
-                raise RuntimeError("Missing mandatory arg for 'dongle' option: pin")
             dongle = HSM2Dongle(options.dongle_verbose)
             run_on = TestCase.RUN_ON_VALUE_DONGLE
-            run_args[TestCase.RUN_ARGS_PIN_KEY] = options.pin
             run_args[TestCase.RUN_ARGS_MANUAL_KEY] = options.manual_unlock
+            if not options.manual_unlock:
+                run_args[TestCase.RUN_ARGS_PIN_KEY] = options.pin
             output.info("Running against a USB device", nl=True)
         else:
             dongle = HSM2DongleTCP(options.host, options.port, options.dongle_verbose)

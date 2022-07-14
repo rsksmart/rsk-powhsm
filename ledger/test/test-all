@@ -8,7 +8,7 @@ if [[ "$1" == "help" ]]; then
     echo "Usage: $0 [dongle] [pin] [manual]"
     echo "Example (using tcpsigner):              $0"
     echo "Example (using dongle - auto unlock):   $0 dongle 12345678"
-    echo "Example (using dongle - manual unlock): $0 dongle 12345678 manual"
+    echo "Example (using dongle - manual unlock): $0 dongle manual"
     exit 1
 elif [[ "$1" == "dongle" ]]; then
     if [ "$#" -lt 2 ]; then
@@ -16,11 +16,11 @@ elif [[ "$1" == "dongle" ]]; then
         exit 1
     fi
     WITH_DONGLE="yes"
-    PIN="$2"
-    if [[ "$3" == "manual" ]]; then
+    if [[ "$2" == "manual" ]]; then
         MANUAL_UNLOCK="-m"
+    else
+        PIN="-P $2"
     fi
-    
 elif [[ "$1" != "" ]]; then
     echo -e "\e[1;31mInvalid or unknown option '$1'. Issue '$0 help' for help.\e[0m"
     exit 1
@@ -46,7 +46,7 @@ if [[ "$WITH_DONGLE" == "no" ]]; then
     docker kill hsm-mware-notty > /dev/null
 else
     # Run tests against a dongle
-    $TEST_ROOT/../../docker/mware/do /hsm2/ledger/test "python run.py -d -P ${PIN} ${MANUAL_UNLOCK}"
+    $TEST_ROOT/../../docker/mware/do /hsm2/ledger/test "python run.py -d ${PIN} ${MANUAL_UNLOCK}"
     err_code=$?
 fi
 

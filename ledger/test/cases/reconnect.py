@@ -44,31 +44,30 @@ class ReconnectDongle(TestCase):
 
     def run(self, dongle, debug, run_args):
         try:
-            if run_args[TestCase.RUN_ARGS_PIN_KEY] is None:
-                raise TestCaseError('Device pin missing!')
-            pin = run_args[TestCase.RUN_ARGS_PIN_KEY].encode()
             manual_unlock = run_args[TestCase.RUN_ARGS_MANUAL_KEY]
+            if not manual_unlock:
+                pin = run_args[TestCase.RUN_ARGS_PIN_KEY].encode()
 
             print()
             print('Dongle reconnection test')
 
-            # STEP 1: Device is expected to be connected and in APP mode at the begining
+            # Device is expected to be connected and in APP mode at the begining
             self.assert_dongle_mode(dongle, HSM2Dongle.MODE.APP)
-
-            # STEP 2: user reconnects the device
             dongle.disconnect()
-            print('Please disconnect and re-connect the device.')
-            input('Press [Enter] to continue')
-            self.wait_for_reconnection()
-            dongle.connect()
 
-            # STEP 3: Device is expected to be in BOOTLOADER mode after reconnection
-            self.assert_dongle_mode(dongle, HSM2Dongle.MODE.BOOTLOADER)
-
-            # STEP 4: unlock device (can be performed automatically or manually by user)
+            # Unlock device (can be performed automatically or manually by user)
             if manual_unlock:
-                print('Please unlock the device...')
+                print('Please disconnect and re-connect the device, unlock it '
+                      'and open the signer')
+                input('Press [Enter] to continue')
+                self.wait_for_reconnection()
+                dongle.connect()
             else:
+                print('Please disconnect and re-connect the device.')
+                input('Press [Enter] to continue')
+                self.wait_for_reconnection()
+                dongle.connect()
+                self.assert_dongle_mode(dongle, HSM2Dongle.MODE.BOOTLOADER)
                 if not dongle.echo():
                     raise TestCaseError("Echo error")
                 if not dongle.unlock(pin):
@@ -78,7 +77,6 @@ class ReconnectDongle(TestCase):
                 except Exception:
                     pass
                 print('Device unlocked')
-            input('Press [Enter] to continue')
 
             # Disconnect from bootloader, connect to app
             dongle.disconnect()

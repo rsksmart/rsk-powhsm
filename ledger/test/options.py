@@ -80,7 +80,7 @@ class OptionParser:
             "-P",
             "--pin",
             dest="pin",
-            help="Pin value (only used for -d option)",
+            help="Device pin (only used for -d option)",
         )
         parser.add_argument(
             "-m",
