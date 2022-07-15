@@ -77,6 +77,20 @@ class OptionParser:
             help=f"IP to bind to (default '{self.default_host}')",
         )
         parser.add_argument(
+            "-P",
+            "--pin",
+            dest="pin",
+            help="Device pin (only used for -d option)",
+        )
+        parser.add_argument(
+            "-m",
+            "--manual-unlock",
+            dest="manual_unlock",
+            action="store_true",
+            default=False,
+            help="Perform device unlock manually (defaults to no)",
+        )
+        parser.add_argument(
             "-v",
             "--verbose",
             dest="verbose",

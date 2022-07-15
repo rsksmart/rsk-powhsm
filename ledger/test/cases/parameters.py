@@ -31,7 +31,7 @@ class GetBlockchainParameters(TestCase):
     def __init__(self, spec):
         super().__init__(spec)
 
-    def run(self, dongle, debug):
+    def run(self, dongle, debug, run_args):
         try:
             params = dongle.get_signer_parameters()
             debug(f"Parameters: {params}")

@@ -34,7 +34,7 @@ class UpdateAncestor(TestCase):
 
         super().__init__(spec)
 
-    def run(self, dongle, debug):
+    def run(self, dongle, debug, run_args):
         try:
             debug(f"About to send {len(self.blocks)} blocks")
             offset = 0

@@ -31,7 +31,7 @@ class ResetAdvanceBlockchain(TestCase):
     def __init__(self, spec):
         super().__init__(spec)
 
-    def run(self, dongle, debug):
+    def run(self, dongle, debug, run_args):
         try:
             dongle.reset_advance_blockchain()
         except RuntimeError as e:

@@ -2,11 +2,25 @@
 
 # Run against a physical dongle?
 WITH_DONGLE="no"
+RUN_ARGS=""
+MANUAL_UNLOCK=""
 if [[ "$1" == "help" ]]; then
-    echo "Usage: $0 [dongle]"
+    echo "Usage: $0 [dongle] [pin] [manual]"
+    echo "Example (using tcpsigner):              $0"
+    echo "Example (using dongle - auto unlock):   $0 dongle 12345678"
+    echo "Example (using dongle - manual unlock): $0 dongle manual"
     exit 1
 elif [[ "$1" == "dongle" ]]; then
+    if [ "$#" -lt 2 ]; then
+        echo -e "\e[1;31mInvalid usage for 'dongle' option. Issue '$0 help' for help.\e[0m"
+        exit 1
+    fi
     WITH_DONGLE="yes"
+    if [[ "$2" == "manual" ]]; then
+        RUN_ARGS="-m"
+    else
+        RUN_ARGS="-P $2"
+    fi
 elif [[ "$1" != "" ]]; then
     echo -e "\e[1;31mInvalid or unknown option '$1'. Issue '$0 help' for help.\e[0m"
     exit 1
@@ -32,7 +46,7 @@ if [[ "$WITH_DONGLE" == "no" ]]; then
     docker kill hsm-mware-notty > /dev/null
 else
     # Run tests against a dongle
-    $TEST_ROOT/../../docker/mware/do /hsm2/ledger/test "python run.py -d"
+    $TEST_ROOT/../../docker/mware/do /hsm2/ledger/test "python run.py -d ${RUN_ARGS}"
     err_code=$?
 fi
 

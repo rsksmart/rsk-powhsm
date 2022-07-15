@@ -32,6 +32,9 @@ class TestCase:
     RUN_ON_VALUE_TCPSIGNER = "tcpsigner"
     RUN_ON_VALUE_DONGLE = "dongle"
 
+    RUN_ARGS_PIN_KEY = "pin"
+    RUN_ARGS_MANUAL_KEY = "manual"
+
     op_mapping = None
     PATHS = None
 
@@ -83,7 +86,7 @@ class TestCase:
     def runs_on(self, run_on):
         return self.run_on == run_on or self.run_on == self.RUN_ON_VALUE_BOTH
 
-    def run(self, dongle, debug):
+    def run(self, dongle, debug, run_args):
         raise RuntimeError(f"Unable to run generic test case {self.name}")
 
     def _parse_int(self, s):

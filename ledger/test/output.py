@@ -29,6 +29,7 @@ class Color:
     HEADER = "\033[37;1m"
     DEBUG_L1 = "\033[38;5;247m"
     DEBUG_L2 = "\033[38;5;240m"
+    PROMPT_USER = "\033[95;1m"
     WARN = "\033[33;1m"
     END = "\033[0m"
 
@@ -62,3 +63,10 @@ def debug(msg):
 
 def skipped():
     info(Color.text(Color.WARN, " ◇"), nl=True)
+
+
+def prompt_user(msg, wait_confirm=False):
+    info('', nl=True)
+    info(Color.text(Color.PROMPT_USER, msg), nl=True)
+    if wait_confirm:
+        input(Color.text(Color.PROMPT_USER, "Press [Enter] to continue"))

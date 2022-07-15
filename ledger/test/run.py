@@ -47,10 +47,16 @@ if __name__ == "__main__":
 
     try:
         output.header("Setup")
+        run_args = {}
 
         if options.dongle:
+            if not options.manual_unlock and options.pin is None:
+                raise RuntimeError("Auto unlock requires 'pin' argument")
+
             dongle = HSM2Dongle(options.dongle_verbose)
             run_on = TestCase.RUN_ON_VALUE_DONGLE
+            run_args[TestCase.RUN_ARGS_MANUAL_KEY] = options.manual_unlock
+            run_args[TestCase.RUN_ARGS_PIN_KEY] = options.pin
             output.info("Running against a USB device", nl=True)
         else:
             dongle = HSM2DongleTCP(options.host, options.port, options.dongle_verbose)
@@ -79,7 +85,7 @@ if __name__ == "__main__":
         output.info(f"Version: {version}", nl=True)
 
         output.header("Running tests")
-        tests_passed = suite.run(dongle, run_on)
+        tests_passed = suite.run(dongle, run_on, run_args)
         stats = suite.get_stats()
         output.info(
             f"( {stats['passed']} passed, {stats['failed']} failed, "

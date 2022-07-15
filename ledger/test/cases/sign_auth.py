@@ -60,7 +60,7 @@ class SignAuthorized(TestCase):
 
         super().__init__(spec)
 
-    def run(self, dongle, debug):
+    def run(self, dongle, debug, run_args):
         try:
             # Do we need to fake the ancestor receipts root?
             # (TCPSigner feature only, it will fail with a physical dongle)
