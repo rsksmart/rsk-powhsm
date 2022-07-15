@@ -274,12 +274,6 @@ unsigned int do_authorize_signer(volatile unsigned int rx,
             }
         }
 
-        if (!signature_valid) {
-            // Invalid signature given, start over
-            reset_signer_authorization(sigaut_ctx);
-            THROW(SIG_AUT_INVALID_SIGNATURE);
-        }
-
         // Reached the threshold?
         valid_count = 0;
         for (int i = 0; i < TOTAL_AUTHORIZERS; i++)
