@@ -275,9 +275,9 @@ unsigned int do_authorize_signer(volatile unsigned int rx,
         }
 
         if (!signature_valid) {
-            // Invalid signature given, start over
-            reset_signer_authorization(sigaut_ctx);
-            THROW(SIG_AUT_INVALID_SIGNATURE);
+            // Invalid signature given, wait for additional valid signatures
+            APDU_DATA_PTR[0] = SIG_AUT_OP_SIGN_RES_MORE;
+            return TX_FOR_DATA_SIZE(1);
         }
 
         // Reached the threshold?
