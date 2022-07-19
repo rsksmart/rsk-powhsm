@@ -51,7 +51,7 @@ int do_pubkey(unsigned int* path,
     cx_ecfp_private_key_t private_key;
     cx_ecfp_public_key_t public_key;
 
-    int pubkey_size;
+    volatile int pubkey_size;
 
     BEGIN_TRY {
         TRY {
@@ -118,7 +118,7 @@ int do_sign(unsigned int* path,
     unsigned char private_key_data[KEY_LEN];
     cx_ecfp_private_key_t private_key;
 
-    int sig_size;
+    volatile int sig_size;
 
     // Check the destination buffer won't be overflowed by the signature
     if (dest_size < MAX_SIGNATURE_LEN) {

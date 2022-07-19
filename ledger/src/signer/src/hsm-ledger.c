@@ -27,7 +27,7 @@
 
 void hsm_ledger_main_loop() {
     volatile unsigned int rx = 0;
-    unsigned int tx = 0;
+    volatile unsigned int tx = 0;
 
     // DESIGN NOTE: the bootloader ignores the way APDU are fetched. The only
     // goal is to retrieve APDU.
