@@ -146,6 +146,9 @@ static void generate_message_to_sign(sigaut_t* sigaut_ctx) {
  * Initialize the signer authorization
  */
 void init_signer_authorization() {
+    // Build should fail when more authorizers than supported are provided
+    COMPILE_TIME_ASSERT(TOTAL_AUTHORIZERS <= MAX_AUTHORIZERS);
+
     const bool t = true;
     // Make sure NVM signer status is initialized
     if (!N_current_signer_status.initialized) {
