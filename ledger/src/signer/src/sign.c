@@ -47,9 +47,9 @@ int do_pubkey(unsigned int* path,
               unsigned char* dest,
               size_t dest_size) {
 
-    unsigned char private_key_data[KEY_LEN];
-    cx_ecfp_private_key_t private_key;
-    cx_ecfp_public_key_t public_key;
+    volatile unsigned char private_key_data[KEY_LEN];
+    volatile cx_ecfp_private_key_t private_key;
+    volatile cx_ecfp_public_key_t public_key;
 
     volatile int pubkey_size;
 
@@ -115,8 +115,8 @@ int do_sign(unsigned int* path,
             unsigned char* dest,
             size_t dest_size) {
 
-    unsigned char private_key_data[KEY_LEN];
-    cx_ecfp_private_key_t private_key;
+    volatile unsigned char private_key_data[KEY_LEN];
+    volatile cx_ecfp_private_key_t private_key;
 
     volatile int sig_size;
 
