@@ -26,8 +26,6 @@ from argparse import ArgumentParser
 import logging
 import ecdsa
 from admin.misc import (
-    get_hsm,
-    dispose_hsm,
     get_eth_dongle,
     dispose_eth_dongle,
     info,
@@ -39,7 +37,6 @@ from admin.signer_authorization import SignerAuthorization, SignerVersion
 from admin.ledger_utils import eth_message_to_printable, compute_app_hash
 
 # Default signing path
-DEFAULT_LEDGER_PATH = "m/44'/137'/0'/31/32"
 DEFAULT_ETH_PATH = "m/44'/60'/0'/0/0"
 
 # Legacy dongle constants
@@ -53,8 +50,7 @@ def main():
     logging.disable(logging.CRITICAL)
 
     parser = ArgumentParser(description="powHSM Signer Authorization Generator")
-    parser.add_argument("operation", choices=["hash", "message", "key",
-                                              "ledger", "eth", "manual"])
+    parser.add_argument("operation", choices=["hash", "message", "key", "eth", "manual"])
     parser.add_argument(
         "-s",
         "--signer",
@@ -84,8 +80,8 @@ def main():
         "-p",
         "--path",
         dest="path",
-        help="Path used for signing (only for 'ledger' and 'eth' options). "
-        f"Default \"{DEFAULT_LEDGER_PATH}\" (ledger) / \"{DEFAULT_ETH_PATH}\" (eth)"
+        help="Path used for signing (only for 'eth' option). "
+        f"Default \"{DEFAULT_ETH_PATH}\""
     )
     parser.add_argument(
         "-g",
@@ -113,15 +109,10 @@ def main():
     options = parser.parse_args()
 
     try:
-        hsm = None
         eth = None
 
-        # Default path is different for 'ledger' and 'eth' operations
         if options.path is None:
-            if options.operation == "ledger":
-                options.path = DEFAULT_LEDGER_PATH
-            elif options.operation == "eth":
-                options.path = DEFAULT_ETH_PATH
+            options.path = DEFAULT_ETH_PATH
 
         # Require an output path for certain operations
         if options.operation not in ["hash", "message"] and \
@@ -146,12 +137,6 @@ def main():
                 raise AdminError("Must provide a signing key with '-k/--key'")
             if not is_hex_string_of_length(options.key, 32, allow_prefix=True):
                 raise AdminError(f"Invalid key '{options.key}'")
-        elif options.operation == "ledger":
-            # Parse path
-            path = BIP32Path(options.path)
-
-            # Get dongle access (must be opened in the signer)
-            hsm = get_hsm(options.verbose)
         elif options.operation == "eth":
             # Parse path
             path = BIP32Path(options.path)
@@ -214,29 +199,6 @@ def main():
                                               curve=ecdsa.SECP256k1)
             signature = sk.sign_digest(signer_version.get_authorization_digest(),
                                        sigencode=ecdsa.util.sigencode_der)
-        elif options.operation == "ledger":
-            # We use private dongle methods to do this, since we don't want
-            # to implement legacy signing (i.e., 1.0/1.1) in the HSM2Dongle class
-            # Essentially we send 2 messages. The first one with the path and the
-            # second with the hash to sign. On the second, we obtain the der-encoded
-            # signature
-            info(f"Retrieving public key for path '{str(path)}'...")
-            pubkey = hsm._send_command(COMMAND_PUBKEY, path.to_binary())
-            info(f"Public key: {pubkey.hex()}")
-
-            info("Signing with dongle...")
-            hsm._send_command(COMMAND_SIGN, OP_SIGN_MSG_PATH + path.to_binary())
-            signature = hsm._send_command(COMMAND_SIGN, OP_SIGN_MSG_HASH +
-                                          signer_version.get_authorization_digest())
-            info("Verifying signature...")
-            vkey = ecdsa.VerifyingKey.from_string(pubkey, curve=ecdsa.SECP256k1)
-            try:
-                if not vkey.verify_digest(
-                        signature, signer_version.get_authorization_digest(),
-                        sigdecode=ecdsa.util.sigdecode_der):
-                    raise Exception()
-            except Exception:
-                raise AdminError(f"Bad signature from dongle! (got '{signature.hex}')")
         elif options.operation == "eth":
             info("Signing with dongle...")
             signature = eth.sign(path, signer_version.msg.encode('ascii'))
@@ -259,7 +221,6 @@ def main():
         info(str(e))
         sys.exit(1)
     finally:
-        dispose_hsm(hsm)
         dispose_eth_dongle(eth)
 
 

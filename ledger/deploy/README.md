@@ -26,14 +26,5 @@ Once the Signer is built, you must have your device plugged in and unlocked (or 
 
 and follow the prompts on the device (only if in recovery mode or using the factory UI).
 
-### Certificate signer
-
-Once the certificate signer is built, you must have your device plugged in and unlocked (or alternatively in recovery mode). Issue:
-
-```bash
-~/repo> ledger/deploy/deploy-signer-certificate
-```
-
-and follow the prompts on the device (only if in recovery mode or using the factory UI).
 
 Happy deploying!

@@ -1,12 +1,11 @@
 # powHSM Ledger Nano S apps
 
-There are three ledger apps, all of them targeted for running on a Ledger Nano S with a 1.3.1 firmware.
+There are two ledger apps, both of them targeted for running on a Ledger Nano S with a 1.3.1 firmware.
 
 - UI: this is the modified 1.3.1 UI with a nonblocking behavior to allow the device to run uninterruptedly without human interaction. It is essentially the RSK version of the Ledger Nano S User Interface which can be loaded as a specific application - it can be used to personalize most generic parts of the user experience. This version also modifies the onboarding process to reflect RSK needs. Modified UIs display a warning at boot time to let you know whether you're running a certified version. This application shall be installed in Recovery mode. Find the source code under `ledger/src/ui`.
 
 - Signer: this is the main app that implements the signing and authorization logic for powHSM. It is intended to be used alongside the UI. Find the source code under `ledger/src/signer`.
 
-- Certificate signer: this is a simple signer app, used only for the purpose of authorising Signer builds. It is intended for use with the default (i.e., factory) UI. Even though it hasn't been tested, this app should also be runnable on newer firmware. Find the source code under `ledger/src/signer-certificate`.
 
 There exists also an x86 implementation of the _Signer_ component, which we call TCPSigner, that we use to smoke test, fuzz (see [the fuzzing documentation](./fuzz/README.md) for details) and debug & test new features on before we jump onto testing on a physical device. With the exception of fuzzing, this component creates a TCP/IP server that serves the purpose of enabling the otherwise USB-based interactions with a given client.
 

@@ -38,14 +38,6 @@ Once the build is complete, you will get the hash of the build as output, and th
 
 It is *very important* to mention that both the Signer and the UI builds are bitwise reproducible. That is, two independent builds of the same code will yield the exact same hex files (and thus, the same app hashes). This is of remarkable importance for the [attestation process](../../docs/attestation.md).
 
-### Building the certificate signer
-
-To build the certificate signer, just do:
-
-```bash
-~/repo> ledger/build/build-signer-certificate
-```
-
 ### Building the TCPSigner
 
 ```bash
