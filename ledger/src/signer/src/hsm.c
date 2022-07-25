@@ -133,7 +133,7 @@ unsigned int hsm_process_apdu(volatile unsigned int rx) {
                      APDU_DATA_PTR,
                      APDU_TOTAL_DATA_SIZE_OUT,
                      MEMMOVE_ZERO_OFFSET,
-                     RSK_PATH_LEN * sizeof(uint32_t),
+                     sizeof(auth.path),
                      THROW(0x6A8F));
         tx = do_pubkey(auth.path,
                        RSK_PATH_LEN,
