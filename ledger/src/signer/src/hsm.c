@@ -159,7 +159,9 @@ unsigned int hsm_process_apdu(volatile unsigned int rx) {
 
     // Get blockchain state
     case INS_GET_STATE:
-        reset_if_starting(INS_GET_STATE);
+        // Get blockchain state is considered part of the
+        // advance blockchain operation
+        reset_if_starting(INS_ADVANCE);
         tx = bc_get_state(rx);
         break;
 

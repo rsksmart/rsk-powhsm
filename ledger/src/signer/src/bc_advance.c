@@ -291,16 +291,14 @@ static void validate_mm_hash() {
  * Blockchain advance prologue: call once we have the first block's hash.
  */
 static void bc_adv_prologue() {
-    if (N_bc_state.updating.in_progress &&
-        HNEQ(block.block_hash, N_bc_state.updating.next_expected_block)) {
+    if (bc_st_updating.in_progress &&
+        HNEQ(block.block_hash, bc_st_updating.next_expected_block)) {
         FAIL(CHAIN_MISMATCH);
     }
 
-    if (!N_bc_state.updating.in_progress) {
-        set_bc_state_flag(&N_bc_state.updating.in_progress);
-        NVM_WRITE(&N_bc_state.updating.newest_valid_block,
-                  block.block_hash,
-                  HASH_SIZE);
+    if (!bc_st_updating.in_progress) {
+        bc_st_updating.in_progress = true;
+        HSTORE(bc_st_updating.newest_valid_block, block.block_hash);
     }
 }
 
@@ -312,7 +310,7 @@ static void bc_adv_prologue() {
  */
 static void bc_adv_accum_diff() {
     // Nothing to do it we already have a best block
-    if (N_bc_state.updating.found_best_block) {
+    if (bc_st_updating.found_best_block) {
         return;
     }
 
@@ -347,17 +345,17 @@ static void bc_adv_accum_diff() {
     }
 
     // Enough difficulty accumulated? We found our best block!
-    set_bc_state_flag(&N_bc_state.updating.found_best_block);
-    NVM_WRITE(N_bc_state.updating.best_block, block.main_block_hash, HASH_SIZE);
+    bc_st_updating.found_best_block = true;
+    HSTORE(bc_st_updating.best_block, block.main_block_hash);
 }
 
 /*
  * State updates to perform when successfully advanced blockchain.
  */
 static void bc_adv_success() {
-    NVM_WRITE(N_bc_state.best_block, N_bc_state.updating.best_block, HASH_SIZE);
+    NVM_WRITE(N_bc_state.best_block, bc_st_updating.best_block, HASH_SIZE);
     NVM_WRITE(N_bc_state.newest_valid_block,
-              N_bc_state.updating.newest_valid_block,
+              bc_st_updating.newest_valid_block,
               HASH_SIZE);
     RESET_BC_STATE();
 }
@@ -366,12 +364,15 @@ static void bc_adv_success() {
  * State updates to perform on partial sucess.
  */
 static void bc_adv_partial_success() {
-    NVM_WRITE(N_bc_state.updating.next_expected_block,
-              aux_bc_st.prev_parent_hash,
-              HASH_SIZE);
-    NVM_WRITE(N_bc_state.updating.total_difficulty,
-              aux_bc_st.total_difficulty,
-              sizeof(aux_bc_st.total_difficulty));
+    HSTORE(bc_st_updating.next_expected_block, aux_bc_st.prev_parent_hash);
+    SAFE_MEMMOVE(bc_st_updating.total_difficulty,
+                 sizeof(bc_st_updating.total_difficulty),
+                 MEMMOVE_ZERO_OFFSET,
+                 aux_bc_st.total_difficulty,
+                 sizeof(aux_bc_st.total_difficulty),
+                 MEMMOVE_ZERO_OFFSET,
+                 sizeof(aux_bc_st.total_difficulty),
+                 FAIL(BUFFER_OVERFLOW));
 }
 
 /*
@@ -401,7 +402,7 @@ static void bc_mm_header_received() {
 
         // If we already validated the current block, signal that.
         if (HEQ(block.block_hash, N_bc_state.newest_valid_block)) {
-            set_bc_state_flag(&N_bc_state.updating.already_validated);
+            bc_st_updating.already_validated = true;
         }
     }
 
@@ -409,7 +410,7 @@ static void bc_mm_header_received() {
     // Otherwise perform validations enabled by having the mm header.
     // This optimization is not valid for brothers, only for blocks
     // on the chain given that it depends on chaining.
-    if (PROCESSING_BLOCK() && N_bc_state.updating.already_validated) {
+    if (PROCESSING_BLOCK() && bc_st_updating.already_validated) {
         SET_FLAG(block.flags, HEADER_VALID);
     } else {
         // Check difficulty
@@ -693,7 +694,7 @@ static void str_end() {
         // processing there's also a portion of the mm merkle proof, then the
         // wa_buf will be overwritten.
         // We also always do this in case we are processing a brother
-        if (!PROCESSING_BLOCK() || !N_bc_state.updating.already_validated) {
+        if (!PROCESSING_BLOCK() || !bc_st_updating.already_validated) {
             // Compute merge mining header hash
             double_sha256_rev(
                 &block.ctx, block.wa_buf, BTC_HEADER_SIZE, block.mm_hdr_hash);
@@ -731,7 +732,7 @@ static const rlp_callbacks_t callbacks = {
 
 static unsigned int handle_end_of_block() {
     // Successfully advanced the blockchain: leave with success
-    if (N_bc_state.updating.found_best_block &&
+    if (bc_st_updating.found_best_block &&
         HEQ(N_bc_state.best_block, aux_bc_st.prev_parent_hash)) {
         bc_adv_success();
         expected_state = OP_ADVANCE_INIT;
@@ -815,8 +816,8 @@ unsigned int bc_advance(volatile unsigned int rx) {
         SAFE_MEMMOVE(aux_bc_st.total_difficulty,
                      sizeof(aux_bc_st.total_difficulty),
                      MEMMOVE_ZERO_OFFSET,
-                     N_bc_state.updating.total_difficulty,
-                     sizeof(N_bc_state.updating.total_difficulty),
+                     bc_st_updating.total_difficulty,
+                     sizeof(bc_st_updating.total_difficulty),
                      MEMMOVE_ZERO_OFFSET,
                      sizeof(aux_bc_st.total_difficulty),
                      FAIL(PROT_INVALID));
@@ -969,7 +970,7 @@ unsigned int bc_advance(volatile unsigned int rx) {
                 // If we haven't yet found our new best block,
                 // then request any brothers of this block
                 // in order to accumulate their difficulty too
-                if (!N_bc_state.updating.found_best_block) {
+                if (!bc_st_updating.found_best_block) {
                     // Request brother list meta information
                     expected_state = OP_ADVANCE_BROTHER_LIST_META;
                     SET_APDU_OP(OP_ADVANCE_BROTHER_LIST_META);

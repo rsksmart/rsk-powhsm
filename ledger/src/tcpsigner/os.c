@@ -25,6 +25,7 @@
 #include <string.h>
 
 #include "os.h"
+#include "hsmsim_admin.h"
 
 void os_memmove(void *dst, const void *src, unsigned int length) {
     memmove(dst, src, length);
@@ -44,4 +45,6 @@ void nvm_write(void *dst_adr, void *src_adr, unsigned int src_len) {
         // Treat as normal copy
         memmove(dst_adr, src_adr, src_len);
     }
+    // Log the write
+    hsmsim_admin_nvm_record_write();
 }

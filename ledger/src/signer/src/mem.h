@@ -26,6 +26,7 @@
 #define __MEM
 
 #include "bc_block.h"
+#include "bc_state.h"
 #include "btctx.h"
 #include "btcscript.h"
 #include "auth.h"
@@ -51,6 +52,7 @@ typedef union {
     struct {
         block_t block;
         aux_bc_state_t aux_bc_st;
+        bc_state_updating_t bc_st_updating;
     };
 
     auth_ctx_t auth;
@@ -65,6 +67,7 @@ extern mem_t mem;
 #define mp_ctx (mem.mp_ctx)
 #define block (mem.block)
 #define aux_bc_st (mem.aux_bc_st)
+#define bc_st_updating (mem.bc_st_updating)
 #define auth (mem.auth)
 #define attestation (mem.att)
 #define ReceiptHash (mem.ReceiptHash_ctx)

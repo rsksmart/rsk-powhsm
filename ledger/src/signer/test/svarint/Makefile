@@ -20,21 +20,25 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+TESTCOMMONDIR = ../common
 SRCDIR = ../../src
-CFLAGS = -I $(SRCDIR)
+CFLAGS = -I $(SRCDIR) -I $(TESTCOMMONDIR)
 
 PROG = test.out
-OBJS = svarint.o test_svarint.o
+OBJS = test_fwk.o svarint.o test_svarint.o
 
 all: $(PROG)
 
 $(PROG): $(OBJS)
 	$(CC) -o $@ $^
 
+test_fwk.o: $(TESTCOMMONDIR)/test_fwk.c
+	$(CC) $(CFLAGS) -c -o $@ $^
+
 svarint.o: $(SRCDIR)/svarint.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
-test_svarint.o: test_svarint.c svarint.o
+test_svarint.o: test_svarint.c test_fwk.o svarint.o
 
 $(SRCDIR)/svarint.c: $(SRCDIR)/svarint.h
 

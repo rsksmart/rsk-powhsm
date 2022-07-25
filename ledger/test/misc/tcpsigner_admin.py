@@ -20,44 +20,17 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-TESTCOMMONDIR = ../common
-SRCDIR = ../../src
-TCPSIGNERSRCDIR = ../../../tcpsigner
-COMMONPATH = ../../../common/src
-CFLAGS = -I $(SRCDIR) -I $(TCPSIGNERSRCDIR) -I $(COMMONPATH) -I $(TESTCOMMONDIR)
+from enum import IntEnum
 
-PROG = test.out
-OBJS = test_fwk.o trie.o svarint.o hex_reader.o os.o test_trie.o
 
-all: $(PROG)
+class TcpSignerAdmin(IntEnum):
+    CLA = 0x99
 
-$(PROG): $(OBJS)
-	$(CC) -o $@ $^
+    CMD_SET_ARR = 0x01
+    CMD_RESET_ARR = 0x02
+    CMD_RESET_NVM = 0x03
+    CMD_GET_NVM = 0x04
 
-test_fwk.o: $(TESTCOMMONDIR)/test_fwk.c
-	$(CC) $(CFLAGS) -c -o $@ $^
+    OP_NONE = 0x00
 
-trie.o: $(SRCDIR)/trie.c
-	$(CC) $(CFLAGS) -c -o $@ $^
-
-svarint.o: $(SRCDIR)/svarint.c
-	$(CC) $(CFLAGS) -c -o $@ $^
-
-hex_reader.o: $(TCPSIGNERSRCDIR)/hex_reader.c
-	$(CC) $(CFLAGS) -c -o $@ $^
-
-os.o: $(TCPSIGNERSRCDIR)/os.c
-	$(CC) $(CFLAGS) -c -o $@ $^
-
-test_trie.o: test_trie.c test_fwk.o trie.o svarint.o hex_reader.o os.o
-
-$(SRCDIR)/trie.c: $(SRCDIR)/trie.h
-$(SRCDIR)/svarint.c: $(SRCDIR)/svarint.h
-$(TCPSIGNERSRCDIR)/hex_reader.c: $(TCPSIGNERSRCDIR)/hex_reader.h
-
-.PHONY: clean test
-clean:
-	rm -f $(PROG) ./*.o
-
-test: all
-	./$(PROG)
+    APDU_OFFSET_DATA = 3

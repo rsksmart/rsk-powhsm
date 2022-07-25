@@ -1,0 +1,12 @@
+{
+    "name": "Get final blockchain state for partial advance #1",
+    "operation": "getState",
+    "expected": {
+        "updating.in_progress": true,
+        "updating.newest_valid_block": "98728e6793f9e9557a42f114b25567b58846ae68fabfd76ad624a62b4f3857b8",
+        "updating.best_block": "0000000000000000000000000000000000000000000000000000000000000000",
+        "updating.next_expected_block": "142e5db05a3a134de450555f09e2ce1c0dd020a955813ac6b6d043b64a289eda",
+        "updating.total_difficulty": 6,
+        "updating.already_validated": false
+    }
+}

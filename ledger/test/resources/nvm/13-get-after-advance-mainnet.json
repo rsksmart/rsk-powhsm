@@ -1,0 +1,10 @@
+{
+    "name": "Get blockchain state after advance",
+    "operation": "getState",
+    "expected": {
+        "best_block": "5feaf362efff82fe42075ea64a495166bc5ae2a5432c0039da3799cfdbd4958d",
+        "newest_valid_block": "6a78a0e87ab53aaeb1810ccfbab51a3f062bd221afa404c12aebfe41d3c88073",
+        "ancestor_block": "0000000000000000000000000000000000000000000000000000000000000000",
+        "ancestor_receipts_root": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+}

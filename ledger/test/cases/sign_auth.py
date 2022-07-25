@@ -25,19 +25,7 @@ from .case import TestCase, TestCaseError
 from .sign_helpers import assert_signature
 from comm.bip32 import BIP32Path
 from comm.bitcoin import get_signature_hash_for_p2sh_input
-from enum import IntEnum
-
-
-class TcpSignerAdmin(IntEnum):
-    # These should eventually get refactored into a separate class
-    # that knows how to send TCPSigner admin commands
-    # For the time being there is only one, so we'll keep it here
-    CLA = 0x99
-
-    CMD_SET_ARR = 0x01
-    CMD_RESET_ARR = 0x02
-
-    OP_NONE = 0x00
+from misc.tcpsigner_admin import TcpSignerAdmin
 
 
 class SignAuthorized(TestCase):

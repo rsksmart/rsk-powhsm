@@ -1,0 +1,10 @@
+{
+    "name": "Get initial blockchain state",
+    "operation": "getState",
+    "expected": {
+        "best_block": "70e1fb5b84e50f3f6199a5becc4a1a30474b4b0fc3a329a320dfe4301cb9d876",
+        "newest_valid_block": "70e1fb5b84e50f3f6199a5becc4a1a30474b4b0fc3a329a320dfe4301cb9d876",
+        "ancestor_block": "0000000000000000000000000000000000000000000000000000000000000000",
+        "ancestor_receipts_root": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+}

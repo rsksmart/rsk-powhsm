@@ -1,0 +1,12 @@
+{
+    "name": "Get initial blockchain state for partial advance #1",
+    "operation": "getState",
+    "expected": {
+        "updating.in_progress": false,
+        "updating.newest_valid_block": "0000000000000000000000000000000000000000000000000000000000000000",
+        "updating.best_block": "0000000000000000000000000000000000000000000000000000000000000000",
+        "updating.next_expected_block": "0000000000000000000000000000000000000000000000000000000000000000",
+        "updating.total_difficulty": 0,
+        "updating.already_validated": false
+    }
+}
