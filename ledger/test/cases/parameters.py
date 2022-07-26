@@ -47,7 +47,7 @@ class GetBlockchainParameters(TestCase):
 
             for key in ["checkpoint", "minimum_difficulty", "network"]:
                 if self.params[key] != self.expected[key]:
-                    raise TestCaseError(f"Expected checkpoint to be {self.expected[key]} "
+                    raise TestCaseError(f"Expected {key} to be {self.expected[key]} "
                                         f"but got {self.params[key]}")
 
         except RuntimeError as e:

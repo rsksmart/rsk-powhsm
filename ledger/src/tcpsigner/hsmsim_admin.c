@@ -26,6 +26,7 @@
 #include "apdu.h"
 #include "bc_state.h"
 #include "log.h"
+#include "ints.h"
 
 static hsmsim_admin_data_t hsmsim_admin_data;
 
@@ -58,8 +59,15 @@ static unsigned int hsmsim_admin_ok(unsigned int tx) {
     return tx;
 }
 
+static void hsmsim_admin_nvm_stats_reset() {
+    memset(
+        &hsmsim_admin_data.nvm_stats, 0, sizeof(hsmsim_admin_data.nvm_stats));
+    info("ADMIN: reset NVM stats OK.\n");
+}
+
 unsigned int hsmsim_admin_process_apdu(unsigned int rx) {
     unsigned int tx;
+    unsigned int offset;
 
     if (APDU_CLA() != HSMSIM_ADMIN_CLA) {
         info("ADMIN: Invalid CLA: %d.\n", APDU_CLA());
@@ -106,10 +114,30 @@ unsigned int hsmsim_admin_process_apdu(unsigned int rx) {
                  HASH_LEN);
         tx = TX_FOR_DATA_SIZE(0);
         break;
+    case HSMSIM_ADMIN_CMD_RESET_NVM_STATS:
+        hsmsim_admin_nvm_stats_reset();
+        tx = TX_FOR_DATA_SIZE(0);
+        break;
+    case HSMSIM_ADMIN_CMD_GET_NVM_STATS:
+        offset = 0;
+        APDU_DATA_PTR[offset++] =
+            (unsigned char)sizeof(hsmsim_admin_data.nvm_stats.write_count);
+        VAR_BIGENDIAN_TO(APDU_DATA_PTR + offset,
+                         hsmsim_admin_data.nvm_stats.write_count,
+                         sizeof(hsmsim_admin_data.nvm_stats.write_count));
+        offset += sizeof(hsmsim_admin_data.nvm_stats.write_count);
+        tx = TX_FOR_DATA_SIZE(offset);
+        info("ADMIN: got NVM stats - %u writes.\n",
+             hsmsim_admin_data.nvm_stats.write_count);
+        break;
     default:
         info("ADMIN: Invalid CMD: %d.\n", APDU_CMD());
         return hsmsim_admin_error(HSMSIM_ADMIN_ERROR_INVALID_PROTOCOL);
     }
 
     return hsmsim_admin_ok(tx);
+}
+
+void hsmsim_admin_nvm_record_write() {
+    hsmsim_admin_data.nvm_stats.write_count++;
 }

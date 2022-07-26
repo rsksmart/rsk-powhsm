@@ -67,7 +67,7 @@
 
 #define BLOCK_ALREADY_VALID()                                       \
     (!PROCESSING_BLOCK() && (HAS_FLAG(block.flags, HEADER_VALID) || \
-                             N_bc_state.updating.already_validated))
+                             bc_st_updating.already_validated))
 
 // Convenience macro for last field contributing to merge mining hash
 #define MM_HASH_LAST_FIELD \

@@ -20,21 +20,26 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+TESTCOMMONDIR = ../common
 SRCDIR = ../../src
-CFLAGS = -I $(SRCDIR)
+CFLAGS = -I $(SRCDIR) -I $(TESTCOMMONDIR)
 
 PROG = test.out
-OBJS = sha256.o test_sha256.o
+OBJS = test_fwk.o sha256.o test_sha256.o
 
 all: $(PROG)
 
 $(PROG): $(OBJS)
 	$(CC) -o $@ $^
 
+test_fwk.o: $(TESTCOMMONDIR)/test_fwk.c
+	$(CC) $(CFLAGS) -c -o $@ $^
+
 sha256.o: $(SRCDIR)/sha256.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
-test_sha256.o: test_sha256.c sha256.o
+test_sha256.o: test_sha256.c test_fwk.o sha256.o
+
 $(SRCDIR)/sha256.c: $(SRCDIR)/sha256.h
 
 .PHONY: clean test

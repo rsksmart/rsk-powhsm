@@ -36,15 +36,22 @@
 
 #define HSMSIM_ADMIN_CMD_SET_ANCESTOR_RCPT_ROOT 0x01
 #define HSMSIM_ADMIN_CMD_RESET_ANCESTOR_RCPT_ROOT 0x02
+#define HSMSIM_ADMIN_CMD_RESET_NVM_STATS 0x03
+#define HSMSIM_ADMIN_CMD_GET_NVM_STATS 0x04
 
 #define HSMSIM_ADMIN_ERROR_INVALID_PROTOCOL 0x6f00
 #define HSMSIM_ADMIN_ERROR_DATA_SIZE 0x6f01
 #define HSMSIM_ADMIN_ERROR_INVALID_STATE 0x6f02
 #define HSMSIM_ADMIN_ERROR_BUFFER_OVERFLOW 0x6f03
 
+typedef struct hsmsim_admin_nvm_info_s {
+    unsigned int write_count;
+} hsmsim_admin_nvm_info_t;
+
 typedef struct hsmsim_admin_data_s {
     bool ancestor_receipts_root_set;
     uint8_t old_ancestor_receipts_root[HASH_LEN];
+    hsmsim_admin_nvm_info_t nvm_stats;
 } hsmsim_admin_data_t;
 
 void hsmsim_admin_init();
@@ -52,5 +59,7 @@ void hsmsim_admin_init();
 bool hsmsim_admin_need_process(unsigned int rx);
 
 unsigned int hsmsim_admin_process_apdu(unsigned int rx);
+
+void hsmsim_admin_nvm_record_write();
 
 #endif

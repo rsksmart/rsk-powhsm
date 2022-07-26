@@ -12,12 +12,15 @@ For simplicity, throughout this document the `==` and `=` symbols have `C` seman
 
 ### HSM state
 
-An *initialized* powHSM device must store the following state information in non-volatile memory. We call this blockchain state `blockchain_state` collectively. The `.` (dot) notation in variable names below is just a way of grouping related variables together.
+An *initialized* powHSM device must store the following state information in non-volatile memory. We call this blockchain state `blockchain_state` collectively.
 
 - `best_block` (32 bytes - byte array): The current known best block with sufficient confirmations.
 - `newest_valid_block` (32 bytes - byte array): The newest valid block known, regardless of confirmations.
 - `ancestor_block` (32 bytes - byte array): The current inclusion process' proved ancestor block.
 - `ancestor_receipts_root` (32 bytes - byte array): The current inclusion process' proved ancestor block's receipts root.
+
+Additionally, a powHSM device must store the following mid-state information about the blockchain state, which needn't necessarily be kept in non-volatile memory. We call this transitional information `blockchain_state.updating` collectively. The `.` (dot) notation in variable names below is just a way of grouping related variables together.
+
 - `updating.in_progress` (1 byte - boolean).
 - `updating.already_validated` (1 byte - boolean).
 - `updating.next_expected_block` (32 bytes - byte array): The current update process' next expected block hash.
@@ -26,9 +29,9 @@ An *initialized* powHSM device must store the following state information in non
 - `updating.best_block` (32 bytes - byte array): The current update process' new best block hash.
 - `updating.newest_valid_block` (32 bytes - byte array): The current update process' newest valid block hash.
 
-The total amount of information needed to represent an instance of `blockchain_state` is thus 243 bytes. It is very important to note that any optimizations with respect to the representation and storage of these values can be done as long as the underlying semantics are not jeopardized. For example, saving 2 bytes (for a total of 241 bytes instead of 243) is possible if a single flag-like byte is used for the boolean state variables.
+The total amount of information needed to represent an instance of `blockchain_state` is thus 263 bytes, of which only 128 bytes are to be mandatorily stored in non-volatile memory. It is very important to note that any optimizations with respect to the representation and storage of these values can be done as long as the underlying semantics are not jeopardized. For example, saving 2 bytes (for a total of 261 bytes instead of 263) is possible if a single flag-like byte is used for the boolean state variables.
 
-At any point in time, `best_block` is the hash of the currently best known and sufficiently confirmed block by the HSM device. This "sufficiently confirmed" condition implies an underlying assumption that such block will always be part of the main chain.
+At any point in time, `best_block` is the hash of the currently best known and sufficiently confirmed block by the powHSM device. This "sufficiently confirmed" condition implies an underlying assumption that such block will always be part of the main chain.
 
 The `newest_valid_block` is used for optimization in terms of Proof Of Work validation, i.e., avoiding checking a block header twice.
 
@@ -69,7 +72,7 @@ The following functions are assumed to exist:
 - `hash`: Given a block header, it computes its hash.
 - `pow_valid`: Given a block header, it returns true iif it has a valid PoW.
 
-Given a current HSM state where `best_block` corresponds to block `B_best`, `newest_valid_block` corresponds to block `B_newest` (such that `B_newest.number` >= `B_best.number`) and we know `n` blocks `B_0...B_(n-1)` with brothers `Brs_0...Brs_(n-1)`(**) such that `hash(B_best) == B_0.parent_hash` and for each `0 <= i < (n-1)`, `hash(B_i) == B_(i+1).parent_hash` (i.e., the `n` blocks are consecutive, starting with the block that follows `B_best`) and there exists a `0 < k < n` such that `sum_from_k_to_(n-1)(B_j.total_difficulty) >= MINIMUM_CUMULATIVE_DIFFICULTY` (i.e., the last `n-k` blocks have a brother-inclusive cumulative difficulty that is at least `MINIMUM_CUMULATIVE_DIFFICULTY`), we can update the HSM's `best_block` and `newest_valid_block` to correspond to `hash(B_(k-1))` and `hash(B_(n-1))` respectively by invoking `advanceBlockchain` an arbitrary number of times such that, in newest-to-oldest order and without repeating any blocks, we end up communicating all of `B_0...B_(n-1)` and brothers `Brs_0...Brs_(n-1)`. It is paramount to notice that for any block `B_i` with `0 <= i < n`, `B_i.total_difficulty` denotes the sum of block `B_i`'s individual difficulty plus the individual difficulty of each of its brothers (i.e., `B_i.difficulty + sum_from_0_to_(#Brs_i)(Brs_i_j.difficulty)`). It is important to mention that the choice of brothers to send for each block is entirely up to the caller. The more brothers sent for each block, the less total blocks that need to be sent in order to advance the blockchain.
+Given a current powHSM state where `best_block` corresponds to block `B_best`, `newest_valid_block` corresponds to block `B_newest` (such that `B_newest.number` >= `B_best.number`) and we know `n` blocks `B_0...B_(n-1)` with brothers `Brs_0...Brs_(n-1)`(**) such that `hash(B_best) == B_0.parent_hash` and for each `0 <= i < (n-1)`, `hash(B_i) == B_(i+1).parent_hash` (i.e., the `n` blocks are consecutive, starting with the block that follows `B_best`) and there exists a `0 < k < n` such that `sum_from_k_to_(n-1)(B_j.total_difficulty) >= MINIMUM_CUMULATIVE_DIFFICULTY` (i.e., the last `n-k` blocks have a brother-inclusive cumulative difficulty that is at least `MINIMUM_CUMULATIVE_DIFFICULTY`), we can update the HSM's `best_block` and `newest_valid_block` to correspond to `hash(B_(k-1))` and `hash(B_(n-1))` respectively by invoking `advanceBlockchain` an arbitrary number of times such that, in newest-to-oldest order and without repeating any blocks, we end up communicating all of `B_0...B_(n-1)` and brothers `Brs_0...Brs_(n-1)`. It is paramount to notice that for any block `B_i` with `0 <= i < n`, `B_i.total_difficulty` denotes the sum of block `B_i`'s individual difficulty plus the individual difficulty of each of its brothers (i.e., `B_i.difficulty + sum_from_0_to_(#Brs_i)(Brs_i_j.difficulty)`). It is important to mention that the choice of brothers to send for each block is entirely up to the caller. The more brothers sent for each block, the less total blocks that need to be sent in order to advance the blockchain.
 
 (**) For each block `B_i` with `0 <= i < n`, `Brs_i` is a (possibly empty) set of (distinct) brothers of `B_i`. We say that a Block `B_p` is a brother of block `B_q` iff:
 - `B_p.parent_hash == B_q.parent_hash` and,

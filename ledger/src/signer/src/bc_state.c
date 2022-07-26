@@ -34,20 +34,7 @@
 #include "bc_state.h"
 #include "bc_err.h"
 
-// -----------------------------------------------------------------------
-// Convenience routines to set state boolean flags
-// -----------------------------------------------------------------------
-
-static const bool __true = true;
-static const bool __false = false;
-
-void set_bc_state_flag(const bool* flag) {
-    NVM_WRITE(flag, &__true, sizeof(bool));
-}
-
-void clr_bc_state_flag(const bool* flag) {
-    NVM_WRITE(flag, &__false, sizeof(bool));
-}
+#include "mem.h"
 
 // -----------------------------------------------------------------------
 // Blockchain state initialization
@@ -63,23 +50,17 @@ static const uint8_t INITIAL_BLOCK_HASH[] = PARAM_INITIAL_BLOCK_HASH;
 uint8_t INITIAL_BLOCK_HASH[HASH_LEN];
 #endif
 
-// Non-volatile initialization flag.
-// Linker rules are different in emulator and Ledger mode.
-// When running in emulator mode we must avoid the const.
-static NON_VOLATILE uint8_t N_bc_initialized_var[1] = {0};
-#define N_bc_initialized (((uint8_t*)PIC(N_bc_initialized_var))[0])
-
 /*
  * Initialize blockchain state.
  */
 void bc_init_state() {
-    if (!N_bc_initialized) {
+    if (!N_bc_state.initialized) {
         NVM_RESET(&N_bc_state, sizeof(N_bc_state));
         NVM_WRITE(N_bc_state.best_block, INITIAL_BLOCK_HASH, HASH_SIZE);
         NVM_WRITE(N_bc_state.newest_valid_block, INITIAL_BLOCK_HASH, HASH_SIZE);
 
         uint8_t t = 1;
-        NVM_WRITE(&N_bc_initialized, &t, sizeof(t));
+        NVM_WRITE(&N_bc_state.initialized, &t, sizeof(t));
     }
 }
 
@@ -110,13 +91,13 @@ uint8_t dump_hash(uint8_t hash_code) {
         h = N_bc_state.ancestor_receipt_root;
         break;
     case U_BEST_BLOCK:
-        h = N_bc_state.updating.best_block;
+        h = bc_st_updating.best_block;
         break;
     case U_NEWEST_VALID_BLOCK:
-        h = N_bc_state.updating.newest_valid_block;
+        h = bc_st_updating.newest_valid_block;
         break;
     case U_NEXT_EXPECTED_BLOCK:
-        h = N_bc_state.updating.next_expected_block;
+        h = bc_st_updating.next_expected_block;
         break;
     default:
         FAIL(PROT_INVALID);
@@ -143,8 +124,8 @@ uint8_t dump_hash(uint8_t hash_code) {
  * @ret number of bytes dumped to APDU buffer
  */
 uint8_t dump_difficulty() {
-    uint8_t buf[sizeof(N_bc_state.updating.total_difficulty)];
-    dump_bigint(buf, N_bc_state.updating.total_difficulty, BIGINT_LEN);
+    uint8_t buf[sizeof(bc_st_updating.total_difficulty)];
+    dump_bigint(buf, bc_st_updating.total_difficulty, BIGINT_LEN);
     unsigned int start = 0;
     for (; start < sizeof(buf) && buf[start] == 0; start++)
         continue;
@@ -182,9 +163,9 @@ uint8_t bc_dump_initial_block_hash(int offset) {
  * @ret number of bytes dumped to buffer
  */
 uint8_t dump_flags() {
-    APDU_DATA_PTR[0] = N_bc_state.updating.in_progress;
-    APDU_DATA_PTR[1] = N_bc_state.updating.already_validated;
-    APDU_DATA_PTR[2] = N_bc_state.updating.found_best_block;
+    APDU_DATA_PTR[0] = bc_st_updating.in_progress;
+    APDU_DATA_PTR[1] = bc_st_updating.already_validated;
+    APDU_DATA_PTR[2] = bc_st_updating.found_best_block;
     return 3;
 }
 

@@ -1,0 +1,6 @@
+{
+    "name": "Reset NVM stats",
+    "operation": "nvmStats",
+    "subop": "reset",
+    "runOn": "tcpsigner"
+}
