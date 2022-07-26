@@ -179,6 +179,10 @@ diff_result check_difficulty(DIGIT_T difficulty[], const uint8_t* mm_hdr_hash) {
 DIGIT_T accum_difficulty(DIGIT_T difficulty[], DIGIT_T total_difficulty[]) {
     DIGIT_T aux[BIGINT_LEN];
     DIGIT_T carry = mpAdd(aux, difficulty, total_difficulty, BIGINT_LEN);
+
+    // This condition should never happen in the current implementation. This is
+    // just a double-check to ensure that aux holds a valid value before
+    // updating total_difficulty.
     if (carry == MAX_DIGIT)
         return BCDIFF_ERR_INVALID;
 
