@@ -51,6 +51,7 @@ static const network_upgrade_activation_t NETCONFIG_MAINNET[] = {
     {NU_IRIS, MAINNET_IRIS_ABN}};
 
 static const network_upgrade_activation_t* network_upgrade_activations;
+static unsigned int network_upgrade_activations_count;
 
 static uint8_t network_identifier;
 
@@ -58,13 +59,10 @@ void hsmsim_set_network_upgrade(uint32_t block_number,
                                 uint8_t* dst_network_upgrade) {
     network_upgrade_activation_t current = {NU_UNKNOWN, 0};
     // Find the latest network upgrade that applies for the given block number
-    for (int i = 0; i < sizeof(network_upgrade_activations) /
-                            sizeof(network_upgrade_activations[0]);
-         i++) {
+    for (int i = 0; i < network_upgrade_activations_count; i++) {
         if (block_number >= network_upgrade_activations[i].activation_bn &&
             network_upgrade_activations[i].activation_bn >=
                 current.activation_bn) {
-
             current.activation_bn =
                 network_upgrade_activations[i].activation_bn;
             current.network_upgrade =
@@ -106,12 +104,18 @@ bool hsmsim_set_network(uint8_t netid) {
     switch (netid) {
     case NETID_MAINNET:
         network_upgrade_activations = NETCONFIG_MAINNET;
+        network_upgrade_activations_count =
+            sizeof(NETCONFIG_MAINNET) / sizeof(NETCONFIG_MAINNET[0]);
         break;
     case NETID_TESTNET:
         network_upgrade_activations = NETCONFIG_TESTNET;
+        network_upgrade_activations_count =
+            sizeof(NETCONFIG_TESTNET) / sizeof(NETCONFIG_TESTNET[0]);
         break;
     case NETID_REGTEST:
         network_upgrade_activations = NETCONFIG_REGTEST;
+        network_upgrade_activations_count =
+            sizeof(NETCONFIG_REGTEST) / sizeof(NETCONFIG_REGTEST[0]);
         break;
     default:
         return false;

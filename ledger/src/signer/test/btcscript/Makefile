@@ -20,17 +20,21 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+TESTCOMMONDIR = ../common
 SRCDIR = ../../src
 TCPSIGNERSRCDIR = ../../../tcpsigner
-CFLAGS = -I $(SRCDIR) -I $(TCPSIGNERSRCDIR)
+CFLAGS = -I $(SRCDIR) -I $(TCPSIGNERSRCDIR) -I $(TESTCOMMONDIR)
 
 PROG = test.out
-OBJS = btcscript.o hex_reader.o test_btcscript.o
+OBJS = test_fwk.o btcscript.o hex_reader.o test_btcscript.o
 
 all: $(PROG)
 
 $(PROG): $(OBJS)
 	$(CC) -o $@ $^
+
+test_fwk.o: $(TESTCOMMONDIR)/test_fwk.c
+	$(CC) $(CFLAGS) -c -o $@ $^
 
 btcscript.o: $(SRCDIR)/btcscript.c
 	$(CC) $(CFLAGS) -c -o $@ $^
@@ -38,7 +42,7 @@ btcscript.o: $(SRCDIR)/btcscript.c
 hex_reader.o: $(TCPSIGNERSRCDIR)/hex_reader.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
-test_btcscript.o: test_btcscript.c btcscript.o hex_reader.o
+test_btcscript.o: test_btcscript.c test_fwk.o btcscript.o hex_reader.o
 
 $(SRCDIR)/btcscript.c: $(SRCDIR)/btcscript.h
 $(TCPSIGNERSRCDIR)/hex_reader.c: $(TCPSIGNERSRCDIR)/hex_reader.h

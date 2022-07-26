@@ -47,10 +47,10 @@ class TestSuite:
             ))
         cases_paths.sort()
         return cls(
-            map(
+            list(map(
                 lambda case_path: TestCase.from_json_file(os.path.join(path, case_path)),
                 cases_paths,
-            ))
+            )))
 
     def __init__(self, cases):
         self.cases = cases

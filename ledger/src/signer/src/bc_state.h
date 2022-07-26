@@ -46,16 +46,19 @@ typedef struct {
     uint8_t newest_valid_block[HASH_SIZE];
     uint8_t ancestor_block[HASH_SIZE];
     uint8_t ancestor_receipt_root[HASH_SIZE];
-    struct {
-        uint8_t next_expected_block[HASH_SIZE];
-        uint8_t best_block[HASH_SIZE];
-        uint8_t newest_valid_block[HASH_SIZE];
-        bool in_progress;
-        bool already_validated;
-        bool found_best_block;
-        DIGIT_T total_difficulty[BIGINT_LEN];
-    } updating;
+
+    uint8_t initialized;
 } bc_state_t;
+
+typedef struct {
+    uint8_t next_expected_block[HASH_SIZE];
+    uint8_t best_block[HASH_SIZE];
+    uint8_t newest_valid_block[HASH_SIZE];
+    bool in_progress;
+    bool already_validated;
+    bool found_best_block;
+    DIGIT_T total_difficulty[BIGINT_LEN];
+} bc_state_updating_t;
 
 extern NON_VOLATILE bc_state_t N_bc_state_var;
 #define N_bc_state (*(bc_state_t*)PIC(&N_bc_state_var))
@@ -88,11 +91,6 @@ extern uint8_t INITIAL_BLOCK_HASH[HASH_LEN];
 #define OP_RESET_DONE 0x02
 
 /*
- * Convenience macros to set state boolean flags
- */
-void set_bc_state_flag(const bool* flag);
-
-/*
  * Initialize blockchain state.
  */
 void bc_init_state();
@@ -106,9 +104,9 @@ void bc_init_state();
 unsigned int bc_get_state(volatile unsigned int rx);
 
 // Actual state reset as a macro, so we can call it from other places
-#define RESET_BC_STATE()                                              \
-    if (N_bc_state.updating.in_progress) {                            \
-        NVM_RESET(&N_bc_state.updating, sizeof(N_bc_state.updating)); \
+#define RESET_BC_STATE()                                    \
+    if (bc_st_updating.in_progress) {                       \
+        memset(&bc_st_updating, 0, sizeof(bc_st_updating)); \
     }
 
 /*

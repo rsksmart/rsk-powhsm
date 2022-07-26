@@ -20,19 +20,23 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+TESTCOMMONDIR = ../common
 SRCDIR = ../../src
 COMMONPATH = ../../../common/src
 TCPSIGNERPATH = ../../../tcpsigner
 
-CFLAGS = -I $(SRCDIR) -I $(COMMONPATH) -I $(TCPSIGNERPATH) -DFEDHM_EMULATOR -DDEBUG_DIFF
+CFLAGS = -I $(SRCDIR) -I $(COMMONPATH) -I $(TCPSIGNERPATH) -I $(TESTCOMMONDIR) -DFEDHM_EMULATOR -DDEBUG_DIFF
 
 PROG = test.out
-OBJS = bigdigits.o bc_diff.o os.o test_difficulty.o
+OBJS = test_fwk.o bigdigits.o bc_diff.o os.o test_difficulty.o
 
 all: $(PROG)
 
 $(PROG): $(OBJS)
 	$(CC) -o $@ $^
+
+test_fwk.o: $(TESTCOMMONDIR)/test_fwk.c
+	$(CC) $(CFLAGS) -c -o $@ $^
 
 bigdigits.o: $(SRCDIR)/bigdigits.c
 	$(CC) $(CFLAGS) -c -o $@ $^
@@ -43,7 +47,7 @@ os.o: $(TCPSIGNERPATH)/os.c
 bc_diff.o: $(SRCDIR)/bc_diff.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
-test_difficulty.o: test_difficulty.c bigdigits.o bc_diff.o os.o
+test_difficulty.o: test_difficulty.c test_fwk.o bigdigits.o bc_diff.o os.o
 
 $(SRCDIR)/bigdigits.c: $(SRCDIR)/bigdigits.h $(SRCDIR)/bigdtypes.h
 $(SRCDIR)/bc_diff.c: $(SRCDIR)/bc_diff.h $(SRCDIR)/bigdigits.h $(SRCDIR)/bigdtypes.h $(TCPSIGNERPATH)/os_exceptions.h

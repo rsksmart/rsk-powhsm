@@ -20,18 +20,22 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+TESTCOMMONDIR = ../common
 SRCDIR = ../../src
 TCPSIGNERSRCDIR = ../../../tcpsigner
 COMMONPATH = ../../../common/src
-CFLAGS = -I $(SRCDIR) -I $(TCPSIGNERSRCDIR) -I $(COMMONPATH)
+CFLAGS = -I $(SRCDIR) -I $(TCPSIGNERSRCDIR) -I $(COMMONPATH) -I $(TESTCOMMONDIR)
 
 PROG = test.out
-OBJS = btctx.o svarint.o hex_reader.o os.o test_btctx.o
+OBJS = test_fwk.o btctx.o svarint.o hex_reader.o os.o test_btctx.o
 
 all: $(PROG)
 
 $(PROG): $(OBJS)
 	$(CC) -o $@ $^
+
+test_fwk.o: $(TESTCOMMONDIR)/test_fwk.c
+	$(CC) $(CFLAGS) -c -o $@ $^
 
 btctx.o: $(SRCDIR)/btctx.c
 	$(CC) $(CFLAGS) -c -o $@ $^
@@ -45,7 +49,7 @@ hex_reader.o: $(TCPSIGNERSRCDIR)/hex_reader.c
 os.o: $(TCPSIGNERSRCDIR)/os.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
-test_btctx.o: test_btctx.c btctx.o svarint.o hex_reader.o os.o
+test_btctx.o: test_btctx.c test_fwk.o btctx.o svarint.o hex_reader.o os.o
 
 $(SRCDIR)/btctx.c: $(SRCDIR)/btctx.h
 $(SRCDIR)/svarint.c: $(SRCDIR)/svarint.h

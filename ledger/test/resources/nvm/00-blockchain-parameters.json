@@ -1,0 +1,9 @@
+{
+    "name": "Get Blockchain Parameters",
+    "operation": "blockchainParameters",
+    "expected": {
+        "checkpoint": "70e1fb5b84e50f3f6199a5becc4a1a30474b4b0fc3a329a320dfe4301cb9d876",
+        "minimum_difficulty": "0x1bd98a1787f0ecbee606a",
+        "network": "mainnet"
+    }
+}

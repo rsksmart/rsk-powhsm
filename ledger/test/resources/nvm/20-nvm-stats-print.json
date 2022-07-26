@@ -1,0 +1,6 @@
+{
+    "name": "Print NVM stats",
+    "operation": "nvmStats",
+    "subop": "print",
+    "runOn": "tcpsigner"
+}
