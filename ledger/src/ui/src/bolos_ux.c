@@ -931,12 +931,6 @@ void bolos_ux_main(void) {
             sample_main();
             screen_modal_validate_pin_init();
             break;
-
-        case BOLOS_UX_BOOT_RECOVERY:
-        /*
-        screen_boot_recovery_init();
-        break;
-        */
         case BOLOS_UX_DASHBOARD:
             screen_wake_up();
 
