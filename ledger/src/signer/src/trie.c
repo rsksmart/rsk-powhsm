@@ -113,8 +113,6 @@ uint8_t trie_consume(uint8_t *buf, const uint8_t len) {
     uint8_t processed;
 
     for (uint8_t i = 0; i < len; i++) {
-        // printf("st: %u, i: %u/%u, val: 0x%02x\n", ctx->state, i, len,
-        // buf[i]);
         switch (ctx->state) {
         case TRIE_ST_FLAGS:
             ctx->raw[0] = buf[i];

@@ -177,9 +177,7 @@ unsigned char io_event(unsigned char channel) {
         if ((uiState == UI_TEXT) &&
             (os_seph_features() &
              SEPROXYHAL_TAG_SESSION_START_EVENT_FEATURE_SCREEN_BIG)) {
-            if (!display_text_part()) {
-                // ui_approval();
-            } else {
+            if (display_text_part()) {
                 UX_REDISPLAY();
             }
         } else {

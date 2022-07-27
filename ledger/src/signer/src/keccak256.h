@@ -61,8 +61,6 @@ typedef struct SHA3_CTX {
     uint64_t message[sha3_max_rate_in_qwords];
     /* count of bytes in the message[] buffer */
     uint16_t rest;
-    /* size of a message block processed at once */
-    //unsigned block_size;
 } SHA3_CTX;
 
 

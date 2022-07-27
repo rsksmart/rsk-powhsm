@@ -84,13 +84,11 @@ const uint8_t constants[]  = {
 
 uint8_t getConstant(uint8_t type, uint8_t index) {
     return constants[type + index];
-    //return pgm_read_byte(&constants[type + index]);
 }
 
 static uint64_t get_round_constant(uint8_t round) {
     uint64_t result = 0;
 
-    //uint8_t roundInfo = pgm_read_byte(&round_constant_info[round]);
     uint8_t roundInfo = getConstant(TYPE_ROUND_INFO, round);
     if (roundInfo & (1 << 6)) { result |= ((uint64_t)1 << 63); }
     if (roundInfo & (1 << 5)) { result |= ((uint64_t)1 << 31); }
@@ -134,9 +132,7 @@ static void keccak_theta(uint64_t *A) {
 /* Keccak pi() transformation */
 static void keccak_pi(uint64_t *A) {
     uint64_t A1 = A[1];
-    //for (uint8_t i = 1; i < sizeof(pi_transform); i++) {
     for (uint8_t i = 1; i < 24; i++) {
-        //A[pgm_read_byte(&pi_transform[i - 1])] = A[pgm_read_byte(&pi_transform[i])];
         A[getConstant(TYPE_PI_TRANSFORM, i - 1)] = A[getConstant(TYPE_PI_TRANSFORM, i)];
     }
     A[10] = A1;
@@ -162,13 +158,11 @@ static void keccak_chi(uint64_t *A) {
 
 
 static void sha3_permutation(uint64_t *state) {
-    //for (uint8_t round = 0; round < sizeof(round_constant_info); round++) {
     for (uint8_t round = 0; round < 24; round++) {
         keccak_theta(state);
 
         /* apply Keccak rho() transformation */
         for (uint8_t i = 1; i < 25; i++) {
-            //state[i] = ROTL64(state[i], pgm_read_byte(&rhoTransforms[i - 1]));
             state[i] = ROTL64(state[i], getConstant(TYPE_RHO_TRANSFORM, i - 1));
         }
 
