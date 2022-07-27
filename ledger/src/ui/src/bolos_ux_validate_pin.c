@@ -509,7 +509,6 @@ unsigned int force_static_pin() {
         G_bolos_ux_context
             .screen_stack[G_bolos_ux_context.screen_stack_count - 1]
             .button_push_callback = screen_modal_validate_pin_error_button;
-        // screen_display_init(G_bolos_ux_context.screen_stack_count - 1);
         return 1;
     }
 

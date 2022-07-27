@@ -89,7 +89,6 @@ void screen_settings_apply_internal(unsigned int use_persisted,
         brightness = BRIGHTNESS_DEFAULT;
         rotation = ROTATION_DEFAULT;
         invert = INVERSION_DEFAULT;
-        // shufflePin = SHUFFLE_PIN_DEFAULT;
         G_bolos_ux_context.setting_auto_lock_delay_ms = AUTO_LOCK_DEFAULT;
     }
 
@@ -97,7 +96,6 @@ void screen_settings_apply_internal(unsigned int use_persisted,
         brightness = os_setting_get(OS_SETTING_BRIGHTNESS);
         rotation = os_setting_get(OS_SETTING_ROTATION);
         invert = os_setting_get(OS_SETTING_INVERT);
-        // shufflePin = os_setting_get(OS_SETTING_SHUFFLE_PIN);
 
         // load
         G_bolos_ux_context.setting_auto_lock_delay_ms = AUTO_LOCK_DEFAULT;

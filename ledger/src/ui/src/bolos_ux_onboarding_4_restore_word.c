@@ -499,9 +499,6 @@ const bagl_element_t *screen_onboarding_4_restore_word_keyboard_callback(
             G_bolos_ux_context.tmp_element.component.x +=
                 1 + G_bolos_ux_context.tmp_element.component.width / 2 -
                 C_icon_backspace.width / 2;
-            // G_bolos_ux_context.tmp_element.component.y +=
-            // screen_settings_passphrase_classes_icons[value]->height/2 -
-            // G_bolos_ux_context.tmp_element.component.height/2;
             G_bolos_ux_context.tmp_element.component.y = 5;
             G_bolos_ux_context.tmp_element.component.height =
                 C_icon_backspace.height;

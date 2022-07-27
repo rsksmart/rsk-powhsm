@@ -1014,8 +1014,6 @@ screen_settings_passphrase_type_and_review_keyboard_item_callback(
                 G_bolos_ux_context.tmp_element.component.width / 2 -
                 icon->width / 2;
             G_bolos_ux_context.tmp_element.component.width = icon->width;
-            // G_bolos_ux_context.tmp_element.component.y += icon->height/2 -
-            // G_bolos_ux_context.tmp_element.component.height/2;
             G_bolos_ux_context.tmp_element.component.y = 5;
             G_bolos_ux_context.tmp_element.component.height = icon->height;
             G_bolos_ux_context.tmp_element.component.type = BAGL_ICON;
@@ -1110,8 +1108,6 @@ screen_settings_passphrase_type_and_review_keyboard_class_callback(
             G_bolos_ux_context.tmp_element.component.width / 2 -
             icon->width / 2;
         G_bolos_ux_context.tmp_element.component.width = icon->width;
-        // G_bolos_ux_context.tmp_element.component.y += icon->height/2 -
-        // G_bolos_ux_context.tmp_element.component.height/2;
         G_bolos_ux_context.tmp_element.component.y = 5;
         G_bolos_ux_context.tmp_element.component.height = icon->height;
         G_bolos_ux_context.tmp_element.component.type = BAGL_ICON;
