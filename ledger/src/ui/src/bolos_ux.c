@@ -497,7 +497,6 @@ static void sample_main(void) {
         BEGIN_TRY {
             TRY {
                 rx = tx;
-                // flags |= IO_ASYNCH_REPLY;
                 tx = 0; // ensure no race in catch_other if io_exchange throws
                         // an error
                 rx = io_exchange(CHANNEL_APDU | flags, rx);
@@ -921,10 +920,8 @@ void bolos_ux_main(void) {
                 break;
             }
 
-            //  screen_onboarding_0_welcome_init();
             io_seproxyhal_init();
             USB_power(1);
-            //  UX_DISPLAY(bagl_ui_idle_nanos, NULL);
             screen_wake_up();
             screen_settings_apply();
             screen_not_personalized_init();
@@ -994,14 +991,12 @@ void bolos_ux_main(void) {
 
         case BOLOS_UX_CONSENT_FOREIGN_KEY:
             screen_wake_up();
-            //           screen_consent_foreign_key_init();
             break;
 
         case BOLOS_UX_CONSENT_GET_DEVICE_NAME:
             screen_wake_up();
             // GET_DEVICE_NAME event override to reload app
             run_first_app();
-            // screen_consent_get_device_name_init();
             break;
 
         case BOLOS_UX_CONSENT_SET_DEVICE_NAME:

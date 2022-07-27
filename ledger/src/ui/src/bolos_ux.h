@@ -177,8 +177,6 @@ typedef struct bolos_ux_context {
     unsigned int settings_index;
     unsigned int settings_value;
 
-    // unsigned int saver_step;
-    // unsigned int saver_konami;
     int saver_step_x;
     int saver_step_y;
 
