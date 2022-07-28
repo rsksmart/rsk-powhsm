@@ -476,8 +476,8 @@ static void sample_main(void) {
     volatile unsigned int tx = 0;
     volatile unsigned int flags = 0;
     volatile unsigned char pin = 0;
-    int i = 0;
-    unsigned char aux;
+    volatile int i = 0;
+    volatile unsigned char aux;
 
     // Initialize current operation
     curr_cmd = 0; // 0 = no operation being executed
@@ -548,6 +548,12 @@ static void sample_main(void) {
                     break;
                 case RSK_WIPE: //--- wipe and onboard device ---
                     reset_if_starting(RSK_META_CMD_UIOP);
+
+                    // Reset the onboarding flag to mark onboarding
+                    // hasn't been done just in case something fails
+                    aux = 0;
+                    nvm_write((void *)PIC(N_onboarded_ui), &aux, sizeof(aux));
+
 #ifndef DEBUG_BUILD
                     validate_pin(G_bolos_ux_context.pin_buffer);
 #endif
