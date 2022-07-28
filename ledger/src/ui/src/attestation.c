@@ -103,117 +103,6 @@ static size_t compress_pubkey_into(cx_ecfp_public_key_t* pub_key,
 }
 
 /*
- * Given the UD value,
- * generate the initial part of the attestation message,
- * consisting of <prefix><ud value><BTC pub key>.
- *
- * @arg[in] att_ctx attestation context
- * @arg[in] ud_value user defined value
- * @arg[in] ud_value user defined value size
- */
-static void generate_message_to_sign(att_t* att_ctx,
-                                     uint8_t* ud_value,
-                                     size_t ud_value_size) {
-
-    sigaut_signer_t* current_signer_info = get_authorized_signer_info();
-
-    // Initialize message
-    explicit_bzero(att_ctx->msg, sizeof(att_ctx->msg));
-
-    // Copy prefix and user defined value into the message space
-    att_ctx->msg_offset = 0;
-    SAFE_MEMMOVE(att_ctx->msg,
-                 sizeof(att_ctx->msg),
-                 att_ctx->msg_offset,
-                 PIC(att_msg_prefix),
-                 sizeof(att_msg_prefix),
-                 MEMMOVE_ZERO_OFFSET,
-                 sizeof(att_msg_prefix),
-                 THROW(INTERNAL));
-    att_ctx->msg_offset += sizeof(att_msg_prefix);
-    SAFE_MEMMOVE(att_ctx->msg,
-                 sizeof(att_ctx->msg),
-                 att_ctx->msg_offset,
-                 ud_value,
-                 ud_value_size,
-                 MEMMOVE_ZERO_OFFSET,
-                 ud_value_size,
-                 THROW(INTERNAL));
-    att_ctx->msg_offset += ud_value_size;
-
-    // Derive, compress and copy the public key into the message space
-    BEGIN_TRY {
-        TRY {
-            SAFE_MEMMOVE(att_ctx->path,
-                         sizeof(att_ctx->path),
-                         MEMMOVE_ZERO_OFFSET,
-                         PIC(key_derivation_path),
-                         sizeof(key_derivation_path),
-                         MEMMOVE_ZERO_OFFSET,
-                         sizeof(key_derivation_path),
-                         THROW(INTERNAL));
-            // Derive private key
-            os_perso_derive_node_bip32(CX_CURVE_256K1,
-                                       att_ctx->path,
-                                       PATH_PART_COUNT,
-                                       att_ctx->priv_key_data,
-                                       NULL);
-            cx_ecdsa_init_private_key(CX_CURVE_256K1,
-                                      att_ctx->priv_key_data,
-                                      KEYLEN,
-                                      &att_ctx->priv_key);
-            // Cleanup private key data
-            explicit_bzero(att_ctx->priv_key_data,
-                           sizeof(att_ctx->priv_key_data));
-            // Derive public key
-            cx_ecfp_generate_pair(
-                CX_CURVE_256K1, &att_ctx->pub_key, &att_ctx->priv_key, 1);
-            // Cleanup private key
-            explicit_bzero(&att_ctx->priv_key, sizeof(att_ctx->priv_key));
-            // Compress public key into message space
-            att_ctx->msg_offset += compress_pubkey_into(&att_ctx->pub_key,
-                                                        att_ctx->msg,
-                                                        sizeof(att_ctx->msg),
-                                                        att_ctx->msg_offset);
-            // Cleanup public key
-            explicit_bzero(&att_ctx->pub_key, sizeof(att_ctx->pub_key));
-        }
-        CATCH_OTHER(e) {
-            // Cleanup key data and fail
-            explicit_bzero(att_ctx->priv_key_data,
-                           sizeof(att_ctx->priv_key_data));
-            explicit_bzero(&att_ctx->priv_key, sizeof(att_ctx->priv_key));
-            explicit_bzero(&att_ctx->pub_key, sizeof(att_ctx->pub_key));
-            THROW(INTERNAL);
-        }
-        FINALLY {
-        }
-    }
-    END_TRY;
-
-    // Copy signer hash and iteration into the message space
-    SAFE_MEMMOVE(att_ctx->msg,
-                 sizeof(att_ctx->msg),
-                 att_ctx->msg_offset,
-                 current_signer_info->hash,
-                 sizeof(current_signer_info->hash),
-                 MEMMOVE_ZERO_OFFSET,
-                 sizeof(current_signer_info->hash),
-                 THROW(INTERNAL));
-    att_ctx->msg_offset += sizeof(current_signer_info->hash);
-
-    // Make sure iteration fits
-    if (att_ctx->msg_offset + sizeof(current_signer_info->iteration) >
-        sizeof(att_ctx->msg))
-        THROW(INTERNAL);
-
-    VAR_BIGENDIAN_TO(att_ctx->msg + att_ctx->msg_offset,
-                     current_signer_info->iteration,
-                     sizeof(current_signer_info->iteration));
-    att_ctx->msg_offset += sizeof(current_signer_info->iteration);
-}
-
-/*
  * Reset the given attestation context
  *
  * @arg[in] att_ctx attestation context
@@ -252,7 +141,103 @@ unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx) {
         if (APDU_DATA_SIZE(rx) != UD_VALUE_SIZE)
             THROW(PROT_INVALID);
 
-        generate_message_to_sign(att_ctx, APDU_DATA_PTR, UD_VALUE_SIZE);
+        sigaut_signer_t* current_signer_info = get_authorized_signer_info();
+
+        // Initialize message
+        explicit_bzero(att_ctx->msg, sizeof(att_ctx->msg));
+        att_ctx->msg_offset = 0;
+
+        // Copy prefix and user defined value into the message space
+        SAFE_MEMMOVE(att_ctx->msg,
+                     sizeof(att_ctx->msg),
+                     att_ctx->msg_offset,
+                     PIC(att_msg_prefix),
+                     sizeof(att_msg_prefix),
+                     MEMMOVE_ZERO_OFFSET,
+                     sizeof(att_msg_prefix),
+                     THROW(INTERNAL));
+        att_ctx->msg_offset += sizeof(att_msg_prefix);
+        SAFE_MEMMOVE(att_ctx->msg,
+                     sizeof(att_ctx->msg),
+                     att_ctx->msg_offset,
+                     APDU_DATA_PTR,
+                     APDU_TOTAL_DATA_SIZE,
+                     MEMMOVE_ZERO_OFFSET,
+                     UD_VALUE_SIZE,
+                     THROW(INTERNAL));
+        att_ctx->msg_offset += UD_VALUE_SIZE;
+
+        // Derive, compress and copy the public key into the message space
+        BEGIN_TRY {
+            TRY {
+                SAFE_MEMMOVE(att_ctx->path,
+                             sizeof(att_ctx->path),
+                             MEMMOVE_ZERO_OFFSET,
+                             PIC(key_derivation_path),
+                             sizeof(key_derivation_path),
+                             MEMMOVE_ZERO_OFFSET,
+                             sizeof(key_derivation_path),
+                             THROW(INTERNAL));
+                // Derive private key
+                os_perso_derive_node_bip32(CX_CURVE_256K1,
+                                           att_ctx->path,
+                                           PATH_PART_COUNT,
+                                           att_ctx->priv_key_data,
+                                           NULL);
+                cx_ecdsa_init_private_key(CX_CURVE_256K1,
+                                          att_ctx->priv_key_data,
+                                          KEYLEN,
+                                          &att_ctx->priv_key);
+                // Cleanup private key data
+                explicit_bzero(att_ctx->priv_key_data,
+                               sizeof(att_ctx->priv_key_data));
+                // Derive public key
+                cx_ecfp_generate_pair(
+                    CX_CURVE_256K1, &att_ctx->pub_key, &att_ctx->priv_key, 1);
+                // Cleanup private key
+                explicit_bzero(&att_ctx->priv_key, sizeof(att_ctx->priv_key));
+                // Compress public key into message space
+                att_ctx->msg_offset +=
+                    compress_pubkey_into(&att_ctx->pub_key,
+                                         att_ctx->msg,
+                                         sizeof(att_ctx->msg),
+                                         att_ctx->msg_offset);
+                // Cleanup public key
+                explicit_bzero(&att_ctx->pub_key, sizeof(att_ctx->pub_key));
+            }
+            CATCH_OTHER(e) {
+                // Cleanup key data and fail
+                explicit_bzero(att_ctx->priv_key_data,
+                               sizeof(att_ctx->priv_key_data));
+                explicit_bzero(&att_ctx->priv_key, sizeof(att_ctx->priv_key));
+                explicit_bzero(&att_ctx->pub_key, sizeof(att_ctx->pub_key));
+                THROW(INTERNAL);
+            }
+            FINALLY {
+            }
+        }
+        END_TRY;
+
+        // Copy signer hash and iteration into the message space
+        SAFE_MEMMOVE(att_ctx->msg,
+                     sizeof(att_ctx->msg),
+                     att_ctx->msg_offset,
+                     current_signer_info->hash,
+                     sizeof(current_signer_info->hash),
+                     MEMMOVE_ZERO_OFFSET,
+                     sizeof(current_signer_info->hash),
+                     THROW(INTERNAL));
+        att_ctx->msg_offset += sizeof(current_signer_info->hash);
+
+        // Make sure iteration fits
+        if (att_ctx->msg_offset + sizeof(current_signer_info->iteration) >
+            sizeof(att_ctx->msg))
+            THROW(INTERNAL);
+
+        VAR_BIGENDIAN_TO(att_ctx->msg + att_ctx->msg_offset,
+                         current_signer_info->iteration,
+                         sizeof(current_signer_info->iteration));
+        att_ctx->msg_offset += sizeof(current_signer_info->iteration);
 
         att_ctx->stage = att_stage_ready;
 
