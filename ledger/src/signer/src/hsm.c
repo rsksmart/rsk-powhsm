@@ -74,7 +74,7 @@ unsigned int hsm_process_apdu(volatile unsigned int rx) {
 
     // No apdu received
     if (rx == 0) {
-        THROW(0x6982);
+        THROW(APDU_ERR_EMPTY_BUFFER);
     }
 
     // Zero out commonly read APDU buffer offsets,
@@ -85,7 +85,7 @@ unsigned int hsm_process_apdu(volatile unsigned int rx) {
 
     // Invalid CLA
     if (APDU_CLA() != CLA) {
-        THROW(0x6E11);
+        THROW(APDU_ERR_INVALID_SIGNER_CLA);
     }
 
     switch (APDU_CMD()) {
@@ -113,7 +113,7 @@ unsigned int hsm_process_apdu(volatile unsigned int rx) {
 
         // Check the received data size
         if (rx != DATA + sizeof(uint32_t) * RSK_PATH_LEN)
-            THROW(0x6A87); // Wrong buffer size
+            THROW(APDU_ERR_INVALID_DATA_SIZE); // Wrong buffer size
 
         // Check for path validity before returning the public key
         // Actual path starts at normal data pointer, but
@@ -123,7 +123,7 @@ unsigned int hsm_process_apdu(volatile unsigned int rx) {
         if (!(pathRequireAuth(APDU_DATA_PTR - 1) ||
               pathDontRequireAuth(APDU_DATA_PTR - 1))) {
             // If no path match, then bail out
-            THROW(0x6A8F); // Invalid Key Path
+            THROW(APDU_ERR_INVALID_PATH); // Invalid Key Path
         }
 
         // Derive the public key
@@ -134,7 +134,7 @@ unsigned int hsm_process_apdu(volatile unsigned int rx) {
                      APDU_TOTAL_DATA_SIZE_OUT,
                      MEMMOVE_ZERO_OFFSET,
                      sizeof(auth.path),
-                     THROW(0x6A8F));
+                     THROW(APDU_ERR_INVALID_PATH));
         tx = do_pubkey(auth.path,
                        RSK_PATH_LEN,
                        G_io_apdu_buffer,
@@ -142,7 +142,7 @@ unsigned int hsm_process_apdu(volatile unsigned int rx) {
 
         // Error deriving?
         if (tx == DO_PUBKEY_ERROR) {
-            THROW(0x6A99);
+            THROW(APDU_ERR_INTERNAL);
         }
 
         break;
@@ -190,7 +190,7 @@ unsigned int hsm_process_apdu(volatile unsigned int rx) {
         break;
 
     default: // Unknown command
-        THROW(0x6D00);
+        THROW(APDU_ERR_INS_NOT_SUPPORTED);
         break;
     }
 
@@ -201,7 +201,7 @@ unsigned int hsm_process_exception(unsigned short code, unsigned int tx) {
     unsigned short sw = 0;
 
     // Always reset the full state when an error occurs
-    if (code != 0x9000) {
+    if (code != APDU_OK) {
         RESET_BC_STATE();
         reset_if_starting(0);
     }

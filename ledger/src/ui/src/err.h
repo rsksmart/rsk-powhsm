@@ -45,4 +45,9 @@ typedef enum {
     INTERNAL = 0x6a99, // Internal error while generating attestation
 } err_code_rsk_t;
 
+// Error codes for UI operations
+typedef enum {
+    UI_ERR_INVALID_PIN = 0x69A0,
+} err_code_ui_t;
+
 #endif

@@ -64,7 +64,7 @@ unsigned int auth_sign(volatile unsigned int rx) {
     // really adding much validation)
     if (auth.state != AUTH_ST_START && auth.state != AUTH_ST_MERKLEPROOF &&
         APDU_DATA_SIZE(rx) != auth.expected_bytes)
-        THROW(0x6A87);
+        THROW(AUTH_ERR_INVALID_DATA_SIZE);
 
     switch (APDU_OP() & 0xF) {
     case P1_PATH:
@@ -81,11 +81,11 @@ unsigned int auth_sign(volatile unsigned int rx) {
         return tx;
     default:
         // Invalid OP
-        THROW(0x6A87);
+        THROW(AUTH_ERR_INVALID_DATA_SIZE);
     }
 
     if (auth.state != AUTH_ST_SIGN)
-        THROW(0x6A89); // Invalid state
+        THROW(AUTH_ERR_INVALID_STATE); // Invalid state
 
     tx = do_sign(auth.path,
                  RSK_PATH_LEN,
@@ -96,7 +96,7 @@ unsigned int auth_sign(volatile unsigned int rx) {
 
     // Error signing?
     if (tx == DO_SIGN_ERROR) {
-        THROW(0x6A99);
+        THROW(AUTH_ERR_INTERNAL);
     }
 
     SET_APDU_OP(P1_SUCCESS);

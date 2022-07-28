@@ -80,4 +80,14 @@
 // bytes to receive in the subsequent tx
 #define TX_FOR_TXLEN() (DATA + 1)
 
+// Error codes
+#define APDU_ERR_EMPTY_BUFFER (0x6982)
+#define APDU_ERR_INVALID_DATA_SIZE (0x6A87)
+#define APDU_ERR_INVALID_PATH (0x6A8F)
+#define APDU_ERR_INTERNAL (0x6A99)
+#define APDU_ERR_INS_NOT_SUPPORTED (0x6D00)
+#define APDU_ERR_INVALID_SIGNER_CLA (0x6E11)
+#define APDU_ERR_INVALID_UI_CLA (0x6E22)
+#define APDU_OK (0x9000)
+
 #endif
