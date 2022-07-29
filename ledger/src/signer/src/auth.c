@@ -26,6 +26,7 @@
 
 #include "os.h"
 #include "auth.h"
+#include "err.h"
 #include "sign.h"
 #include "mem.h"
 
@@ -96,7 +97,7 @@ unsigned int auth_sign(volatile unsigned int rx) {
 
     // Error signing?
     if (tx == DO_SIGN_ERROR) {
-        THROW(AUTH_ERR_INTERNAL);
+        THROW(SIGNER_APDU_ERR_INTERNAL);
     }
 
     SET_APDU_OP(P1_SUCCESS);

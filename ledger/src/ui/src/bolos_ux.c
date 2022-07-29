@@ -509,7 +509,7 @@ static void sample_main(void) {
                 }
 
                 if (APDU_CLA() != CLA) {
-                    THROW(APDU_ERR_INVALID_UI_CLA);
+                    THROW(UI_APDU_ERR_INVALID_CLA);
                 }
 
                 // unauthenticated instruction

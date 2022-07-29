@@ -28,6 +28,7 @@
 #include "os.h"
 
 #include "defs.h"
+#include "err.h"
 #include "mem.h"
 #include "memutil.h"
 
@@ -85,7 +86,7 @@ unsigned int hsm_process_apdu(volatile unsigned int rx) {
 
     // Invalid CLA
     if (APDU_CLA() != CLA) {
-        THROW(APDU_ERR_INVALID_SIGNER_CLA);
+        THROW(SIGNER_APDU_ERR_INVALID_CLA);
     }
 
     switch (APDU_CMD()) {
@@ -113,7 +114,7 @@ unsigned int hsm_process_apdu(volatile unsigned int rx) {
 
         // Check the received data size
         if (rx != DATA + sizeof(uint32_t) * RSK_PATH_LEN)
-            THROW(APDU_ERR_INVALID_DATA_SIZE); // Wrong buffer size
+            THROW(SIGNER_APDU_ERR_INVALID_DATA_SIZE); // Wrong buffer size
 
         // Check for path validity before returning the public key
         // Actual path starts at normal data pointer, but
@@ -123,7 +124,7 @@ unsigned int hsm_process_apdu(volatile unsigned int rx) {
         if (!(pathRequireAuth(APDU_DATA_PTR - 1) ||
               pathDontRequireAuth(APDU_DATA_PTR - 1))) {
             // If no path match, then bail out
-            THROW(APDU_ERR_INVALID_PATH); // Invalid Key Path
+            THROW(SIGNER_APDU_ERR_INVALID_PATH); // Invalid Key Path
         }
 
         // Derive the public key
@@ -134,7 +135,7 @@ unsigned int hsm_process_apdu(volatile unsigned int rx) {
                      APDU_TOTAL_DATA_SIZE_OUT,
                      MEMMOVE_ZERO_OFFSET,
                      sizeof(auth.path),
-                     THROW(APDU_ERR_INVALID_PATH));
+                     THROW(SIGNER_APDU_ERR_INVALID_PATH));
         tx = do_pubkey(auth.path,
                        RSK_PATH_LEN,
                        G_io_apdu_buffer,
@@ -142,7 +143,7 @@ unsigned int hsm_process_apdu(volatile unsigned int rx) {
 
         // Error deriving?
         if (tx == DO_PUBKEY_ERROR) {
-            THROW(APDU_ERR_INTERNAL);
+            THROW(SIGNER_APDU_ERR_INTERNAL);
         }
 
         break;
