@@ -39,6 +39,8 @@
  *  limitations under the License.
  ********************************************************************************/
 
+#include <ctype.h>
+
 #include "os.h"
 #include "cx.h"
 
@@ -55,9 +57,6 @@
 
 // Onboarded with the UI flag
 const unsigned char N_onboarded_ui[1] = {0};
-
-// PIN cache used for authenticated operations
-unsigned char G_pin_cache[MAX_PIN_LENGTH + 1];
 
 #ifdef OS_IO_SEPROXYHAL
 
@@ -435,13 +434,17 @@ void validate_pin(char *pin_buffer) {
         THROW(ERR_INVALID_PIN);
     }
     // Check if PIN is alphanumeric
-    int isAlphanumeric = 0;
+    int hasAlphanumeric = 0;
     for (int i = 0; i < MAX_PIN_LENGTH; i++) {
-        if (pin_buffer[i + 1] > '9') {
-            isAlphanumeric = 1;
+        int digit = (int)pin_buffer[i + 1];
+        if (!isalnum(digit)) {
+            THROW(ERR_INVALID_PIN);
+        }
+        if (isalpha(digit)) {
+            hasAlphanumeric = 1;
         }
     }
-    if (!isAlphanumeric) {
+    if (!hasAlphanumeric) {
         THROW(ERR_INVALID_PIN);
     }
 }
@@ -527,12 +530,7 @@ static void sample_main(void) {
                     pin = APDU_AT(2);
                     if ((pin >= 0) && (pin <= MAX_PIN_LENGTH)) {
                         G_bolos_ux_context.pin_buffer[pin] = APDU_AT(3);
-                        // We don't need the prepended length for the pin
-                        // cache, so it is one byte smaller
-                        if (pin < sizeof(G_pin_cache) - 1) {
-                            G_pin_cache[pin] = APDU_AT(3);
-                            G_pin_cache[pin + 1] = 0;
-                        }
+                        G_bolos_ux_context.pin_buffer[pin + 1] = 0;
                     }
                     THROW(APDU_OK);
                     break;
@@ -639,6 +637,9 @@ static void sample_main(void) {
                             (unsigned char *)G_bolos_ux_context.pin_buffer + 1,
                             G_bolos_ux_context.pin_buffer[0]));
                     tx = 3;
+                    // Clear pin buffer
+                    explicit_bzero(G_bolos_ux_context.pin_buffer,
+                                   sizeof(G_bolos_ux_context.pin_buffer));
                     THROW(APDU_OK);
                     break;
                 case RSK_ECHO_CMD: // echo
@@ -970,7 +971,9 @@ void bolos_ux_main(void) {
             if (is_authorized_signer(
                     G_bolos_ux_context.parameters.u.appadd.appentry.hash)) {
                 // PIN is invalidated so we must check it again
-                os_global_pin_check(G_pin_cache, strlen(G_pin_cache));
+                os_global_pin_check(
+                    (unsigned char *)G_bolos_ux_context.pin_buffer + 1,
+                    G_bolos_ux_context.pin_buffer[0]);
                 G_bolos_ux_context.exit_code = BOLOS_UX_OK;
                 break;
             } else {
