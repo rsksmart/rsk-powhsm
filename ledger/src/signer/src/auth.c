@@ -97,7 +97,7 @@ unsigned int auth_sign(volatile unsigned int rx) {
 
     // Error signing?
     if (tx == DO_SIGN_ERROR) {
-        THROW(SIGNER_APDU_ERR_INTERNAL);
+        THROW(ERR_INTERNAL);
     }
 
     SET_APDU_OP(P1_SUCCESS);

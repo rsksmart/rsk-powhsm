@@ -47,11 +47,11 @@ typedef enum {
 
 // Error codes for UI operations
 typedef enum {
-    UI_ERR_INVALID_PIN = 0x69A0,
+    ERR_INVALID_PIN = 0x69A0,
 } err_code_ui_t;
 
 typedef enum {
-    UI_APDU_ERR_INVALID_CLA = 0x6E22,
+    ERR_INVALID_CLA = 0x6E22,
 } err_code_ui_apdu_t;
 
 #endif

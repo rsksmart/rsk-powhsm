@@ -26,9 +26,9 @@
 #define ERR_H
 
 // Error codes for Signer operations
-#define SIGNER_APDU_ERR_INVALID_DATA_SIZE (0x6A87)
-#define SIGNER_APDU_ERR_INVALID_PATH (0x6A8F)
-#define SIGNER_APDU_ERR_INTERNAL (0x6A99)
-#define SIGNER_APDU_ERR_INVALID_CLA (0x6E11)
+#define ERR_INVALID_DATA_SIZE (0x6A87)
+#define ERR_INVALID_PATH (0x6A8F)
+#define ERR_INTERNAL (0x6A99)
+#define ERR_INVALID_CLA (0x6E11)
 
 #endif // DEFS_H

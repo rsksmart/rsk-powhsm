@@ -432,7 +432,7 @@ void io_seproxyhal_display(const bagl_element_t *element) {
 void validate_pin(char *pin_buffer) {
     // Check PIN length
     if (pin_buffer[0] != MAX_PIN_LENGTH) {
-        THROW(UI_ERR_INVALID_PIN);
+        THROW(ERR_INVALID_PIN);
     }
     // Check if PIN is alphanumeric
     int isAlphanumeric = 0;
@@ -442,7 +442,7 @@ void validate_pin(char *pin_buffer) {
         }
     }
     if (!isAlphanumeric) {
-        THROW(UI_ERR_INVALID_PIN);
+        THROW(ERR_INVALID_PIN);
     }
 }
 
@@ -505,11 +505,11 @@ static void sample_main(void) {
                 // no apdu received, well, reset the session, and reset the
                 // bootloader configuration
                 if (rx == 0) {
-                    THROW(APDU_ERR_EMPTY_BUFFER);
+                    THROW(ERR_EMPTY_BUFFER);
                 }
 
                 if (APDU_CLA() != CLA) {
-                    THROW(UI_APDU_ERR_INVALID_CLA);
+                    THROW(ERR_INVALID_CLA);
                 }
 
                 // unauthenticated instruction
@@ -687,7 +687,7 @@ static void sample_main(void) {
                     autoexec = 0;
                     goto return_to_dashboard;
                 default:
-                    THROW(APDU_ERR_INS_NOT_SUPPORTED);
+                    THROW(ERR_INS_NOT_SUPPORTED);
                     break;
                 }
             }
