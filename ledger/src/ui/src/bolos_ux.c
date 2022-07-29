@@ -432,7 +432,7 @@ void io_seproxyhal_display(const bagl_element_t *element) {
 void validate_pin(char *pin_buffer) {
     // Check PIN length
     if (pin_buffer[0] != MAX_PIN_LENGTH) {
-        THROW(0x69a0);
+        THROW(ERR_INVALID_PIN);
     }
     // Check if PIN is alphanumeric
     int isAlphanumeric = 0;
@@ -442,7 +442,7 @@ void validate_pin(char *pin_buffer) {
         }
     }
     if (!isAlphanumeric) {
-        THROW(0x69a0);
+        THROW(ERR_INVALID_PIN);
     }
 }
 
@@ -505,11 +505,11 @@ static void sample_main(void) {
                 // no apdu received, well, reset the session, and reset the
                 // bootloader configuration
                 if (rx == 0) {
-                    THROW(0x6982);
+                    THROW(ERR_EMPTY_BUFFER);
                 }
 
                 if (APDU_CLA() != CLA) {
-                    THROW(0x6E22);
+                    THROW(ERR_INVALID_CLA);
                 }
 
                 // unauthenticated instruction
@@ -520,7 +520,7 @@ static void sample_main(void) {
                     if ((pin >= 0) &&
                         (pin <= sizeof(G_bolos_ux_context.words_buffer)))
                         G_bolos_ux_context.words_buffer[pin] = APDU_AT(3);
-                    THROW(0x9000);
+                    THROW(APDU_OK);
                     break;
                 case RSK_PIN_CMD: // Send pin_buffer
                     reset_if_starting(RSK_META_CMD_UIOP);
@@ -534,7 +534,7 @@ static void sample_main(void) {
                             G_pin_cache[pin + 1] = 0;
                         }
                     }
-                    THROW(0x9000);
+                    THROW(APDU_OK);
                     break;
                 case RSK_IS_ONBOARD: // Wheter it's onboarded or not
                     reset_if_starting(RSK_IS_ONBOARD);
@@ -544,7 +544,7 @@ static void sample_main(void) {
                     SET_APDU_AT(output_index++, VERSION_MINOR);
                     SET_APDU_AT(output_index++, VERSION_PATCH);
                     tx = 5;
-                    THROW(0x9000);
+                    THROW(APDU_OK);
                     break;
                 case RSK_WIPE: //--- wipe and onboard device ---
                     reset_if_starting(RSK_META_CMD_UIOP);
@@ -618,7 +618,7 @@ static void sample_main(void) {
                     nvm_write((void *)PIC(N_onboarded_ui), &aux, sizeof(aux));
                     // Output
                     tx = 3;
-                    THROW(0x9000);
+                    THROW(APDU_OK);
                     break;
                 case RSK_NEWPIN:
                     reset_if_starting(RSK_META_CMD_UIOP);
@@ -639,34 +639,34 @@ static void sample_main(void) {
                             (unsigned char *)G_bolos_ux_context.pin_buffer + 1,
                             G_bolos_ux_context.pin_buffer[0]));
                     tx = 3;
-                    THROW(0x9000);
+                    THROW(APDU_OK);
                     break;
                 case RSK_ECHO_CMD: // echo
                     reset_if_starting(RSK_ECHO_CMD);
                     tx = rx;
-                    THROW(0x9000);
+                    THROW(APDU_OK);
                     break;
                 case RSK_MODE_CMD: // print mode
                     reset_if_starting(RSK_MODE_CMD);
                     SET_APDU_AT(1, RSK_MODE_BOOTLOADER);
                     tx = 2;
-                    THROW(0x9000);
+                    THROW(APDU_OK);
                     break;
                 case INS_ATTESTATION:
                     reset_if_starting(INS_ATTESTATION);
                     tx = get_attestation(rx, &attestation_ctx);
-                    THROW(0x9000);
+                    THROW(APDU_OK);
                     break;
                 case INS_SIGNER_AUTHORIZATION:
                     reset_if_starting(INS_SIGNER_AUTHORIZATION);
                     tx = do_authorize_signer(rx, &sigaut_ctx);
-                    THROW(0x9000);
+                    THROW(APDU_OK);
                     break;
                 case RSK_RETRIES:
                     reset_if_starting(RSK_RETRIES);
                     SET_APDU_AT(2, (unsigned char)os_global_pin_retries());
                     tx = 3;
-                    THROW(0x9000);
+                    THROW(APDU_OK);
                     break;
                 case RSK_UNLOCK_CMD: // Unlock
                     reset_if_starting(RSK_META_CMD_UIOP);
@@ -676,7 +676,7 @@ static void sample_main(void) {
                             (unsigned char *)G_bolos_ux_context.pin_buffer,
                             strlen(G_bolos_ux_context.pin_buffer)));
                     tx = 5;
-                    THROW(0x9000);
+                    THROW(APDU_OK);
                     break;
                 case RSK_END_CMD: // return to dashboard
                     reset_if_starting(RSK_END_CMD);
@@ -687,13 +687,13 @@ static void sample_main(void) {
                     autoexec = 0;
                     goto return_to_dashboard;
                 default:
-                    THROW(0x6D00);
+                    THROW(ERR_INS_NOT_SUPPORTED);
                     break;
                 }
             }
             CATCH_OTHER(e) {
                 // Reset the state in case of an error
-                if (e != 0x9000) {
+                if (e != APDU_OK) {
                     reset_if_starting(0);
                 }
 

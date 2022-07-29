@@ -22,36 +22,13 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __ERR
-#define __ERR
+#ifndef ERR_H
+#define ERR_H
 
-// Work-around for static_assert()
-#define COMPILE_TIME_ASSERT(condition) \
-    ((void)sizeof(char[1 - 2 * !(condition)]))
+// Error codes for Signer operations
+#define ERR_INVALID_DATA_SIZE (0x6A87)
+#define ERR_INVALID_PATH (0x6A8F)
+#define ERR_INTERNAL (0x6A99)
+#define ERR_INVALID_CLA (0x6E11)
 
-// Error codes for RSK operations
-typedef enum {
-    PROT_INVALID = 0x6a01, // Ledger got invalid or unexpected message
-
-    ATT_NO_ONBOARD = 0x6a02, // Attestation: device not onboarded using the UI
-
-    SIG_AUT_INVALID_ITERATION =
-        0x6a03, // Signer authorization: invalid iteration given
-    SIG_AUT_INVALID_SIGNATURE =
-        0x6a04, // Signer authorization: invalid signature given
-    SIG_AUT_INVALID_AUTH_INVALID_INDEX =
-        0x6a05, // Signer authorization: invalid authorizer index
-
-    INTERNAL = 0x6a99, // Internal error while generating attestation
-} err_code_rsk_t;
-
-// Error codes for UI operations
-typedef enum {
-    ERR_INVALID_PIN = 0x69A0,
-} err_code_ui_t;
-
-typedef enum {
-    ERR_INVALID_CLA = 0x6E22,
-} err_code_ui_apdu_t;
-
-#endif
+#endif // DEFS_H

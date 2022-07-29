@@ -39,13 +39,14 @@
  */
 unsigned int auth_sign_handle_path(volatile unsigned int rx) {
     if (auth.state != AUTH_ST_PATH)
-        THROW(0x6A89); // Invalid state
+        THROW(AUTH_ERR_INVALID_STATE);
 
     if ((rx != DATA + PATH_LEN + INPUT_INDEX_LEN) &&
         (rx != DATA + PATH_LEN + HASH_LEN))
-        THROW(0x6A87); // Wrong buffer size, has to be either
-                       // 28 (DATA+PATH_LEN+INPUT_INDEX_LEN) or
-                       // 56 (DATA+PATH_LEN+HASHEN)
+        THROW(AUTH_ERR_INVALID_DATA_SIZE); // Wrong buffer size,
+                                           // has to be either 28
+                                           // (DATA+PATH_LEN+INPUT_INDEX_LEN) or
+                                           // 56 (DATA+PATH_LEN+HASHEN)
 
     // Read derivation path
     SAFE_MEMMOVE(auth.path,
@@ -55,12 +56,12 @@ unsigned int auth_sign_handle_path(volatile unsigned int rx) {
                  APDU_TOTAL_DATA_SIZE,
                  1, // Skip path length (first byte)
                  sizeof(auth.path),
-                 THROW(0x6A87));
+                 THROW(AUTH_ERR_INVALID_DATA_SIZE));
 
     if (pathRequireAuth(APDU_DATA_PTR)) {
         // If path requires authorization, continue with authorization
         if (rx != DATA + PATH_LEN + INPUT_INDEX_LEN)
-            THROW(0x6A90); // Wrong buffer size for authorized sign
+            THROW(AUTH_ERR_INVALID_DATA_SIZE_AUTH_SIGN);
 
         // Read input index to sign
         SAFE_MEMMOVE(&auth.input_index_to_sign,
@@ -70,7 +71,7 @@ unsigned int auth_sign_handle_path(volatile unsigned int rx) {
                      APDU_TOTAL_DATA_SIZE,
                      PATH_LEN,
                      INPUT_INDEX_LEN,
-                     THROW(0x6A87));
+                     THROW(AUTH_ERR_INVALID_DATA_SIZE));
 
         // Request BTC transaction
         SET_APDU_OP(P1_BTC);
@@ -82,7 +83,7 @@ unsigned int auth_sign_handle_path(volatile unsigned int rx) {
         // If path doesn't require authorization,
         // go directly to signing
         if (rx != DATA + PATH_LEN + HASH_LEN)
-            THROW(0x6A91); // Wrong buffer size for unauthorized sign
+            THROW(AUTH_ERR_INVALID_DATA_SIZE_UNAUTH_SIGN);
 
         // Read hash to sign
         SAFE_MEMMOVE(auth.sig_hash,
@@ -92,7 +93,7 @@ unsigned int auth_sign_handle_path(volatile unsigned int rx) {
                      APDU_TOTAL_DATA_SIZE,
                      PATH_LEN,
                      sizeof(auth.sig_hash),
-                     THROW(0x6A87));
+                     THROW(AUTH_ERR_INVALID_DATA_SIZE));
 
         auth_transition_to(AUTH_ST_SIGN);
         return 0;
@@ -100,5 +101,5 @@ unsigned int auth_sign_handle_path(volatile unsigned int rx) {
 
     // If no path match, then bail out
     // signalling invalid path
-    THROW(0x6A8F);
+    THROW(AUTH_ERR_INVALID_PATH);
 }
