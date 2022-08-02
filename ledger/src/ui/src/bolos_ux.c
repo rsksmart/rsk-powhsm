@@ -39,8 +39,6 @@
  *  limitations under the License.
  ********************************************************************************/
 
-#include <ctype.h>
-
 #include "os.h"
 #include "cx.h"
 
@@ -58,8 +56,14 @@
 // Onboarded with the UI flag
 const unsigned char N_onboarded_ui[1] = {0};
 
-// PIN cache used for authenticated operations
-unsigned char G_pin_cache[MAX_PIN_LENGTH + 1];
+// PIN buffer used for authenticated operations
+unsigned char G_pin_buffer[MAX_PIN_LENGTH + 2];
+
+// Helper macros for pin validation
+#define IS_IN_RANGE(c, begin, end) (((c) >= (begin)) && ((c) <= (end)))
+#define IS_ALPHA(c) (IS_IN_RANGE(c, 'a', 'z') || IS_IN_RANGE(c, 'A', 'Z'))
+#define IS_NUM(c) IS_IN_RANGE(c, '0', '9')
+#define IS_ALPHANUM(c) (IS_ALPHA(c) || IS_NUM(c))
 
 #ifdef OS_IO_SEPROXYHAL
 
@@ -431,23 +435,22 @@ void io_seproxyhal_display(const bagl_element_t *element) {
  * Do pin validations on the given pin buffer
  * If pin validations fail, throw
  */
-void validate_pin(char *pin_buffer) {
+void validate_pin(unsigned char *pin_buffer) {
     // Check PIN length
     if (pin_buffer[0] != MAX_PIN_LENGTH) {
         THROW(ERR_INVALID_PIN);
     }
     // Check if PIN is alphanumeric
-    int hasAlphanumeric = 0;
+    int hasAlpha = 0;
     for (int i = 0; i < MAX_PIN_LENGTH; i++) {
-        int digit = (int)pin_buffer[i + 1];
-        if (!isalnum(digit)) {
+        if (!IS_ALPHANUM(pin_buffer[i + 1])) {
             THROW(ERR_INVALID_PIN);
         }
-        if (isalpha(digit)) {
-            hasAlphanumeric = 1;
+        if (hasAlpha || IS_ALPHA(pin_buffer[i + 1])) {
+            hasAlpha = 1;
         }
     }
-    if (!hasAlphanumeric) {
+    if (!hasAlpha) {
         THROW(ERR_INVALID_PIN);
     }
 }
@@ -532,8 +535,8 @@ static void sample_main(void) {
                     reset_if_starting(RSK_META_CMD_UIOP);
                     pin = APDU_AT(2);
                     if ((pin >= 0) && (pin <= MAX_PIN_LENGTH)) {
-                        G_pin_cache[pin] = APDU_AT(3);
-                        G_pin_cache[pin + 1] = 0;
+                        G_pin_buffer[pin] = APDU_AT(3);
+                        G_pin_buffer[pin + 1] = 0;
                     }
                     THROW(APDU_OK);
                     break;
@@ -556,7 +559,7 @@ static void sample_main(void) {
                     nvm_write((void *)PIC(N_onboarded_ui), &aux, sizeof(aux));
 
 #ifndef DEBUG_BUILD
-                    validate_pin(G_pin_cache);
+                    validate_pin(G_pin_buffer);
 #endif
                     // Wipe device
                     os_global_pin_invalidate();
@@ -598,17 +601,17 @@ static void sample_main(void) {
                                    sizeof(G_bolos_ux_context.words_buffer));
                     // Set PIN
                     os_perso_set_pin(
-                        0, (unsigned char *)G_pin_cache + 1, G_pin_cache[0]);
+                        0, (unsigned char *)G_pin_buffer + 1, G_pin_buffer[0]);
                     // Finalize onboarding
                     os_perso_finalize();
                     os_global_pin_invalidate();
                     SET_APDU_AT(1, 2);
                     SET_APDU_AT(
                         2,
-                        os_global_pin_check((unsigned char *)G_pin_cache + 1,
-                                            G_pin_cache[0]));
+                        os_global_pin_check((unsigned char *)G_pin_buffer + 1,
+                                            G_pin_buffer[0]));
                     // Clear pin buffer
-                    explicit_bzero(G_pin_cache, sizeof(G_pin_cache));
+                    explicit_bzero(G_pin_buffer, sizeof(G_pin_buffer));
                     // Turn the onboarding flag on to mark onboarding
                     // has been done using the UI
                     aux = 1;
@@ -620,21 +623,21 @@ static void sample_main(void) {
                 case RSK_NEWPIN:
                     reset_if_starting(RSK_META_CMD_UIOP);
 #ifndef DEBUG_BUILD
-                    validate_pin(G_pin_cache);
+                    validate_pin(G_pin_buffer);
 #endif
                     // Set PIN
                     os_perso_set_pin(
-                        0, (unsigned char *)G_pin_cache + 1, G_pin_cache[0]);
+                        0, (unsigned char *)G_pin_buffer + 1, G_pin_buffer[0]);
                     // check PIN
                     os_global_pin_invalidate();
                     SET_APDU_AT(1, 2);
                     SET_APDU_AT(
                         2,
-                        os_global_pin_check((unsigned char *)G_pin_cache + 1,
-                                            G_pin_cache[0]));
+                        os_global_pin_check((unsigned char *)G_pin_buffer + 1,
+                                            G_pin_buffer[0]));
                     tx = 3;
                     // Clear pin buffer
-                    explicit_bzero(G_pin_cache, sizeof(G_pin_cache));
+                    explicit_bzero(G_pin_buffer, sizeof(G_pin_buffer));
                     THROW(APDU_OK);
                     break;
                 case RSK_ECHO_CMD: // echo
@@ -666,9 +669,9 @@ static void sample_main(void) {
                     break;
                 case RSK_UNLOCK_CMD: // Unlock
                     reset_if_starting(RSK_META_CMD_UIOP);
-                    SET_APDU_AT(
-                        2,
-                        os_global_pin_check(G_pin_cache, strlen(G_pin_cache)));
+                    SET_APDU_AT(2,
+                                os_global_pin_check(G_pin_buffer,
+                                                    strlen(G_pin_buffer)));
                     tx = 5;
                     THROW(APDU_OK);
                     break;
@@ -964,7 +967,7 @@ void bolos_ux_main(void) {
             if (is_authorized_signer(
                     G_bolos_ux_context.parameters.u.appadd.appentry.hash)) {
                 // PIN is invalidated so we must check it again
-                os_global_pin_check(G_pin_cache, strlen(G_pin_cache));
+                os_global_pin_check(G_pin_buffer, strlen(G_pin_buffer));
                 G_bolos_ux_context.exit_code = BOLOS_UX_OK;
                 break;
             } else {
