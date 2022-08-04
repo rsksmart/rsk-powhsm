@@ -1,0 +1,7 @@
+{
+    "name": "Attempting to set is onboarded value on dongle fails",
+    "operation": "adminIsOnboarded",
+    "value": true,
+    "expected": "0x6e11",
+    "runOn": "dongle"
+}

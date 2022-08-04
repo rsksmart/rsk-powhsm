@@ -44,6 +44,12 @@
 
 #include "dbg.h"
 
+// Macro that throws an error unless
+// the device is onboarded
+#define REQUIRE_ONBOARDED()          \
+    if (os_perso_isonboarded() != 1) \
+        THROW(ERR_DEVICE_NOT_ONBOARDED);
+
 // Operation being currently executed
 static unsigned char curr_cmd;
 
@@ -110,6 +116,8 @@ unsigned int hsm_process_apdu(volatile unsigned int rx) {
 
     // Derives and returns the corresponding public key for the given path
     case INS_GET_PUBLIC_KEY:
+        REQUIRE_ONBOARDED();
+
         reset_if_starting(INS_GET_PUBLIC_KEY);
 
         // Check the received data size
@@ -149,17 +157,23 @@ unsigned int hsm_process_apdu(volatile unsigned int rx) {
         break;
 
     case INS_SIGN:
+        REQUIRE_ONBOARDED();
+
         reset_if_starting(INS_SIGN);
         tx = auth_sign(rx);
         break;
 
     case INS_ATTESTATION:
+        REQUIRE_ONBOARDED();
+
         reset_if_starting(INS_ATTESTATION);
         tx = get_attestation(rx, &attestation);
         break;
 
     // Get blockchain state
     case INS_GET_STATE:
+        REQUIRE_ONBOARDED();
+
         // Get blockchain state is considered part of the
         // advance blockchain operation
         reset_if_starting(INS_ADVANCE);
@@ -168,24 +182,32 @@ unsigned int hsm_process_apdu(volatile unsigned int rx) {
 
     // Reset blockchain state
     case INS_RESET_STATE:
+        REQUIRE_ONBOARDED();
+
         reset_if_starting(INS_RESET_STATE);
         tx = bc_reset_state(rx);
         break;
 
     // Advance blockchain
     case INS_ADVANCE:
+        REQUIRE_ONBOARDED();
+
         reset_if_starting(INS_ADVANCE);
         tx = bc_advance(rx);
         break;
 
     // Advance blockchain precompiled parameters
     case INS_ADVANCE_PARAMS:
+        REQUIRE_ONBOARDED();
+
         reset_if_starting(INS_ADVANCE_PARAMS);
         tx = bc_advance_get_params();
         break;
 
     // Update ancestor
     case INS_UPD_ANCESTOR:
+        REQUIRE_ONBOARDED();
+
         reset_if_starting(INS_UPD_ANCESTOR);
         tx = bc_upd_ancestor(rx);
         break;

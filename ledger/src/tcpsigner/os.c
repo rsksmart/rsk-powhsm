@@ -31,10 +31,8 @@ void os_memmove(void *dst, const void *src, unsigned int length) {
     memmove(dst, src, length);
 }
 
-#define OS_PERSO_ISONBOARDED_YES 1
-
 unsigned int os_perso_isonboarded() {
-    return OS_PERSO_ISONBOARDED_YES;
+    return hsmsim_admin_get_is_onboarded();
 }
 
 void nvm_write(void *dst_adr, void *src_adr, unsigned int src_len) {

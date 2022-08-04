@@ -30,6 +30,8 @@ class TcpSignerAdmin(IntEnum):
     CMD_RESET_ARR = 0x02
     CMD_RESET_NVM = 0x03
     CMD_GET_NVM = 0x04
+    CMD_GET_IS_ONBOARDED = 0x05
+    CMD_SET_IS_ONBOARDED = 0x06
 
     OP_NONE = 0x00
 

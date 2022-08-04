@@ -1,0 +1,6 @@
+{
+    "name": "Non-onboarded get blockchain state fails",
+    "operation": "getState",
+    "expected": "0x6bee",
+    "runOn": "tcpsigner"
+}
