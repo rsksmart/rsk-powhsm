@@ -21,30 +21,53 @@
 # SOFTWARE.
 
 from .case import TestCase, TestCaseError
+from misc.tcpsigner_admin import TcpSignerAdmin
+from ledgerblue.comm import CommException
 
 
-class GetBlockchainState(TestCase):
+class AdminIsOnboarded(TestCase):
+    VALUE_FALSE = 0
+    VALUE_TRUE = 1
+
     @classmethod
     def op_name(cls):
-        return "getState"
+        return "adminIsOnboarded"
 
     def __init__(self, spec):
+        self.value = spec["value"]
+        if self.value is not None and type(self.value) != bool:
+            raise TestCaseError(f"Invalid admin is onboarded value: {self.value}")
+
         super().__init__(spec)
 
     def run(self, dongle, debug, run_args):
         try:
-            state = dongle.get_blockchain_state()
-            debug(f"State: {state}")
-            # Expectations on the retrieved state (optional)
-            if type(self.expected) == dict:
-                for key in self.expected:
-                    if state.get(key) != self.expected[key]:
-                        raise TestCaseError(f"Expected {key} to be {self.expected[key]} "
-                                            f"but got {state.get(key)}")
-        except RuntimeError as e:
+            dongle.dongle.exchange(
+                bytes([TcpSignerAdmin.CLA,
+                       TcpSignerAdmin.CMD_SET_IS_ONBOARDED,
+                       TcpSignerAdmin.OP_NONE,
+                       self.VALUE_TRUE if self.value else self.VALUE_FALSE]))
+
+            # Verify it has been set correctly
+            result = dongle.dongle.exchange(
+                bytes([TcpSignerAdmin.CLA,
+                       TcpSignerAdmin.CMD_GET_IS_ONBOARDED,
+                       TcpSignerAdmin.OP_NONE]))
+
+            # We're expecting a single byte output at the data offset
+            doff = TcpSignerAdmin.APDU_OFFSET_DATA
+            if len(result) <= doff:
+                raise TestCaseError("Invalid admin is onboarded returned "
+                                    f"from dongle: {result.hex()}")
+
+            result_value = result[doff] != self.VALUE_FALSE
+            if result_value != self.value:
+                raise TestCaseError("Failed to set admin is onboarded value. Expected "
+                                    f"{self.value} but got {result} ({result_value})")
+        except (RuntimeError, CommException) as e:
             if type(self.expected) == int:
-                if dongle.last_comm_exception is not None:
-                    error_code = dongle.last_comm_exception.sw
+                if type(e) == CommException:
+                    error_code = e.sw
                     error_code_desc = hex(error_code)
                 else:
                     error_code = None

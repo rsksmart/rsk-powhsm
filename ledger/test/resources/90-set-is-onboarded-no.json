@@ -1,0 +1,6 @@
+{
+    "name": "Set is onboarded to false",
+    "operation": "adminIsOnboarded",
+    "value": false,
+    "runOn": "tcpsigner"
+}

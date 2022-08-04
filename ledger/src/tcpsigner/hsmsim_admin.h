@@ -38,11 +38,19 @@
 #define HSMSIM_ADMIN_CMD_RESET_ANCESTOR_RCPT_ROOT 0x02
 #define HSMSIM_ADMIN_CMD_RESET_NVM_STATS 0x03
 #define HSMSIM_ADMIN_CMD_GET_NVM_STATS 0x04
+#define HSMSIM_ADMIN_CMD_GET_IS_ONBOARDED 0x05
+#define HSMSIM_ADMIN_CMD_SET_IS_ONBOARDED 0x06
 
 #define HSMSIM_ADMIN_ERROR_INVALID_PROTOCOL 0x6f00
 #define HSMSIM_ADMIN_ERROR_DATA_SIZE 0x6f01
 #define HSMSIM_ADMIN_ERROR_INVALID_STATE 0x6f02
 #define HSMSIM_ADMIN_ERROR_BUFFER_OVERFLOW 0x6f03
+
+// Misc constants
+#define HSMSIM_ADMIN_DEFAULT_IS_ONBOARDED (true)
+
+#define HSMSIM_ADMIN_IS_ONBOARDED_YES (1)
+#define HSMSIM_ADMIN_IS_ONBOARDED_NO (0)
 
 typedef struct hsmsim_admin_nvm_info_s {
     unsigned int write_count;
@@ -51,7 +59,10 @@ typedef struct hsmsim_admin_nvm_info_s {
 typedef struct hsmsim_admin_data_s {
     bool ancestor_receipts_root_set;
     uint8_t old_ancestor_receipts_root[HASH_LEN];
+
     hsmsim_admin_nvm_info_t nvm_stats;
+
+    bool is_onboarded;
 } hsmsim_admin_data_t;
 
 void hsmsim_admin_init();
@@ -61,5 +72,7 @@ bool hsmsim_admin_need_process(unsigned int rx);
 unsigned int hsmsim_admin_process_apdu(unsigned int rx);
 
 void hsmsim_admin_nvm_record_write();
+
+unsigned int hsmsim_admin_get_is_onboarded();
 
 #endif

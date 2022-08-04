@@ -32,6 +32,7 @@ static hsmsim_admin_data_t hsmsim_admin_data;
 
 void hsmsim_admin_init() {
     memset(&hsmsim_admin_data, 0, sizeof(hsmsim_admin_data));
+    hsmsim_admin_data.is_onboarded = HSMSIM_ADMIN_DEFAULT_IS_ONBOARDED;
     info("ADMIN: Init OK.\n");
 }
 
@@ -130,6 +131,23 @@ unsigned int hsmsim_admin_process_apdu(unsigned int rx) {
         info("ADMIN: got NVM stats - %u writes.\n",
              hsmsim_admin_data.nvm_stats.write_count);
         break;
+    case HSMSIM_ADMIN_CMD_GET_IS_ONBOARDED:
+        APDU_DATA_PTR[0] = (unsigned char)hsmsim_admin_data.is_onboarded;
+        tx = TX_FOR_DATA_SIZE(1);
+        info("ADMIN: got is_onboarded status.\n");
+        break;
+    case HSMSIM_ADMIN_CMD_SET_IS_ONBOARDED:
+        if (APDU_DATA_SIZE(rx) != 1) {
+            info("ADMIN: Invalid is_onboarded value size. Expected 1 "
+                 "byte, got %d.\n",
+                 APDU_DATA_SIZE(rx));
+            return hsmsim_admin_error(HSMSIM_ADMIN_ERROR_DATA_SIZE);
+        }
+        hsmsim_admin_data.is_onboarded = (bool)APDU_DATA_PTR[0];
+        info("ADMIN: is_onboarded set to %d.\n",
+             hsmsim_admin_data.is_onboarded);
+        tx = TX_FOR_DATA_SIZE(0);
+        break;
     default:
         info("ADMIN: Invalid CMD: %d.\n", APDU_CMD());
         return hsmsim_admin_error(HSMSIM_ADMIN_ERROR_INVALID_PROTOCOL);
@@ -140,4 +158,9 @@ unsigned int hsmsim_admin_process_apdu(unsigned int rx) {
 
 void hsmsim_admin_nvm_record_write() {
     hsmsim_admin_data.nvm_stats.write_count++;
+}
+
+unsigned int hsmsim_admin_get_is_onboarded() {
+    return hsmsim_admin_data.is_onboarded ? HSMSIM_ADMIN_IS_ONBOARDED_YES
+                                          : HSMSIM_ADMIN_IS_ONBOARDED_NO;
 }

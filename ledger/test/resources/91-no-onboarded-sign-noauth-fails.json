@@ -1,0 +1,7 @@
+{
+	"name": "Non-onboarded sign non authorized fails",
+    "operation": "signUnauthorized",
+    "expected": "0x6bee",
+	"hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "runOn": "tcpsigner"
+}

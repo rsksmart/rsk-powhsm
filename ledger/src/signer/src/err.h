@@ -30,5 +30,6 @@
 #define ERR_INVALID_PATH (0x6A8F)
 #define ERR_INTERNAL (0x6A99)
 #define ERR_INVALID_CLA (0x6E11)
+#define ERR_DEVICE_NOT_ONBOARDED (0x6BEE)
 
 #endif // DEFS_H
