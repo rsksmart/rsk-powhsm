@@ -46,6 +46,7 @@
 
 #include "attestation.h"
 #include "signer_authorization.h"
+#include "pin.h"
 
 #ifdef HAVE_BOLOS_UX
 
@@ -166,7 +167,6 @@ typedef struct bolos_ux_context {
         };
     };
 
-#define MAX_PIN_LENGTH 8
 #define MIN_PIN_LENGTH 4
     char pin_buffer[MAX_PIN_LENGTH +
                     1]; // length prepended for custom pin length

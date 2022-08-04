@@ -42,7 +42,7 @@ def do_changepin(options):
     new_pin = None
     if options.new_pin is not None:
         if not BasePin.is_valid(options.new_pin.encode(),
-                                require_alpha=not options.any_pin):
+                                any_pin=options.any_pin):
             raise AdminError(
                 PIN_ERROR_MESSAGE if not options.any_pin else PIN_ERROR_MESSAGE_ANYCHARS)
         new_pin = options.new_pin.encode()
@@ -70,7 +70,7 @@ def do_changepin(options):
     # Ask the user for a new pin if one has not been given
     if new_pin is None:
         info("Please select a pin for the device.")
-        new_pin = ask_for_pin(require_alpha=not options.any_pin)
+        new_pin = ask_for_pin(any_pin=options.any_pin)
 
     # Attempt to change the pin
     info("Changing pin... ", options.verbose)

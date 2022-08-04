@@ -43,7 +43,7 @@ def do_unlock(options, exit=True, no_exec=False, label=True):
     # Validate pin (if given)
     pin = None
     if options.pin is not None:
-        if not BasePin.is_valid(options.pin.encode(), require_alpha=False):
+        if not BasePin.is_valid(options.pin.encode(), options.any_pin):
             raise AdminError(PIN_ERROR_MESSAGE_ANYCHARS)
         pin = options.pin.encode()
 
@@ -79,7 +79,7 @@ def do_unlock(options, exit=True, no_exec=False, label=True):
     # Ask the user for a pin if one not given
     if pin is None:
         info("Please enter the pin.")
-        pin = ask_for_pin(require_alpha=False)
+        pin = ask_for_pin(any_pin=True)
 
     # Unlock device with PIN
     info("Unlocking with PIN... ", options.verbose)
