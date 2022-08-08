@@ -27,7 +27,7 @@
 
 #include <stdbool.h>
 
-#define MAX_PIN_LENGTH 8
+#define PIN_LENGTH 8
 
 bool is_pin_valid(unsigned char *pin);
 

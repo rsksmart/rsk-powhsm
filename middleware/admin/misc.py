@@ -31,7 +31,7 @@ from .dongle_eth import DongleEth
 PIN_ERROR_MESSAGE = ("Invalid pin given. It must be exactly 8 alphanumeric "
                      "characters with at least one alphabetic character.")
 PIN_ERROR_MESSAGE_ANYCHARS = (
-    "Invalid pin given. It must composed only of alphanumeric characters.")
+    "Invalid pin given. It must be composed only of alphanumeric characters.")
 
 SIGNER_WAIT_TIME = 3  # seconds
 

@@ -34,21 +34,21 @@
 #define IS_ALPHANUM(c) (IS_ALPHA(c) || IS_NUM(c))
 
 /*
- * Validates that the pin has exactly MAX_PIN_LENGTH alphanumeric characters
+ * Validates that the pin has exactly PIN_LENGTH alphanumeric characters
  * with at least one alphabetic character.
  *
  * @arg[in] pin null-terminated string representing the pin to validate
  * @ret     true if pin is valid, false otherwise
  */
 bool is_pin_valid(unsigned char *pin) {
-    // MAX_PIN_LENGTH is the only length accepted
-    size_t length = strnlen(pin, MAX_PIN_LENGTH + 1);
-    if (length != MAX_PIN_LENGTH) {
+    // PIN_LENGTH is the only length accepted
+    size_t length = strnlen(pin, PIN_LENGTH + 1);
+    if (length != PIN_LENGTH) {
         return false;
     }
     // Check if PIN is alphanumeric
     bool hasAlpha = false;
-    for (int i = 0; i < MAX_PIN_LENGTH; i++) {
+    for (int i = 0; i < PIN_LENGTH; i++) {
         if (!IS_ALPHANUM(pin[i])) {
             return false;
         }
