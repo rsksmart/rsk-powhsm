@@ -107,7 +107,7 @@ def do_onboard(options):
     # Ask the user for a pin if one not given
     if pin is None:
         info("Please select a pin for the device.")
-        pin = ask_for_pin(require_alpha=True)
+        pin = ask_for_pin(any_pin=options.any_pin)
 
     # Generate a random seed
     info("Generating a random seed... ", options.verbose)

@@ -56,8 +56,12 @@
 // Onboarded with the UI flag
 const unsigned char N_onboarded_ui[1] = {0};
 
-// PIN cache used for authenticated operations
-unsigned char G_pin_cache[MAX_PIN_LENGTH + 1];
+// PIN buffer used for authenticated operations
+unsigned char G_pin_buffer[PIN_LENGTH + 2];
+// Skip the prepended length of pin buffer
+#define G_PIN_BUFFER_PAYLOAD (G_pin_buffer + 1)
+// Unify pin buffer length
+#define G_PIN_BUFFER_LEN() strlen(G_PIN_BUFFER_PAYLOAD)
 
 #ifdef OS_IO_SEPROXYHAL
 
@@ -425,27 +429,6 @@ void io_seproxyhal_display(const bagl_element_t *element) {
 // Signer authorization context shorthand
 #define sigaut_ctx (G_bolos_ux_context.sigaut)
 
-/*
- * Do pin validations on the given pin buffer
- * If pin validations fail, throw
- */
-void validate_pin(char *pin_buffer) {
-    // Check PIN length
-    if (pin_buffer[0] != MAX_PIN_LENGTH) {
-        THROW(ERR_INVALID_PIN);
-    }
-    // Check if PIN is alphanumeric
-    int isAlphanumeric = 0;
-    for (int i = 0; i < MAX_PIN_LENGTH; i++) {
-        if (pin_buffer[i + 1] > '9') {
-            isAlphanumeric = 1;
-        }
-    }
-    if (!isAlphanumeric) {
-        THROW(ERR_INVALID_PIN);
-    }
-}
-
 // Operation being currently executed
 static unsigned char curr_cmd;
 
@@ -525,14 +508,9 @@ static void sample_main(void) {
                 case RSK_PIN_CMD: // Send pin_buffer
                     reset_if_starting(RSK_META_CMD_UIOP);
                     pin = APDU_AT(2);
-                    if ((pin >= 0) && (pin <= MAX_PIN_LENGTH)) {
-                        G_bolos_ux_context.pin_buffer[pin] = APDU_AT(3);
-                        // We don't need the prepended length for the pin
-                        // cache, so it is one byte smaller
-                        if (pin < sizeof(G_pin_cache) - 1) {
-                            G_pin_cache[pin] = APDU_AT(3);
-                            G_pin_cache[pin + 1] = 0;
-                        }
+                    if ((pin >= 0) && (pin <= PIN_LENGTH)) {
+                        G_pin_buffer[pin] = APDU_AT(3);
+                        G_pin_buffer[pin + 1] = 0;
                     }
                     THROW(APDU_OK);
                     break;
@@ -555,7 +533,9 @@ static void sample_main(void) {
                     nvm_write((void *)PIC(N_onboarded_ui), &aux, sizeof(aux));
 
 #ifndef DEBUG_BUILD
-                    validate_pin(G_bolos_ux_context.pin_buffer);
+                    if (!is_pin_valid(G_PIN_BUFFER_PAYLOAD)) {
+                        THROW(ERR_INVALID_PIN);
+                    }
 #endif
                     // Wipe device
                     os_global_pin_invalidate();
@@ -597,21 +577,16 @@ static void sample_main(void) {
                                    sizeof(G_bolos_ux_context.words_buffer));
                     // Set PIN
                     os_perso_set_pin(
-                        0,
-                        (unsigned char *)G_bolos_ux_context.pin_buffer + 1,
-                        G_bolos_ux_context.pin_buffer[0]);
+                        0, G_PIN_BUFFER_PAYLOAD, G_PIN_BUFFER_LEN());
                     // Finalize onboarding
                     os_perso_finalize();
                     os_global_pin_invalidate();
                     SET_APDU_AT(1, 2);
-                    SET_APDU_AT(
-                        2,
-                        os_global_pin_check(
-                            (unsigned char *)G_bolos_ux_context.pin_buffer + 1,
-                            G_bolos_ux_context.pin_buffer[0]));
+                    SET_APDU_AT(2,
+                                os_global_pin_check(G_PIN_BUFFER_PAYLOAD,
+                                                    G_PIN_BUFFER_LEN()));
                     // Clear pin buffer
-                    explicit_bzero(G_bolos_ux_context.pin_buffer,
-                                   sizeof(G_bolos_ux_context.pin_buffer));
+                    explicit_bzero(G_pin_buffer, sizeof(G_pin_buffer));
                     // Turn the onboarding flag on to mark onboarding
                     // has been done using the UI
                     aux = 1;
@@ -622,23 +597,24 @@ static void sample_main(void) {
                     break;
                 case RSK_NEWPIN:
                     reset_if_starting(RSK_META_CMD_UIOP);
+
 #ifndef DEBUG_BUILD
-                    validate_pin(G_bolos_ux_context.pin_buffer);
+                    if (!is_pin_valid(G_PIN_BUFFER_PAYLOAD)) {
+                        THROW(ERR_INVALID_PIN);
+                    }
 #endif
                     // Set PIN
                     os_perso_set_pin(
-                        0,
-                        (unsigned char *)G_bolos_ux_context.pin_buffer + 1,
-                        G_bolos_ux_context.pin_buffer[0]);
+                        0, G_PIN_BUFFER_PAYLOAD, G_PIN_BUFFER_LEN());
                     // check PIN
                     os_global_pin_invalidate();
                     SET_APDU_AT(1, 2);
-                    SET_APDU_AT(
-                        2,
-                        os_global_pin_check(
-                            (unsigned char *)G_bolos_ux_context.pin_buffer + 1,
-                            G_bolos_ux_context.pin_buffer[0]));
+                    SET_APDU_AT(2,
+                                os_global_pin_check(G_PIN_BUFFER_PAYLOAD,
+                                                    G_PIN_BUFFER_LEN()));
                     tx = 3;
+                    // Clear pin buffer
+                    explicit_bzero(G_pin_buffer, sizeof(G_pin_buffer));
                     THROW(APDU_OK);
                     break;
                 case RSK_ECHO_CMD: // echo
@@ -670,13 +646,17 @@ static void sample_main(void) {
                     break;
                 case RSK_UNLOCK_CMD: // Unlock
                     reset_if_starting(RSK_META_CMD_UIOP);
-                    SET_APDU_AT(
-                        2,
-                        os_global_pin_check(
-                            (unsigned char *)G_bolos_ux_context.pin_buffer,
-                            strlen(G_bolos_ux_context.pin_buffer)));
+                    // RSK_UNLOCK_CMD does not send the prepended length,
+                    // so we kept this call backwards compatible, using
+                    // G_pin_buffer instead of G_PIN_BUFFER_PAYLOAD
+                    SET_APDU_AT(2,
+                                os_global_pin_check(G_pin_buffer,
+                                                    strlen(G_pin_buffer)));
                     tx = 5;
                     THROW(APDU_OK);
+                    // The pin value will also be used in
+                    // BOLOS_UX_CONSENT_APP_ADD command, so we can't wipe the
+                    // pin buffer here
                     break;
                 case RSK_END_CMD: // return to dashboard
                     reset_if_starting(RSK_END_CMD);
@@ -969,9 +949,12 @@ void bolos_ux_main(void) {
         case BOLOS_UX_CONSENT_APP_ADD:
             if (is_authorized_signer(
                     G_bolos_ux_context.parameters.u.appadd.appentry.hash)) {
-                // PIN is invalidated so we must check it again
-                os_global_pin_check(G_pin_cache, strlen(G_pin_cache));
+                // PIN is invalidated so we must check it again. The pin value
+                // used here is the same as in RSK_UNLOCK_CMD, so we also
+                // don't have a prepended length byte
+                os_global_pin_check(G_pin_buffer, strlen(G_pin_buffer));
                 G_bolos_ux_context.exit_code = BOLOS_UX_OK;
+                explicit_bzero(G_pin_buffer, sizeof(G_pin_buffer));
                 break;
             } else {
                 G_bolos_ux_context.exit_code = BOLOS_UX_CANCEL;

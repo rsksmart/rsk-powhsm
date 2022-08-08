@@ -46,18 +46,18 @@ class BasePin:
         return pin.encode()
 
     @classmethod
-    def is_valid(cls, pin, require_alpha=True):
+    def is_valid(cls, pin, any_pin=False):
         if type(pin) != bytes:
-            return False
-
-        if len(pin) != cls.PIN_LENGTH:
             return False
 
         if not all(map(lambda c: chr(c) in cls.POSSIBLE_CHARS, pin)):
             return False
 
-        if not require_alpha:
+        if any_pin:
             return True
+
+        if len(pin) != cls.PIN_LENGTH:
+            return False
 
         return any(map(lambda c: chr(c) in cls.ALPHA_CHARS, pin))
 

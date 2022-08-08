@@ -66,6 +66,7 @@ class TestOnboard(TestCase):
         options = {
             'pin': self.VALID_PIN,
             'output_file_path': self.certificate_path,
+            'any_pin': False,
             'no_exec': False,
             'verbose': False
         }

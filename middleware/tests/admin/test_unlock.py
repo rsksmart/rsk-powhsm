@@ -41,6 +41,7 @@ class TestUnlock(TestCase):
 
         options = {
             'pin': self.valid_pin,
+            'any_pin': False,
             'no_exec': None,
             'verbose': False
         }

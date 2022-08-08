@@ -31,7 +31,7 @@ from .dongle_eth import DongleEth
 PIN_ERROR_MESSAGE = ("Invalid pin given. It must be exactly 8 alphanumeric "
                      "characters with at least one alphabetic character.")
 PIN_ERROR_MESSAGE_ANYCHARS = (
-    "Invalid pin given. It must be exactly 8 alphanumeric characters.")
+    "Invalid pin given. It must be composed only of alphanumeric characters.")
 
 SIGNER_WAIT_TIME = 3  # seconds
 
@@ -108,12 +108,12 @@ def dispose_eth_dongle(eth):
     info("OK")
 
 
-def ask_for_pin(require_alpha):
+def ask_for_pin(any_pin):
     pin = None
-    while pin is None or not BasePin.is_valid(pin, require_alpha=require_alpha):
+    while pin is None or not BasePin.is_valid(pin, any_pin):
         pin = getpass("> ").encode()
-        if not BasePin.is_valid(pin, require_alpha=require_alpha):
-            info(PIN_ERROR_MESSAGE if require_alpha else PIN_ERROR_MESSAGE_ANYCHARS)
+        if not BasePin.is_valid(pin, any_pin):
+            info(PIN_ERROR_MESSAGE if not any_pin else PIN_ERROR_MESSAGE_ANYCHARS)
     return pin
 
 

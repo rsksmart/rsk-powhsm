@@ -46,6 +46,7 @@
 
 #include "attestation.h"
 #include "signer_authorization.h"
+#include "pin.h"
 
 #ifdef HAVE_BOLOS_UX
 
