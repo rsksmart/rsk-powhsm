@@ -421,12 +421,9 @@ unsigned int screen_settings_change_pin_apply(unsigned int ignored) {
     G_bolos_ux_context.screen_stack[0].ticker_callback = NULL;
 
     // pin is validated, change the pin
-    // if (G_bolos_ux_context.exit_code != BOLOS_UX_CANCEL)
-    {
-        os_perso_set_current_identity_pin(
-            (unsigned char *)(G_bolos_ux_context.words_buffer + 1),
-            G_bolos_ux_context.words_buffer[0]);
-    }
+    os_perso_set_current_identity_pin(
+        (unsigned char *)(G_bolos_ux_context.words_buffer + 1),
+        G_bolos_ux_context.words_buffer[0]);
 
     // prepare return after pin has been changed
     screen_settings_change_pin();
@@ -463,7 +460,6 @@ unsigned int screen_settings_change_pin_3_pin_button(
     return 1;
 }
 
-//
 unsigned int screen_settings_change_pin_1_2_pin_entered(
     unsigned char *pin_buffer, unsigned int pin_length) {
     if (G_bolos_ux_context.onboarding_index == 0) {

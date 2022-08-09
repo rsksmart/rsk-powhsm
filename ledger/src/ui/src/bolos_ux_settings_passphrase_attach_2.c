@@ -333,7 +333,6 @@ unsigned int screen_settings_passphrase_attach_2_pin_nomatch_button(
     return 1;
 }
 
-//
 unsigned int screen_settings_passphrase_attach_2_pin_entered(
     unsigned char *pin_buffer, unsigned int pin_length) {
     if (G_bolos_ux_context.onboarding_index == 0) {

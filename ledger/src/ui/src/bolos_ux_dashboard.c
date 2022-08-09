@@ -273,154 +273,6 @@ const bagl_element_t screen_dashboard_elements[] = {
      NULL},
 };
 
-const bagl_element_t screen_dashboard_unsigned_app_elements[] = {
-    // type                               userid    x    y   w    h  str rad
-    // fill      fg        bg      fid iid  txt   touchparams...       ]
-    {{BAGL_RECTANGLE,
-      0x00,
-      0,
-      0,
-      128,
-      32,
-      0,
-      0,
-      BAGL_FILL,
-      0x000000,
-      0xFFFFFF,
-      0,
-      0},
-     NULL,
-     0,
-     0,
-     0,
-     NULL,
-     NULL,
-     NULL},
-
-    {{BAGL_ICON,
-      0x00,
-      3,
-      12,
-      7,
-      7,
-      0,
-      0,
-      0,
-      0xFFFFFF,
-      0x000000,
-      0,
-      BAGL_GLYPH_ICON_CROSS},
-     NULL,
-     0,
-     0,
-     0,
-     NULL,
-     NULL,
-     NULL},
-    {{BAGL_ICON,
-      0x00,
-      117,
-      13,
-      8,
-      6,
-      0,
-      0,
-      0,
-      0xFFFFFF,
-      0x000000,
-      0,
-      BAGL_GLYPH_ICON_CHECK},
-     NULL,
-     0,
-     0,
-     0,
-     NULL,
-     NULL,
-     NULL},
-
-    {{BAGL_LABELINE,
-      0x10,
-      0,
-      12,
-      128,
-      32,
-      0,
-      0,
-      0,
-      0xFFFFFF,
-      0x000000,
-      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER,
-      0},
-     "Can't open ",
-     0,
-     0,
-     0,
-     NULL,
-     NULL,
-     NULL},
-    {{BAGL_LABELINE,
-      0x10,
-      0,
-      26,
-      128,
-      32,
-      0,
-      0,
-      0,
-      0xFFFFFF,
-      0x000000,
-      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER,
-      0},
-     "unsigned app.",
-     0,
-     0,
-     0,
-     NULL,
-     NULL,
-     NULL},
-
-    {{BAGL_LABELINE,
-      0x11,
-      0,
-      12,
-      128,
-      32,
-      0,
-      0,
-      0,
-      0xFFFFFF,
-      0x000000,
-      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER,
-      0},
-     "Identifier",
-     0,
-     0,
-     0,
-     NULL,
-     NULL,
-     NULL},
-    {{BAGL_LABELINE,
-      0x31,
-      0,
-      26,
-      128,
-      11,
-      0,
-      0,
-      0,
-      0xFFFFFF,
-      0x000000,
-      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER,
-      0},
-     G_bolos_ux_context.string_buffer,
-     0,
-     0,
-     0,
-     NULL,
-     NULL,
-     NULL},
-};
-
 typedef struct screen_dashboard_s {
     application_t app;
     unsigned int os_index;
@@ -540,31 +392,6 @@ unsigned int screen_dashboard_unsigned_app_button(
     return 0;
 }
 
-const bagl_element_t *
-screen_dashboard_unsigned_app_before_element_display_callback(
-    const bagl_element_t *element) {
-    screen_dashboard_t db;
-    int i = 0;
-
-    if ((element->component.userid & 0x10) &&
-        (element->component.userid & 0x0F) !=
-            G_bolos_ux_context.onboarding_index) {
-        return NULL;
-    }
-
-    switch (element->component.userid) {
-    case 0x31:
-        do {
-            screen_dashboard_get_app(
-                G_bolos_ux_context.dashboard_last_selected + i, &db);
-            i++;
-        } while (db.app.flags & APPLICATION_FLAG_BOLOS_UX);
-        screen_hex_identifier_string_buffer(db.app.hash, 32);
-        break;
-    }
-    return element;
-}
-
 unsigned int screen_dashboard_button(unsigned int button_mask,
                                      unsigned int button_mask_counter) {
     UNUSED(button_mask_counter);
@@ -654,11 +481,6 @@ const bagl_element_t *screen_dashboard_before_element_display_callback(
         break;
     // left arrow
     case 0x41:
-        /*
-        if (G_bolos_ux_context.hslider3_before == BOLOS_UX_HSLIDER3_NONE) {
-          return NULL;
-        }
-        */
         break;
     // left '-'
     case 0x02:

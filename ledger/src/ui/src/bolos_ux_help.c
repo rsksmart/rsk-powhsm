@@ -53,8 +53,8 @@ const struct screen_help_strings_s {
     const char *line1;
     const char *line2;
 } const screen_help_strings[] = {
-    {"Website", "help.ledgerwallet.com"}, {"Email", "help@ledgerwallet.com"},
-    //{"Phone", "+33 9 67 30 01 71"},
+    {"Website", "help.ledgerwallet.com"},
+    {"Email", "help@ledgerwallet.com"},
 };
 
 const bagl_element_t screen_help_x_elements[] = {
@@ -268,13 +268,6 @@ void screen_help_init(appmain_t help_ended_callback) {
         (stack_slot - 1 != G_bolos_ux_context.screen_stack_count - 1)) {
         screen_stack_remove(stack_slot - 1);
     }
-
-    /*
-    if
-    (screen_stack_is_element_array_present(screen_modal_help_static_elements)) {
-      return;
-    }
-    */
 
     stack_slot = screen_stack_push();
 

@@ -113,7 +113,6 @@ const bagl_element_t screen_consent_upgrade_elements[] = {
      NULL,
      NULL},
 
-#ifndef BOLOS_OS_UPGRADER
     {{BAGL_ICON,
       0x10,
       27,
@@ -174,69 +173,6 @@ const bagl_element_t screen_consent_upgrade_elements[] = {
      NULL,
      NULL,
      NULL},
-#else
-    {{BAGL_ICON,
-      0x10,
-      19,
-      9,
-      14,
-      14,
-      0,
-      0,
-      0,
-      0xFFFFFF,
-      0x000000,
-      0,
-      BAGL_GLYPH_ICON_WARNING_BADGE},
-     NULL,
-     0,
-     0,
-     0,
-     NULL,
-     NULL,
-     NULL},
-    {{BAGL_LABELINE,
-      0x10,
-      41,
-      12,
-      128,
-      32,
-      0,
-      0,
-      0,
-      0xFFFFFF,
-      0x000000,
-      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px,
-      0},
-     "Unexpected",
-     0,
-     0,
-     0,
-     NULL,
-     NULL,
-     NULL},
-    {{BAGL_LABELINE,
-      0x10,
-      42,
-      26,
-      128,
-      32,
-      0,
-      0,
-      0,
-      0xFFFFFF,
-      0x000000,
-      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px,
-      0},
-     "firmware",
-     0,
-     0,
-     0,
-     NULL,
-     NULL,
-     NULL},
-#endif // BOLOS_OS_UPGRADER
-
     {{BAGL_LABELINE,
       0x11,
       0,
@@ -277,7 +213,6 @@ const bagl_element_t screen_consent_upgrade_elements[] = {
      NULL,
      NULL,
      NULL},
-
     {{BAGL_LABELINE,
       0x12,
       0,
@@ -369,14 +304,7 @@ void screen_consent_upgrade_init(void) {
         screen_consent_upgrade_before_element_display_callback;
 
     // start displaying
-    screen_consent_ticker_init(3,
-                               2000,
-#ifdef BOLOS_OS_UPGRADER
-                               0 /* don't ask for pin when in OSU */
-#else                            // BOLOS_OS_UPGRADER
-                               1 /*check pin to confirm*/
-#endif                           // BOLOS_OS_UPGRADER
-    );
+    screen_consent_ticker_init(3, 2000, 1 /*check pin to confirm*/);
 }
 
 #endif // OS_IO_SEPROXYHAL

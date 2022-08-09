@@ -57,24 +57,6 @@ const ux_turner_step_t screen_settings_erase_all_steps[] = {
     {NULL, 0, "Would you like", 0, "to continue?", 0, 0, 3000},
 };
 
-unsigned int screen_settings_erase_all_perform(unsigned int ignored) {
-    UNUSED(ignored);
-    // wait a bit
-    // avoid future callback
-    G_bolos_ux_context.screen_stack[0].ticker_callback = NULL;
-
-    // perform the wipe and go to onboarding
-    os_perso_erase_all();
-
-    if (os_flags() & OS_FLAG_RECOVERY) {
-        G_bolos_ux_context.dashboard_redisplayed = 1;
-        screen_dashboard_init();
-    } else {
-        screen_onboarding_0_welcome_init();
-    }
-    return 0;
-}
-
 unsigned int screen_settings_erase_all_display_processing(
     unsigned int ignored) {
     UNUSED(ignored);
