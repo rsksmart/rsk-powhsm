@@ -61,7 +61,7 @@ unsigned char G_pin_buffer[PIN_LENGTH + 2];
 // Skip the prepended length of pin buffer
 #define G_PIN_BUFFER_PAYLOAD (G_pin_buffer + 1)
 // Unify pin buffer length
-#define G_PIN_BUFFER_LEN() strlen(G_PIN_BUFFER_PAYLOAD)
+#define G_PIN_BUFFER_LEN() strlen((const char *)G_PIN_BUFFER_PAYLOAD)
 
 #ifdef OS_IO_SEPROXYHAL
 
@@ -125,11 +125,11 @@ unsigned short io_timeout(unsigned short last_timeout) {
 void screen_hex_identifier_string_buffer(const unsigned char *buffer,
                                          unsigned int total) {
     SPRINTF(G_bolos_ux_context.string_buffer,
-            "%.*H...%.*H",
+            "%.*hhX...%.*hhX",
             BOLOS_UX_HASH_LENGTH / 2,
-            buffer,
+            (unsigned char)buffer,
             BOLOS_UX_HASH_LENGTH / 2,
-            buffer + total - BOLOS_UX_HASH_LENGTH / 2);
+            (unsigned char)(buffer + total - BOLOS_UX_HASH_LENGTH / 2));
 }
 
 // common code for all screens
@@ -500,8 +500,8 @@ static void sample_main(void) {
                 case RSK_SEED_CMD: // Send wordlist
                     reset_if_starting(RSK_META_CMD_UIOP);
                     pin = APDU_AT(2);
-                    if ((pin >= 0) &&
-                        (pin <= sizeof(G_bolos_ux_context.words_buffer)))
+                    if ((pin >= 0) && ((unsigned int)(pin) <=
+                                       sizeof(G_bolos_ux_context.words_buffer)))
                         G_bolos_ux_context.words_buffer[pin] = APDU_AT(3);
                     THROW(APDU_OK);
                     break;
@@ -530,7 +530,8 @@ static void sample_main(void) {
                     // Reset the onboarding flag to mark onboarding
                     // hasn't been done just in case something fails
                     aux = 0;
-                    nvm_write((void *)PIC(N_onboarded_ui), &aux, sizeof(aux));
+                    nvm_write(
+                        (void *)PIC(N_onboarded_ui), (void *)&aux, sizeof(aux));
 
 #ifndef DEBUG_BUILD
                     if (!is_pin_valid(G_PIN_BUFFER_PAYLOAD)) {
@@ -590,7 +591,8 @@ static void sample_main(void) {
                     // Turn the onboarding flag on to mark onboarding
                     // has been done using the UI
                     aux = 1;
-                    nvm_write((void *)PIC(N_onboarded_ui), &aux, sizeof(aux));
+                    nvm_write(
+                        (void *)PIC(N_onboarded_ui), (void *)&aux, sizeof(aux));
                     // Output
                     tx = 3;
                     THROW(APDU_OK);
@@ -649,9 +651,10 @@ static void sample_main(void) {
                     // RSK_UNLOCK_CMD does not send the prepended length,
                     // so we kept this call backwards compatible, using
                     // G_pin_buffer instead of G_PIN_BUFFER_PAYLOAD
-                    SET_APDU_AT(2,
-                                os_global_pin_check(G_pin_buffer,
-                                                    strlen(G_pin_buffer)));
+                    SET_APDU_AT(
+                        2,
+                        os_global_pin_check(
+                            G_pin_buffer, strlen((const char *)G_pin_buffer)));
                     tx = 5;
                     THROW(APDU_OK);
                     // The pin value will also be used in
@@ -952,7 +955,8 @@ void bolos_ux_main(void) {
                 // PIN is invalidated so we must check it again. The pin value
                 // used here is the same as in RSK_UNLOCK_CMD, so we also
                 // don't have a prepended length byte
-                os_global_pin_check(G_pin_buffer, strlen(G_pin_buffer));
+                os_global_pin_check(G_pin_buffer,
+                                    strlen((const char *)G_pin_buffer));
                 G_bolos_ux_context.exit_code = BOLOS_UX_OK;
                 explicit_bzero(G_pin_buffer, sizeof(G_pin_buffer));
                 break;

@@ -56,34 +56,42 @@ int do_pubkey(unsigned int* path,
     BEGIN_TRY {
         TRY {
             // Derive and init private key
-            os_perso_derive_node_bip32(
-                CX_CURVE_256K1, path, path_length, private_key_data, NULL);
-            cx_ecdsa_init_private_key(
-                CX_CURVE_256K1, private_key_data, KEY_LEN, &private_key);
+            os_perso_derive_node_bip32(CX_CURVE_256K1,
+                                       path,
+                                       path_length,
+                                       (unsigned char*)private_key_data,
+                                       NULL);
+            cx_ecdsa_init_private_key(CX_CURVE_256K1,
+                                      (unsigned char*)private_key_data,
+                                      KEY_LEN,
+                                      (cx_ecfp_private_key_t*)&private_key);
             // Cleanup private key data
-            explicit_bzero(private_key_data, sizeof(private_key_data));
+            explicit_bzero((void*)private_key_data, sizeof(private_key_data));
             // Derive public key
-            cx_ecfp_generate_pair(CX_CURVE_256K1, &public_key, &private_key, 1);
+            cx_ecfp_generate_pair(CX_CURVE_256K1,
+                                  (cx_ecfp_public_key_t*)&public_key,
+                                  (cx_ecfp_private_key_t*)&private_key,
+                                  1);
             // Cleanup private key
-            explicit_bzero(&private_key, sizeof(private_key));
+            explicit_bzero((void*)&private_key, sizeof(private_key));
             // Output the public key
             pubkey_size = public_key.W_len;
             SAFE_MEMMOVE(dest,
                          dest_size,
                          MEMMOVE_ZERO_OFFSET,
-                         public_key.W,
+                         (void*)public_key.W,
                          public_key.W_len,
                          MEMMOVE_ZERO_OFFSET,
                          public_key.W_len,
                          { pubkey_size = DO_PUBKEY_ERROR; })
             // Cleanup public key
-            explicit_bzero(&public_key, sizeof(public_key));
+            explicit_bzero((void*)&public_key, sizeof(public_key));
         }
         CATCH_OTHER(e) {
             // Cleanup key data and fail
-            explicit_bzero(private_key_data, sizeof(private_key_data));
-            explicit_bzero(&private_key, sizeof(private_key));
-            explicit_bzero(&public_key, sizeof(public_key));
+            explicit_bzero((void*)private_key_data, sizeof(private_key_data));
+            explicit_bzero((void*)&private_key, sizeof(private_key));
+            explicit_bzero((void*)&public_key, sizeof(public_key));
             // Signal error deriving public key
             pubkey_size = DO_PUBKEY_ERROR;
         }
@@ -128,12 +136,17 @@ int do_sign(unsigned int* path,
     BEGIN_TRY {
         TRY {
             // Derive and init private key
-            os_perso_derive_node_bip32(
-                CX_CURVE_256K1, path, path_length, private_key_data, NULL);
-            cx_ecdsa_init_private_key(
-                CX_CURVE_256K1, private_key_data, KEY_LEN, &private_key);
+            os_perso_derive_node_bip32(CX_CURVE_256K1,
+                                       path,
+                                       path_length,
+                                       (unsigned char*)private_key_data,
+                                       NULL);
+            cx_ecdsa_init_private_key(CX_CURVE_256K1,
+                                      (unsigned char*)private_key_data,
+                                      KEY_LEN,
+                                      (cx_ecfp_private_key_t*)&private_key);
             // Cleanup private key data
-            explicit_bzero(private_key_data, sizeof(private_key_data));
+            explicit_bzero((void*)private_key_data, sizeof(private_key_data));
             sig_size = cx_ecdsa_sign((void*)&private_key,
                                      CX_RND_RFC6979 | CX_LAST,
                                      CX_SHA256,
@@ -141,12 +154,12 @@ int do_sign(unsigned int* path,
                                      message_size,
                                      dest);
             // Cleanup private key
-            explicit_bzero(&private_key, sizeof(private_key));
+            explicit_bzero((void*)&private_key, sizeof(private_key));
         }
         CATCH_OTHER(e) {
             // Cleanup key data and fail
-            explicit_bzero(private_key_data, sizeof(private_key_data));
-            explicit_bzero(&private_key, sizeof(private_key));
+            explicit_bzero((void*)private_key_data, sizeof(private_key_data));
+            explicit_bzero((void*)&private_key, sizeof(private_key));
             // Signal error signing
             sig_size = DO_SIGN_ERROR;
         }

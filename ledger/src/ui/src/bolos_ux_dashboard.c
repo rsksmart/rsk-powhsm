@@ -512,8 +512,12 @@ void screen_dashboard_disable_bolos_before_app(void) {
 unsigned int screen_dashboard_unsigned_app_button(
     unsigned int button_mask, unsigned int button_mask_counter) {
     UNUSED(button_mask_counter);
+
+#ifdef DEBUG_BUILD
     screen_dashboard_t db;
     int i = 0;
+#endif
+
     switch (button_mask) {
     case BUTTON_EVT_RELEASED | BUTTON_LEFT:
         screen_dashboard_init();

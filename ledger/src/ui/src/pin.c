@@ -42,7 +42,7 @@
  */
 bool is_pin_valid(unsigned char *pin) {
     // PIN_LENGTH is the only length accepted
-    size_t length = strnlen(pin, PIN_LENGTH + 1);
+    size_t length = strnlen((const char *)pin, PIN_LENGTH + 1);
     if (length != PIN_LENGTH) {
         return false;
     }

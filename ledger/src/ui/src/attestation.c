@@ -151,7 +151,7 @@ unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx) {
         SAFE_MEMMOVE(att_ctx->msg,
                      sizeof(att_ctx->msg),
                      att_ctx->msg_offset,
-                     PIC(att_msg_prefix),
+                     (const void*)PIC(att_msg_prefix),
                      sizeof(att_msg_prefix),
                      MEMMOVE_ZERO_OFFSET,
                      sizeof(att_msg_prefix),
@@ -173,14 +173,14 @@ unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx) {
                 SAFE_MEMMOVE(att_ctx->path,
                              sizeof(att_ctx->path),
                              MEMMOVE_ZERO_OFFSET,
-                             PIC(key_derivation_path),
+                             (const void*)PIC(key_derivation_path),
                              sizeof(key_derivation_path),
                              MEMMOVE_ZERO_OFFSET,
                              sizeof(key_derivation_path),
                              THROW(INTERNAL));
                 // Derive private key
                 os_perso_derive_node_bip32(CX_CURVE_256K1,
-                                           att_ctx->path,
+                                           (unsigned int*)att_ctx->path,
                                            PATH_PART_COUNT,
                                            att_ctx->priv_key_data,
                                            NULL);

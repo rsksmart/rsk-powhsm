@@ -42,6 +42,16 @@ COPY os.h.patch nanos-secure-sdk-nanos-1314/include/os.h.patch
 RUN patch nanos-secure-sdk-nanos-1314/include/os.h nanos-secure-sdk-nanos-1314/include/os.h.patch
 RUN rm -f nanos-secure-sdk-nanos-1314/include/os.h.patch
 
+# Patched version of usbd_conf.h to prevent compiler warnings
+COPY usbd_conf.h.patch nanos-secure-sdk-nanos-1314/lib_stusb/usbd_conf.h.patch
+RUN patch nanos-secure-sdk-nanos-1314/lib_stusb/usbd_conf.h nanos-secure-sdk-nanos-1314/lib_stusb/usbd_conf.h.patch
+RUN rm -f nanos-secure-sdk-nanos-1314/lib_stusb/usbd_conf.h.patch
+
+# Patched version of os_io_seproxyhal.h to prevent compiler warnings
+COPY os_io_seproxyhal.h.patch nanos-secure-sdk-nanos-1314/include/os_io_seproxyhal.h.patch
+RUN patch nanos-secure-sdk-nanos-1314/include/os_io_seproxyhal.h nanos-secure-sdk-nanos-1314/include/os_io_seproxyhal.h.patch
+RUN rm -f nanos-secure-sdk-nanos-1314/include/os_io_seproxyhal.h.patch
+
 ENV BOLOS_SDK=/opt/nanos-secure-sdk-nanos-1314
 ENV CLANGPATH=/usr/bin/
 ENV GCCPATH=/opt/gcc-arm-none-eabi-9-2020-q2-update/bin/

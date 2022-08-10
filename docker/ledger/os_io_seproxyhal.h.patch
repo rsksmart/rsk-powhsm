@@ -1,0 +1,3 @@
+428,429d427
+<             unsigned int UX_ALLOWED = (ux.params.len != BOLOS_UX_IGNORE &&     \
+<                                        ux.params.len != BOLOS_UX_CONTINUE);    \

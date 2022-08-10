@@ -383,7 +383,7 @@ const bagl_element_t *screen_common_keyboard_before_element_display_callback(
     const bagl_element_t *element) {
     // copy element to be displayed
     os_memmove(&G_bolos_ux_context.tmp_element,
-               PIC(element),
+               (void *)PIC(element),
                sizeof(G_bolos_ux_context.tmp_element));
 
     switch (element->component.userid) {
