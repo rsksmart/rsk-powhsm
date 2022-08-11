@@ -25,6 +25,7 @@ COMMONPATH = ../common/src
 VPATH = $(SRCPATH):$(COMMONPATH)
 
 CFLAGS += -g -O0 -I$(SRCPATH) -I$(COMMONPATH) -I. -I /usr/local/include -DHSM_SIMULATOR
+CFLAGS += -Werror
 
 LDFLAGS = -lsecp256k1
 

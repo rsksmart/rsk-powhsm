@@ -297,6 +297,9 @@ void bolos_ux_main(void);
 // Check if app is allowed, and manage app blacklist
 int is_app_version_allowed(application_t *app);
 
+void screen_display_init(unsigned int stack_slot);
+void screen_state_init(unsigned int stack_slot);
+
 #endif // HAVE_BOLOS_UX
 
 #endif // BOLOS_UX_H

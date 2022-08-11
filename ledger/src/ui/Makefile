@@ -133,6 +133,7 @@ CFLAGS   += -std=gnu99 -Werror=int-to-pointer-cast -Wall -Wextra #-save-temps
 CFLAGS   += -fdata-sections -ffunction-sections -funsigned-char -fshort-enums
 CFLAGS   += -mno-unaligned-access
 CFLAGS   += -Wno-unused-parameter -Wno-duplicate-decl-specifier
+CFLAGS   += -Werror
 ifeq ($(DEBUG_BUILD),1)
 CFLAGS   += -DDEBUG_BUILD=${DEBUG_BUILD}
 endif

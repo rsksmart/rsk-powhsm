@@ -354,18 +354,18 @@ const bagl_element_t *screen_common_pin_before_element_display_callback(
             if (digit_count > (element->component.userid & 0xF)) {
                 // display the * (validated digits)
                 os_memmove(G_bolos_ux_context.string_buffer + 4,
-                           PIC(C_digit_font[0xA]),
+                           (void *)PIC(C_digit_font[0xA]),
                            sizeof(bagl_icon_details_t));
             } else if (digit_count < (element->component.userid & 0xF)) {
                 // display the _ (not entered digits)
                 os_memmove(G_bolos_ux_context.string_buffer + 4,
-                           PIC(C_digit_font[0xB]),
+                           (void *)PIC(C_digit_font[0xB]),
                            sizeof(bagl_icon_details_t));
             } else if (digit_count == (element->component.userid & 0xF)) {
                 if (G_bolos_ux_context.string_buffer[0] == ':') {
                     // display the 'backspace'
                     os_memmove(G_bolos_ux_context.string_buffer + 4,
-                               PIC(C_digit_font[0xC]),
+                               (void *)PIC(C_digit_font[0xC]),
                                sizeof(bagl_icon_details_t));
                     os_memmove(&G_bolos_ux_context.tmp_element,
                                element,
@@ -376,7 +376,7 @@ const bagl_element_t *screen_common_pin_before_element_display_callback(
                 } else if (G_bolos_ux_context.string_buffer[0] == ';') {
                     // display the 'check'
                     os_memmove(G_bolos_ux_context.string_buffer + 4,
-                               PIC(C_digit_font[0xD]),
+                               (void *)PIC(C_digit_font[0xD]),
                                sizeof(bagl_icon_details_t));
                     // change the shape for the check
                     os_memmove(&G_bolos_ux_context.tmp_element,
@@ -388,7 +388,8 @@ const bagl_element_t *screen_common_pin_before_element_display_callback(
                     // display the digit
                     os_memmove(
                         G_bolos_ux_context.string_buffer + 4,
-                        PIC(C_digit_font[G_bolos_ux_context.string_buffer[0] -
+                        (void *)PIC(
+                            C_digit_font[G_bolos_ux_context.string_buffer[0] -
                                          '0']),
                         sizeof(bagl_icon_details_t));
                 }

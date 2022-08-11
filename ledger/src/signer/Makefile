@@ -63,6 +63,7 @@ DEFINES += HAVE_IO_USB HAVE_L4_USBLIB IO_USB_MAX_ENDPOINTS=7 IO_HID_EP_LENGTH=64
 # Compiler, assembler, and linker
 CC := $(CLANGPATH)clang
 CFLAGS += -O0 -I$(GCC_INCLUDE)
+CFLAGS += -Werror
 
 # Convert min required difficulty to what the compiler expects
 ifneq ($(TARGET_DIFFICULTY),)

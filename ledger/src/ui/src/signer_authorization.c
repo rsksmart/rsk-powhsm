@@ -95,9 +95,9 @@ static void generate_message_to_sign(sigaut_t* sigaut_ctx) {
     cx_keccak_init(&sigaut_ctx->auth_hash_ctx, 256);
 
     // Hash eth prefix
-    cx_hash(&sigaut_ctx->auth_hash_ctx,
+    cx_hash((cx_hash_t*)&sigaut_ctx->auth_hash_ctx,
             0,
-            ETHEREUM_MSG_PREFIX,
+            (unsigned char*)ETHEREUM_MSG_PREFIX,
             ETHEREUM_MSG_PREFIX_LENGTH,
             0);
 
@@ -105,36 +105,38 @@ static void generate_message_to_sign(sigaut_t* sigaut_ctx) {
     UINT_TO_DECSTR(sigaut_ctx->buf, sigaut_ctx->signer.iteration);
     message_size = RSK_SIGNER_VERSION_MSG_P1_LENGTH +
                    sizeof(sigaut_ctx->signer.hash) * 2 + // Hexa
-                   RSK_SIGNER_VERSION_MSG_P2_LENGTH + strlen(sigaut_ctx->buf);
+                   RSK_SIGNER_VERSION_MSG_P2_LENGTH +
+                   strlen((const char*)sigaut_ctx->buf);
 
     // Hash message size
     UINT_TO_DECSTR(sigaut_ctx->buf, message_size);
-    cx_hash(&sigaut_ctx->auth_hash_ctx,
+    cx_hash((cx_hash_t*)&sigaut_ctx->auth_hash_ctx,
             0,
             sigaut_ctx->buf,
-            strlen(sigaut_ctx->buf),
+            strlen((const char*)sigaut_ctx->buf),
             0);
 
     // Hash message
-    cx_hash(&sigaut_ctx->auth_hash_ctx,
+    cx_hash((cx_hash_t*)&sigaut_ctx->auth_hash_ctx,
             0,
-            RSK_SIGNER_VERSION_MSG_P1,
+            (unsigned char*)RSK_SIGNER_VERSION_MSG_P1,
             RSK_SIGNER_VERSION_MSG_P1_LENGTH,
             0);
-    for (int i = 0; i < sizeof(sigaut_ctx->signer.hash); i++) {
+    for (unsigned int i = 0; i < sizeof(sigaut_ctx->signer.hash); i++) {
         BYTE_TO_HEXSTR(sigaut_ctx->buf, sigaut_ctx->signer.hash[i]);
-        cx_hash(&sigaut_ctx->auth_hash_ctx, 0, sigaut_ctx->buf, 2, 0);
+        cx_hash(
+            (cx_hash_t*)&sigaut_ctx->auth_hash_ctx, 0, sigaut_ctx->buf, 2, 0);
     }
-    cx_hash(&sigaut_ctx->auth_hash_ctx,
+    cx_hash((cx_hash_t*)&sigaut_ctx->auth_hash_ctx,
             0,
-            RSK_SIGNER_VERSION_MSG_P2,
+            (unsigned char*)RSK_SIGNER_VERSION_MSG_P2,
             RSK_SIGNER_VERSION_MSG_P2_LENGTH,
             0);
     UINT_TO_DECSTR(sigaut_ctx->buf, sigaut_ctx->signer.iteration);
-    cx_hash(&sigaut_ctx->auth_hash_ctx,
+    cx_hash((cx_hash_t*)&sigaut_ctx->auth_hash_ctx,
             CX_LAST,
             sigaut_ctx->buf,
-            strlen(sigaut_ctx->buf),
+            strlen((const char*)sigaut_ctx->buf),
             sigaut_ctx->auth_hash);
 }
 
@@ -153,10 +155,10 @@ void init_signer_authorization() {
     // Make sure NVM signer status is initialized
     if (!N_current_signer_status.initialized) {
         nvm_write(N_current_signer_status.signer.hash,
-                  INITIAL_SIGNER_HASH,
+                  (void*)INITIAL_SIGNER_HASH,
                   sizeof(N_current_signer_status.signer.hash));
         nvm_write(&N_current_signer_status.signer.iteration,
-                  &INITIAL_SIGNER_ITERATION,
+                  (void*)&INITIAL_SIGNER_ITERATION,
                   sizeof(N_current_signer_status.signer.iteration));
         nvm_write(&N_current_signer_status.initialized,
                   (void*)&t,
@@ -252,13 +254,14 @@ unsigned int do_authorize_signer(volatile unsigned int rx,
 
         // Check to see whether we find a matching authorized signer
         signature_valid = 0;
-        for (int i = 0; i < TOTAL_AUTHORIZERS && !signature_valid; i++) {
+        for (unsigned int i = 0; i < TOTAL_AUTHORIZERS && !signature_valid;
+             i++) {
             // Clear public key memory region first just in case initialization
             // fails
             explicit_bzero(&sigaut_ctx->pubkey, sizeof(sigaut_ctx->pubkey));
             // Init public key
             cx_ecfp_init_public_key(CX_CURVE_256K1,
-                                    authorizers_pubkeys[i],
+                                    (unsigned char*)authorizers_pubkeys[i],
                                     sizeof(authorizers_pubkeys[i]),
                                     &sigaut_ctx->pubkey);
             signature_valid = cx_ecdsa_verify(&sigaut_ctx->pubkey,
@@ -279,7 +282,7 @@ unsigned int do_authorize_signer(volatile unsigned int rx,
 
         // Reached the threshold?
         valid_count = 0;
-        for (int i = 0; i < TOTAL_AUTHORIZERS; i++)
+        for (unsigned int i = 0; i < TOTAL_AUTHORIZERS; i++)
             if (sigaut_ctx->authorized_signer_verified[i])
                 valid_count++;
 
