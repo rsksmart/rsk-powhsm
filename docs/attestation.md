@@ -10,7 +10,7 @@ Each device currently used to run powHSM on, namely Ledger Nano S, ships with a 
 
 ## Device key and authenticity
 
-The mechanism used by Ledger Nano S devices to prove their authenticity can be better understood from [the ledger documentation](https://ledger.readthedocs.io/en/latest/bolos/features.html#attestation):
+The mechanism used by Ledger Nano S devices to prove their authenticity can be better understood from [the ledger documentation](https://developers.ledger.com/docs/nano-app/bolos-features/#attestation):
 
 _"When all Ledger devices are provisioned in the factory, they first generate a unique Device public-private keypair. The Device’s public key is then signed by Ledger’s Issuer key to create an Issuer Certificate which is stored in the device. This certificate is a digital seal of authenticity of the Ledger device. By providing the Device’s public key and Issuer Certificate, the device can prove that it is a genuine Ledger device."_
 
@@ -18,7 +18,7 @@ We use the device public key and issuer certificate as the basis for the powHSM 
 
 ## Application attestation and powHSM
 
-Ledger Nano S user applications can make indirect use of the aforementioned device keypair to provide attestation mechanisms. This can be better understood from [the ledger documentation](https://ledger.readthedocs.io/en/latest/bolos/features.html#attestation):
+Ledger Nano S user applications can make indirect use of the aforementioned device keypair to provide attestation mechanisms. This can be better understood from [the ledger documentation](https://developers.ledger.com/docs/nano-app/bolos-features/#attestation):
 
 _"The device generates a new attestation keypair and signs it using the Device private key to create a Device Certificate. The device then returns the attestation public key, the Device Certificate, and the Issuer Certificate..."_
 
