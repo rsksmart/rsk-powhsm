@@ -102,8 +102,6 @@ void screen_not_personalized_init(void);
 void screen_dashboard_init(void);
 void screen_dashboard_prepare(void);
 void screen_modal_validate_pin_init(void);
-void screen_consent_upgrade_init(void);
-void screen_consent_ux_not_signed_init(void);
 
 void screen_settings_init(unsigned int initial);
 // apply settings @ boot time

@@ -809,44 +809,6 @@ void bolos_ux_main(void) {
         }
 
         switch (G_bolos_ux_context.parameters.ux_id) {
-        case BOLOS_UX_BOOT:
-            // init seproxyhal ux related globals
-            io_seproxyhal_init_ux();
-            // no button push so far
-            io_seproxyhal_init_button();
-
-            // init the ram context
-            os_memset(&G_bolos_ux_context, 0, sizeof(G_bolos_ux_context));
-            // setup the ram canary
-            G_bolos_ux_context.canary = CANARY_MAGIC;
-            // register the ux parameters pointer for the os side
-            os_ux_register(&G_bolos_ux_context.parameters);
-            G_bolos_ux_context.state = STATE_INITIALIZED;
-            G_bolos_ux_context.dashboard_last_selected =
-                -1UL; // initialize the current selected application to none.,
-                      // done only at boot
-
-            // request animation when dashboard has finished displaying all the
-            // elements (after onboarding OR the first time displayed)
-            G_bolos_ux_context.dashboard_redisplayed = 1;
-
-            // return, this should be the first and only call from the bolos
-            // task at platform startup
-            G_bolos_ux_context.exit_code = BOLOS_UX_OK;
-
-        case BOLOS_UX_BOLOS_START:
-
-            screen_wake_up();
-            // apply settings in the L4 (ble, brightness, etc)
-            screen_settings_apply();
-
-            // ensure ticker is present
-            io_seproxyhal_setup_ticker(100);
-
-            // request animation when dashboard has finished displaying all the
-            // elements (after onboarding OR the first time displayed)
-            G_bolos_ux_context.dashboard_redisplayed = 1;
-
         default:
             // nothing to do yet
             G_bolos_ux_context.exit_code = BOLOS_UX_CANCEL;
@@ -944,30 +906,6 @@ void bolos_ux_main(void) {
             screen_wake_up();
             // GET_DEVICE_NAME event override to reload app
             run_first_app();
-            break;
-
-        case BOLOS_UX_BOOT_UX_NOT_SIGNED:
-            screen_wake_up();
-            screen_consent_ux_not_signed_init();
-            break;
-
-        // only consent upgrade is common to os upgrader and normal os to avoid
-        // being stuck if hash doesn't match
-        case BOLOS_UX_CONSENT_UPGRADE:
-            screen_wake_up();
-            // reset global pin state in case was onboarded, must validate the
-            // pin to proceed to the upgrade
-            // os_global_pin_invalidate();
-
-            screen_consent_upgrade_init();
-            break;
-
-        // display a wait screen during application loading
-        // if host computer bugs, then the token also remains in a loading state
-        // (on screen only)
-        case BOLOS_UX_PROCESSING:
-            screen_wake_up();
-            screen_processing_init();
             break;
 
         case BOLOS_UX_WAKE_UP:
