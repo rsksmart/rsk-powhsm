@@ -814,10 +814,6 @@ void bolos_ux_main(void) {
             G_bolos_ux_context.exit_code = BOLOS_UX_CANCEL;
             break;
 
-        case BOLOS_UX_BOOT_NOT_PERSONALIZED:
-            screen_not_personalized_init();
-            break;
-
         case BOLOS_UX_BOOT_ONBOARDING:
             screen_wake_up();
             // re apply settings in the L4 (ble, brightness, etc) after exiting
