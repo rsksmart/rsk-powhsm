@@ -318,7 +318,13 @@ static void bc_adv_accum_diff() {
                  aux_bc_st.total_difficulty,
                  BIGINT_LEN,
                  "\n");
-    LOG_BIGD_HEX("Block difficulty = ", block.difficulty, BIGINT_LEN, "\n");
+
+    // Cap the block difficulty
+    int cap_error = cap_block_difficulty(block.difficulty);
+    if (cap_error) {
+        LOG("Error while capping block difficulty\n");
+        FAIL(BUFFER_OVERFLOW);
+    }
 
     // Otherwise accumulate total difficulty
     DIGIT_T carry =

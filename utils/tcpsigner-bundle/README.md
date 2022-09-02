@@ -1,4 +1,4 @@
-# HSM2 dockerized TCPSigner bundle
+# powHSM dockerized TCPSigner bundle
 
 ## Usage
 

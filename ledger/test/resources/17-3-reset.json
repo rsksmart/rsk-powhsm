@@ -1,0 +1,4 @@
+{
+    "name": "Reset blockchain state",
+    "operation": "resetAdvanceBlockchain"
+}
