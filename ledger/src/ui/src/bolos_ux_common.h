@@ -96,8 +96,6 @@ void screen_keyboard_init(unsigned int screen_current_element_arrays_index,
 void screen_pin_keyboard_init(unsigned int screen_current_element_arrays_index);
 
 // all screens
-void screen_saver_deinit(void);
-
 void screen_not_personalized_init(void);
 void screen_dashboard_init(void);
 void screen_dashboard_prepare(void);

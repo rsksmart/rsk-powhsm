@@ -290,20 +290,6 @@ void screen_display_element(const bagl_element_t *element) {
     io_seproxyhal_display(element);
 }
 
-void screen_wake_up(void) {
-    // only reactivate backlight when dimmed, to avoid blink ...b
-    if (G_bolos_ux_context.inactivity_state != INACTIVITY_NONE) {
-        // not inactive anymore, interpret touch/button
-        G_bolos_ux_context.inactivity_state = INACTIVITY_NONE;
-        // wake backlight, don't touch the current state
-        // io_seproxyhal_backlight(0, BACKLIGHT_FULL_LEVEL);
-        screen_saver_deinit();
-    }
-
-    // user activity detected
-    G_bolos_ux_context.ms_last_activity = G_bolos_ux_context.ms;
-}
-
 const unsigned char const C_app_empty_colors[] = {
     0x00,
     0x00,
@@ -792,16 +778,9 @@ void bolos_ux_main(void) {
             (G_bolos_ux_context.parameters.ux_id ==
                  BOLOS_UX_BOOT_NOT_PERSONALIZED ||
              G_bolos_ux_context.parameters.ux_id == BOLOS_UX_BOOT_ONBOARDING ||
-             G_bolos_ux_context.parameters.ux_id == BOLOS_UX_BOOT_RECOVERY ||
              G_bolos_ux_context.parameters.ux_id == BOLOS_UX_DASHBOARD ||
-             G_bolos_ux_context.parameters.ux_id == BOLOS_UX_LOADER ||
-             G_bolos_ux_context.parameters.ux_id == BOLOS_UX_CONSENT_UPGRADE ||
              G_bolos_ux_context.parameters.ux_id == BOLOS_UX_CONSENT_APP_ADD ||
              G_bolos_ux_context.parameters.ux_id == BOLOS_UX_CONSENT_APP_DEL ||
-             G_bolos_ux_context.parameters.ux_id ==
-                 BOLOS_UX_CONSENT_GET_DEVICE_NAME ||
-             G_bolos_ux_context.parameters.ux_id ==
-                 BOLOS_UX_BOOT_UX_NOT_SIGNED ||
              G_bolos_ux_context.parameters.ux_id == BOLOS_UX_PROCESSING
              // END BOLOS MANAGER FLOW
              )) {
@@ -815,7 +794,6 @@ void bolos_ux_main(void) {
             break;
 
         case BOLOS_UX_BOOT_ONBOARDING:
-            screen_wake_up();
             // re apply settings in the L4 (ble, brightness, etc) after exiting
             // application in case of wipe
             screen_settings_apply();
@@ -833,15 +811,11 @@ void bolos_ux_main(void) {
 
             io_seproxyhal_init();
             USB_power(1);
-            screen_wake_up();
             screen_settings_apply();
             screen_not_personalized_init();
             sample_main();
-            screen_modal_validate_pin_init();
             break;
         case BOLOS_UX_DASHBOARD:
-            screen_wake_up();
-
             // apply settings when redisplaying dashboard
             screen_settings_apply();
 
@@ -858,16 +832,10 @@ void bolos_ux_main(void) {
             break;
 
         case BOLOS_UX_VALIDATE_PIN:
-            screen_wake_up();
             io_seproxyhal_init();
             USB_power(1);
             autoexec = 0;
             sample_main();
-            G_bolos_ux_context.exit_code = BOLOS_UX_OK;
-            break;
-
-        case BOLOS_UX_CONSENT_APP_UPG:
-            screen_dashboard_prepare();
             G_bolos_ux_context.exit_code = BOLOS_UX_OK;
             break;
 
@@ -886,26 +854,21 @@ void bolos_ux_main(void) {
                 G_bolos_ux_context.exit_code = BOLOS_UX_CANCEL;
             }
 
-            screen_wake_up();
             break;
 
         case BOLOS_UX_CONSENT_APP_DEL:
-            screen_wake_up();
             G_bolos_ux_context.exit_code = BOLOS_UX_OK;
             break;
 
         case BOLOS_UX_CONSENT_FOREIGN_KEY:
-            screen_wake_up();
+            G_bolos_ux_context.exit_code = BOLOS_UX_OK;
             break;
 
-        case BOLOS_UX_CONSENT_GET_DEVICE_NAME:
-            screen_wake_up();
-            // GET_DEVICE_NAME event override to reload app
-            run_first_app();
+        case BOLOS_UX_PROCESSING:
+            screen_processing_init();
             break;
 
         case BOLOS_UX_WAKE_UP:
-            screen_wake_up();
             // if a screen is drawn (like the PIN) onto the current screen, then
             // avoid allowing the app to erase or whatever the current screen
             goto continue_SEPROXYHAL_TAG_DISPLAY_PROCESSED_EVENT;
