@@ -27,10 +27,15 @@
 #include <string.h>
 
 #include "hsmsim_nu.h"
+#include "bc_diff.h"
 
 #define NETWORK_NAME_MAINNET "mainnet"
 #define NETWORK_NAME_TESTNET "testnet"
 #define NETWORK_NAME_REGTEST "regtest"
+
+static DIGIT_T MAX_BLOCK_DIFFICULTY_MAINNET[BIGINT_LEN] = BCDIFF_MBD_MAINNET;
+static DIGIT_T MAX_BLOCK_DIFFICULTY_TESTNET[BIGINT_LEN] = BCDIFF_MBD_TESTNET;
+static DIGIT_T MAX_BLOCK_DIFFICULTY_REGTEST[BIGINT_LEN] = BCDIFF_MBD_REGTEST;
 
 typedef struct network_upgrade_activation_s {
     network_upgrade_t network_upgrade;
@@ -106,16 +111,25 @@ bool hsmsim_set_network(uint8_t netid) {
         network_upgrade_activations = NETCONFIG_MAINNET;
         network_upgrade_activations_count =
             sizeof(NETCONFIG_MAINNET) / sizeof(NETCONFIG_MAINNET[0]);
+        memmove(MAX_BLOCK_DIFFICULTY,
+                MAX_BLOCK_DIFFICULTY_MAINNET,
+                sizeof(MAX_BLOCK_DIFFICULTY_MAINNET));
         break;
     case NETID_TESTNET:
         network_upgrade_activations = NETCONFIG_TESTNET;
         network_upgrade_activations_count =
             sizeof(NETCONFIG_TESTNET) / sizeof(NETCONFIG_TESTNET[0]);
+        memmove(MAX_BLOCK_DIFFICULTY,
+                MAX_BLOCK_DIFFICULTY_TESTNET,
+                sizeof(MAX_BLOCK_DIFFICULTY_TESTNET));
         break;
     case NETID_REGTEST:
         network_upgrade_activations = NETCONFIG_REGTEST;
         network_upgrade_activations_count =
             sizeof(NETCONFIG_REGTEST) / sizeof(NETCONFIG_REGTEST[0]);
+        memmove(MAX_BLOCK_DIFFICULTY,
+                MAX_BLOCK_DIFFICULTY_REGTEST,
+                sizeof(MAX_BLOCK_DIFFICULTY_REGTEST));
         break;
     default:
         return false;

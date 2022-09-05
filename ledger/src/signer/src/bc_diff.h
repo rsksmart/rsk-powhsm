@@ -30,8 +30,22 @@
 #include "bigdigits.h"
 #include "bc.h"
 
+// Block difficulty caps for each network
+#define BCDIFF_MBD_MAINNET \
+    {0x16600000, 0x7883c069, 0x17b, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}; // 7 ZH
+
+#define BCDIFF_MBD_TESTNET \
+    { 0xa4c68000, 0x38d7e, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 } // 1 PH
+
+#define BCDIFF_MBD_REGTEST {0x14, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}; // 20
+
+#ifdef HSM_SIMULATOR
+extern DIGIT_T MAX_BLOCK_DIFFICULTY[BIGINT_LEN];
+#endif
+
 // Errors
 #define BCDIFF_ERR_INVALID (2)
+#define BCDIFF_ERR_CAPPING (3)
 
 /*
  * Initialize a big integer. This is kind of tricky because the way big
@@ -91,6 +105,16 @@ typedef enum { DIFF_MATCH = 1, DIFF_MISMATCH, DIFF_ZERO } diff_result;
  *   DIFF_MISMATCH otherwise
  */
 diff_result check_difficulty(DIGIT_T difficulty[], const uint8_t* mm_hdr_hash);
+
+/*
+ * Cap block difficulty.
+ *
+ * @arg[in/out] difficulty the block difficulty to cap
+ * @ret
+ * 0 if capping ok (regardless of capping result)
+ * BCDIFF_ERR_CAPPING if an error occurs
+ */
+int cap_block_difficulty(DIGIT_T difficulty[]);
 
 /*
  * Accumulate difficulty.

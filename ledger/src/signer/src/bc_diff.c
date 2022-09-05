@@ -28,6 +28,17 @@
 #include "dbg.h"
 #include "memutil.h"
 
+// Maximum difficulty for block difficulty capping (network dependent)
+#ifdef TESTNET
+static const DIGIT_T MAX_BLOCK_DIFFICULTY[BIGINT_LEN] = BCDIFF_MBD_TESTNET;
+#elif defined(REGTEST)
+static const DIGIT_T MAX_BLOCK_DIFFICULTY[BIGINT_LEN] = BCDIFF_MBD_REGTEST;
+#elif defined(HSM_SIMULATOR)
+DIGIT_T MAX_BLOCK_DIFFICULTY[BIGINT_LEN];
+#else
+static const DIGIT_T MAX_BLOCK_DIFFICULTY[BIGINT_LEN] = BCDIFF_MBD_MAINNET;
+#endif
+
 /*
  * Initialize a big integer. This is kind of tricky because the way big
  * integers are modeled in memory. Here goes an example:
@@ -164,6 +175,36 @@ diff_result check_difficulty(DIGIT_T difficulty[], const uint8_t* mm_hdr_hash) {
     LOG("Difficulty is %s\n", cmp == 1 ? "not valid" : "valid");
 
     return cmp != 1 ? DIFF_MATCH : DIFF_MISMATCH;
+}
+
+/*
+ * Cap block difficulty.
+ *
+ * @arg[in/out] difficulty the block difficulty to cap
+ * @ret
+ * 0 if capping ok (regardless of capping result)
+ * BCDIFF_ERR_CAPPING if an error occurs
+ */
+int cap_block_difficulty(DIGIT_T difficulty[]) {
+    int cmp = mpCompare_ct(difficulty, MAX_BLOCK_DIFFICULTY, BIGINT_LEN);
+
+    LOG_BIGD_HEX("Block difficulty = ", difficulty, BIGINT_LEN, "\n");
+    LOG_BIGD_HEX("Cap = ", MAX_BLOCK_DIFFICULTY, BIGINT_LEN, "\n");
+    LOG("Block difficulty %s been capped\n", cmp == 1 ? "has" : "has NOT");
+
+    // Block difficulty > Cap => Set block difficulty to cap
+    if (cmp == 1) {
+        SAFE_MEMMOVE(difficulty,
+                     sizeof(DIGIT_T) * BIGINT_LEN,
+                     MEMMOVE_ZERO_OFFSET,
+                     MAX_BLOCK_DIFFICULTY,
+                     sizeof(MAX_BLOCK_DIFFICULTY),
+                     MEMMOVE_ZERO_OFFSET,
+                     sizeof(MAX_BLOCK_DIFFICULTY),
+                     { return BCDIFF_ERR_CAPPING; });
+    }
+
+    return 0;
 }
 
 /*
