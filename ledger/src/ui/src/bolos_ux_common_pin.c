@@ -53,7 +53,6 @@
 #ifdef OS_IO_SEPROXYHAL
 
 #define IS_SHUFFLED os_setting_get(OS_SETTING_SHUFFLE_PIN)
-//#define IS_SHUFFLED 1
 #define INIT_DIGIT_VALUE 5
 
 const bagl_icon_details_t *const C_digit_font[] = {

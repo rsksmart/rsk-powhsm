@@ -116,12 +116,6 @@ static const bagl_element_t bagl_ui_idle_nanos[] = {
         NULL,
     }};
 
-unsigned short io_timeout(unsigned short last_timeout) {
-    UNUSED(last_timeout);
-    // infinite timeout
-    return 1;
-}
-
 void screen_hex_identifier_string_buffer(const unsigned char *buffer,
                                          unsigned int total) {
     SPRINTF(G_bolos_ux_context.string_buffer,
@@ -294,31 +288,6 @@ void screen_display_element(const bagl_element_t *element) {
     }
     // display current element
     io_seproxyhal_display(element);
-}
-
-void screen_wake_up(void) {
-    // only reactivate backlight when dimmed, to avoid blink ...b
-    if (G_bolos_ux_context.inactivity_state != INACTIVITY_NONE) {
-        // not inactive anymore, interpret touch/button
-        G_bolos_ux_context.inactivity_state = INACTIVITY_NONE;
-        // wake backlight, don't touch the current state
-        // io_seproxyhal_backlight(0, BACKLIGHT_FULL_LEVEL);
-        screen_saver_deinit();
-    }
-
-    // user activity detected
-    G_bolos_ux_context.ms_last_activity = G_bolos_ux_context.ms;
-}
-
-void screen_return_after_displayed_touched_element(unsigned int exit_code) {
-    G_bolos_ux_context.screen_stack[G_bolos_ux_context.screen_stack_count - 1]
-        .element_index = 0;
-    G_bolos_ux_context.screen_stack[G_bolos_ux_context.screen_stack_count - 1]
-        .displayed = 0;
-    G_bolos_ux_context.screen_stack[G_bolos_ux_context.screen_stack_count - 1]
-        .element_arrays_count = 0;
-    G_bolos_ux_context.screen_stack[G_bolos_ux_context.screen_stack_count - 1]
-        .exit_code_after_elements_displayed = exit_code;
 }
 
 const unsigned char const C_app_empty_colors[] = {
@@ -809,91 +778,22 @@ void bolos_ux_main(void) {
             (G_bolos_ux_context.parameters.ux_id ==
                  BOLOS_UX_BOOT_NOT_PERSONALIZED ||
              G_bolos_ux_context.parameters.ux_id == BOLOS_UX_BOOT_ONBOARDING ||
-             G_bolos_ux_context.parameters.ux_id == BOLOS_UX_BOOT_RECOVERY ||
              G_bolos_ux_context.parameters.ux_id == BOLOS_UX_DASHBOARD ||
-             G_bolos_ux_context.parameters.ux_id == BOLOS_UX_LOADER ||
-             G_bolos_ux_context.parameters.ux_id == BOLOS_UX_CONSENT_UPGRADE ||
-             G_bolos_ux_context.parameters.ux_id == BOLOS_UX_CONSENT_APP_ADD
-             //|| G_bolos_ux_context.parameters.ux_id ==
-             // BOLOS_UX_CONSENT_APP_UPG
-             ||
+             G_bolos_ux_context.parameters.ux_id == BOLOS_UX_CONSENT_APP_ADD ||
              G_bolos_ux_context.parameters.ux_id == BOLOS_UX_CONSENT_APP_DEL ||
-             G_bolos_ux_context.parameters.ux_id ==
-                 BOLOS_UX_CONSENT_ISSUER_KEY ||
-             G_bolos_ux_context.parameters.ux_id ==
-                 BOLOS_UX_CONSENT_CUSTOMCA_KEY ||
-             G_bolos_ux_context.parameters.ux_id == BOLOS_UX_CONSENT_FOREIGN_KEY
-             //|| G_bolos_ux_context.parameters.ux_id ==
-             // BOLOS_UX_CHANGE_ALTERNATE_PIN
-             || G_bolos_ux_context.parameters.ux_id ==
-                    BOLOS_UX_CONSENT_GET_DEVICE_NAME ||
-             G_bolos_ux_context.parameters.ux_id ==
-                 BOLOS_UX_CONSENT_SET_DEVICE_NAME ||
-             G_bolos_ux_context.parameters.ux_id ==
-                 BOLOS_UX_CONSENT_SETUP_CUSTOMCA_KEY ||
-             G_bolos_ux_context.parameters.ux_id ==
-                 BOLOS_UX_CONSENT_RESET_CUSTOMCA_KEY ||
-             G_bolos_ux_context.parameters.ux_id ==
-                 BOLOS_UX_BOOT_UX_NOT_SIGNED ||
-             G_bolos_ux_context.parameters.ux_id == BOLOS_UX_PROCESSING ||
-             G_bolos_ux_context.parameters.ux_id == BOLOS_UX_BOOT_UNSAFE_WIPE
+             G_bolos_ux_context.parameters.ux_id == BOLOS_UX_PROCESSING
              // END BOLOS MANAGER FLOW
              )) {
             screen_stack_push();
         }
 
         switch (G_bolos_ux_context.parameters.ux_id) {
-        case BOLOS_UX_BOOT:
-            // init seproxyhal ux related globals
-            io_seproxyhal_init_ux();
-            // no button push so far
-            io_seproxyhal_init_button();
-
-            // init the ram context
-            os_memset(&G_bolos_ux_context, 0, sizeof(G_bolos_ux_context));
-            // setup the ram canary
-            G_bolos_ux_context.canary = CANARY_MAGIC;
-            // register the ux parameters pointer for the os side
-            os_ux_register(&G_bolos_ux_context.parameters);
-            G_bolos_ux_context.state = STATE_INITIALIZED;
-            G_bolos_ux_context.dashboard_last_selected =
-                -1UL; // initialize the current selected application to none.,
-                      // done only at boot
-
-            // request animation when dashboard has finished displaying all the
-            // elements (after onboarding OR the first time displayed)
-            G_bolos_ux_context.dashboard_redisplayed = 1;
-
-            // return, this should be the first and only call from the bolos
-            // task at platform startup
-            G_bolos_ux_context.exit_code = BOLOS_UX_OK;
-
-        case BOLOS_UX_BOLOS_START:
-
-            screen_wake_up();
-            // apply settings in the L4 (ble, brightness, etc)
-            screen_settings_apply();
-
-            // ensure ticker is present
-            io_seproxyhal_setup_ticker(100);
-
-            // request animation when dashboard has finished displaying all the
-            // elements (after onboarding OR the first time displayed)
-            G_bolos_ux_context.dashboard_redisplayed = 1;
-
         default:
             // nothing to do yet
-            G_bolos_ux_context.exit_code = BOLOS_UX_OK;
+            G_bolos_ux_context.exit_code = BOLOS_UX_CANCEL;
             break;
-
-        case BOLOS_UX_BOOT_NOT_PERSONALIZED:
-            screen_not_personalized_init();
-            break;
-
-#ifndef BOLOS_OS_UPGRADER
 
         case BOLOS_UX_BOOT_ONBOARDING:
-            screen_wake_up();
             // re apply settings in the L4 (ble, brightness, etc) after exiting
             // application in case of wipe
             screen_settings_apply();
@@ -911,15 +811,11 @@ void bolos_ux_main(void) {
 
             io_seproxyhal_init();
             USB_power(1);
-            screen_wake_up();
             screen_settings_apply();
             screen_not_personalized_init();
             sample_main();
-            screen_modal_validate_pin_init();
             break;
         case BOLOS_UX_DASHBOARD:
-            screen_wake_up();
-
             // apply settings when redisplaying dashboard
             screen_settings_apply();
 
@@ -936,16 +832,10 @@ void bolos_ux_main(void) {
             break;
 
         case BOLOS_UX_VALIDATE_PIN:
-            screen_wake_up();
             io_seproxyhal_init();
             USB_power(1);
             autoexec = 0;
             sample_main();
-            G_bolos_ux_context.exit_code = BOLOS_UX_OK;
-            break;
-
-        case BOLOS_UX_CONSENT_APP_UPG:
-            screen_dashboard_prepare();
             G_bolos_ux_context.exit_code = BOLOS_UX_OK;
             break;
 
@@ -964,88 +854,21 @@ void bolos_ux_main(void) {
                 G_bolos_ux_context.exit_code = BOLOS_UX_CANCEL;
             }
 
-            screen_wake_up();
             break;
 
         case BOLOS_UX_CONSENT_APP_DEL:
-            screen_wake_up();
             G_bolos_ux_context.exit_code = BOLOS_UX_OK;
             break;
 
-        case BOLOS_UX_CONSENT_ISSUER_KEY:
-            screen_wake_up();
-            screen_consent_issuer_key_init();
-            break;
-
-        case BOLOS_UX_CONSENT_CUSTOMCA_KEY:
-            screen_wake_up();
-            screen_consent_customca_key_init();
-            break;
-
         case BOLOS_UX_CONSENT_FOREIGN_KEY:
-            screen_wake_up();
+            G_bolos_ux_context.exit_code = BOLOS_UX_OK;
             break;
 
-        case BOLOS_UX_CONSENT_GET_DEVICE_NAME:
-            screen_wake_up();
-            // GET_DEVICE_NAME event override to reload app
-            run_first_app();
-            break;
-
-        case BOLOS_UX_CONSENT_SET_DEVICE_NAME:
-            screen_wake_up();
-            screen_consent_set_device_name_init();
-            break;
-
-        case BOLOS_UX_BOOT_UX_NOT_SIGNED:
-            screen_wake_up();
-            screen_consent_ux_not_signed_init();
-            break;
-
-        case BOLOS_UX_BOOT_UNSAFE_WIPE:
-            screen_wake_up();
-            screen_boot_unsafe_wipe_init();
-            break;
-
-        case BOLOS_UX_CONSENT_SETUP_CUSTOMCA_KEY:
-            screen_wake_up();
-            screen_consent_setup_customca_init();
-            break;
-
-        case BOLOS_UX_CONSENT_RESET_CUSTOMCA_KEY:
-            screen_wake_up();
-            screen_consent_reset_customca_init();
-            break;
-
-#else  // ! BOLOS_OS_UPGRADER
-       // upgrader dashboard does not exists
-        case BOLOS_UX_DASHBOARD:
-            screen_wake_up();
-            screen_os_upgrader();
-            break;
-#endif // ! BOLOS_OS_UPGRADER
-
-        // only consent upgrade is common to os upgrader and normal os to avoid
-        // being stuck if hash doesn't match
-        case BOLOS_UX_CONSENT_UPGRADE:
-            screen_wake_up();
-            // reset global pin state in case was onboarded, must validate the
-            // pin to proceed to the upgrade
-            // os_global_pin_invalidate();
-
-            screen_consent_upgrade_init();
-            break;
-
-        // display a wait screen during application loading
-        // if host computer bugs, then the token also remains in a loading state
-        // (on screen only)
         case BOLOS_UX_PROCESSING:
-            screen_wake_up();
             screen_processing_init();
             break;
 
         case BOLOS_UX_WAKE_UP:
-            screen_wake_up();
             // if a screen is drawn (like the PIN) onto the current screen, then
             // avoid allowing the app to erase or whatever the current screen
             goto continue_SEPROXYHAL_TAG_DISPLAY_PROCESSED_EVENT;
@@ -1129,27 +952,6 @@ void bolos_ux_main(void) {
                     // just ... wait)
                     G_bolos_ux_context.ms_last_activity = G_bolos_ux_context.ms;
                 }
-#define BOLOS_NO_CONSENT
-#ifndef BOLOS_NO_CONSENT
-                else if (IS_SETTING_PRE_POWER_OFF() &&
-                         G_bolos_ux_context.inactivity_state <
-                             INACTIVITY_LOCK &&
-                         G_bolos_ux_context.ms >
-                             G_bolos_ux_context.ms_last_activity +
-                                 INACTIVITY_MS_AUTO_LOCK) {
-                    G_bolos_ux_context.inactivity_state = INACTIVITY_LOCK;
-                    // prepare the lock screen
-                    // don't lock screen on onboarding (at boot or by an app)
-                    if (os_perso_isonboarded()) {
-                        // stack pin lock, not cancellable, modal if not the
-                        // only screen
-                        screen_modal_validate_pin_init();
-
-                        // yay, some fun, ensure saver is stacked over the pin
-                        screen_saver_init();
-                    }
-                }
-#endif // BOLOS_NO_CONSENT
 
                 // in case more display to be finished (asynch timer during
                 // display sequence)

@@ -969,13 +969,3 @@ unsigned short const BIP39_WORDLIST_OFFSETS[] = {
     11061, 11065, 11068};
 
 unsigned char const BIP39_MNEMONIC[] = {'m', 'n', 'e', 'm', 'o', 'n', 'i', 'c'};
-
-#ifdef HAVE_ELECTRUM
-
-unsigned char const ELECTRUM_SEED_VERSION[] = {
-    'S', 'e', 'e', 'd', ' ', 'v', 'e', 'r', 's', 'i', 'o', 'n'};
-
-unsigned char const ELECTRUM_MNEMONIC[] = {
-    'e', 'l', 'e', 'c', 't', 'r', 'u', 'm'};
-
-#endif
