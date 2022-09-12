@@ -1,0 +1,12 @@
+{
+    "name": "Get final blockchain state for cap difficulty #1",
+    "operation": "getState",
+    "expected": {
+        "updating.in_progress": true,
+        "updating.newest_valid_block": "9f14fc3c850c51e59835a610fe079f60b119c2208ebe562c2364e8aa71a50d6c",
+        "updating.best_block": "0000000000000000000000000000000000000000000000000000000000000000",
+        "updating.next_expected_block": "8da96f2120c2c4653969776aa2388242c4d247620d6866fecf2a2b277e6bfd6c",
+        "updating.total_difficulty": 20,
+        "updating.already_validated": false
+    }
+}
