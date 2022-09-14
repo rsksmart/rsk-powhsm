@@ -73,10 +73,6 @@ extern bolos_ux_context_t G_bolos_ux_context;
 extern const unsigned char hex_digits[];
 
 unsigned char rng_u8_modulo(unsigned char modulo);
-
-void screen_hex_identifier_string_buffer(const unsigned char *buffer,
-                                         unsigned int total);
-
 // common code for all screens
 // reset the screen asynch display machine
 void screen_state_init(unsigned int stack_slot);
@@ -89,57 +85,16 @@ void screen_display_init(unsigned int stack_slot);
 // preprocessors)
 void screen_display_element(const bagl_element_t *element);
 
-// screen keyboard helper
-void screen_keyboard_init(unsigned int screen_current_element_arrays_index,
-                          unsigned int mode);
-
-void screen_pin_keyboard_init(unsigned int screen_current_element_arrays_index);
-
 // all screens
-void screen_not_personalized_init(void);
 void screen_dashboard_init(void);
 void screen_dashboard_prepare(void);
-void screen_modal_validate_pin_init(void);
-
-void screen_settings_init(unsigned int initial);
-// apply settings @ boot time
-void screen_settings_apply(void);
-void screen_settings_change_pin(void);
-void screen_settings_erase_all(void);
-void screen_settings_set_temporary(void);
-void screen_settings_attach_to_pin(void);
-void screen_settings_change_pin_1_2_pin_init(unsigned int initial);
-void screen_settings_passphrase_attach_1_init(void);
-void screen_settings_passphrase_attach_2_init(unsigned int initial);
-void screen_settings_passphrase_temporary_1_init(void);
-void screen_settings_passphrase_type_and_review_init(unsigned int kind);
-void screen_settings_erase_all_init(void);
-
-void screen_help_init(appmain_t help_ended_callback);
-
+void screen_not_personalized_init(void);
 void screen_processing_init(void);
 
-void screen_prepare_masked_icon(unsigned char *icon_bitmap,
-                                unsigned int icon_bitmap_length);
-
-unsigned int screen_consent_button(unsigned int button_mask,
-                                   unsigned int button_mask_counter);
-unsigned int screen_consent_ticker(unsigned int ignored);
-void screen_consent_ticker_init(unsigned int number_of_steps,
-                                unsigned int interval_ms,
-                                unsigned int check_pin_to_confirm);
-void screen_consent_set_interval(unsigned int interval_ms);
-
-typedef unsigned int (*pin_callback_t)(unsigned char *pin_buffer,
-                                       unsigned int pin_length);
-void screen_common_pin_init(unsigned int stack_slot,
-                            pin_callback_t end_callback);
+// apply settings @ boot time
+void screen_settings_apply(void);
 
 #define COMMON_KEYBOARD_INDEX_UNCHANGED (-1UL)
-void screen_common_keyboard_init(unsigned int stack_slot,
-                                 unsigned int current_element,
-                                 unsigned int nb_elements,
-                                 keyboard_callback_t callback);
 
 void debug(unsigned int id, unsigned char *msg);
 
