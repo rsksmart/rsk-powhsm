@@ -209,11 +209,6 @@ extern bolos_ux_context_t G_bolos_ux_context;
 // update before, current, after index for horizontal slider with 3 positions
 // slider distinguish handling from the data, to be more generic :)
 #define BOLOS_UX_HSLIDER3_NONE (-1UL)
-void bolos_ux_hslider3_init(unsigned int total_count);
-void bolos_ux_hslider3_set_current(unsigned int current);
-void bolos_ux_hslider3_next(void);
-void bolos_ux_hslider3_previous(void);
-
 #define FAST_LIST_THRESHOLD_CS 8
 #define FAST_LIST_ACTION_CS 2
 
