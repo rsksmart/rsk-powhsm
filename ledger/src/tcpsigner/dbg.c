@@ -40,6 +40,7 @@
 void LOG_HEX(const char *prefix, void *buffer, size_t size) {
     printf("%s ", prefix);
     if (size > 0) {
+        printf("0x");
         for (unsigned int i = 0; i < size; i++) {
             printf("%02x", ((unsigned char *)buffer)[i]);
         }
@@ -65,7 +66,7 @@ void LOG_BIGD_HEX(const char *prefix,
     if (0 == len)
         len = 1;
     /* print first digit without leading zeros */
-    printf("%" PRIxBIGD, a[--len]);
+    printf("0x%" PRIxBIGD, a[--len]);
     while (len--) {
         printf("%08" PRIxBIGD, a[len]);
     }

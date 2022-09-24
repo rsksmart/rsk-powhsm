@@ -47,10 +47,17 @@
 #include "hsm-ledger.h"
 #include "bc_advance.h"
 #include "bc_state.h"
+#include "bc_diff.h"
 
 #include "hex_reader.h"
 
 #include "log.h"
+
+typedef enum {
+    ARG_NU_WASABI = 0xaa00,
+    ARG_NU_PAPYRUS,
+    ARG_NU_IRIS,
+} arg_non_printable_t;
 
 // Argp option spec
 static struct argp_option options[] = {
@@ -58,11 +65,27 @@ static struct argp_option options[] = {
     {"port", 'p', "PORT", 0, "Port to listen on"},
     {"checkpoint", 'c', "HASH", 0, "Checkpoint block hash"},
     {"difficulty", 'd', "DIFFICULTY", 0, "Minimum required difficulty"},
+    {"diffcap", 'y', "DIFFICULTYCAP", 0, "Individual block difficulty cap"},
     {"network", 'n', "NETWORK", 0, "Network to use"},
     {"key", 'k', "KEYFILE", 0, "Private key file to load"},
     {"verbose", 'v', 0, 0, "Produce verbose output"},
     {"inputfile", 'i', "INPUTFILE", 0, "Read input from file"},
     {"replicafile", 'r', "REPLICAFILE", 0, "Copy inputs to this file"},
+    {"nuwasabi",
+     ARG_NU_WASABI,
+     "BLOCKNUMBER",
+     0,
+     "Custom Wasabi activation block number"},
+    {"nupapyrus",
+     ARG_NU_PAPYRUS,
+     "BLOCKNUMBER",
+     0,
+     "Custom Papyrus activation block number"},
+    {"nuiris",
+     ARG_NU_IRIS,
+     "BLOCKNUMBER",
+     0,
+     "Custom Iris activation block number"},
     {0}};
 
 // Argument definitions for argp
@@ -78,10 +101,16 @@ struct arguments {
     uint8_t checkpoint[HASH_SIZE];
     uint8_t difficulty_b[sizeof(DIGIT_T) * BIGINT_LEN];
     DIGIT_T difficulty[BIGINT_LEN];
+    bool have_difficulty_cap;
+    DIGIT_T difficulty_cap[BIGINT_LEN];
     uint8_t network_identifier;
     char inputfile[PATH_MAX];
     char replicafile[PATH_MAX];
     bool filemode;
+    int activation_bn;
+    int network_upgrade_overrides_count;
+    network_upgrade_activation_t
+        network_upgrade_overrides[MAX_NETWORK_UPGRADE_ACTIVATIONS];
 };
 
 // Argp individual option parsing function
@@ -119,8 +148,10 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
         }
         break;
     case 'd':
+    case 'y':
         arguments->difficulty_s = arg;
-        if (strlen(arg) > sizeof(arguments->difficulty_b) * 2 + 2) {
+        offset = (arg[0] == '0' && arg[1] == 'x') ? 2 : 0;
+        if (strlen(arg) > sizeof(arguments->difficulty_b) * 2 + offset) {
             argp_failure(state,
                          1,
                          0,
@@ -128,7 +159,6 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
                          "prefixed with 0x) of at most %u bytes",
                          sizeof(arguments->difficulty_b));
         }
-        offset = (arg[0] == '0' && arg[1] == 'x') ? 2 : 0;
         uint8_t dif_offset =
             sizeof(arguments->difficulty_b) - strlen(arg + offset) / 2;
         if (strlen(arg + offset) < 2 ||
@@ -137,11 +167,22 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
                      arguments->difficulty_b + dif_offset) == -1) {
             argp_failure(state, 1, 0, "Invalid difficulty given: %s", arg);
         }
+        DIGIT_T *dest;
+        uint16_t dest_size;
+        if (key == 'y') {
+            arguments->have_difficulty_cap = true;
+            dest = arguments->difficulty_cap;
+            dest_size = sizeof(arguments->difficulty_cap) /
+                        sizeof(arguments->difficulty_cap[0]);
+        } else {
+            dest = arguments->difficulty;
+            dest_size = sizeof(arguments->difficulty) /
+                        sizeof(arguments->difficulty[0]);
+        }
         bigint(arguments->difficulty_b,
                sizeof(arguments->difficulty_b),
-               arguments->difficulty,
-               sizeof(arguments->difficulty) /
-                   sizeof(arguments->difficulty[0]));
+               dest,
+               dest_size);
         break;
     case 'n':
         arguments->network = arg;
@@ -160,6 +201,24 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
     case 'i':
         strncpy(arguments->inputfile, arg, sizeof(arguments->inputfile) - 1);
         arguments->filemode = true;
+        break;
+    case ARG_NU_WASABI:
+    case ARG_NU_PAPYRUS:
+    case ARG_NU_IRIS:
+        if ((arguments->activation_bn = atoi(arg)) < 0 ||
+            (arguments->activation_bn == 0 && strcmp("0", arg))) {
+            argp_failure(
+                state, 1, 0, "Invalid activation block number given: %s", arg);
+        }
+        arguments
+            ->network_upgrade_overrides[arguments
+                                            ->network_upgrade_overrides_count]
+            .network_upgrade = key - ARG_NU_WASABI + NU_WASABI;
+        arguments
+            ->network_upgrade_overrides[arguments
+                                            ->network_upgrade_overrides_count]
+            .activation_bn = arguments->activation_bn;
+        arguments->network_upgrade_overrides_count++;
         break;
     default:
         return ARGP_ERR_UNKNOWN;
@@ -187,6 +246,12 @@ void main(int argc, char **argv) {
         "key.secp256", // Key file
         false,         // verbose
     };
+
+    // No custom difficulty cap by default
+    arguments.have_difficulty_cap = false;
+
+    // No network upgrade activations overrides by default
+    arguments.network_upgrade_overrides_count = 0;
 
     // Convert default checkpoint
     read_hex(arguments.checkpoint_s,
@@ -221,9 +286,11 @@ void main(int argc, char **argv) {
     info("TCPSigner starting.\n");
 
     info("Signer parameters:\n");
-    info_hex("Checkpoint", arguments.checkpoint, sizeof(arguments.checkpoint));
-    info_hex(
-        "Difficulty", arguments.difficulty_b, sizeof(arguments.difficulty_b));
+    info_hex("Checkpoint:", arguments.checkpoint, sizeof(arguments.checkpoint));
+    info_bigd_hex("Difficulty: ",
+                  arguments.difficulty,
+                  sizeof(arguments.difficulty) /
+                      sizeof(arguments.difficulty[0]));
     info("Network: %s\n", arguments.network);
 
     // Set checkpoint
@@ -235,6 +302,32 @@ void main(int argc, char **argv) {
             sizeof(arguments.difficulty));
     // Set network
     hsmsim_set_network(arguments.network_identifier);
+
+    // Set custom block difficulty cap (if any)
+    if (arguments.have_difficulty_cap) {
+        memmove(MAX_BLOCK_DIFFICULTY,
+                arguments.difficulty_cap,
+                sizeof(arguments.difficulty_cap));
+    }
+    info_bigd_hex("Block difficulty cap: ",
+                  MAX_BLOCK_DIFFICULTY,
+                  sizeof(MAX_BLOCK_DIFFICULTY) /
+                      sizeof(MAX_BLOCK_DIFFICULTY[0]));
+
+    // Set network upgrade activation overrides
+    for (int i = 0; i < arguments.network_upgrade_overrides_count; i++)
+        hsmsim_set_network_upgrade_block_number(
+            arguments.network_upgrade_overrides[i]);
+    // Display network upgrade activation configuration
+    info("Network upgrade activation block numbers (latest takes "
+         "precedence):\n");
+    network_upgrade_activation_t *activations =
+        hsmsim_get_network_upgrade_activations();
+    for (int i = 0; i < hsmsim_get_network_upgrade_activations_count(); i++) {
+        info("\t%s: %u\n",
+             hsmsim_get_network_upgrade_name(activations[i].network_upgrade),
+             activations[i].activation_bn);
+    }
 
     // Initialize ECDSA
     if (!hsmsim_ecdsa_initialize(arguments.key_file_path)) {
