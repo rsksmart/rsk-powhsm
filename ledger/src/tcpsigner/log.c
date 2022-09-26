@@ -50,3 +50,8 @@ void info_hex(const char *prefix, void *buffer, size_t size) {
     LOG(PREFIX);
     LOG_HEX(prefix, buffer, size);
 }
+
+void info_bigd_hex(const char *prefix, const DIGIT_T *a, size_t len) {
+    LOG(PREFIX);
+    LOG_BIGD_HEX(prefix, a, len, "\n");
+}
