@@ -8,7 +8,9 @@
 
 ## About
 
-This repository hosts the powHSM project. The stable versions are the tags published in the [releases tab](https://github.com/rsksmart/rsk-powhsm/releases).
+The RSK Powpeg protects private keys stored in special purpose PowHSMs based on tamper-proof secure elements (SE). The PowHSM runs an RSK node in SPV mode, and signatures can only be commanded by chain cumulative proof of work.
+
+This repository hosts the powHSM firmware. The stable versions are the tags published in the [releases tab](https://github.com/rsksmart/rsk-powhsm/releases).
 
 ## Notation
 
