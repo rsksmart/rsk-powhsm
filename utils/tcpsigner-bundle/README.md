@@ -5,7 +5,7 @@
 ### Prerequisites
 
 - Docker
-- Ledger, Middleware and Packer docker images
+- Middleware and Packer docker images
 
 ### Required images
 
@@ -21,12 +21,6 @@ then
 docker/packer/build
 ```
 
-and finally
-
-```
-docker/ledger/build
-```
-
 ### Building and bundling
 
 Before using the TCPSigner bundle (i.e., TCPSigner + Manager combo), both the TCPSigner
@@ -40,7 +34,7 @@ directory, issue:
 and wait for the process to finish. Once this is done, the `dist` directory will contain
 the standalone bundle that can be copied and ran on any system with Docker installed.
 
-#### Running
+### Running
 
 To run the TCPSigner bundle, from within the distribution directory (built in the previous section), issue:
 
@@ -50,3 +44,11 @@ To run the TCPSigner bundle, from within the distribution directory (built in th
 
 Refer to the help (`-h`) command for options.
 
+### Supported Platforms
+
+The TCPSigner bundle can be built an run in both x86 and arm64 platforms. The building process for arm64 is the same as for x86 platforms. For running the TCPSigner bundle on arm64 processors, issue:
+
+```
+ARCH=arm ./run.sh
+```
+Refer to the help (`-h`) command for options.

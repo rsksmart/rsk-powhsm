@@ -20,6 +20,16 @@ done
 # ==========================================================
 # ==========================================================
 
-docker build --platform linux/x86_64 -t $DOCKNAME $DIRNAME
+# Deafult platform is x86_64
+PLATFORM="linux/x86_64"
 
-docker run --platform linux/x86_64 -ti --rm -p $PORT:$PORT -v "$DIRNAME:/bundle" -u "`id -u`:`id -g`" $DOCKNAME /bins/entrypoint.sh -p$PORT $@
+# Special case for running on arm64 platforms
+if [[ $ARCH == "arm" ]]
+then
+    PLATFORM="linux/arm64/v8"
+    PLATFORM_PREFIX="arm64v8/"
+fi
+
+docker build --build-arg PLATFORM_PREFIX=$PLATFORM_PREFIX --platform $PLATFORM -t $DOCKNAME $DIRNAME
+
+docker run --platform $PLATFORM -ti --rm -p $PORT:$PORT -v "$DIRNAME:/bundle" -u "`id -u`:`id -g`" $DOCKNAME /bins/entrypoint.sh -p$PORT $@
