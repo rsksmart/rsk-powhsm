@@ -1,21 +1,11 @@
 # Changelog
 
-## [3.0.0] - 04/06/2022
+## [3.0.2] - 29/09/2022
 
 ### Features/enhancements
 
-- Considering uncles difficulty in "advanceBlockchain" operation
-- Implemented N of M signer upgrade authorization scheme
-- Authorized signing operation parsers rewritten from scratch
-- Added new "blockchainParameters" command
-- Added unit tests to middleware admin tooling
-- Fuzzing improvements
-- General best practices related improvements and fixes
-- Removed old/unused code
-
-### Fixes
-
-- Fixed failing middleware docker image build
+- TCPSigner: added command-line customisation of block difficulty cap and network upgrade activation block numbers
+- Added support for building and running the TCPSigner bundle on arm64
 
 ## [3.0.1] - 11/08/2022
 
@@ -49,3 +39,20 @@
 - Persistence issue with blockchain state initialization flag
 - Fixed attestation documentation broken links
 - Fixed CHANGELOG 3.0.0 version and release date
+
+## [3.0.0] - 04/06/2022
+
+### Features/enhancements
+
+- Considering uncles difficulty in "advanceBlockchain" operation
+- Implemented N of M signer upgrade authorization scheme
+- Authorized signing operation parsers rewritten from scratch
+- Added new "blockchainParameters" command
+- Added unit tests to middleware admin tooling
+- Fuzzing improvements
+- General best practices related improvements and fixes
+- Removed old/unused code
+
+### Fixes
+
+- Fixed failing middleware docker image build
