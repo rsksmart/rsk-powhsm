@@ -46,9 +46,4 @@ Refer to the help (`-h`) command for options.
 
 ### Supported Platforms
 
-The TCPSigner bundle can be built an run in both x86 and arm64 platforms. The building process for arm64 is the same as for x86 platforms. For running the TCPSigner bundle on arm64 processors, issue:
-
-```
-ARCH=arm ./run.sh
-```
-Refer to the help (`-h`) command for options.
+The TCPSigner bundle can be built an ran on x86 and arm64 platforms. The steps for building and running the TCPSigner bundle are the same for both platforms.

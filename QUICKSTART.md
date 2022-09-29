@@ -15,7 +15,7 @@ Whether new to the project or just wanting to quickly get an environment up and 
 
 ## Supported platforms
 
-Unless otherwise stated, only x86 platforms are supported for building this project and running the tools provided. The only exception is the [TCPSigner bundle](./utils/tcpsigner-bundle/README.md), which can be built and run in both x86 and arm64 platforms.
+Unless otherwise stated, only x86 platforms are supported for building this project and running the tools provided. The only exception is the [TCPSigner bundle](./utils/tcpsigner-bundle/README.md), which can be built and ran in x86 and arm64 platforms.
 
 
 ## Common tasks
