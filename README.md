@@ -18,10 +18,6 @@ Throughout the repository READMEs, the prompt `~/repo>` is used to denote a `bas
 
 Refer to our [quickstart guide](./QUICKSTART.md) to learn about environment setup and common tasks without further ado.
 
-## Supported platforms
-
-Unless otherwise stated, only x86 platforms are supported for building this project and running the tools provided. Refer to our [quickstart guide](./QUICKSTART.md) for more details on other platforms with limited support.
-
 ## Concepts overview
 
 powHSM is a solution designed specifically for the [RSK network](https://www.rsk.co/) powPeg. Its main role is to safekeep and prevent the unauthorized usage of each of the powPeg's members' private keys. powHSM is implemented as a pair of applications for the [Ledger Nano S](https://shop.ledger.com/products/ledger-nano-s), namely a UI and a Signer, and it strongly depends on the device's security features to implement the aforementioned safekeeping.

@@ -16,16 +16,6 @@ The first time, you must build the docker image that will serve as the middlewar
 
 that should build (or rebuild in case the `Dockerfile` has changed) the corresponding docker image.
 
-### Note for M1 users
-
-Even though development on M1 computers is not officially supported, it is possible to build a middleware Docker image compatible with M1 that allows running some of the tools listed in this document. To build that docker image, issue:
-```
-~/repo> docker/mware/build-m1
-```
-
-It is important to notice that it is not possible to use this Docker image for building the middleware binaries. This image is provided only to allow building and running the TCPSigner, as well as running the [Manager](#manager). Refer to [ledger/README.md](../ledger/README.md) for more details on the TCPSigner.
-
-For instructions on building and running the TCPSigner on the M1 compatible middleware Docker image, refer to [utils/tcpsigner-bundle/README-M1.md](../utils/tcpsigner-bundle/README-M1.md)
 ## Environment
 
 For developing, testing and building middleware binaries, you can use the docker image. To gather a development terminal, issue:

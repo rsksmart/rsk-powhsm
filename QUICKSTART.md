@@ -13,10 +13,6 @@ Whether new to the project or just wanting to quickly get an environment up and 
 ~/repo> docker/packer/build # Middleware binary packer image
 ```
 
-### Additional note for M1 computers
-
-Building this project, in addition to the Docker images listed in the [Prerequisites](#prerequisites) section, is currently not supported on M1 computers. However, we provide a special Dockerfile suited for running the middleware Docker image with limited functionality on M1 computers. Refer to [middleware/README.md](./middleware/README.md) for instructions on running that.
-
 ## Common tasks
 
 - Run tests:

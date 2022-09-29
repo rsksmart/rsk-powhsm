@@ -1,5 +1,0 @@
-#!/bin/bash
-SCRIPT_DIR=$(dirname $0)
-DOCKERFILE=${SCRIPT_DIR}/Dockerfile-m1
-
-docker build -f ${DOCKERFILE} -t hsm:mware ${SCRIPT_DIR}
