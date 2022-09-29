@@ -89,28 +89,6 @@ unsigned short io_exchange_al(unsigned char channel, unsigned short tx_len) {
 }
 
 unsigned char io_event(unsigned char channel) {
-    // nothing done with the event, throw an error on the transport layer if
-    // needed
-
-    // can't have more than one tag in the reply, not supported yet.
-    switch (G_io_seproxyhal_spi_buffer[0]) {
-    case SEPROXYHAL_TAG_FINGER_EVENT:
-        break;
-
-    case SEPROXYHAL_TAG_BUTTON_PUSH_EVENT: // for Nano S
-        break;
-
-    case SEPROXYHAL_TAG_DISPLAY_PROCESSED_EVENT:
-        break;
-
-    case SEPROXYHAL_TAG_TICKER_EVENT:
-        break;
-
-    // unknown events are acknowledged
-    default:
-        break;
-    }
-
     // close the event if not done previously (by a display or whatever)
     if (!io_seproxyhal_spi_is_status_sent()) {
         io_seproxyhal_general_status();
