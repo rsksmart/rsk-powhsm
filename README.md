@@ -20,7 +20,7 @@ Refer to our [quickstart guide](./QUICKSTART.md) to learn about environment setu
 
 ## Supported platforms
 
-Unless otherwise stated, only x86 platforms are supported for building this project and running the tools provided. It is possible, however, to build and run the [TCPSigner bundle](./utils/tcpsigner-bundle/README.md) on arm64 platforms.
+Unless otherwise stated, only x86 platforms are supported for building this project and running the tools provided. It is possible, however, to build and run the [TCPSigner bundle](./utils/tcpsigner-bundle/README.md) on arm64 platforms. This is provided for development and testing purposes.
 
 ## Concepts overview
 
