@@ -20,6 +20,6 @@ done
 # ==========================================================
 # ==========================================================
 
-docker build --platform linux/x86_64 -t $DOCKNAME $DIRNAME
+docker build -t $DOCKNAME $DIRNAME
 
-docker run --platform linux/x86_64 -ti --rm -p $PORT:$PORT -v "$DIRNAME:/bundle" -u "`id -u`:`id -g`" $DOCKNAME /bins/entrypoint.sh -p$PORT $@
+docker run -ti --rm -p $PORT:$PORT -v "$DIRNAME:/bundle" -u "`id -u`:`id -g`" $DOCKNAME /bins/entrypoint.sh -p$PORT $@
