@@ -22,42 +22,17 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __PIN
-#define __PIN
-
-#include <stdbool.h>
-
-#define PIN_LENGTH 8
+#ifndef __SEED
+#define __SEED
 
 /*
- * Validates that the pin has exactly PIN_LENGTH alphanumeric characters
- * with at least one alphabetic character.
+ * Implement the RSK SEED command.
  *
- * @arg[in] pin null-terminated string representing the pin to validate
- * @ret     true if pin is valid, false otherwise
+ * Receives one byte at a time and fills the buffer pointed by words_buffer.
+ *
+ * @arg[in] words_buffer  buffer that will hold the seed
+ * @arg[in] buffer_length total length of words_buffer
  */
-bool is_pin_valid(unsigned char *pin);
-
-/*
- * Implements RSK PIN command.
- *
- * Receives one byte at a time and fills the buffer pointed by pin_buffer,
- * adding a null byte after the new byte.
- *
- * @arg[in] pin_buffer Buffer that will hold the null-terminated pin (with a
- *                     1-byte prepended length). The buffer is required to
- *                     have a lentgh of (PIN_LENGTH + 2).
- */
-void do_rsk_pin_cmd(unsigned char *pin_buffer);
-
-/*
- * Implements RSK NEW PIN command.
- *
- * Sets the device pin.
- *
- * @arg[in] pin_buffer Buffer that holds the new pin.
- * @ret                Number of transmited bytes to the host.
- */
-unsigned char do_rsk_new_pin(unsigned char *pin_buffer);
+void do_rsk_seed_cmd(char *words_buffer, unsigned int buffer_length);
 
 #endif

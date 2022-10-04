@@ -24,7 +24,9 @@
 
 #include <string.h>
 
+#include "defs.h"
 #include "err.h"
+#include "os.h"
 #include "pin.h"
 
 // Helper macros for pin validation
@@ -33,13 +35,6 @@
 #define IS_NUM(c) IS_IN_RANGE(c, '0', '9')
 #define IS_ALPHANUM(c) (IS_ALPHA(c) || IS_NUM(c))
 
-/*
- * Validates that the pin has exactly PIN_LENGTH alphanumeric characters
- * with at least one alphabetic character.
- *
- * @arg[in] pin null-terminated string representing the pin to validate
- * @ret     true if pin is valid, false otherwise
- */
 bool is_pin_valid(unsigned char *pin) {
     // PIN_LENGTH is the only length accepted
     size_t length = strnlen((const char *)pin, PIN_LENGTH + 1);
@@ -58,4 +53,30 @@ bool is_pin_valid(unsigned char *pin) {
     }
 
     return hasAlpha;
+}
+
+void do_rsk_pin_cmd(unsigned char *pin_buffer) {
+    unsigned char index = APDU_AT(2);
+    if ((index >= 0) && (index <= PIN_LENGTH)) {
+        pin_buffer[index] = APDU_AT(3);
+        pin_buffer[index + 1] = 0;
+    }
+}
+
+unsigned char do_rsk_new_pin(unsigned char *pin_buffer) {
+#ifndef DEBUG_BUILD
+    if (!is_pin_valid(pin_buffer)) {
+        THROW(ERR_INVALID_PIN);
+    }
+#endif
+    // Set PIN
+    os_perso_set_pin(0, pin_buffer, strlen((const char *)pin_buffer));
+    // check PIN
+    os_global_pin_invalidate();
+    unsigned char output_index = CMDPOS;
+    SET_APDU_AT(output_index++, 2);
+    SET_APDU_AT(
+        output_index++,
+        os_global_pin_check(pin_buffer, strlen((const char *)pin_buffer)));
+    return output_index;
 }

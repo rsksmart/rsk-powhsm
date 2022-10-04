@@ -22,42 +22,37 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __PIN
-#define __PIN
+#ifndef __WIPE
+#define __WIPE
 
-#include <stdbool.h>
+typedef unsigned int (*mnemonic_from_data_cb_t)(unsigned char *in,
+                                                unsigned int in_len,
+                                                unsigned char *out,
+                                                unsigned int out_len);
 
-#define PIN_LENGTH 8
-
-/*
- * Validates that the pin has exactly PIN_LENGTH alphanumeric characters
- * with at least one alphabetic character.
- *
- * @arg[in] pin null-terminated string representing the pin to validate
- * @ret     true if pin is valid, false otherwise
- */
-bool is_pin_valid(unsigned char *pin);
-
-/*
- * Implements RSK PIN command.
- *
- * Receives one byte at a time and fills the buffer pointed by pin_buffer,
- * adding a null byte after the new byte.
- *
- * @arg[in] pin_buffer Buffer that will hold the null-terminated pin (with a
- *                     1-byte prepended length). The buffer is required to
- *                     have a lentgh of (PIN_LENGTH + 2).
- */
-void do_rsk_pin_cmd(unsigned char *pin_buffer);
+// Wipe command context
+typedef struct {
+    unsigned char *pin_buffer;
+    char *string_buffer;
+    unsigned int string_buffer_len;
+    char *words_buffer;
+    unsigned int words_buffer_len;
+    unsigned int *onboarding_kind;
+    mnemonic_from_data_cb_t mnemonic_from_data_cb;
+} wipe_t;
 
 /*
- * Implements RSK NEW PIN command.
+ * Implements RSK WIPE command.
  *
- * Sets the device pin.
+ * Wipes and onboards the device.
  *
- * @arg[in] pin_buffer Buffer that holds the new pin.
- * @ret                Number of transmited bytes to the host.
+ * @arg[in] wipe_ctx          Context data with the device's pin, buffers to
+ *                            hold the seed and mnemonic, the onboarding kind,
+ *                            and a callback function used to generate the
+ *                            mnemonic from the seed.
+ * @arg[out] words_buffer_len The size of the generated words_buffer.
+ * @ret                       Number of transmited bytes to the host.
  */
-unsigned char do_rsk_new_pin(unsigned char *pin_buffer);
+unsigned char do_rsk_wipe(wipe_t *wipe_ctx, unsigned int *words_buffer_len);
 
 #endif

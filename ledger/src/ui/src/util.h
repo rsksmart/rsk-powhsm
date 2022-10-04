@@ -22,42 +22,40 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __PIN
-#define __PIN
-
-#include <stdbool.h>
-
-#define PIN_LENGTH 8
+#ifndef __UTIL
+#define __UTIL
 
 /*
- * Validates that the pin has exactly PIN_LENGTH alphanumeric characters
- * with at least one alphabetic character.
+ * Implements RSK ECHO command
  *
- * @arg[in] pin null-terminated string representing the pin to validate
- * @ret     true if pin is valid, false otherwise
+ * @arg[in] rx number of bytes received from the host
+ * @ret        number of transmited bytes to the host
  */
-bool is_pin_valid(unsigned char *pin);
+unsigned char do_rsk_echo(unsigned int rx);
 
 /*
- * Implements RSK PIN command.
+ * Implements RSK MODE command
  *
- * Receives one byte at a time and fills the buffer pointed by pin_buffer,
- * adding a null byte after the new byte.
+ * Always returns RSK_MODE_BOOTLOADER, since the UI only runs in bootloader mode
  *
- * @arg[in] pin_buffer Buffer that will hold the null-terminated pin (with a
- *                     1-byte prepended length). The buffer is required to
- *                     have a lentgh of (PIN_LENGTH + 2).
+ * @ret        number of transmited bytes to the host
  */
-void do_rsk_pin_cmd(unsigned char *pin_buffer);
+unsigned char do_rsk_mode_cmd();
 
 /*
- * Implements RSK NEW PIN command.
+ * Implements RSK IS ONBOARDED command
  *
- * Sets the device pin.
- *
- * @arg[in] pin_buffer Buffer that holds the new pin.
- * @ret                Number of transmited bytes to the host.
+ * @arg[in] is_onboarded true if the device is onboarded, false otherwise
+ * @ret                  number of transmited bytes to the host
  */
-unsigned char do_rsk_new_pin(unsigned char *pin_buffer);
+unsigned char do_rsk_is_onboarded(unsigned char is_onboarded);
+
+/*
+ * Implements RSK RETRIES command
+ *
+ * @arg[in] retries current number of pin retries
+ * @ret             number of transmited bytes to the host
+ */
+unsigned char do_rsk_retries(unsigned char retries);
 
 #endif
