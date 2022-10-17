@@ -160,6 +160,7 @@ typedef struct bolos_ux_context {
         union {
             att_t attestation;
             sigaut_t sigaut;
+            pin_t pin;
         };
     };
 

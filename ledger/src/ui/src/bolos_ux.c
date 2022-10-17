@@ -52,16 +52,13 @@
 #include "attestation.h"
 #include "signer_authorization.h"
 #include "memutil.h"
+#include "unlock.h"
 
 // Onboarded with the UI flag
 const unsigned char N_onboarded_ui[1] = {0};
 
 // PIN buffer used for authenticated operations
-unsigned char G_pin_buffer[PIN_LENGTH + 2];
-// Skip the prepended length of pin buffer
-#define G_PIN_BUFFER_PAYLOAD (G_pin_buffer + 1)
-// Unify pin buffer length
-#define G_PIN_BUFFER_LEN() strlen((const char *)G_PIN_BUFFER_PAYLOAD)
+unsigned char G_pin_buffer[MAX_PIN_LENGTH + 2];
 
 #ifdef OS_IO_SEPROXYHAL
 
@@ -243,6 +240,9 @@ void io_seproxyhal_display(const bagl_element_t *element) {
 // Signer authorization context shorthand
 #define sigaut_ctx (G_bolos_ux_context.sigaut)
 
+// Pin context shorthand
+#define pin_ctx (G_bolos_ux_context.pin)
+
 // Operation being currently executed
 static unsigned char curr_cmd;
 
@@ -265,6 +265,7 @@ static void reset_if_starting(unsigned char cmd) {
         G_bolos_ux_context.words_buffer_length = 0;
         reset_attestation(&attestation_ctx);
         reset_signer_authorization(&sigaut_ctx);
+        reset_pin(&pin_ctx);
     }
 }
 
@@ -321,11 +322,9 @@ static void sample_main(void) {
                     break;
                 case RSK_PIN_CMD: // Send pin_buffer
                     reset_if_starting(RSK_META_CMD_UIOP);
-                    pin = APDU_AT(2);
-                    if ((pin >= 0) && (pin <= PIN_LENGTH)) {
-                        G_pin_buffer[pin] = APDU_AT(3);
-                        G_pin_buffer[pin + 1] = 0;
-                    }
+                    tx = pin_cmd(&pin_ctx);
+                    // Save pin for authenticated operations
+                    get_pin_ctx(&pin_ctx, G_pin_buffer);
                     THROW(APDU_OK);
                     break;
                 case RSK_IS_ONBOARD: // Wheter it's onboarded or not
@@ -347,8 +346,9 @@ static void sample_main(void) {
                     nvm_write(
                         (void *)PIC(N_onboarded_ui), (void *)&aux, sizeof(aux));
 
+                    set_pin_ctx(&pin_ctx, G_pin_buffer);
 #ifndef DEBUG_BUILD
-                    if (!is_pin_valid(G_PIN_BUFFER_PAYLOAD)) {
+                    if (!is_pin_valid(&pin_ctx)) {
                         THROW(ERR_INVALID_PIN);
                     }
 #endif
@@ -392,14 +392,18 @@ static void sample_main(void) {
                                    sizeof(G_bolos_ux_context.words_buffer));
                     // Set PIN
                     os_perso_set_pin(
-                        0, G_PIN_BUFFER_PAYLOAD, G_PIN_BUFFER_LEN());
+                        0,
+                        pin_ctx.pin_buffer.payload,
+                        strlen((const char *)pin_ctx.pin_buffer.payload));
                     // Finalize onboarding
                     os_perso_finalize();
                     os_global_pin_invalidate();
                     SET_APDU_AT(1, 2);
-                    SET_APDU_AT(2,
-                                os_global_pin_check(G_PIN_BUFFER_PAYLOAD,
-                                                    G_PIN_BUFFER_LEN()));
+                    SET_APDU_AT(
+                        2,
+                        os_global_pin_check(
+                            pin_ctx.pin_buffer.payload,
+                            strlen((const char *)pin_ctx.pin_buffer.payload)));
                     // Clear pin buffer
                     explicit_bzero(G_pin_buffer, sizeof(G_pin_buffer));
                     // Turn the onboarding flag on to mark onboarding
@@ -414,21 +418,13 @@ static void sample_main(void) {
                 case RSK_NEWPIN:
                     reset_if_starting(RSK_META_CMD_UIOP);
 
+                    set_pin_ctx(&pin_ctx, G_pin_buffer);
 #ifndef DEBUG_BUILD
-                    if (!is_pin_valid(G_PIN_BUFFER_PAYLOAD)) {
+                    if (!is_pin_valid(&pin_ctx)) {
                         THROW(ERR_INVALID_PIN);
                     }
 #endif
-                    // Set PIN
-                    os_perso_set_pin(
-                        0, G_PIN_BUFFER_PAYLOAD, G_PIN_BUFFER_LEN());
-                    // check PIN
-                    os_global_pin_invalidate();
-                    SET_APDU_AT(1, 2);
-                    SET_APDU_AT(2,
-                                os_global_pin_check(G_PIN_BUFFER_PAYLOAD,
-                                                    G_PIN_BUFFER_LEN()));
-                    tx = 3;
+                    tx = new_pin_cmd(&pin_ctx);
                     // Clear pin buffer
                     explicit_bzero(G_pin_buffer, sizeof(G_pin_buffer));
                     THROW(APDU_OK);
@@ -464,16 +460,13 @@ static void sample_main(void) {
                     reset_if_starting(RSK_META_CMD_UIOP);
                     // RSK_UNLOCK_CMD does not send the prepended length,
                     // so we kept this call backwards compatible, using
-                    // G_pin_buffer instead of G_PIN_BUFFER_PAYLOAD
-                    SET_APDU_AT(
-                        2,
-                        os_global_pin_check(
-                            G_pin_buffer, strlen((const char *)G_pin_buffer)));
-                    tx = 5;
-                    THROW(APDU_OK);
+                    // pin_ctx.pin_raw instead of pin_ctx.pin_buffer.payload
+                    set_pin_ctx(&pin_ctx, G_pin_buffer);
+                    tx = unlock(&pin_ctx);
                     // The pin value will also be used in
                     // BOLOS_UX_CONSENT_APP_ADD command, so we can't wipe the
                     // pin buffer here
+                    THROW(APDU_OK);
                     break;
                 case RSK_END_CMD: // return to dashboard
                     reset_if_starting(RSK_END_CMD);
@@ -652,8 +645,9 @@ void bolos_ux_main(void) {
                 // PIN is invalidated so we must check it again. The pin value
                 // used here is the same as in RSK_UNLOCK_CMD, so we also
                 // don't have a prepended length byte
-                os_global_pin_check(G_pin_buffer,
-                                    strlen((const char *)G_pin_buffer));
+                set_pin_ctx(&pin_ctx, G_pin_buffer);
+                os_global_pin_check(pin_ctx.pin_raw,
+                                    strlen((const char *)pin_ctx.pin_raw));
                 G_bolos_ux_context.exit_code = BOLOS_UX_OK;
                 explicit_bzero(G_pin_buffer, sizeof(G_pin_buffer));
                 break;
