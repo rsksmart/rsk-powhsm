@@ -27,10 +27,18 @@
 #include "string.h"
 #include "unlock.h"
 
+/*
+ * Implements RSK UNLOCK command.
+ *
+ * Unlocks the device.
+ *
+ * @arg[in] pin_ctx pin context
+ * @ret             number of transmited bytes to the host
+ */
 unsigned int unlock(pin_t *pin_ctx) {
     unsigned char output_index = OP;
     SET_APDU_AT(output_index++,
-                os_global_pin_check(pin_ctx->pin_raw,
-                                    strlen((const char *)pin_ctx->pin_raw)));
+                os_global_pin_check(pin_ctx->pin_buffer,
+                                    strlen((const char *)pin_ctx->pin_buffer)));
     return output_index;
 }

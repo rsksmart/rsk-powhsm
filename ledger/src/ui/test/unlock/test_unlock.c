@@ -33,24 +33,22 @@
 
 void test_ok() {
     printf("Test OK...\n");
+
     pin_t pin_ctx;
-    reset_pin(&pin_ctx);
-    set_pin_ctx(&pin_ctx, (unsigned char *)"1234567a\0\0");
+    init_pin_ctx(&pin_ctx, (unsigned char *)"1234567a\0\0");
 
     unsigned int tx = unlock(&pin_ctx);
-
     assert(tx == 3);
     assert(APDU_OP() == 1);
 }
 
 void test_wrong_pin() {
     printf("Test wrong pin...\n");
+
     pin_t pin_ctx;
-    reset_pin(&pin_ctx);
-    set_pin_ctx(&pin_ctx, (unsigned char *)"wrong-pin\0");
+    init_pin_ctx(&pin_ctx, (unsigned char *)"wrong-pin\0");
 
     unsigned int tx = unlock(&pin_ctx);
-
     assert(tx == 3);
     assert(APDU_OP() == 0);
 }

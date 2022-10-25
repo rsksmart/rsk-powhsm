@@ -29,87 +29,73 @@
 
 #include "pin.h"
 
+#define IS_VALID true
+#define NOT_VALID false
+
 void set_payload(pin_t *pin_ctx, unsigned char *payload, size_t n) {
-    memcpy(pin_ctx->pin_buffer.payload, payload, n);
+    memcpy(PIN_CTX_PAYLOAD(pin_ctx), payload, n);
+}
+
+void assert_pin(char *pin, bool expected) {
+    unsigned char pin_length = (char)strlen(pin);
+    unsigned char *pin_buffer = malloc(pin_length + 2);
+    pin_buffer[0] = pin_length;
+    strcpy((char *)pin_buffer + 1, pin);
+
+    pin_t pin_ctx;
+    init_pin_ctx(&pin_ctx, pin_buffer);
+    assert(is_pin_valid(&pin_ctx) == expected);
+    free(pin_buffer);
 }
 
 void test_ok() {
     printf("Test OK...\n");
-    pin_t pin_ctx;
-    reset_pin(&pin_ctx);
 
-    set_payload(&pin_ctx, (unsigned char *)"abcdefgh", strlen("abcdefgh"));
-    assert(is_pin_valid(&pin_ctx));
-    set_payload(&pin_ctx, (unsigned char *)"8b23ef1s", strlen("8b23ef1s"));
-    assert(is_pin_valid(&pin_ctx));
-    set_payload(&pin_ctx, (unsigned char *)"MN22P3S9", strlen("MN22P3S9"));
-    assert(is_pin_valid(&pin_ctx));
-    set_payload(&pin_ctx, (unsigned char *)"MN22P3S9", strlen("MN22P3S9"));
-    assert(is_pin_valid(&pin_ctx));
+    assert_pin("abcdefgh", IS_VALID);
+    assert_pin("8b23ef1s", IS_VALID);
+    assert_pin("MN22P3S9", IS_VALID);
+    assert_pin("MN22p3s9", IS_VALID);
 }
 
 void test_numeric_pin() {
     printf("Test pin with only numbers...\n");
-    pin_t pin_ctx;
-    reset_pin(&pin_ctx);
 
-    set_payload(&pin_ctx, (unsigned char *)"1234", strlen("1234"));
-    assert(!is_pin_valid(&pin_ctx));
-    set_payload(&pin_ctx, (unsigned char *)"123456", strlen("123456"));
-    assert(!is_pin_valid(&pin_ctx));
-    set_payload(&pin_ctx, (unsigned char *)"12345678", strlen("12345678"));
-    assert(!is_pin_valid(&pin_ctx));
-    set_payload(&pin_ctx, (unsigned char *)"1234567890", strlen("1234567890"));
-    assert(!is_pin_valid(&pin_ctx));
+    assert_pin("1234", NOT_VALID);
+    assert_pin("123456", NOT_VALID);
+    assert_pin("12345678", NOT_VALID);
+    assert_pin("1234567890", NOT_VALID);
 }
 
 void test_pin_too_long() {
     printf("Test pin buffer too long...\n");
-    pin_t pin_ctx;
-    reset_pin(&pin_ctx);
 
-    set_payload(&pin_ctx, (unsigned char *)"abcdefghi", strlen("abcdefghi"));
-    assert(!is_pin_valid(&pin_ctx));
-    set_payload(&pin_ctx, (unsigned char *)"8b23ef1s85", strlen("8b23ef1s85"));
-    assert(!is_pin_valid(&pin_ctx));
-    set_payload(
-        &pin_ctx, (unsigned char *)"MN22P3S9P20", strlen("MN22P3S9P20"));
-    assert(!is_pin_valid(&pin_ctx));
-    set_payload(
-        &pin_ctx, (unsigned char *)"MNOPQRSTQDAS", strlen("MNOPQRSTQDAS"));
-    assert(!is_pin_valid(&pin_ctx));
+    assert_pin("abcdefghi", NOT_VALID);
+    assert_pin("8b23ef1s85", NOT_VALID);
+    assert_pin("MN22P3S9P20", NOT_VALID);
+    assert_pin("MNOPQRSTQDAS", NOT_VALID);
 }
 
 void test_pin_too_short() {
     printf("Test pin buffer too short...\n");
-    pin_t pin_ctx;
-    reset_pin(&pin_ctx);
 
-    set_payload(&pin_ctx, (unsigned char *)"abcdefg", strlen("abcdefg"));
-    assert(!is_pin_valid(&pin_ctx));
-    set_payload(&pin_ctx, (unsigned char *)"8b23ef", strlen("8b23ef"));
-    assert(!is_pin_valid(&pin_ctx));
-    set_payload(&pin_ctx, (unsigned char *)"MN22P", strlen("MN22P"));
-    assert(!is_pin_valid(&pin_ctx));
-    set_payload(&pin_ctx, (unsigned char *)"MNOP", strlen("MNOP"));
-    assert(!is_pin_valid(&pin_ctx));
+    assert_pin("abcdefg", NOT_VALID);
+    assert_pin("8b23ef", NOT_VALID);
+    assert_pin("MN22P", NOT_VALID);
+    assert_pin("MNOP", NOT_VALID);
 }
 
 void test_pin_non_alpha() {
     printf("Test pin non alpha chars...\n");
-    pin_t pin_ctx;
-    reset_pin(&pin_ctx);
 
-    set_payload(&pin_ctx, (unsigned char *)"a1-@.;", strlen("a1-@.;"));
-    assert(!is_pin_valid(&pin_ctx));
-    set_payload(&pin_ctx, (unsigned char *)"!@#$^&*", strlen("!@#$^&*"));
-    assert(!is_pin_valid(&pin_ctx));
-    set_payload(&pin_ctx, (unsigned char *)"(),./;']", strlen("(),./;']"));
-    assert(!is_pin_valid(&pin_ctx));
+    assert_pin("a1-@.;", NOT_VALID);
+    assert_pin("!@#$^&*", NOT_VALID);
+    assert_pin("(),./;']", NOT_VALID);
+    assert_pin("abcdefg", NOT_VALID);
 }
 
 int main() {
     test_ok();
+
     test_numeric_pin();
     test_pin_too_long();
     test_pin_too_short();

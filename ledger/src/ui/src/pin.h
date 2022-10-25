@@ -27,26 +27,32 @@
 
 #include <stdbool.h>
 
-#define MAX_PIN_LENGTH 8
-#define MIN_PIN_LENGTH 4
+#define PIN_LENGTH 8
 
 // Pin context
 typedef struct {
-    union {
-        struct {
-            unsigned char length;
-            unsigned char payload[MAX_PIN_LENGTH + 1];
-        } pin_buffer;
-        unsigned char pin_raw[MAX_PIN_LENGTH + 2];
-    };
+    unsigned char* pin_buffer;
 } pin_t;
+
+// Helper macros for pin context manipulation
+#define PIN_CTX_PAYLOAD(pin_ctx) ((unsigned char*)((pin_ctx)->pin_buffer + 1))
+#define PIN_CTX_PAYLOAD_LEN(pin_ctx) \
+    strlen((const char*)PIN_CTX_PAYLOAD(pin_ctx))
 
 /*
  * Reset the given pin context
  *
  * @arg[in] pin_ctx pin context
  */
-void reset_pin(pin_t* pin_ctx);
+void reset_pin_ctx(pin_t* pin_ctx);
+
+/*
+ * Reset the given pin context to point to a target buffer
+ *
+ * @arg[out] pin_ctx    pin context
+ * @arg[in]  pin_buffer pin buffer to which the pin context should point
+ */
+void init_pin_ctx(pin_t* pin_ctx, unsigned char* pin_buffer);
 
 // -----------------------------------------------------------------------
 // RSK protocol implementation
@@ -61,7 +67,7 @@ void reset_pin(pin_t* pin_ctx);
  * @arg[in] pin_ctx pin context
  * @ret             number of transmited bytes to the host
  */
-unsigned int pin_cmd(pin_t* pin_ctx);
+unsigned int update_pin_buffer(pin_t* pin_ctx);
 
 /*
  * Implements RSK NEW PIN command.
@@ -71,7 +77,7 @@ unsigned int pin_cmd(pin_t* pin_ctx);
  * @arg[in] pin_ctx pin context
  * @ret             number of transmited bytes to the host
  */
-unsigned int new_pin_cmd(pin_t* pin_ctx);
+unsigned int set_device_pin(pin_t* pin_ctx);
 
 // -----------------------------------------------------------------------
 // Pin manipulation utilities
@@ -85,21 +91,5 @@ unsigned int new_pin_cmd(pin_t* pin_ctx);
  * @ret     true if pin is valid, false otherwise
  */
 bool is_pin_valid(pin_t* pin_ctx);
-
-/*
- * Retrieves the pin currently saved on pin_ctx to pin_buffer
- *
- * @arg[in]  pin_ctx    pin context
- * @arg[out] pin_buffer output buffer where the pin should be copied
- */
-void get_pin_ctx(pin_t* pin_ctx, unsigned char* pin_buffer);
-
-/*
- * Saves the pin in pin_buffer to pin_ctx.
- *
- * @arg[out] pin_ctx    pin context
- * @arg[in]  pin_buffer input buffer that holds the pin
- */
-void set_pin_ctx(pin_t* pin_ctx, unsigned char* pin_buffer);
 
 #endif

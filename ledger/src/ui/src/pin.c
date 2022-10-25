@@ -35,20 +35,27 @@
 #define IS_NUM(c) IS_IN_RANGE(c, '0', '9')
 #define IS_ALPHANUM(c) (IS_ALPHA(c) || IS_NUM(c))
 
+/*
+ * Validates that the pin has exactly PIN_LENGTH alphanumeric characters
+ * with at least one alphabetic character.
+ *
+ * @arg[in] pin_ctx pin context (with prepended length)
+ * @ret     true if pin is valid, false otherwise
+ */
 bool is_pin_valid(pin_t* pin_ctx) {
     // PIN_LENGTH is the only length accepted
     size_t length =
-        strnlen((const char*)pin_ctx->pin_buffer.payload, MAX_PIN_LENGTH + 1);
-    if (length != MAX_PIN_LENGTH) {
+        strnlen((const char*)PIN_CTX_PAYLOAD(pin_ctx), PIN_LENGTH + 1);
+    if (length != PIN_LENGTH) {
         return false;
     }
     // Check if PIN is alphanumeric
     bool hasAlpha = false;
-    for (int i = 0; i < MAX_PIN_LENGTH; i++) {
-        if (!IS_ALPHANUM(pin_ctx->pin_buffer.payload[i])) {
+    for (int i = 0; i < PIN_LENGTH; i++) {
+        if (!IS_ALPHANUM(PIN_CTX_PAYLOAD(pin_ctx)[i])) {
             return false;
         }
-        if (hasAlpha || IS_ALPHA(pin_ctx->pin_buffer.payload[i])) {
+        if (hasAlpha || IS_ALPHA(PIN_CTX_PAYLOAD(pin_ctx)[i])) {
             hasAlpha = true;
         }
     }
@@ -56,45 +63,66 @@ bool is_pin_valid(pin_t* pin_ctx) {
     return hasAlpha;
 }
 
-void get_pin_ctx(pin_t* pin_ctx, unsigned char* pin_buffer) {
-    memcpy(pin_buffer, pin_ctx->pin_raw, sizeof(pin_ctx->pin_raw));
+/*
+ * Reset the given pin context to point to a target buffer
+ *
+ * @arg[out] pin_ctx    pin context
+ * @arg[in]  pin_buffer pin buffer to which the pin context should point
+ */
+void init_pin_ctx(pin_t* pin_ctx, unsigned char* pin_buffer) {
+    pin_ctx->pin_buffer = pin_buffer;
 }
 
-void set_pin_ctx(pin_t* pin_ctx, unsigned char* pin_buffer) {
-    memcpy(pin_ctx->pin_raw, pin_buffer, sizeof(pin_ctx->pin_raw));
-}
-
-void reset_pin(pin_t* pin_ctx) {
+/*
+ * Reset the given pin context
+ *
+ * @arg[in] pin_ctx pin context
+ */
+void reset_pin_ctx(pin_t* pin_ctx) {
     explicit_bzero(pin_ctx, sizeof(pin_t));
 }
 
-unsigned int pin_cmd(pin_t* pin_ctx) {
+/*
+ * Implements RSK PIN command.
+ *
+ * Receives one byte at a time and updates the pin context, adding a null byte
+ * at the end.
+ *
+ * @arg[in] pin_ctx pin context
+ * @ret             number of transmited bytes to the host
+ */
+unsigned int update_pin_buffer(pin_t* pin_ctx) {
     unsigned char index = APDU_AT(2);
-    if ((index >= 0) && (index <= MAX_PIN_LENGTH)) {
-        pin_ctx->pin_raw[index] = APDU_AT(3);
-        pin_ctx->pin_raw[index + 1] = 0;
+    if ((index >= 0) && (index <= PIN_LENGTH)) {
+        pin_ctx->pin_buffer[index] = APDU_AT(3);
+        pin_ctx->pin_buffer[index + 1] = 0;
     }
 
     return 3;
 }
 
-unsigned int new_pin_cmd(pin_t* pin_ctx) {
+/*
+ * Implements RSK NEW PIN command.
+ *
+ * Sets the device pin.
+ *
+ * @arg[in] pin_ctx pin context
+ * @ret             number of transmited bytes to the host
+ */
+unsigned int set_device_pin(pin_t* pin_ctx) {
 #ifndef DEBUG_BUILD
     if (!is_pin_valid(pin_ctx)) {
         THROW(ERR_INVALID_PIN);
     }
 #endif
     // Set PIN
-    os_perso_set_pin(0,
-                     pin_ctx->pin_buffer.payload,
-                     strlen((const char*)pin_ctx->pin_buffer.payload));
+    os_perso_set_pin(0, PIN_CTX_PAYLOAD(pin_ctx), PIN_CTX_PAYLOAD_LEN(pin_ctx));
     // check PIN
     os_global_pin_invalidate();
     unsigned char output_index = CMDPOS;
     SET_APDU_AT(output_index++, 2);
-    SET_APDU_AT(
-        output_index++,
-        os_global_pin_check(pin_ctx->pin_buffer.payload,
-                            strlen((const char*)pin_ctx->pin_buffer.payload)));
+    SET_APDU_AT(output_index++,
+                os_global_pin_check(PIN_CTX_PAYLOAD(pin_ctx),
+                                    PIN_CTX_PAYLOAD_LEN(pin_ctx)));
     return output_index;
 }
