@@ -28,7 +28,70 @@
 #include <stdbool.h>
 
 #define PIN_LENGTH 8
+#define PIN_BUFFER_LENGTH (PIN_LENGTH + 2)
 
-bool is_pin_valid(unsigned char *pin);
+// Pin context
+typedef struct {
+    unsigned char* pin_buffer;
+} pin_t;
+
+// Helper macros for pin context manipulation
+#define GET_PIN(pin_ctx) ((unsigned char*)((pin_ctx)->pin_buffer + 1))
+#define GET_PIN_LENGTH(pin_ctx) strlen((const char*)GET_PIN(pin_ctx))
+
+/*
+ * Reset the given pin context
+ *
+ * @arg[in] pin_ctx pin context
+ */
+void reset_pin_ctx(pin_t* pin_ctx);
+
+/*
+ * Reset the given pin context to point to a target buffer
+ *
+ * @arg[out] pin_ctx    pin context
+ * @arg[in]  pin_buffer pin buffer to which the pin context should point
+ */
+void init_pin_ctx(pin_t* pin_ctx, unsigned char* pin_buffer);
+
+// -----------------------------------------------------------------------
+// RSK protocol implementation
+// -----------------------------------------------------------------------
+
+/*
+ * Implements RSK PIN command.
+ *
+ * Receives one byte at a time and updates the pin context, adding a null byte
+ * at the end.
+ *
+ * @arg[in] rx      number of received bytes from the Host
+ * @arg[in] pin_ctx pin context
+ * @ret             number of transmited bytes to the host
+ */
+unsigned int update_pin_buffer(volatile unsigned int rx, pin_t* pin_ctx);
+
+/*
+ * Implements RSK NEW PIN command.
+ *
+ * Sets the device pin.
+ *
+ * @arg[in] rx      number of received bytes from the Host
+ * @arg[in] pin_ctx pin context
+ * @ret             number of transmited bytes to the host
+ */
+unsigned int set_device_pin(volatile unsigned int rx, pin_t* pin_ctx);
+
+// -----------------------------------------------------------------------
+// Pin manipulation utilities
+// -----------------------------------------------------------------------
+
+/*
+ * Validates that the pin has exactly PIN_LENGTH alphanumeric characters
+ * with at least one alphabetic character.
+ *
+ * @arg[in] pin_ctx pin context (with prepended length)
+ * @ret     true if pin is valid, false otherwise
+ */
+bool is_pin_valid(pin_t* pin_ctx);
 
 #endif

@@ -22,17 +22,20 @@
 
 SRCDIR = ../../src
 MOCKDIR = ../mock
-CFLAGS = -I $(SRCDIR) -I $(MOCKDIR) -I ./
+CFLAGS = -I $(SRCDIR) -I $(MOCKDIR)
 
 PROG = test.out
-OBJS = os.o pin.o test_pin.o
+OBJS = os.o pin.o unlock.o test_unlock.o
 
 all: $(PROG)
 
 $(PROG): $(OBJS)
 	$(CC) -o $@ $^
 
-test_pin.o: test_pin.c
+test_unlock.o: test_unlock.c
+	$(CC) $(CFLAGS) -c -o $@ $^
+
+unlock.o: $(SRCDIR)/unlock.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
 pin.o: $(SRCDIR)/pin.c
@@ -40,7 +43,7 @@ pin.o: $(SRCDIR)/pin.c
 
 os.o: $(MOCKDIR)/os.c
 	$(CC) $(CFLAGS) -c -o $@ $^
-
+	
 .PHONY: clean test
 
 clean:

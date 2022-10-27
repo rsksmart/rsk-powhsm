@@ -160,13 +160,9 @@ typedef struct bolos_ux_context {
         union {
             att_t attestation;
             sigaut_t sigaut;
+            pin_t pin;
         };
     };
-
-#define MAX_PIN_LENGTH 8
-#define MIN_PIN_LENGTH 4
-    char pin_buffer[MAX_PIN_LENGTH +
-                    1]; // length prepended for custom pin length
 
     // filled up during os_ux syscall when called by user or bolos.
     bolos_ux_params_t parameters;
