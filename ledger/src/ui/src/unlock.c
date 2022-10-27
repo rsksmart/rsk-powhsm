@@ -32,10 +32,14 @@
  *
  * Unlocks the device.
  *
+ * @arg[in] rx      number of received bytes from the Host
  * @arg[in] pin_ctx pin context
  * @ret             number of transmited bytes to the host
  */
-unsigned int unlock(pin_t *pin_ctx) {
+unsigned int unlock(volatile unsigned int rx, pin_t *pin_ctx) {
+    // Unlock command does not use any input from apdu buffer
+    UNUSED(rx);
+
     unsigned char output_index = OP;
     SET_APDU_AT(output_index++,
                 os_global_pin_check(pin_ctx->pin_buffer,

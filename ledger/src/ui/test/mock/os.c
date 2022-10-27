@@ -43,6 +43,8 @@ unsigned int os_global_pin_check(unsigned char *pin_buffer,
 
 void explicit_bzero(void *s, size_t len) {
     memset(s, '\0', len);
+    /* Compiler barrier.  */
+    asm volatile("" ::: "memory");
 }
 
 void os_perso_set_pin(unsigned int identity,

@@ -58,7 +58,7 @@
 const unsigned char N_onboarded_ui[1] = {0};
 
 // PIN buffer used for authenticated operations
-unsigned char G_pin_buffer[PIN_LENGTH + 2];
+unsigned char G_pin_buffer[PIN_BUFFER_LENGTH];
 
 #ifdef OS_IO_SEPROXYHAL
 
@@ -258,8 +258,6 @@ static void reset_if_starting(unsigned char cmd) {
         curr_cmd = cmd;
         explicit_bzero(G_bolos_ux_context.words_buffer,
                        sizeof(G_bolos_ux_context.words_buffer));
-        explicit_bzero(G_bolos_ux_context.pin_buffer,
-                       sizeof(G_bolos_ux_context.pin_buffer));
         explicit_bzero(G_bolos_ux_context.string_buffer,
                        sizeof(G_bolos_ux_context.string_buffer));
         G_bolos_ux_context.words_buffer_length = 0;
@@ -323,7 +321,7 @@ static void sample_main(void) {
                 case RSK_PIN_CMD: // Send pin_buffer
                     reset_if_starting(RSK_META_CMD_UIOP);
                     init_pin_ctx(&pin_ctx, G_pin_buffer);
-                    tx = update_pin_buffer(&pin_ctx);
+                    tx = update_pin_buffer(rx, &pin_ctx);
                     THROW(APDU_OK);
                     break;
                 case RSK_IS_ONBOARD: // Wheter it's onboarded or not
@@ -390,17 +388,15 @@ static void sample_main(void) {
                     explicit_bzero(G_bolos_ux_context.words_buffer,
                                    sizeof(G_bolos_ux_context.words_buffer));
                     // Set PIN
-                    os_perso_set_pin(0,
-                                     PIN_CTX_PAYLOAD(&pin_ctx),
-                                     PIN_CTX_PAYLOAD_LEN(&pin_ctx));
+                    os_perso_set_pin(
+                        0, GET_PIN(&pin_ctx), GET_PIN_LENGTH(&pin_ctx));
                     // Finalize onboarding
                     os_perso_finalize();
                     os_global_pin_invalidate();
                     SET_APDU_AT(1, 2);
-                    SET_APDU_AT(
-                        2,
-                        os_global_pin_check(PIN_CTX_PAYLOAD(&pin_ctx),
-                                            PIN_CTX_PAYLOAD_LEN(&pin_ctx)));
+                    SET_APDU_AT(2,
+                                os_global_pin_check(GET_PIN(&pin_ctx),
+                                                    GET_PIN_LENGTH(&pin_ctx)));
                     // Clear pin buffer
                     explicit_bzero(G_pin_buffer, sizeof(G_pin_buffer));
                     // Turn the onboarding flag on to mark onboarding
@@ -420,7 +416,7 @@ static void sample_main(void) {
                         THROW(ERR_INVALID_PIN);
                     }
 #endif
-                    tx = set_device_pin(&pin_ctx);
+                    tx = set_device_pin(rx, &pin_ctx);
                     // Clear pin buffer
                     explicit_bzero(G_pin_buffer, sizeof(G_pin_buffer));
                     THROW(APDU_OK);
@@ -455,7 +451,7 @@ static void sample_main(void) {
                 case RSK_UNLOCK_CMD: // Unlock
                     reset_if_starting(RSK_META_CMD_UIOP);
                     init_pin_ctx(&pin_ctx, G_pin_buffer);
-                    tx = unlock(&pin_ctx);
+                    tx = unlock(rx, &pin_ctx);
                     // The pin value will also be used in
                     // BOLOS_UX_CONSENT_APP_ADD command, so we can't wipe the
                     // pin buffer here

@@ -44,18 +44,16 @@
  */
 bool is_pin_valid(pin_t* pin_ctx) {
     // PIN_LENGTH is the only length accepted
-    size_t length =
-        strnlen((const char*)PIN_CTX_PAYLOAD(pin_ctx), PIN_LENGTH + 1);
-    if (length != PIN_LENGTH) {
+    if (GET_PIN_LENGTH(pin_ctx) != PIN_LENGTH) {
         return false;
     }
     // Check if PIN is alphanumeric
     bool hasAlpha = false;
     for (int i = 0; i < PIN_LENGTH; i++) {
-        if (!IS_ALPHANUM(PIN_CTX_PAYLOAD(pin_ctx)[i])) {
+        if (!IS_ALPHANUM(GET_PIN(pin_ctx)[i])) {
             return false;
         }
-        if (hasAlpha || IS_ALPHA(PIN_CTX_PAYLOAD(pin_ctx)[i])) {
+        if (hasAlpha || IS_ALPHA(GET_PIN(pin_ctx)[i])) {
             hasAlpha = true;
         }
     }
@@ -88,13 +86,19 @@ void reset_pin_ctx(pin_t* pin_ctx) {
  * Receives one byte at a time and updates the pin context, adding a null byte
  * at the end.
  *
+ * @arg[in] rx      number of received bytes from the Host
  * @arg[in] pin_ctx pin context
  * @ret             number of transmited bytes to the host
  */
-unsigned int update_pin_buffer(pin_t* pin_ctx) {
-    unsigned char index = APDU_AT(2);
+unsigned int update_pin_buffer(volatile unsigned int rx, pin_t* pin_ctx) {
+    // Should receive 1 byte per call
+    if (APDU_DATA_SIZE(rx) != 1) {
+        THROW(PROT_INVALID);
+    }
+
+    unsigned char index = APDU_OP();
     if ((index >= 0) && (index <= PIN_LENGTH)) {
-        pin_ctx->pin_buffer[index] = APDU_AT(3);
+        pin_ctx->pin_buffer[index] = APDU_AT(DATA);
         pin_ctx->pin_buffer[index + 1] = 0;
     }
 
@@ -106,23 +110,26 @@ unsigned int update_pin_buffer(pin_t* pin_ctx) {
  *
  * Sets the device pin.
  *
+ * @arg[in] rx      number of received bytes from the Host
  * @arg[in] pin_ctx pin context
  * @ret             number of transmited bytes to the host
  */
-unsigned int set_device_pin(pin_t* pin_ctx) {
+unsigned int set_device_pin(volatile unsigned int rx, pin_t* pin_ctx) {
+    // NEW_PIN command does not use any input from apdu buffer
+    UNUSED(rx);
+
 #ifndef DEBUG_BUILD
     if (!is_pin_valid(pin_ctx)) {
         THROW(ERR_INVALID_PIN);
     }
 #endif
     // Set PIN
-    os_perso_set_pin(0, PIN_CTX_PAYLOAD(pin_ctx), PIN_CTX_PAYLOAD_LEN(pin_ctx));
+    os_perso_set_pin(0, GET_PIN(pin_ctx), GET_PIN_LENGTH(pin_ctx));
     // check PIN
     os_global_pin_invalidate();
     unsigned char output_index = CMDPOS;
     SET_APDU_AT(output_index++, 2);
     SET_APDU_AT(output_index++,
-                os_global_pin_check(PIN_CTX_PAYLOAD(pin_ctx),
-                                    PIN_CTX_PAYLOAD_LEN(pin_ctx)));
+                os_global_pin_check(GET_PIN(pin_ctx), GET_PIN_LENGTH(pin_ctx)));
     return output_index;
 }

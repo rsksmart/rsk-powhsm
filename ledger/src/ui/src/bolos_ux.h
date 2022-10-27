@@ -164,8 +164,6 @@ typedef struct bolos_ux_context {
         };
     };
 
-    char pin_buffer[PIN_LENGTH + 1]; // length prepended for custom pin length
-
     // filled up during os_ux syscall when called by user or bolos.
     bolos_ux_params_t parameters;
 

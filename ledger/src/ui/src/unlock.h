@@ -32,9 +32,10 @@
  *
  * Unlocks the device.
  *
+ * @arg[in] rx      number of received bytes from the Host
  * @arg[in] pin_ctx pin context
  * @ret             number of transmited bytes to the host
  */
-unsigned int unlock(pin_t *pin_ctx);
+unsigned int unlock(volatile unsigned int rx, pin_t *pin_ctx);
 
 #endif

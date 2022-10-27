@@ -28,6 +28,7 @@
 #include <stdbool.h>
 
 #define PIN_LENGTH 8
+#define PIN_BUFFER_LENGTH (PIN_LENGTH + 2)
 
 // Pin context
 typedef struct {
@@ -35,9 +36,8 @@ typedef struct {
 } pin_t;
 
 // Helper macros for pin context manipulation
-#define PIN_CTX_PAYLOAD(pin_ctx) ((unsigned char*)((pin_ctx)->pin_buffer + 1))
-#define PIN_CTX_PAYLOAD_LEN(pin_ctx) \
-    strlen((const char*)PIN_CTX_PAYLOAD(pin_ctx))
+#define GET_PIN(pin_ctx) ((unsigned char*)((pin_ctx)->pin_buffer + 1))
+#define GET_PIN_LENGTH(pin_ctx) strlen((const char*)GET_PIN(pin_ctx))
 
 /*
  * Reset the given pin context
@@ -64,20 +64,22 @@ void init_pin_ctx(pin_t* pin_ctx, unsigned char* pin_buffer);
  * Receives one byte at a time and updates the pin context, adding a null byte
  * at the end.
  *
+ * @arg[in] rx      number of received bytes from the Host
  * @arg[in] pin_ctx pin context
  * @ret             number of transmited bytes to the host
  */
-unsigned int update_pin_buffer(pin_t* pin_ctx);
+unsigned int update_pin_buffer(volatile unsigned int rx, pin_t* pin_ctx);
 
 /*
  * Implements RSK NEW PIN command.
  *
  * Sets the device pin.
  *
+ * @arg[in] rx      number of received bytes from the Host
  * @arg[in] pin_ctx pin context
  * @ret             number of transmited bytes to the host
  */
-unsigned int set_device_pin(pin_t* pin_ctx);
+unsigned int set_device_pin(volatile unsigned int rx, pin_t* pin_ctx);
 
 // -----------------------------------------------------------------------
 // Pin manipulation utilities

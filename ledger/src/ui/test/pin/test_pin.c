@@ -30,10 +30,10 @@
 #include "pin.h"
 
 #define IS_VALID true
-#define NOT_VALID false
+#define IS_NOT_VALID false
 
 void set_payload(pin_t *pin_ctx, unsigned char *payload, size_t n) {
-    memcpy(PIN_CTX_PAYLOAD(pin_ctx), payload, n);
+    memcpy(GET_PIN(pin_ctx), payload, n);
 }
 
 void assert_pin(char *pin, bool expected) {
@@ -60,37 +60,37 @@ void test_ok() {
 void test_numeric_pin() {
     printf("Test pin with only numbers...\n");
 
-    assert_pin("1234", NOT_VALID);
-    assert_pin("123456", NOT_VALID);
-    assert_pin("12345678", NOT_VALID);
-    assert_pin("1234567890", NOT_VALID);
+    assert_pin("1234", IS_NOT_VALID);
+    assert_pin("123456", IS_NOT_VALID);
+    assert_pin("12345678", IS_NOT_VALID);
+    assert_pin("1234567890", IS_NOT_VALID);
 }
 
 void test_pin_too_long() {
     printf("Test pin buffer too long...\n");
 
-    assert_pin("abcdefghi", NOT_VALID);
-    assert_pin("8b23ef1s85", NOT_VALID);
-    assert_pin("MN22P3S9P20", NOT_VALID);
-    assert_pin("MNOPQRSTQDAS", NOT_VALID);
+    assert_pin("abcdefghi", IS_NOT_VALID);
+    assert_pin("8b23ef1s85", IS_NOT_VALID);
+    assert_pin("MN22P3S9P20", IS_NOT_VALID);
+    assert_pin("MNOPQRSTQDAS", IS_NOT_VALID);
 }
 
 void test_pin_too_short() {
     printf("Test pin buffer too short...\n");
 
-    assert_pin("abcdefg", NOT_VALID);
-    assert_pin("8b23ef", NOT_VALID);
-    assert_pin("MN22P", NOT_VALID);
-    assert_pin("MNOP", NOT_VALID);
+    assert_pin("abcdefg", IS_NOT_VALID);
+    assert_pin("8b23ef", IS_NOT_VALID);
+    assert_pin("MN22P", IS_NOT_VALID);
+    assert_pin("MNOP", IS_NOT_VALID);
 }
 
 void test_pin_non_alpha() {
     printf("Test pin non alpha chars...\n");
 
-    assert_pin("a1-@.;", NOT_VALID);
-    assert_pin("!@#$^&*", NOT_VALID);
-    assert_pin("(),./;']", NOT_VALID);
-    assert_pin("abcdefg", NOT_VALID);
+    assert_pin("a1-@.;", IS_NOT_VALID);
+    assert_pin("!@#$^&*", IS_NOT_VALID);
+    assert_pin("(),./;']", IS_NOT_VALID);
+    assert_pin("abcdefg", IS_NOT_VALID);
 }
 
 int main() {
