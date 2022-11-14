@@ -22,18 +22,36 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __UNLOCK
-#define __UNLOCK
+#ifndef __COMMUNICATION
+#define __COMMUNICATION
 
-#include "pin.h"
+#include <stdbool.h>
 
 /*
- * Implements RSK UNLOCK command.
+ * Implement the RSK ECHO command.
  *
- * Unlocks the device.
- *
- * @ret             number of transmited bytes to the host
+ * @arg[in]  rx          number of received bytes from the Host
+ * @ret                  number of transmited bytes to the host
  */
-unsigned int unlock();
+unsigned int echo(unsigned int rx);
+
+/*
+ * Implement the RSK MODE command.
+ *
+ * Since the UI only runs on BOOTLOADER mode, this always returns
+ * RSK_MODE_BOOTLOADER
+ *
+ * @ret number of transmited bytes to the host
+ */
+unsigned int get_mode();
+
+/*
+ * Implement the RSK RETRIES command.
+ *
+ * Returns the current number of pin retries for the device
+ *
+ * @ret number of transmited bytes to the host
+ */
+unsigned int get_retries();
 
 #endif

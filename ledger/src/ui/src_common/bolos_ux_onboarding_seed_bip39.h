@@ -39,51 +39,9 @@
  *  limitations under the License.
  ********************************************************************************/
 
-#include "os.h"
-#include "cx.h"
-
-#include "bolos_ux_common.h"
-#include "bolos_ux_onboarding_seed_bip39.h"
-
+// passphrase will be prefixed with "MNEMONIC" from BIP39, the passphrase
+// content shall start @ 8
 unsigned int bolos_ux_mnemonic_from_data(unsigned char *in,
                                          unsigned int inLength,
                                          unsigned char *out,
-                                         unsigned int outLength) {
-    unsigned char bits[32 + 1];
-    unsigned int mlen = inLength * 3 / 4;
-    unsigned int i, j, idx, offset;
-
-    if ((inLength % 4) || (inLength < 16) || (inLength > 32)) {
-        THROW(INVALID_PARAMETER);
-    }
-    cx_hash_sha256(in, inLength, bits);
-
-    bits[inLength] = bits[0];
-    os_memmove(bits, in, inLength);
-    offset = 0;
-    for (i = 0; i < mlen; i++) {
-        unsigned char wordLength;
-        idx = 0;
-        for (j = 0; j < 11; j++) {
-            idx <<= 1;
-            idx +=
-                (bits[(i * 11 + j) / 8] & (1 << (7 - ((i * 11 + j) % 8)))) > 0;
-        }
-        wordLength =
-            BIP39_WORDLIST_OFFSETS[idx + 1] - BIP39_WORDLIST_OFFSETS[idx];
-        if ((offset + wordLength) > outLength) {
-            THROW(INVALID_PARAMETER);
-        }
-        os_memmove(out + offset,
-                   BIP39_WORDLIST + BIP39_WORDLIST_OFFSETS[idx],
-                   wordLength);
-        offset += wordLength;
-        if (i < mlen - 1) {
-            if (offset > outLength) {
-                THROW(INVALID_PARAMETER);
-            }
-            out[offset++] = ' ';
-        }
-    }
-    return offset;
-}
+                                         unsigned int outLength);
