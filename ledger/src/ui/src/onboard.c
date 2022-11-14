@@ -32,7 +32,7 @@
 #include "onboard.h"
 
 // Global onboarding flag
-const unsigned char *N_onboarded_ui[1];
+const unsigned char N_onboarded_ui[1];
 
 /*
  * Reset the given onboard context
@@ -76,7 +76,8 @@ unsigned int onboard_device(onboard_t *onboard_ctx) {
         onboard_ctx->seed[i] ^= onboard_ctx->host_seed[i];
     }
     // The seed is now in onboard_ctx->seed, generate the mnemonic
-    os_memset(onboard_ctx->words_buffer, 0, sizeof(onboard_ctx->words_buffer));
+    explicit_bzero(onboard_ctx->words_buffer,
+                   sizeof(onboard_ctx->words_buffer));
     onboard_ctx->words_buffer_length =
         bolos_ux_mnemonic_from_data((unsigned char *)onboard_ctx->seed,
                                     sizeof(onboard_ctx->seed),
@@ -106,7 +107,7 @@ unsigned int onboard_device(onboard_t *onboard_ctx) {
     os_global_pin_invalidate();
     unsigned char output_index = CMDPOS;
     SET_APDU_AT(output_index++, 2);
-    SET_APDU_AT(output_index++, validate_pin(true));
+    SET_APDU_AT(output_index++, unlock_with_pin(true));
 
     // Turn the onboarding flag on to mark onboarding
     // has been done using the UI
@@ -135,7 +136,7 @@ unsigned int set_host_seed(volatile unsigned int rx, onboard_t *onboard_ctx) {
     }
 
     unsigned char index = APDU_OP();
-    if ((index >= 0) && ((size_t)index <= sizeof(onboard_ctx->host_seed))) {
+    if ((index >= 0) && ((size_t)index < sizeof(onboard_ctx->host_seed))) {
         onboard_ctx->host_seed[index] = APDU_AT(3);
     }
 

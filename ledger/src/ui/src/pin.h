@@ -69,13 +69,13 @@ bool is_pin_valid();
 void clear_pin();
 
 /*
- * Validates the pin currently saved to the internal pin buffer
+ * Uses the pin currently saved to the internal pin buffer to unlock the device
  *
  * @arg[in] prepended_length true if the internal buffer includes a prepended
  *                           length byte, false otherwise
  * @ret                      1 if pin validated successfully, 0 otherwise
  */
-unsigned int validate_pin(bool prepended_length);
+unsigned int unlock_with_pin(bool prepended_length);
 
 /*
  * Sets the pin currently saved to the internal pin buffer as the device's pin.

@@ -36,6 +36,6 @@
  */
 unsigned int unlock() {
     unsigned char output_index = OP;
-    SET_APDU_AT(output_index++, validate_pin(false));
+    SET_APDU_AT(output_index++, unlock_with_pin(false));
     return output_index;
 }

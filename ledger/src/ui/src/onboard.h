@@ -25,8 +25,6 @@
 #ifndef __ONBOARD
 #define __ONBOARD
 
-#include "os.h"
-#include "os_io_seproxyhal.h"
 #include "pin.h"
 
 // 128 of words (215 => hashed to 64, or 128) + HMAC_LENGTH*2 = 256

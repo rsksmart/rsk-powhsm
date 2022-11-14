@@ -534,7 +534,7 @@ void bolos_ux_main(void) {
                 // PIN is invalidated so we must check it again. The pin value
                 // used here is the same as in RSK_UNLOCK_CMD, so we also
                 // don't have a prepended length byte
-                validate_pin(false);
+                unlock_with_pin(false);
                 G_bolos_ux_context.exit_code = BOLOS_UX_OK;
                 clear_pin();
                 break;
