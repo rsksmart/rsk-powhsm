@@ -1,0 +1,1 @@
+../../src_common/bolos_ux_onboarding_seed_bip39.h
