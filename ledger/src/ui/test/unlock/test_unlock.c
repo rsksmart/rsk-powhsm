@@ -31,34 +31,25 @@
 #include "os.h"
 #include "unlock.h"
 
-void test_ok() {
-    printf("Test OK...\n");
+void test_unlock() {
+    printf("Test unlock...\n");
 
-    pin_t pin_ctx;
-    init_pin_ctx(&pin_ctx, (unsigned char *)"1234567a\0\0");
+    unsigned char pin_buffer[] = "1234567a";
+    unsigned int rx = 4;
+    for (int i = 0; i < strlen((const char *)pin_buffer); i++) {
+        SET_APDU_AT(2, i);
+        SET_APDU_AT(3, pin_buffer[i]);
+        assert(3 == update_pin_buffer(rx));
+    }
 
-    unsigned int tx = unlock(&pin_ctx);
-    assert(tx == 3);
-    assert(APDU_OP() == 1);
-}
-
-void test_wrong_pin() {
-    printf("Test wrong pin...\n");
-
-    pin_t pin_ctx;
-    init_pin_ctx(&pin_ctx, (unsigned char *)"wrong-pin\0");
-
-    unsigned int tx = unlock(&pin_ctx);
-    assert(tx == 3);
-    assert(APDU_OP() == 0);
+    reset_mock_func_call_list();
+    assert(3 == unlock());
+    assert(get_mock_func_call(0) == MOCK_FUNC_OS_GLOBAL_PIN_CHECK);
+    assert(get_mock_func_call_count() == 1);
 }
 
 int main() {
-    // Set device pin
-    mock_set_pin((unsigned char *)"1234567a", strlen("1234567a"));
-
-    test_ok();
-    test_wrong_pin();
+    test_unlock();
 
     return 0;
 }

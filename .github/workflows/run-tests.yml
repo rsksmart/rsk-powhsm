@@ -30,7 +30,7 @@ jobs:
       - name: Ledger UI's tests
         working-directory: ledger/src/ui/test/
         run: |
-          for d in communication onboard; do
+          for d in communication onboard pin unlock; do
             (cd "$d" && make clean test)
           done
 
