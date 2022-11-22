@@ -24,8 +24,18 @@
 
 #include "cx.h"
 
-unsigned char mock_random_buffer[] = "random-buffer\0";
+static unsigned char mock_seed[32];
+
+void set_mock_seed(const unsigned char *data, unsigned int len) {
+    for (unsigned int i = 0; i < len; i++) {
+        mock_seed[i] = data[i];
+    }
+}
 
 unsigned char *cx_rng(unsigned char *buffer, unsigned int len) {
-    return mock_random_buffer;
+    // Mock 32 random bytes
+    for (int i = 0; i < len; i++) {
+        buffer[i] = mock_seed[i];
+    }
+    return 0;
 }

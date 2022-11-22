@@ -21,36 +21,24 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-
+#include <stdbool.h>
+#include <stdio.h>
+#include "defs.h"
 #include "os.h"
 #include "string.h"
-
-static mock_func_call_t mock_func_call_list[128];
-static size_t mock_func_call_count = 0;
+#include "onboard.h"
 
 /**
- * Mocks pin currently loaded to device
+ * Mock context used to assert current state
  */
-unsigned char current_pin[10];
+static mock_ctx_t mock_ctx;
 
-/**
- * Helper functions to handle call list
- */
-void reset_mock_func_call_list() {
-    explicit_bzero(mock_func_call_list, sizeof(mock_func_call_list));
-    mock_func_call_count = 0;
+void init_mock_ctx() {
+    memset(&mock_ctx, 0, sizeof(mock_ctx));
 }
 
-void add_mock_func_call(mock_func_call_t func) {
-    mock_func_call_list[mock_func_call_count++] = func;
-}
-
-mock_func_call_t get_mock_func_call(int order) {
-    return mock_func_call_list[order];
-}
-
-int get_mock_func_call_count() {
-    return mock_func_call_count;
+void get_mock_ctx(mock_ctx_t *ctx) {
+    memcpy(ctx, &mock_ctx, sizeof(mock_ctx));
 }
 
 /**
@@ -66,32 +54,33 @@ void explicit_bzero(void *s, size_t len) {
 
 unsigned int os_global_pin_check(unsigned char *pin_buffer,
                                  unsigned char pin_length) {
-    add_mock_func_call(MOCK_FUNC_OS_GLOBAL_PIN_CHECK);
-    return !strncmp(
-        (const char *)pin_buffer, (const char *)current_pin, pin_length);
+    mock_ctx.device_unlocked = !strncmp((const char *)pin_buffer,
+                                        (const char *)mock_ctx.global_pin,
+                                        pin_length);
+    if (mock_ctx.device_unlocked) {
+        mock_ctx.retries = 0;
+    } else {
+        mock_ctx.retries++;
+    }
+
+    return mock_ctx.device_unlocked;
 }
 
 void os_perso_set_pin(unsigned int identity,
                       unsigned char *pin,
                       unsigned int length) {
-    add_mock_func_call(MOCK_FUNC_OS_PERSO_SET_PIN);
-    strncpy((char *)current_pin, (char *)pin, length);
+    strncpy((char *)mock_ctx.global_pin, (char *)pin, length);
 }
 
 void os_global_pin_invalidate(void) {
-    add_mock_func_call(MOCK_FUNC_OS_GLOBAL_PIN_INVALIDATE);
+    mock_ctx.device_unlocked = false;
 }
 
 void os_memset(void *dst, unsigned char c, unsigned int length) {
     memset(dst, c, length);
 }
 
-void mock_set_pin(unsigned char *pin, size_t n) {
-    memcpy(current_pin, pin, n);
-}
-
 void nvm_write(void *dst_adr, void *src_adr, unsigned int src_len) {
-    add_mock_func_call(MOCK_FUNC_NVM_WRITE);
     if (src_adr == NULL) {
         // Treat as memory reset
         memset(dst_adr, 0, src_len);
@@ -102,7 +91,29 @@ void nvm_write(void *dst_adr, void *src_adr, unsigned int src_len) {
 }
 
 void os_perso_wipe() {
-    add_mock_func_call(MOCK_FUNC_OS_PERSO_WIPE);
+    // wipe global pin, seed and state
+    init_mock_ctx();
+}
+
+void os_perso_finalize(void) {
+    mock_ctx.device_onboarded = true;
+}
+
+unsigned int os_perso_isonboarded(void) {
+    return mock_ctx.device_onboarded;
+}
+
+unsigned int os_global_pin_retries(void) {
+    return mock_ctx.retries;
+}
+
+// Generated mnemonics buffer will be "mnemonics-generated-from:<in>"
+unsigned int bolos_ux_mnemonic_from_data(unsigned char *in,
+                                         unsigned int inLength,
+                                         unsigned char *out,
+                                         unsigned int outLength) {
+    sprintf((char *)out, "mnemonics-generated-from-%s", in);
+    return strlen((const char *)out);
 }
 
 void os_perso_derive_and_set_seed(unsigned char identity,
@@ -112,29 +123,5 @@ void os_perso_derive_and_set_seed(unsigned char identity,
                                   unsigned int passphrase_length,
                                   const char *words,
                                   unsigned int words_length) {
-    add_mock_func_call(MOCK_FUNC_OS_PERSO_DERIVE_AND_SET_SEED);
-}
-
-void os_perso_finalize(void) {
-    add_mock_func_call(MOCK_FUNC_OS_PERSO_FINALIZE);
-}
-
-unsigned int os_perso_isonboarded(void) {
-    add_mock_func_call(MOCK_FUNC_OS_PERSO_ISONBOARDED);
-    return 1;
-}
-
-unsigned int os_global_pin_retries(void) {
-    add_mock_func_call(MOCK_FUNC_OS_GLOBAL_PIN_RETRIES);
-    return 0;
-}
-
-unsigned int bolos_ux_mnemonic_from_data(unsigned char *in,
-                                         unsigned int inLength,
-                                         unsigned char *out,
-                                         unsigned int outLength) {
-    add_mock_func_call(MOCK_FUNC_BOLOS_UX_MNEMONIC_FROM_DATA);
-    const char mnemonic[] = "the-mnemonics";
-    strcpy((char *)out, mnemonic);
-    return strlen(mnemonic);
+    sprintf((char *)mock_ctx.global_seed, "seed-generated-from-%s", words);
 }

@@ -36,20 +36,50 @@ void test_unlock() {
 
     unsigned char pin_buffer[] = "1234567a";
     unsigned int rx = 4;
+    init_mock_ctx();
     for (int i = 0; i < strlen((const char *)pin_buffer); i++) {
         SET_APDU_AT(2, i);
         SET_APDU_AT(3, pin_buffer[i]);
         assert(3 == update_pin_buffer(rx));
     }
 
-    reset_mock_func_call_list();
+    // assert(3 == set_pin());
+    mock_ctx_t mock_ctx;
+    get_mock_ctx(&mock_ctx);
+    assert(false == mock_ctx.device_unlocked);
+    os_perso_set_pin(0, pin_buffer, strlen((const char *)pin_buffer));
     assert(3 == unlock());
-    assert(get_mock_func_call(0) == MOCK_FUNC_OS_GLOBAL_PIN_CHECK);
-    assert(get_mock_func_call_count() == 1);
+    get_mock_ctx(&mock_ctx);
+    assert(true == mock_ctx.device_unlocked);
+    assert(1 == APDU_AT(2));
+}
+
+void test_unlock_wrong_pin() {
+    printf("Test unlock (wrong pin)...\n");
+
+    unsigned char pin_buffer[] = "1234567a";
+    unsigned char wrong_pin[] = "a7654321";
+    unsigned int rx = 4;
+    init_mock_ctx();
+    for (int i = 0; i < strlen((const char *)wrong_pin); i++) {
+        SET_APDU_AT(2, i);
+        SET_APDU_AT(3, wrong_pin[i]);
+        assert(3 == update_pin_buffer(rx));
+    }
+
+    mock_ctx_t mock_ctx;
+    get_mock_ctx(&mock_ctx);
+    assert(false == mock_ctx.device_unlocked);
+    os_perso_set_pin(0, pin_buffer, strlen((const char *)pin_buffer));
+    assert(3 == unlock());
+    get_mock_ctx(&mock_ctx);
+    assert(false == mock_ctx.device_unlocked);
+    assert(0 == APDU_AT(2));
 }
 
 int main() {
     test_unlock();
+    test_unlock_wrong_pin();
 
     return 0;
 }

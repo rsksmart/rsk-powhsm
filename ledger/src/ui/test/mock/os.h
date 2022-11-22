@@ -22,6 +22,7 @@
  * IN THE SOFTWARE.
  */
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include "cx.h"
@@ -33,20 +34,6 @@
 #define THROW(e) return e
 #define PIC(x) (x)
 
-typedef enum {
-    MOCK_FUNC_OS_GLOBAL_PIN_CHECK,
-    MOCK_FUNC_OS_PERSO_SET_PIN,
-    MOCK_FUNC_OS_GLOBAL_PIN_INVALIDATE,
-    MOCK_FUNC_OS_MEMSET,
-    MOCK_FUNC_NVM_WRITE,
-    MOCK_FUNC_OS_PERSO_WIPE,
-    MOCK_FUNC_OS_PERSO_DERIVE_AND_SET_SEED,
-    MOCK_FUNC_OS_PERSO_FINALIZE,
-    MOCK_FUNC_OS_PERSO_ISONBOARDED,
-    MOCK_FUNC_BOLOS_UX_MNEMONIC_FROM_DATA,
-    MOCK_FUNC_OS_GLOBAL_PIN_RETRIES,
-} mock_func_call_t;
-
 /**
  * Mock APDU buffer
  */
@@ -54,12 +41,18 @@ typedef enum {
 extern unsigned char G_io_apdu_buffer[IO_APDU_BUFFER_SIZE];
 
 /**
- * Helper functions to handle call list
+ * Mock context used to assert current state
  */
-void reset_mock_func_call_list();
-void add_mock_func_call(mock_func_call_t func);
-mock_func_call_t get_mock_func_call(int order);
-int get_mock_func_call_count();
+typedef struct {
+    unsigned char global_pin[10];
+    unsigned char global_seed[257];
+    bool device_unlocked;
+    bool device_onboarded;
+    unsigned int retries;
+} mock_ctx_t;
+
+void init_mock_ctx();
+void get_mock_ctx(mock_ctx_t *ctx);
 
 /**
  * Mock calls for os API
@@ -88,4 +81,3 @@ unsigned int os_global_pin_retries(void);
  * Other mocks
  */
 void explicit_bzero(void *s, size_t len);
-void mock_set_pin(unsigned char *pin, size_t n);

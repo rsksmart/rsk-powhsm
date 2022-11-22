@@ -25,7 +25,7 @@ MOCKDIR = ../mock
 CFLAGS = -I $(SRCDIR) -I $(MOCKDIR) -I ./
 
 PROG = test.out
-OBJS = os.o communication.o test_communication.o
+OBJS = os.o pin.o communication.o test_communication.o
 
 all: $(PROG)
 
@@ -39,6 +39,9 @@ communication.o: $(SRCDIR)/communication.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
 os.o: $(MOCKDIR)/os.c
+	$(CC) $(CFLAGS) -c -o $@ $^
+
+pin.o: $(SRCDIR)/pin.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
 .PHONY: clean test

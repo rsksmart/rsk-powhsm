@@ -67,7 +67,7 @@ void test_set_host_seed() {
         SET_APDU_AT(3, host_seed[i]);
         assert(0 == set_host_seed(rx, &onboard_ctx));
     }
-    assert(0 == strncmp((char*)onboard_ctx.host_seed, host_seed, SEEDSIZE));
+    assert(0 == strncmp((char *)onboard_ctx.host_seed, host_seed, SEEDSIZE));
 }
 
 void test_onboard_device() {
@@ -75,7 +75,9 @@ void test_onboard_device() {
     onboard_t onboard_ctx;
     reset_onboard_ctx(&onboard_ctx);
     // mock 32 bytes random host seed
-    const char host_seed[] = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    const unsigned char host_seed[] = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    // mock 32 bytes handom seed
+    const unsigned char seed[] = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
     // device pin (with prepended length)
     const unsigned char valid_pin[] = "X1234567a";
     unsigned int rx;
@@ -90,27 +92,39 @@ void test_onboard_device() {
 
     // Mock RSK_SEED_CMD
     rx = 4;
-    for (int i = 0; i < strlen(host_seed); i++) {
+    for (int i = 0; i < strlen((const char *)host_seed); i++) {
         SET_APDU_AT(2, i);
         SET_APDU_AT(3, host_seed[i]);
         assert(0 == set_host_seed(rx, &onboard_ctx));
     }
 
-    reset_mock_func_call_list();
+    char generated_seed[SEEDSIZE];
+    for (int i = 0; i < SEEDSIZE; i++) {
+        generated_seed[i] = host_seed[i] ^ seed[i];
+    }
+    char expected_global_seed[257];
+    memset(expected_global_seed, 0, sizeof(expected_global_seed));
+    char *seed_str = stpcpy(expected_global_seed,
+                            "seed-generated-from-mnemonics-generated-from-");
+    for (int i = 0; i < SEEDSIZE; i++) {
+        seed_str[i] = generated_seed[i];
+    }
+
+    init_mock_ctx();
+    set_mock_seed(seed, SEEDSIZE);
     assert(3 == onboard_device(&onboard_ctx));
     assert(2 == APDU_AT(1));
     assert(1 == APDU_AT(2));
-    assert(get_mock_func_call(0) == MOCK_FUNC_NVM_WRITE);
-    assert(get_mock_func_call(1) == MOCK_FUNC_OS_GLOBAL_PIN_INVALIDATE);
-    assert(get_mock_func_call(2) == MOCK_FUNC_OS_PERSO_WIPE);
-    assert(get_mock_func_call(3) == MOCK_FUNC_BOLOS_UX_MNEMONIC_FROM_DATA);
-    assert(get_mock_func_call(4) == MOCK_FUNC_OS_PERSO_DERIVE_AND_SET_SEED);
-    assert(get_mock_func_call(5) == MOCK_FUNC_OS_PERSO_SET_PIN);
-    assert(get_mock_func_call(6) == MOCK_FUNC_OS_PERSO_FINALIZE);
-    assert(get_mock_func_call(7) == MOCK_FUNC_OS_GLOBAL_PIN_INVALIDATE);
-    assert(get_mock_func_call(8) == MOCK_FUNC_OS_GLOBAL_PIN_CHECK);
-    assert(get_mock_func_call(9) == MOCK_FUNC_NVM_WRITE);
-    assert(get_mock_func_call_count() == 10);
+
+    mock_ctx_t mock_ctx;
+    get_mock_ctx(&mock_ctx);
+    assert(mock_ctx.device_unlocked == true);
+    assert(mock_ctx.device_onboarded == true);
+    assert(mock_ctx.retries == 0);
+    assert(!strcmp((const char *)(valid_pin + 1),
+                   (const char *)mock_ctx.global_pin));
+    assert(!strcmp((const char *)expected_global_seed,
+                   (const char *)mock_ctx.global_seed));
 
     // Make sure all mnemonic and seed information is wiped after onboard_device
     char expected_words_buffer[sizeof(words_buffer)];
@@ -150,23 +164,69 @@ void test_onboard_device_invalid_pin() {
         assert(0 == set_host_seed(rx, &onboard_ctx));
     }
 
-    reset_mock_func_call_list();
+    init_mock_ctx();
     // ERR_INVALID_PIN
     assert(0x69A0 == onboard_device(&onboard_ctx));
-    assert(get_mock_func_call(0) == MOCK_FUNC_NVM_WRITE);
-    assert(get_mock_func_call_count() == 1);
+    mock_ctx_t mock_ctx;
+    get_mock_ctx(&mock_ctx);
+
+    // assert internal state was not affected
+    unsigned char expected_global_pin[sizeof(mock_ctx.global_pin)];
+    memset(expected_global_pin, 0, sizeof(expected_global_pin));
+    unsigned char expected_global_seed[sizeof(mock_ctx.global_seed)];
+    memset(expected_global_seed, 0, sizeof(expected_global_seed));
+
+    assert(false == mock_ctx.device_onboarded);
+    assert(false == mock_ctx.device_unlocked);
+    assert(0 == mock_ctx.retries);
+    assert(0 == memcmp(expected_global_pin,
+                       mock_ctx.global_pin,
+                       sizeof(expected_global_pin)));
+    assert(0 == memcmp(expected_global_seed,
+                       mock_ctx.global_seed,
+                       sizeof(expected_global_seed)));
 }
 
 void test_is_onboarded() {
     printf("Test is onboarded...\n");
-    reset_mock_func_call_list();
+
+    onboard_t onboard_ctx;
+    reset_onboard_ctx(&onboard_ctx);
+    // mock 32 bytes random host seed
+    const unsigned char host_seed[] = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    // device pin (with prepended length)
+    const unsigned char valid_pin[] = "X1234567a";
+    unsigned int rx;
+
+    // Mock RSK_PIN_CMD
+    rx = 4;
+    for (int i = 0; i < sizeof(valid_pin); i++) {
+        SET_APDU_AT(2, i);
+        SET_APDU_AT(3, valid_pin[i]);
+        assert(3 == update_pin_buffer(rx));
+    }
+
+    // Mock RSK_SEED_CMD
+    rx = 4;
+    for (int i = 0; i < strlen((const char *)host_seed); i++) {
+        SET_APDU_AT(2, i);
+        SET_APDU_AT(3, host_seed[i]);
+        assert(0 == set_host_seed(rx, &onboard_ctx));
+    }
+
+    assert(5 == is_onboarded());
+    assert(0 == APDU_AT(1));
+    assert(VERSION_MAJOR == APDU_AT(2));
+    assert(VERSION_MINOR == APDU_AT(3));
+    assert(VERSION_PATCH == APDU_AT(4));
+
+    onboard_device(&onboard_ctx);
+
     assert(5 == is_onboarded());
     assert(1 == APDU_AT(1));
     assert(VERSION_MAJOR == APDU_AT(2));
     assert(VERSION_MINOR == APDU_AT(3));
     assert(VERSION_PATCH == APDU_AT(4));
-    assert(get_mock_func_call(0) == MOCK_FUNC_OS_PERSO_ISONBOARDED);
-    assert(get_mock_func_call_count() == 1);
 }
 
 int main() {
