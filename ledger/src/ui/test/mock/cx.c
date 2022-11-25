@@ -26,7 +26,7 @@
 
 static unsigned char mock_seed[32];
 
-void set_mock_seed(const unsigned char *data, unsigned int len) {
+void mock_cx_rng(const unsigned char *data, unsigned int len) {
     for (unsigned int i = 0; i < len; i++) {
         mock_seed[i] = data[i];
     }

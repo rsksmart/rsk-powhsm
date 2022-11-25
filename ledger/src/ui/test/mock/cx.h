@@ -27,4 +27,4 @@
  */
 unsigned char *cx_rng(unsigned char *buffer, unsigned int len);
 
-void set_mock_seed(const unsigned char *data, unsigned int len);
+void mock_cx_rng(const unsigned char *data, unsigned int len);

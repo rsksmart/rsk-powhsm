@@ -54,16 +54,18 @@ void explicit_bzero(void *s, size_t len) {
 
 unsigned int os_global_pin_check(unsigned char *pin_buffer,
                                  unsigned char pin_length) {
-    mock_ctx.device_unlocked = !strncmp((const char *)pin_buffer,
-                                        (const char *)mock_ctx.global_pin,
-                                        pin_length);
-    if (mock_ctx.device_unlocked) {
-        mock_ctx.retries = 0;
-    } else {
-        mock_ctx.retries++;
-    }
+    bool pin_matches = !strncmp((const char *)pin_buffer,
+                                (const char *)mock_ctx.global_pin,
+                                pin_length);
 
-    return mock_ctx.device_unlocked;
+    // Assert that unlock was performed while the device was locked
+    if (pin_matches && !mock_ctx.device_unlocked) {
+        mock_ctx.successful_unlock_while_locked_count++;
+    }
+    // Update mock state
+    mock_ctx.device_unlocked = pin_matches;
+
+    return (int)pin_matches;
 }
 
 void os_perso_set_pin(unsigned int identity,
@@ -91,8 +93,14 @@ void nvm_write(void *dst_adr, void *src_adr, unsigned int src_len) {
 }
 
 void os_perso_wipe() {
+    if (!mock_ctx.device_unlocked) {
+        mock_ctx.wipe_while_locked_count++;
+    }
     // wipe global pin, seed and state
-    init_mock_ctx();
+    memset(mock_ctx.global_pin, 0x0, sizeof(mock_ctx.global_pin));
+    memset(mock_ctx.global_seed, 0x0, sizeof(mock_ctx.global_seed));
+    mock_ctx.device_unlocked = false;
+    mock_ctx.device_onboarded = false;
 }
 
 void os_perso_finalize(void) {
@@ -104,7 +112,7 @@ unsigned int os_perso_isonboarded(void) {
 }
 
 unsigned int os_global_pin_retries(void) {
-    return mock_ctx.retries;
+    return (unsigned int)MOCK_INTERNAL_RETRIES_COUNTER;
 }
 
 // Generated mnemonics buffer will be "mnemonics-generated-from:<in>"

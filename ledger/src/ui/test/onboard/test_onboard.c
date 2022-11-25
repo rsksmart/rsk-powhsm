@@ -111,16 +111,16 @@ void test_onboard_device() {
     }
 
     init_mock_ctx();
-    set_mock_seed(seed, SEEDSIZE);
+    mock_cx_rng(seed, SEEDSIZE);
     assert(3 == onboard_device(&onboard_ctx));
     assert(2 == APDU_AT(1));
     assert(1 == APDU_AT(2));
 
     mock_ctx_t mock_ctx;
     get_mock_ctx(&mock_ctx);
-    assert(mock_ctx.device_unlocked == true);
-    assert(mock_ctx.device_onboarded == true);
-    assert(mock_ctx.retries == 0);
+    assert(true == mock_ctx.device_unlocked);
+    assert(true == mock_ctx.device_onboarded);
+    assert(1 == mock_ctx.wipe_while_locked_count);
     assert(!strcmp((const char *)(valid_pin + 1),
                    (const char *)mock_ctx.global_pin));
     assert(!strcmp((const char *)expected_global_seed,
@@ -135,7 +135,7 @@ void test_onboard_device() {
                   onboard_ctx.words_buffer,
                   sizeof(expected_words_buffer)) == 0);
     assert(memcmp(expected_seed, onboard_ctx.seed, sizeof(expected_seed)) == 0);
-    assert(onboard_ctx.words_buffer_length == 0);
+    assert(0 == onboard_ctx.words_buffer_length);
 }
 
 void test_onboard_device_invalid_pin() {
@@ -178,7 +178,6 @@ void test_onboard_device_invalid_pin() {
 
     assert(false == mock_ctx.device_onboarded);
     assert(false == mock_ctx.device_unlocked);
-    assert(0 == mock_ctx.retries);
     assert(0 == memcmp(expected_global_pin,
                        mock_ctx.global_pin,
                        sizeof(expected_global_pin)));

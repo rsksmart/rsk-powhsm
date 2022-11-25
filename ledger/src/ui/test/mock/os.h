@@ -41,6 +41,10 @@
 extern unsigned char G_io_apdu_buffer[IO_APDU_BUFFER_SIZE];
 
 /**
+ * Mock internal retries counter
+ */
+#define MOCK_INTERNAL_RETRIES_COUNTER 123
+/**
  * Mock context used to assert current state
  */
 typedef struct {
@@ -48,7 +52,8 @@ typedef struct {
     unsigned char global_seed[257];
     bool device_unlocked;
     bool device_onboarded;
-    unsigned int retries;
+    unsigned int wipe_while_locked_count;
+    unsigned int successful_unlock_while_locked_count;
 } mock_ctx_t;
 
 void init_mock_ctx();

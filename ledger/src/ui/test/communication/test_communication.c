@@ -46,45 +46,8 @@ void test_get_mode() {
 void test_get_retries() {
     printf("Test get retries...\n");
 
-    unsigned char pin_buffer[] = "X1234567a";
-    unsigned char wrong_pin[] = "Xa7654321";
-    unsigned int rx = 4;
-    init_mock_ctx();
-    for (int i = 0; i < strlen((const char *)pin_buffer); i++) {
-        SET_APDU_AT(2, i);
-        SET_APDU_AT(3, pin_buffer[i]);
-        assert(3 == update_pin_buffer(rx));
-    }
-
-    assert(3 == set_pin());
     assert(3 == get_retries());
-    assert(0 == APDU_AT(2));
-
-    // Send wrong pin
-    for (int i = 0; i < strlen((const char *)wrong_pin); i++) {
-        SET_APDU_AT(2, i);
-        SET_APDU_AT(3, wrong_pin[i]);
-        assert(3 == update_pin_buffer(rx));
-    }
-    assert(!unlock_with_pin(true));
-    assert(3 == get_retries());
-    assert(1 == APDU_AT(2));
-    assert(!unlock_with_pin(true));
-    assert(3 == get_retries());
-    assert(2 == APDU_AT(2));
-    assert(!unlock_with_pin(true));
-    assert(3 == get_retries());
-    assert(3 == APDU_AT(2));
-
-    // Send right pin again
-    for (int i = 0; i < strlen((const char *)pin_buffer); i++) {
-        SET_APDU_AT(2, i);
-        SET_APDU_AT(3, pin_buffer[i]);
-        assert(3 == update_pin_buffer(rx));
-    }
-    assert(unlock_with_pin(true));
-    assert(3 == get_retries());
-    assert(0 == APDU_AT(2));
+    assert(MOCK_INTERNAL_RETRIES_COUNTER == APDU_AT(2));
 }
 
 int main() {
