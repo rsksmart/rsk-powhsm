@@ -41,10 +41,6 @@
 extern unsigned char G_io_apdu_buffer[IO_APDU_BUFFER_SIZE];
 
 /**
- * Mock internal retries counter
- */
-#define MOCK_INTERNAL_RETRIES_COUNTER 123
-/**
  * Mock context used to assert current state
  */
 typedef struct {
@@ -58,6 +54,7 @@ typedef struct {
 
 void init_mock_ctx();
 void get_mock_ctx(mock_ctx_t *ctx);
+void set_mock_retries(unsigned int retries);
 
 /**
  * Mock calls for os API

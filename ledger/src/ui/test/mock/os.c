@@ -33,12 +33,21 @@
  */
 static mock_ctx_t mock_ctx;
 
+/**
+ * Mock internal retries counter
+ */
+static unsigned int mock_retries = 0;
+
 void init_mock_ctx() {
     memset(&mock_ctx, 0, sizeof(mock_ctx));
 }
 
 void get_mock_ctx(mock_ctx_t *ctx) {
     memcpy(ctx, &mock_ctx, sizeof(mock_ctx));
+}
+
+void set_mock_retries(unsigned int retries) {
+    mock_retries = retries;
 }
 
 /**
@@ -112,7 +121,7 @@ unsigned int os_perso_isonboarded(void) {
 }
 
 unsigned int os_global_pin_retries(void) {
-    return (unsigned int)MOCK_INTERNAL_RETRIES_COUNTER;
+    return mock_retries;
 }
 
 // Generated mnemonics buffer will be "mnemonics-generated-from:<in>"

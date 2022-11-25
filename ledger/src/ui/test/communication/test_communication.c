@@ -45,9 +45,10 @@ void test_get_mode() {
 
 void test_get_retries() {
     printf("Test get retries...\n");
+    set_mock_retries(123);
 
     assert(3 == get_retries());
-    assert(MOCK_INTERNAL_RETRIES_COUNTER == APDU_AT(2));
+    assert(123 == APDU_AT(2));
 }
 
 int main() {
