@@ -31,34 +31,55 @@
 #include "os.h"
 #include "unlock.h"
 
-void test_ok() {
-    printf("Test OK...\n");
+void test_unlock() {
+    printf("Test unlock...\n");
 
-    pin_t pin_ctx;
-    init_pin_ctx(&pin_ctx, (unsigned char *)"1234567a\0\0");
+    unsigned char pin_buffer[] = "1234567a";
+    unsigned int rx = 4;
+    init_mock_ctx();
+    for (int i = 0; i < strlen((const char *)pin_buffer); i++) {
+        SET_APDU_AT(2, i);
+        SET_APDU_AT(3, pin_buffer[i]);
+        assert(3 == update_pin_buffer(rx));
+    }
 
-    unsigned int tx = unlock(&pin_ctx);
-    assert(tx == 3);
-    assert(APDU_OP() == 1);
+    // assert(3 == set_pin());
+    mock_ctx_t mock_ctx;
+    get_mock_ctx(&mock_ctx);
+    assert(false == mock_ctx.device_unlocked);
+    os_perso_set_pin(0, pin_buffer, strlen((const char *)pin_buffer));
+    assert(3 == unlock());
+    get_mock_ctx(&mock_ctx);
+    assert(true == mock_ctx.device_unlocked);
+    assert(1 == APDU_AT(2));
 }
 
-void test_wrong_pin() {
-    printf("Test wrong pin...\n");
+void test_unlock_wrong_pin() {
+    printf("Test unlock (wrong pin)...\n");
 
-    pin_t pin_ctx;
-    init_pin_ctx(&pin_ctx, (unsigned char *)"wrong-pin\0");
+    unsigned char pin_buffer[] = "1234567a";
+    unsigned char wrong_pin[] = "a7654321";
+    unsigned int rx = 4;
+    init_mock_ctx();
+    for (int i = 0; i < strlen((const char *)wrong_pin); i++) {
+        SET_APDU_AT(2, i);
+        SET_APDU_AT(3, wrong_pin[i]);
+        assert(3 == update_pin_buffer(rx));
+    }
 
-    unsigned int tx = unlock(&pin_ctx);
-    assert(tx == 3);
-    assert(APDU_OP() == 0);
+    mock_ctx_t mock_ctx;
+    get_mock_ctx(&mock_ctx);
+    assert(false == mock_ctx.device_unlocked);
+    os_perso_set_pin(0, pin_buffer, strlen((const char *)pin_buffer));
+    assert(3 == unlock());
+    get_mock_ctx(&mock_ctx);
+    assert(false == mock_ctx.device_unlocked);
+    assert(0 == APDU_AT(2));
 }
 
 int main() {
-    // Set device pin
-    mock_set_pin((unsigned char *)"1234567a", strlen("1234567a"));
-
-    test_ok();
-    test_wrong_pin();
+    test_unlock();
+    test_unlock_wrong_pin();
 
     return 0;
 }

@@ -22,18 +22,44 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __UNLOCK
-#define __UNLOCK
-
-#include "pin.h"
+#include "apdu.h"
+#include "defs.h"
+#include "os.h"
+#include "communication.h"
 
 /*
- * Implements RSK UNLOCK command.
+ * Implement the RSK ECHO command.
  *
- * Unlocks the device.
- *
- * @ret             number of transmited bytes to the host
+ * @arg[in]  rx          number of received bytes from the Host
+ * @ret                  number of transmited bytes to the host
  */
-unsigned int unlock();
+unsigned int echo(unsigned int rx) {
+    return rx;
+}
 
-#endif
+/*
+ * Implement the RSK MODE command.
+ *
+ * Since this is only ever called from the bootloader, this always returns
+ * RSK_MODE_BOOTLOADER
+ *
+ * @ret number of transmited bytes to the host
+ */
+unsigned int get_mode() {
+    unsigned char output_index = CMDPOS;
+    SET_APDU_AT(output_index++, RSK_MODE_BOOTLOADER);
+    return output_index;
+}
+
+/*
+ * Implement the RSK RETRIES command.
+ *
+ * Returns the current number of pin retries for the device
+ *
+ * @ret number of transmited bytes to the host
+ */
+unsigned int get_retries() {
+    unsigned char output_index = OP;
+    SET_APDU_AT(output_index++, (unsigned char)os_global_pin_retries());
+    return output_index;
+}

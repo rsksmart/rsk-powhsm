@@ -27,6 +27,13 @@ jobs:
             (cd "$d" && make clean test)
           done
 
+      - name: Ledger UI's tests
+        working-directory: ledger/src/ui/test/
+        run: |
+          for d in communication onboard pin unlock; do
+            (cd "$d" && make clean test)
+          done
+
       - name: Ledger common lib tests
         working-directory: ledger/src/common/test/
         run: |

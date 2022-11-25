@@ -21,25 +21,39 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-
+#include <stdbool.h>
+#include <stdio.h>
+#include "defs.h"
 #include "os.h"
 #include "string.h"
+#include "onboard.h"
 
 /**
- * Mocks pin currently loaded to device
+ * Mock context used to assert current state
  */
-unsigned char current_pin[10];
+static mock_ctx_t mock_ctx;
+
+/**
+ * Mock internal retries counter
+ */
+static unsigned int mock_retries = 0;
+
+void init_mock_ctx() {
+    memset(&mock_ctx, 0, sizeof(mock_ctx));
+}
+
+void get_mock_ctx(mock_ctx_t *ctx) {
+    memcpy(ctx, &mock_ctx, sizeof(mock_ctx));
+}
+
+void set_mock_retries(unsigned int retries) {
+    mock_retries = retries;
+}
 
 /**
  * APDU buffer
  */
 unsigned char G_io_apdu_buffer[IO_APDU_BUFFER_SIZE];
-
-unsigned int os_global_pin_check(unsigned char *pin_buffer,
-                                 unsigned char pin_length) {
-    return !strncmp(
-        (const char *)pin_buffer, (const char *)current_pin, pin_length);
-}
 
 void explicit_bzero(void *s, size_t len) {
     memset(s, '\0', len);
@@ -47,16 +61,84 @@ void explicit_bzero(void *s, size_t len) {
     asm volatile("" ::: "memory");
 }
 
+unsigned int os_global_pin_check(unsigned char *pin_buffer,
+                                 unsigned char pin_length) {
+    bool pin_matches = !strncmp((const char *)pin_buffer,
+                                (const char *)mock_ctx.global_pin,
+                                pin_length);
+
+    // Assert that unlock was performed while the device was locked
+    if (pin_matches && !mock_ctx.device_unlocked) {
+        mock_ctx.successful_unlock_while_locked_count++;
+    }
+    // Update mock state
+    mock_ctx.device_unlocked = pin_matches;
+
+    return (int)pin_matches;
+}
+
 void os_perso_set_pin(unsigned int identity,
                       unsigned char *pin,
                       unsigned int length) {
-    // Do nothing
+    strncpy((char *)mock_ctx.global_pin, (char *)pin, length);
 }
 
 void os_global_pin_invalidate(void) {
-    // Do nothing
+    mock_ctx.device_unlocked = false;
 }
 
-void mock_set_pin(unsigned char *pin, size_t n) {
-    memcpy(current_pin, pin, n);
+void os_memset(void *dst, unsigned char c, unsigned int length) {
+    memset(dst, c, length);
+}
+
+void nvm_write(void *dst_adr, void *src_adr, unsigned int src_len) {
+    if (src_adr == NULL) {
+        // Treat as memory reset
+        memset(dst_adr, 0, src_len);
+    } else {
+        // Treat as normal copy
+        memmove(dst_adr, src_adr, src_len);
+    }
+}
+
+void os_perso_wipe() {
+    if (!mock_ctx.device_unlocked) {
+        mock_ctx.wipe_while_locked_count++;
+    }
+    // wipe global pin, seed and state
+    memset(mock_ctx.global_pin, 0x0, sizeof(mock_ctx.global_pin));
+    memset(mock_ctx.global_seed, 0x0, sizeof(mock_ctx.global_seed));
+    mock_ctx.device_unlocked = false;
+    mock_ctx.device_onboarded = false;
+}
+
+void os_perso_finalize(void) {
+    mock_ctx.device_onboarded = true;
+}
+
+unsigned int os_perso_isonboarded(void) {
+    return mock_ctx.device_onboarded;
+}
+
+unsigned int os_global_pin_retries(void) {
+    return mock_retries;
+}
+
+// Generated mnemonics buffer will be "mnemonics-generated-from:<in>"
+unsigned int bolos_ux_mnemonic_from_data(unsigned char *in,
+                                         unsigned int inLength,
+                                         unsigned char *out,
+                                         unsigned int outLength) {
+    sprintf((char *)out, "mnemonics-generated-from-%s", in);
+    return strlen((const char *)out);
+}
+
+void os_perso_derive_and_set_seed(unsigned char identity,
+                                  const char *prefix,
+                                  unsigned int prefix_length,
+                                  const char *passphrase,
+                                  unsigned int passphrase_length,
+                                  const char *words,
+                                  unsigned int words_length) {
+    sprintf((char *)mock_ctx.global_seed, "seed-generated-from-%s", words);
 }

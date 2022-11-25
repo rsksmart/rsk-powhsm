@@ -22,18 +22,39 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __UNLOCK
-#define __UNLOCK
+#include <stdio.h>
+#include <string.h>
+#include <assert.h>
 
+#include "defs.h"
+#include "communication.h"
+#include "os.h"
 #include "pin.h"
 
-/*
- * Implements RSK UNLOCK command.
- *
- * Unlocks the device.
- *
- * @ret             number of transmited bytes to the host
- */
-unsigned int unlock();
+void test_echo() {
+    printf("Test echo...\n");
+    unsigned int rx = 4;
+    assert(4 == echo(rx));
+}
 
-#endif
+void test_get_mode() {
+    printf("Test get mode...\n");
+    assert(2 == get_mode());
+    assert(RSK_MODE_BOOTLOADER == APDU_AT(1));
+}
+
+void test_get_retries() {
+    printf("Test get retries...\n");
+    set_mock_retries(123);
+
+    assert(3 == get_retries());
+    assert(123 == APDU_AT(2));
+}
+
+int main() {
+    test_echo();
+    test_get_mode();
+    test_get_retries();
+
+    return 0;
+}

@@ -50,15 +50,10 @@
 #include "defs.h"
 #include "err.h"
 #include "attestation.h"
+#include "communication.h"
 #include "signer_authorization.h"
 #include "memutil.h"
 #include "unlock.h"
-
-// Onboarded with the UI flag
-const unsigned char N_onboarded_ui[1] = {0};
-
-// PIN buffer used for authenticated operations
-unsigned char G_pin_buffer[PIN_BUFFER_LENGTH];
 
 #ifdef OS_IO_SEPROXYHAL
 
@@ -240,8 +235,8 @@ void io_seproxyhal_display(const bagl_element_t *element) {
 // Signer authorization context shorthand
 #define sigaut_ctx (G_bolos_ux_context.sigaut)
 
-// Pin context shorthand
-#define pin_ctx (G_bolos_ux_context.pin)
+// Onboard context shorthand
+#define onboard_ctx (G_bolos_ux_context.onboard)
 
 // Operation being currently executed
 static unsigned char curr_cmd;
@@ -256,14 +251,9 @@ static void reset_if_starting(unsigned char cmd) {
     // Otherwise we already reset when curr_cmd started.
     if (cmd != curr_cmd) {
         curr_cmd = cmd;
-        explicit_bzero(G_bolos_ux_context.words_buffer,
-                       sizeof(G_bolos_ux_context.words_buffer));
-        explicit_bzero(G_bolos_ux_context.string_buffer,
-                       sizeof(G_bolos_ux_context.string_buffer));
-        G_bolos_ux_context.words_buffer_length = 0;
         reset_attestation(&attestation_ctx);
         reset_signer_authorization(&sigaut_ctx);
-        reset_pin_ctx(&pin_ctx);
+        reset_onboard_ctx(&onboard_ctx);
     }
 }
 
@@ -271,9 +261,6 @@ static void sample_main(void) {
     volatile unsigned int rx = 0;
     volatile unsigned int tx = 0;
     volatile unsigned int flags = 0;
-    volatile unsigned char pin = 0;
-    volatile int i = 0;
-    volatile unsigned char aux;
 
     // Initialize current operation
     curr_cmd = 0; // 0 = no operation being executed
@@ -312,124 +299,39 @@ static void sample_main(void) {
                 switch (APDU_CMD()) {
                 case RSK_SEED_CMD: // Send wordlist
                     reset_if_starting(RSK_META_CMD_UIOP);
-                    pin = APDU_AT(2);
-                    if ((pin >= 0) && ((unsigned int)(pin) <=
-                                       sizeof(G_bolos_ux_context.words_buffer)))
-                        G_bolos_ux_context.words_buffer[pin] = APDU_AT(3);
+                    tx = set_host_seed(rx, &onboard_ctx);
                     THROW(APDU_OK);
                     break;
                 case RSK_PIN_CMD: // Send pin_buffer
                     reset_if_starting(RSK_META_CMD_UIOP);
-                    init_pin_ctx(&pin_ctx, G_pin_buffer);
-                    tx = update_pin_buffer(rx, &pin_ctx);
+                    tx = update_pin_buffer(rx);
                     THROW(APDU_OK);
                     break;
                 case RSK_IS_ONBOARD: // Wheter it's onboarded or not
                     reset_if_starting(RSK_IS_ONBOARD);
-                    uint8_t output_index = CMDPOS;
-                    SET_APDU_AT(output_index++, os_perso_isonboarded());
-                    SET_APDU_AT(output_index++, VERSION_MAJOR);
-                    SET_APDU_AT(output_index++, VERSION_MINOR);
-                    SET_APDU_AT(output_index++, VERSION_PATCH);
-                    tx = 5;
+                    tx = is_onboarded();
                     THROW(APDU_OK);
                     break;
                 case RSK_WIPE: //--- wipe and onboard device ---
                     reset_if_starting(RSK_META_CMD_UIOP);
-
-                    // Reset the onboarding flag to mark onboarding
-                    // hasn't been done just in case something fails
-                    aux = 0;
-                    nvm_write(
-                        (void *)PIC(N_onboarded_ui), (void *)&aux, sizeof(aux));
-
-                    init_pin_ctx(&pin_ctx, G_pin_buffer);
-#ifndef DEBUG_BUILD
-                    if (!is_pin_valid(&pin_ctx)) {
-                        THROW(ERR_INVALID_PIN);
-                    }
-#endif
-                    // Wipe device
-                    os_global_pin_invalidate();
-                    os_perso_wipe();
-                    G_bolos_ux_context.onboarding_kind =
-                        BOLOS_UX_ONBOARDING_NEW_24;
-                    // Generate 32 bytes of random with onboard rng
-                    cx_rng((unsigned char *)G_bolos_ux_context.string_buffer,
-                           HASHSIZE);
-                    // XOR with host-generated 32 bytes random
-                    for (i = 0; i < HASHSIZE; i++) {
-                        G_bolos_ux_context.string_buffer[i] ^=
-                            G_bolos_ux_context.words_buffer[i];
-                    }
-                    // The seed is now in string_buffer, generate the mnemonic
-                    os_memset(G_bolos_ux_context.words_buffer,
-                              0,
-                              sizeof(G_bolos_ux_context.words_buffer));
-                    G_bolos_ux_context.words_buffer_length =
-                        bolos_ux_mnemonic_from_data(
-                            (unsigned char *)G_bolos_ux_context.string_buffer,
-                            SEEDSIZE,
-                            (unsigned char *)G_bolos_ux_context.words_buffer,
-                            sizeof(G_bolos_ux_context.words_buffer));
-                    // Clear the seed
-                    explicit_bzero(G_bolos_ux_context.string_buffer,
-                                   sizeof(G_bolos_ux_context.string_buffer));
-                    // Set seed from mnemonic
-                    os_perso_derive_and_set_seed(
-                        0,
-                        NULL,
-                        0,
-                        NULL,
-                        0,
-                        G_bolos_ux_context.words_buffer,
-                        strlen(G_bolos_ux_context.words_buffer));
-                    // Clear the mnemonic
-                    explicit_bzero(G_bolos_ux_context.words_buffer,
-                                   sizeof(G_bolos_ux_context.words_buffer));
-                    // Set PIN
-                    os_perso_set_pin(
-                        0, GET_PIN(&pin_ctx), GET_PIN_LENGTH(&pin_ctx));
-                    // Finalize onboarding
-                    os_perso_finalize();
-                    os_global_pin_invalidate();
-                    SET_APDU_AT(1, 2);
-                    SET_APDU_AT(2,
-                                os_global_pin_check(GET_PIN(&pin_ctx),
-                                                    GET_PIN_LENGTH(&pin_ctx)));
-                    // Clear pin buffer
-                    explicit_bzero(G_pin_buffer, sizeof(G_pin_buffer));
-                    // Turn the onboarding flag on to mark onboarding
-                    // has been done using the UI
-                    aux = 1;
-                    nvm_write(
-                        (void *)PIC(N_onboarded_ui), (void *)&aux, sizeof(aux));
-                    // Output
-                    tx = 3;
+                    tx = onboard_device(&onboard_ctx);
+                    clear_pin();
                     THROW(APDU_OK);
                     break;
                 case RSK_NEWPIN:
                     reset_if_starting(RSK_META_CMD_UIOP);
-                    init_pin_ctx(&pin_ctx, G_pin_buffer);
-#ifndef DEBUG_BUILD
-                    if (!is_pin_valid(&pin_ctx)) {
-                        THROW(ERR_INVALID_PIN);
-                    }
-#endif
-                    tx = set_device_pin(rx, &pin_ctx);
-                    // Clear pin buffer
-                    explicit_bzero(G_pin_buffer, sizeof(G_pin_buffer));
+                    tx = set_pin();
+                    clear_pin();
                     THROW(APDU_OK);
                     break;
                 case RSK_ECHO_CMD: // echo
                     reset_if_starting(RSK_ECHO_CMD);
-                    tx = rx;
+                    tx = echo(rx);
                     THROW(APDU_OK);
                     break;
                 case RSK_MODE_CMD: // print mode
                     reset_if_starting(RSK_MODE_CMD);
-                    SET_APDU_AT(1, RSK_MODE_BOOTLOADER);
-                    tx = 2;
+                    tx = get_mode();
                     THROW(APDU_OK);
                     break;
                 case INS_ATTESTATION:
@@ -444,14 +346,12 @@ static void sample_main(void) {
                     break;
                 case RSK_RETRIES:
                     reset_if_starting(RSK_RETRIES);
-                    SET_APDU_AT(2, (unsigned char)os_global_pin_retries());
-                    tx = 3;
+                    tx = get_retries();
                     THROW(APDU_OK);
                     break;
                 case RSK_UNLOCK_CMD: // Unlock
                     reset_if_starting(RSK_META_CMD_UIOP);
-                    init_pin_ctx(&pin_ctx, G_pin_buffer);
-                    tx = unlock(rx, &pin_ctx);
+                    tx = unlock();
                     // The pin value will also be used in
                     // BOLOS_UX_CONSENT_APP_ADD command, so we can't wipe the
                     // pin buffer here
@@ -634,11 +534,9 @@ void bolos_ux_main(void) {
                 // PIN is invalidated so we must check it again. The pin value
                 // used here is the same as in RSK_UNLOCK_CMD, so we also
                 // don't have a prepended length byte
-                init_pin_ctx(&pin_ctx, G_pin_buffer);
-                os_global_pin_check(pin_ctx.pin_buffer,
-                                    strlen((const char *)pin_ctx.pin_buffer));
+                unlock_with_pin(false);
                 G_bolos_ux_context.exit_code = BOLOS_UX_OK;
-                explicit_bzero(G_pin_buffer, sizeof(G_pin_buffer));
+                clear_pin();
                 break;
             } else {
                 G_bolos_ux_context.exit_code = BOLOS_UX_CANCEL;

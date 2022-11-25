@@ -22,18 +22,9 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __UNLOCK
-#define __UNLOCK
-
-#include "pin.h"
-
-/*
- * Implements RSK UNLOCK command.
- *
- * Unlocks the device.
- *
- * @ret             number of transmited bytes to the host
+/**
+ * generate a random buffer
  */
-unsigned int unlock();
+unsigned char *cx_rng(unsigned char *buffer, unsigned int len);
 
-#endif
+void mock_cx_rng(const unsigned char *data, unsigned int len);

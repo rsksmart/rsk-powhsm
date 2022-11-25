@@ -47,6 +47,7 @@
 #include "attestation.h"
 #include "signer_authorization.h"
 #include "pin.h"
+#include "onboard.h"
 
 #ifdef HAVE_BOLOS_UX
 
@@ -127,16 +128,6 @@ typedef struct bolos_ux_context {
 
     unsigned int last_ux_id;
 
-#define BOLOS_UX_ONBOARDING_NEW 1
-#define BOLOS_UX_ONBOARDING_NEW_12 12
-#define BOLOS_UX_ONBOARDING_NEW_18 18
-#define BOLOS_UX_ONBOARDING_NEW_24 24
-#define BOLOS_UX_ONBOARDING_RESTORE 2
-#define BOLOS_UX_ONBOARDING_RESTORE_12 12
-#define BOLOS_UX_ONBOARDING_RESTORE_18 18
-#define BOLOS_UX_ONBOARDING_RESTORE_24 24
-    unsigned int onboarding_kind;
-
     union {
         struct {
             unsigned int onboarding_step;
@@ -145,22 +136,12 @@ typedef struct bolos_ux_context {
             unsigned int onboarding_words_are_valid;
             unsigned int onboarding_step_checked_inc;
             unsigned int onboarding_step_checked;
-
-            unsigned int words_buffer_length;
-            // after an int to make sure it's aligned
-            char string_buffer[MAX(32,
-                                   sizeof(bagl_icon_details_t) +
-                                       BOLOS_APP_ICON_SIZE_B -
-                                       1)]; // to store the seed wholy
-
-            char words_buffer[257]; // 128 of words (215 => hashed to 64, or
-                                    // 128) + HMAC_LENGTH*2 = 256
         };
 
         union {
             att_t attestation;
             sigaut_t sigaut;
-            pin_t pin;
+            onboard_t onboard;
         };
     };
 
@@ -220,13 +201,6 @@ void screen_stack_remove(unsigned int stack_slot);
 unsigned int bolos_ux_get_word_ptr(unsigned char **word,
                                    unsigned int max_length,
                                    unsigned int word_index);
-
-// passphrase will be prefixed with "MNEMONIC" from BIP39, the passphrase
-// content shall start @ 8
-unsigned int bolos_ux_mnemonic_from_data(unsigned char *in,
-                                         unsigned int inLength,
-                                         unsigned char *out,
-                                         unsigned int outLength);
 
 /**
  * Bolos system app internal UX entry point (could be overriden by a further

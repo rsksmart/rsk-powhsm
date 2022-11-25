@@ -27,33 +27,6 @@
 
 #include <stdbool.h>
 
-#define PIN_LENGTH 8
-#define PIN_BUFFER_LENGTH (PIN_LENGTH + 2)
-
-// Pin context
-typedef struct {
-    unsigned char* pin_buffer;
-} pin_t;
-
-// Helper macros for pin context manipulation
-#define GET_PIN(pin_ctx) ((unsigned char*)((pin_ctx)->pin_buffer + 1))
-#define GET_PIN_LENGTH(pin_ctx) strlen((const char*)GET_PIN(pin_ctx))
-
-/*
- * Reset the given pin context
- *
- * @arg[in] pin_ctx pin context
- */
-void reset_pin_ctx(pin_t* pin_ctx);
-
-/*
- * Reset the given pin context to point to a target buffer
- *
- * @arg[out] pin_ctx    pin context
- * @arg[in]  pin_buffer pin buffer to which the pin context should point
- */
-void init_pin_ctx(pin_t* pin_ctx, unsigned char* pin_buffer);
-
 // -----------------------------------------------------------------------
 // RSK protocol implementation
 // -----------------------------------------------------------------------
@@ -65,33 +38,49 @@ void init_pin_ctx(pin_t* pin_ctx, unsigned char* pin_buffer);
  * at the end.
  *
  * @arg[in] rx      number of received bytes from the Host
- * @arg[in] pin_ctx pin context
  * @ret             number of transmited bytes to the host
  */
-unsigned int update_pin_buffer(volatile unsigned int rx, pin_t* pin_ctx);
+unsigned int update_pin_buffer(volatile unsigned int rx);
 
 /*
  * Implements RSK NEW PIN command.
  *
- * Sets the device pin.
+ * Sets and checks the device pin.
  *
- * @arg[in] rx      number of received bytes from the Host
- * @arg[in] pin_ctx pin context
- * @ret             number of transmited bytes to the host
+ * @ret number of transmited bytes to the host
  */
-unsigned int set_device_pin(volatile unsigned int rx, pin_t* pin_ctx);
+unsigned int set_pin();
 
 // -----------------------------------------------------------------------
 // Pin manipulation utilities
 // -----------------------------------------------------------------------
 
 /*
- * Validates that the pin has exactly PIN_LENGTH alphanumeric characters
- * with at least one alphabetic character.
+ * Validates that the pin curently saved to the internal buffer has exactly
+ * PIN_LENGTH alphanumeric characters with at least one alphabetic character.
  *
- * @arg[in] pin_ctx pin context (with prepended length)
  * @ret     true if pin is valid, false otherwise
  */
-bool is_pin_valid(pin_t* pin_ctx);
+bool is_pin_valid();
+
+/*
+ * Fills the internal pin buffer with zeroes
+ */
+void clear_pin();
+
+/*
+ * Uses the pin currently saved to the internal pin buffer to unlock the device
+ *
+ * @arg[in] prepended_length true if the internal buffer includes a prepended
+ *                           length byte, false otherwise
+ * @ret                      1 if pin validated successfully, 0 otherwise
+ */
+unsigned int unlock_with_pin(bool prepended_length);
+
+/*
+ * Sets the pin currently saved to the internal pin buffer as the device's pin.
+ * This function assumes the pin is saved with a prepended length byte.
+ */
+void set_device_pin();
 
 #endif
