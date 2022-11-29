@@ -49,16 +49,12 @@
 
 #include "defs.h"
 #include "err.h"
-#include "attestation.h"
-#include "communication.h"
-#include "signer_authorization.h"
+#include "bootloader.h"
 #include "memutil.h"
-#include "unlock.h"
 
 #ifdef OS_IO_SEPROXYHAL
 
 #define ARRAYLEN(array) (sizeof(array) / sizeof(array[0]))
-static char autoexec; // autoexec signature app
 bolos_ux_context_t G_bolos_ux_context;
 
 // common code for all screens
@@ -229,207 +225,6 @@ void io_seproxyhal_display(const bagl_element_t *element) {
     io_seproxyhal_display_default((bagl_element_t *)element);
 }
 
-// Attestation context shorthand
-#define attestation_ctx (G_bolos_ux_context.attestation)
-
-// Signer authorization context shorthand
-#define sigaut_ctx (G_bolos_ux_context.sigaut)
-
-// Onboard context shorthand
-#define onboard_ctx (G_bolos_ux_context.onboard)
-
-// Operation being currently executed
-static unsigned char curr_cmd;
-
-/*
- * Reset all reseteable operations, only if the given operation is starting.
- *
- * @arg[in] cmd operation code
- */
-static void reset_if_starting(unsigned char cmd) {
-    // Reset only if starting new operation (cmd != curr_cmd).
-    // Otherwise we already reset when curr_cmd started.
-    if (cmd != curr_cmd) {
-        curr_cmd = cmd;
-        reset_attestation(&attestation_ctx);
-        reset_signer_authorization(&sigaut_ctx);
-        reset_onboard_ctx(&onboard_ctx);
-    }
-}
-
-static void sample_main(void) {
-    volatile unsigned int rx = 0;
-    volatile unsigned int tx = 0;
-    volatile unsigned int flags = 0;
-
-    // Initialize current operation
-    curr_cmd = 0; // 0 = no operation being executed
-
-    // Initialize signer authorization
-    init_signer_authorization();
-
-    // DESIGN NOTE: the bootloader ignores the way APDU are fetched. The only
-    // goal is to retrieve APDU.
-    // When APDU are to be fetched from multiple IOs, like NFC+USB+BLE, make
-    // sure the io_event is called with a
-    // switch event, before the apdu is replied to the bootloader. This avoid
-    // APDU injection faults.
-    for (;;) {
-        volatile unsigned short sw = 0;
-
-        BEGIN_TRY {
-            TRY {
-                rx = tx;
-                tx = 0; // ensure no race in catch_other if io_exchange throws
-                        // an error
-                rx = io_exchange(CHANNEL_APDU | flags, rx);
-                flags = 0;
-
-                // no apdu received, well, reset the session, and reset the
-                // bootloader configuration
-                if (rx == 0) {
-                    THROW(ERR_EMPTY_BUFFER);
-                }
-
-                if (APDU_CLA() != CLA) {
-                    THROW(ERR_INVALID_CLA);
-                }
-
-                // unauthenticated instruction
-                switch (APDU_CMD()) {
-                case RSK_SEED_CMD: // Send wordlist
-                    reset_if_starting(RSK_META_CMD_UIOP);
-                    tx = set_host_seed(rx, &onboard_ctx);
-                    THROW(APDU_OK);
-                    break;
-                case RSK_PIN_CMD: // Send pin_buffer
-                    reset_if_starting(RSK_META_CMD_UIOP);
-                    tx = update_pin_buffer(rx);
-                    THROW(APDU_OK);
-                    break;
-                case RSK_IS_ONBOARD: // Wheter it's onboarded or not
-                    reset_if_starting(RSK_IS_ONBOARD);
-                    tx = is_onboarded();
-                    THROW(APDU_OK);
-                    break;
-                case RSK_WIPE: //--- wipe and onboard device ---
-                    reset_if_starting(RSK_META_CMD_UIOP);
-                    tx = onboard_device(&onboard_ctx);
-                    clear_pin();
-                    THROW(APDU_OK);
-                    break;
-                case RSK_NEWPIN:
-                    reset_if_starting(RSK_META_CMD_UIOP);
-                    tx = set_pin();
-                    clear_pin();
-                    THROW(APDU_OK);
-                    break;
-                case RSK_ECHO_CMD: // echo
-                    reset_if_starting(RSK_ECHO_CMD);
-                    tx = echo(rx);
-                    THROW(APDU_OK);
-                    break;
-                case RSK_MODE_CMD: // print mode
-                    reset_if_starting(RSK_MODE_CMD);
-                    tx = get_mode();
-                    THROW(APDU_OK);
-                    break;
-                case INS_ATTESTATION:
-                    reset_if_starting(INS_ATTESTATION);
-                    tx = get_attestation(rx, &attestation_ctx);
-                    THROW(APDU_OK);
-                    break;
-                case INS_SIGNER_AUTHORIZATION:
-                    reset_if_starting(INS_SIGNER_AUTHORIZATION);
-                    tx = do_authorize_signer(rx, &sigaut_ctx);
-                    THROW(APDU_OK);
-                    break;
-                case RSK_RETRIES:
-                    reset_if_starting(RSK_RETRIES);
-                    tx = get_retries();
-                    THROW(APDU_OK);
-                    break;
-                case RSK_UNLOCK_CMD: // Unlock
-                    reset_if_starting(RSK_META_CMD_UIOP);
-                    tx = unlock();
-                    // The pin value will also be used in
-                    // BOLOS_UX_CONSENT_APP_ADD command, so we can't wipe the
-                    // pin buffer here
-                    THROW(APDU_OK);
-                    break;
-                case RSK_END_CMD: // return to dashboard
-                    reset_if_starting(RSK_END_CMD);
-                    autoexec = 1;
-                    goto return_to_dashboard;
-                case RSK_END_CMD_NOSIG: // return to dashboard
-                    reset_if_starting(RSK_END_CMD_NOSIG);
-                    autoexec = 0;
-                    goto return_to_dashboard;
-                default:
-                    THROW(ERR_INS_NOT_SUPPORTED);
-                    break;
-                }
-            }
-            CATCH_OTHER(e) {
-                // Reset the state in case of an error
-                if (e != APDU_OK) {
-                    reset_if_starting(0);
-                }
-
-                switch (e & 0xF000) {
-                case 0x6000:
-                case 0x9000:
-                    sw = e;
-                    break;
-                default:
-                    sw = 0x6800 | (e & 0x7FF);
-                    break;
-                }
-
-                // Unexpected exception => report
-                // (check for a potential overflow first)
-                if (tx + 2 > sizeof(G_io_apdu_buffer)) {
-                    tx = 0;
-                    sw = 0x6983;
-                }
-                SET_APDU_AT(tx++, sw >> 8);
-                SET_APDU_AT(tx++, sw);
-            }
-            FINALLY {
-            }
-        }
-        END_TRY;
-    }
-
-return_to_dashboard:
-    return;
-}
-
-// Check if we allow this version of the app to execute.
-int is_app_version_allowed(application_t *app) {
-    if (is_authorized_signer(app->hash))
-        return 1;
-    return 0;
-}
-
-// run the first non ux application
-void run_first_app(void) {
-    unsigned int i = 0;
-    while (i < os_registry_count()) {
-        application_t app;
-        os_registry_get(i, &app);
-        if (!(app.flags & APPLICATION_FLAG_BOLOS_UX)) {
-            if (is_app_version_allowed(&app)) {
-                G_bolos_ux_context.app_auto_started = 1;
-                screen_stack_pop();
-                io_seproxyhal_disable_io();
-                os_sched_exec(i); // no return
-            }
-        }
-        i++;
-    }
-}
-
 void bolos_ux_main(void) {
     G_bolos_ux_context.exit_code = BOLOS_UX_CONTINUE;
 
@@ -483,77 +278,34 @@ void bolos_ux_main(void) {
             break;
 
         case BOLOS_UX_BOOT_ONBOARDING:
-            // re apply settings in the L4 (ble, brightness, etc) after exiting
-            // application in case of wipe
-            screen_settings_apply();
-
-            // request animation when dashboard has finished displaying all the
-            // elements (after onboarding OR the first time displayed)
-            G_bolos_ux_context.dashboard_redisplayed = 1;
-
-            // avoid reperso is already onboarded to avoid leaking data through
-            // parameters due to user land call
-            if (os_perso_isonboarded()) {
-                G_bolos_ux_context.exit_code = BOLOS_UX_OK;
-                break;
-            }
-
-            io_seproxyhal_init();
-            USB_power(1);
-            screen_settings_apply();
-            screen_not_personalized_init();
-            sample_main();
+            G_bolos_ux_context.exit_code = handle_bolos_ux_boot_onboarding();
             break;
+
         case BOLOS_UX_DASHBOARD:
-            // apply settings when redisplaying dashboard
-            screen_settings_apply();
-
-            // when returning from application, the ticker could have been
-            // disabled
-            io_seproxyhal_setup_ticker(100);
-            // Run first application once
-
-            if (autoexec) {
-                autoexec = 0;
-                run_first_app();
-            }
-            screen_dashboard_init();
+            handle_bolos_ux_boot_dashboard();
             break;
 
         case BOLOS_UX_VALIDATE_PIN:
-            io_seproxyhal_init();
-            USB_power(1);
-            autoexec = 0;
-            sample_main();
-            G_bolos_ux_context.exit_code = BOLOS_UX_OK;
+            G_bolos_ux_context.exit_code = handle_bolos_ux_boot_validate_pin();
             break;
 
         case BOLOS_UX_CONSENT_APP_ADD:
-            if (is_authorized_signer(
-                    G_bolos_ux_context.parameters.u.appadd.appentry.hash)) {
-                // PIN is invalidated so we must check it again. The pin value
-                // used here is the same as in RSK_UNLOCK_CMD, so we also
-                // don't have a prepended length byte
-                unlock_with_pin(false);
-                G_bolos_ux_context.exit_code = BOLOS_UX_OK;
-                clear_pin();
-                break;
-            } else {
-                G_bolos_ux_context.exit_code = BOLOS_UX_CANCEL;
-            }
-
+            G_bolos_ux_context.exit_code = handle_bolos_ux_boot_consent_app_add(
+                &G_bolos_ux_context.parameters.u.appadd.appentry);
             break;
 
         case BOLOS_UX_CONSENT_APP_DEL:
-            G_bolos_ux_context.exit_code = BOLOS_UX_OK;
+            G_bolos_ux_context.exit_code =
+                handle_bolos_ux_boot_consent_app_del();
             break;
 
         case BOLOS_UX_CONSENT_FOREIGN_KEY:
-            G_bolos_ux_context.exit_code = BOLOS_UX_OK;
+            G_bolos_ux_context.exit_code =
+                handle_bolos_ux_boot_consent_foreing_key();
             break;
 
         case BOLOS_UX_PROCESSING:
-            screen_processing_init();
+            handle_bolos_ux_boot_processing();
             break;
 
         case BOLOS_UX_WAKE_UP:
