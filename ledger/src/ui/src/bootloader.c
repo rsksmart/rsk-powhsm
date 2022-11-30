@@ -22,8 +22,6 @@
  * IN THE SOFTWARE.
  */
 
-#include <stdbool.h>
-
 #include "apdu.h"
 #include "bolos_ux.h"
 #include "bolos_ux_common.h"
@@ -32,6 +30,12 @@
 #include "err.h"
 #include "communication.h"
 #include "unlock.h"
+
+// Accepted modes for bootloader_main
+typedef enum {
+    BOOTLOADER_MODE_ONBOARD,
+    BOOTLOADER_MODE_DEFAULT
+} bootloader_mode_t;
 
 // Attestation context shorthand
 #define attestation_ctx (G_bolos_ux_context.attestation)
@@ -43,7 +47,7 @@
 #define onboard_ctx (G_bolos_ux_context.onboard)
 
 // Operation being currently executed
-static unsigned char curr_cmd;
+static unsigned char current_cmd;
 // autoexec signature app
 static char autoexec;
 
@@ -53,21 +57,14 @@ static char autoexec;
  * @arg[in] cmd operation code
  */
 static void reset_if_starting(unsigned char cmd) {
-    // Reset only if starting new operation (cmd != curr_cmd).
-    // Otherwise we already reset when curr_cmd started.
-    if (cmd != curr_cmd) {
-        curr_cmd = cmd;
+    // Reset only if starting new operation (cmd != current_cmd).
+    // Otherwise we already reset when current_cmd started.
+    if (cmd != current_cmd) {
+        current_cmd = cmd;
         reset_attestation(&attestation_ctx);
         reset_signer_authorization(&sigaut_ctx);
         reset_onboard_ctx(&onboard_ctx);
     }
-}
-
-// Check if we allow this version of the app to execute.
-static int is_app_version_allowed(application_t *app) {
-    if (is_authorized_signer(app->hash))
-        return 1;
-    return 0;
 }
 
 // run the signer application
@@ -77,7 +74,7 @@ static void run_signer_app(void) {
         application_t app;
         os_registry_get(i, &app);
         if (!(app.flags & APPLICATION_FLAG_BOLOS_UX)) {
-            if (is_app_version_allowed(&app)) {
+            if (is_authorized_signer(app.hash)) {
                 G_bolos_ux_context.app_auto_started = 1;
                 screen_stack_pop();
                 io_seproxyhal_disable_io();
@@ -88,16 +85,16 @@ static void run_signer_app(void) {
     }
 }
 
-// Main function for the bootloader. If onboarding_mode == true, this function
-// never returns after RSK_END_CMD, so the user is required to unplug the
-// device before proceeding
-static void bootloader_main(bool onboarding_mode) {
+// Main function for the bootloader. If mode == BOOTLOADER_MODE_ONBOARD,
+// commands are not accepted after the onboard is performed.
+static void bootloader_main(bootloader_mode_t mode) {
     volatile unsigned int rx = 0;
     volatile unsigned int tx = 0;
     volatile unsigned int flags = 0;
+    volatile unsigned char onboard_performed = 0;
 
     // Initialize current operation
-    curr_cmd = 0; // 0 = no operation being executed
+    current_cmd = 0; // 0 = no operation being executed
 
     // Initialize signer authorization
     init_signer_authorization();
@@ -129,6 +126,13 @@ static void bootloader_main(bool onboarding_mode) {
                     THROW(ERR_INVALID_CLA);
                 }
 
+                // We don't accept any command after onboard is performed in
+                // onboard mode, the user is required to unplug the device
+                // before proceeding
+                if (mode == BOOTLOADER_MODE_ONBOARD && onboard_performed) {
+                    THROW(ERR_INS_NOT_SUPPORTED);
+                }
+
                 // unauthenticated instruction
                 switch (APDU_CMD()) {
                 case RSK_SEED_CMD: // Send wordlist
@@ -150,6 +154,9 @@ static void bootloader_main(bool onboarding_mode) {
                     reset_if_starting(RSK_META_CMD_UIOP);
                     tx = onboard_device(&onboard_ctx);
                     clear_pin();
+                    if (mode == BOOTLOADER_MODE_ONBOARD) {
+                        onboard_performed = 1;
+                    }
                     THROW(APDU_OK);
                     break;
                 case RSK_NEWPIN:
@@ -193,24 +200,10 @@ static void bootloader_main(bool onboarding_mode) {
                     break;
                 case RSK_END_CMD: // return to dashboard
                     reset_if_starting(RSK_END_CMD);
-                    if (onboarding_mode) {
-                        while (1)
-                            // The user is required to unplug the device after
-                            // the onboard, so we never return from
-                            // bootloader_main()
-                            ;
-                    }
                     autoexec = 1;
                     return;
                 case RSK_END_CMD_NOSIG: // return to dashboard
                     reset_if_starting(RSK_END_CMD_NOSIG);
-                    if (onboarding_mode) {
-                        while (1)
-                            // The user is required to unplug the device after
-                            // the onboard, so we never return from
-                            // bootloader_main()
-                            ;
-                    }
                     autoexec = 0;
                     return;
                 default:
@@ -278,10 +271,10 @@ unsigned int handle_bolos_ux_boot_onboarding() {
     USB_power(1);
     screen_settings_apply();
     screen_not_personalized_init();
-    bootloader_main(true);
+    bootloader_main(BOOTLOADER_MODE_ONBOARD);
     // bootloader_main() actually never returns when onboarding mode is active,
     // so this value is never actually returned to the caller
-    return BOLOS_UX_OK;
+    return BOLOS_UX_CANCEL;
 }
 
 /**
@@ -316,7 +309,7 @@ unsigned int handle_bolos_ux_boot_validate_pin() {
     io_seproxyhal_init();
     USB_power(1);
     autoexec = 0;
-    bootloader_main(false);
+    bootloader_main(BOOTLOADER_MODE_DEFAULT);
     return BOLOS_UX_OK;
 }
 
@@ -329,7 +322,7 @@ unsigned int handle_bolos_ux_boot_validate_pin() {
  *      BOLOS_UX_CANCEL otherwise
  */
 unsigned int handle_bolos_ux_boot_consent_app_add(application_t *app) {
-    if (is_app_version_allowed(app)) {
+    if (is_authorized_signer(app->hash)) {
         // PIN is invalidated so we must check it again. The pin value
         // used here is the same as in RSK_UNLOCK_CMD, so we also
         // don't have a prepended length byte
