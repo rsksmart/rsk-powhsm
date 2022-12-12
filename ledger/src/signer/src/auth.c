@@ -29,6 +29,7 @@
 #include "err.h"
 #include "sign.h"
 #include "mem.h"
+#include "compiletime.h"
 
 #include "dbg.h"
 
@@ -58,6 +59,12 @@ void auth_transition_to(uint8_t state) {
  */
 unsigned int auth_sign(volatile unsigned int rx) {
     unsigned int tx;
+
+    // Sanity check: tx hash size and
+    // last auth signed tx hash size
+    // must match
+    COMPILE_TIME_ASSERT(sizeof(N_bc_state.last_auth_signed_btc_tx_hash) ==
+                        sizeof(auth.tx_hash));
 
     // Check we receive the amount of bytes we requested
     // (this is an extra check on the legacy protocol, not
@@ -96,12 +103,6 @@ unsigned int auth_sign(volatile unsigned int rx) {
 
     // Save the BTC tx hash to NVM if this signature required authorization
     if (auth.auth_required) {
-        // Sanity check: source and destination sizes
-        if (sizeof(N_bc_state.last_auth_signed_btc_tx_hash) !=
-            sizeof(auth.tx_hash)) {
-            THROW(ERR_INTERNAL);
-        }
-
         // Avoid rewriting the same value to NVM multiple times
         if (memcmp(N_bc_state.last_auth_signed_btc_tx_hash,
                    auth.tx_hash,

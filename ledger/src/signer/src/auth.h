@@ -72,9 +72,9 @@ typedef struct {
     uint32_t path[RSK_PATH_LEN];
     uint32_t input_index_to_sign;
 
-    uint8_t tx_hash[32];
-    uint8_t receipt_hash[32];
-    uint8_t sig_hash[32];
+    uint8_t tx_hash[HASH_LEN];
+    uint8_t receipt_hash[HASH_LEN];
+    uint8_t sig_hash[HASH_LEN];
 
     union {
         btctx_auth_ctx_t tx;
