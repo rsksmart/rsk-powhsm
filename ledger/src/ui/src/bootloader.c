@@ -321,8 +321,8 @@ unsigned int handle_bolos_ux_boot_validate_pin() {
  * @ret BOLOS_UX_OK if the signer app is authorized and the device was unlocked,
  *      BOLOS_UX_CANCEL otherwise
  */
-unsigned int handle_bolos_ux_boot_consent_app_add(application_t *app) {
-    if (is_authorized_signer(app->hash)) {
+unsigned int handle_bolos_ux_boot_consent_app_add(unsigned char *app_hash) {
+    if (is_authorized_signer(app_hash)) {
         // PIN is invalidated so we must check it again. The pin value
         // used here is the same as in RSK_UNLOCK_CMD, so we also
         // don't have a prepended length byte

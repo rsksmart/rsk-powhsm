@@ -25,8 +25,6 @@
 #ifndef __BOOTLOADER
 #define __BOOTLOADER
 
-#include "os.h"
-
 // Handlers for bootloader-related bolos UX ux_ids
 
 /**
@@ -65,7 +63,7 @@ unsigned int handle_bolos_ux_boot_validate_pin();
  * @ret BOLOS_UX_OK if the signer app is authorized and the device was unlocked,
  *      BOLOS_UX_CANCEL otherwise
  */
-unsigned int handle_bolos_ux_boot_consent_app_add(application_t *app);
+unsigned int handle_bolos_ux_boot_consent_app_add(unsigned char *app_hash);
 
 /**
  * BOLOS_UX_CONSENT_APP_DEL handler

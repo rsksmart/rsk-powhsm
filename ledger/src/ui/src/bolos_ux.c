@@ -291,7 +291,7 @@ void bolos_ux_main(void) {
 
         case BOLOS_UX_CONSENT_APP_ADD:
             G_bolos_ux_context.exit_code = handle_bolos_ux_boot_consent_app_add(
-                &G_bolos_ux_context.parameters.u.appadd.appentry);
+                G_bolos_ux_context.parameters.u.appadd.appentry.hash);
             break;
 
         case BOLOS_UX_CONSENT_APP_DEL:
