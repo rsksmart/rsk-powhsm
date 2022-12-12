@@ -1109,6 +1109,68 @@ class TestHSM2ProtocolLedger(TestCase):
             }),
         )
 
+    def test_signer_heartbeat_ok(self):
+        self.dongle.get_signer_heartbeat.side_effect = lambda ud: (True, {
+            "pubKey": "66778899",
+            "message": "aabbccdd" + ud,
+            "signature": Mock(r="this-is-r", s="this-is-s"),
+            "tweak": "1122334455",
+        })
+
+        self.assertEqual(
+            {
+                "errorcode": 0,
+                "pubKey": "66778899",
+                "message": "aabbccdd" + "77"*16,
+                "tweak": "1122334455",
+                "signature": {
+                    "r": "this-is-r",
+                    "s": "this-is-s",
+                },
+            },
+            self.protocol.handle_request({
+                "version": 3,
+                "command": "signerHeartbeat",
+                "udValue": "77"*16,
+            }),
+        )
+
+    def test_signer_heartbeat_dongle_error(self):
+        self.dongle.get_signer_heartbeat.return_value = (False, )
+
+        self.assertEqual(
+            {"errorcode": -905},
+            self.protocol.handle_request({
+                "version": 3,
+                "command": "signerHeartbeat",
+                "udValue": "99"*16,
+            }),
+        )
+
+    def test_signer_heartbeat_dongle_timeout(self):
+        self.dongle.get_signer_heartbeat.side_effect = HSM2DongleTimeoutError()
+
+        self.assertEqual(
+            {"errorcode": -905},
+            self.protocol.handle_request({
+                "version": 3,
+                "command": "signerHeartbeat",
+                "udValue": "11"*16,
+            }),
+        )
+
+    def test_signer_heartbeat_exception(self):
+        self.dongle.get_signer_heartbeat.side_effect = HSM2DongleError("a-message")
+
+        self.assertEqual(
+            {"errorcode": -905},
+            self.protocol.handle_request({
+                "version": 3,
+                "command": "signerHeartbeat",
+                "udValue": "22"*16,
+            }),
+        )
+
     def _assert_reconnected(self):
         self.assertTrue(self.dongle.disconnect.called)
         self.assertEqual(2, self.dongle.connect.call_count)

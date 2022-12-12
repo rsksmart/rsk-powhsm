@@ -41,6 +41,7 @@
 #include "hsmsim_exceptions.h"
 #include "hsmsim_nu.h"
 #include "hsmsim_ecdsa.h"
+#include "hsmsim_attestation.h"
 #include "hsmsim_admin.h"
 
 #include "hsm.h"
@@ -54,6 +55,7 @@
 
 // Argp option spec
 static struct argp_option options[] = {
+    {"att", 'a', "ATTFILE", 0, "Attestation key file to load"},
     {"bind", 'b', "ADDRESS", 0, "Address to bind to"},
     {"port", 'p', "PORT", 0, "Port to listen on"},
     {"checkpoint", 'c', "HASH", 0, "Checkpoint block hash"},
@@ -73,6 +75,7 @@ struct arguments {
     char *difficulty_s;
     char *network;
     char *key_file_path;
+    char *att_file_path;
     bool verbose;
 
     uint8_t checkpoint[HASH_SIZE];
@@ -90,6 +93,9 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
     struct arguments *arguments = state->input;
 
     switch (key) {
+    case 'a':
+        arguments->att_file_path = arg;
+        break;
     case 'v':
         arguments->verbose = true;
         break;
@@ -185,6 +191,7 @@ void main(int argc, char **argv) {
         "0x32",        // Difficulty
         "regtest",     // Network
         "key.secp256", // Key file
+        "attid.json",  // Attestation key file
         false,         // verbose
     };
 
@@ -242,6 +249,12 @@ void main(int argc, char **argv) {
         exit(1);
     }
     info("ECDSA initialized.\n");
+
+    // Initialize Attestation
+    if (!hsmsim_attestation_initialize(arguments.att_file_path)) {
+        info("Error during Attestation initialization\n");
+        exit(1);
+    }
 
     // Initialize admin
     hsmsim_admin_init();

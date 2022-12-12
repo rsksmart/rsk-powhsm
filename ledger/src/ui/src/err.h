@@ -25,10 +25,6 @@
 #ifndef __ERR
 #define __ERR
 
-// Work-around for static_assert()
-#define COMPILE_TIME_ASSERT(condition) \
-    ((void)sizeof(char[1 - 2 * !(condition)]))
-
 // Error codes for RSK operations
 typedef enum {
     PROT_INVALID = 0x6a01, // Ledger got invalid or unexpected message

@@ -821,3 +821,54 @@ class TestHSM2Protocol(TestCase):
                 3,
                 "blocks": ["first-block", "second-block", "third-block"],
             })
+
+    def test_blockchain_parameters_notimplemented(self):
+        with self.assertRaises(NotImplementedError):
+            self.protocol.handle_request({
+                "command": "blockchainParameters",
+                "version": 3
+            })
+
+    def test_signer_heartbeat_invalid_ud_value(self):
+        self.assertEqual(
+            self.protocol.handle_request({
+                "command": "signerHeartbeat",
+                "version": 3
+            }),
+            {"errorcode": -301},
+        )
+
+        self.assertEqual(
+            self.protocol.handle_request({
+                "command": "signerHeartbeat",
+                "udValue": 123,
+                "version": 3
+            }),
+            {"errorcode": -301},
+        )
+
+        self.assertEqual(
+            self.protocol.handle_request({
+                "command": "signerHeartbeat",
+                "udValue": "notahex",
+                "version": 3
+            }),
+            {"errorcode": -301},
+        )
+
+        self.assertEqual(
+            self.protocol.handle_request({
+                "command": "signerHeartbeat",
+                "udValue": "aabbcc",
+                "version": 3
+            }),
+            {"errorcode": -301},
+        )
+
+    def test_signer_heartbeat_notimplemented(self):
+        with self.assertRaises(NotImplementedError):
+            self.protocol.handle_request({
+                "command": "signerHeartbeat",
+                "udValue": "aa"*16,
+                "version": 3
+            })

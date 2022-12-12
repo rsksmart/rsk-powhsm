@@ -28,6 +28,7 @@ import hid
 from .signature import HSM2DongleSignature
 from .version import HSM2FirmwareVersion
 from .parameters import HSM2FirmwareParameters
+from .hsm2dongle_cmds import HSM2SignerHeartbeat
 from .block_utils import (
     rlp_mm_payload_size,
     remove_mm_fields_if_present,
@@ -396,6 +397,9 @@ class HSM2Dongle:
     # Size of the iteration parameter for the signer authorization
     SIGNER_AUTH_ITERATION_SIZE = 2
 
+    # Shorthand for externally defined commands
+    ErrorResult = HSM2DongleErrorResult
+
     def __init__(self, debug):
         self.logger = logging.getLogger("dongle")
         self.debug = debug
@@ -436,6 +440,10 @@ class HSM2Dongle:
             self.logger.critical(msg)
             raise HSM2DongleError(msg)
         return result
+
+    # Send command version to be used by command classes
+    def send_command(self, cmd, op, data, timeout=DONGLE_TIMEOUT):
+        return self._send_command(cmd, bytes([op]) + data, timeout)
 
     # Connect to the dongle
     def connect(self):
@@ -1047,6 +1055,9 @@ class HSM2Dongle:
             "message": message.hex(),
             "signature": attestation.hex(),
         }
+
+    def get_signer_heartbeat(self, ud_value):
+        return HSM2SignerHeartbeat(self).run(ud_value)
 
     def authorize_signer(self, signer_authorization):
         # Send signer version

@@ -22,39 +22,15 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __ATTESTATION
-#define __ATTESTATION
-
-#include "bc_hash.h"
-#include "mem.h"
-
-// -----------------------------------------------------------------------
-// Keys attestation
-// -----------------------------------------------------------------------
-
-// Attestation message prefix
-#define ATT_MSG_PREFIX "HSM:SIGNER:3.0"
-#define ATT_MSG_PREFIX_LENGTH (sizeof(ATT_MSG_PREFIX) - sizeof(""))
-
-// -----------------------------------------------------------------------
-// Protocol
-// -----------------------------------------------------------------------
-
-// APDU instruction
-#define INS_ATTESTATION 0x50
-
-typedef enum {
-    ATT_PROT_INVALID = 0x6b00, // Host not respecting protocol
-    ATT_INTERNAL = 0x6b01,     // Internal error while generating attestation
-} err_code_attestation_t;
-
-/*
- * Implement the attestation protocol.
- *
- * @arg[in] rx      number of received bytes from the Host
- * @arg[in] att_ctx attestation context
- * @ret             number of transmited bytes to the host
+/**
+ * Compile-time utilities
  */
-unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx);
+
+#ifndef COMPILETIME_H
+#define COMPILETIME_H
+
+// Work-around for static_assert()
+#define COMPILE_TIME_ASSERT(condition) \
+    ((void)sizeof(char[1 - 2 * !(condition)]))
 
 #endif

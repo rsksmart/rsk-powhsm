@@ -31,6 +31,7 @@
 #include "err.h"
 #include "memutil.h"
 #include "ints.h"
+#include "compiletime.h"
 
 // Initial signer hash taken from an external definition (see Makefile for
 // details)

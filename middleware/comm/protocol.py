@@ -57,6 +57,9 @@ class HSM2Protocol:
     ERROR_CODE_INVALID_INPUT_BLOCKS = -204
     ERROR_CODE_INVALID_BROTHERS = -205
 
+    # Heartbeat error codes
+    ERROR_CODE_INVALID_SIGNER_UD_VALUE = -301
+
     # Generic error codes
     ERROR_CODE_FORMAT_ERROR = -901
     ERROR_CODE_INVALID_REQUEST = -902
@@ -77,9 +80,13 @@ class HSM2Protocol:
     BLOCKCHAIN_STATE_COMMAND = "blockchainState"
     UPDATE_ANCESTOR_BLOCK_COMMAND = "updateAncestorBlock"
     GET_BLOCKCHAIN_PARAMETERS = "blockchainParameters"
+    SIGNER_HEARTBEAT = "signerHeartbeat"
 
     # Minimum number of blocks to update the ancestor block
     MINIMUM_UPDATE_ANCESTOR_BLOCKS = 1
+
+    # Signer heartbeat user-defined value size
+    SIGNER_UD_VALUE_SIZE = 16  # bytes
 
     def __init__(self):
         self.logger = logging.getLogger(LOGGER_NAME)
@@ -388,6 +395,24 @@ class HSM2Protocol:
     def _get_blockchain_parameters(self, request):
         self._not_implemented(self.GET_BLOCKCHAIN_PARAMETERS)
 
+    def _validate_signer_heartbeat(self, request):
+        # Validate UD value presence, type and length
+        if (
+            "udValue" not in request
+            or type(request["udValue"]) != str
+            or not(is_hex_string_of_length(request["udValue"], self.SIGNER_UD_VALUE_SIZE))
+        ):
+            self.logger.info(
+                "User defined value field not present or not a "
+                f"{self.SIGNER_UD_VALUE_SIZE}-byte hex string"
+            )
+            return self.ERROR_CODE_INVALID_SIGNER_UD_VALUE
+
+        return self.ERROR_CODE_OK
+
+    def _signer_heartbeat(self, request):
+        self._not_implemented(self.SIGNER_HEARTBEAT)
+
     def _not_implemented(self, funcname):
         self.logger.warning("%s not implemented", funcname)
         raise NotImplementedError(funcname)
@@ -403,6 +428,7 @@ class HSM2Protocol:
             self.BLOCKCHAIN_STATE_COMMAND: self._blockchain_state,
             self.UPDATE_ANCESTOR_BLOCK_COMMAND: self._update_ancestor_block,
             self.GET_BLOCKCHAIN_PARAMETERS: self._get_blockchain_parameters,
+            self.SIGNER_HEARTBEAT: self._signer_heartbeat,
         }
 
         # Command input validations
@@ -415,5 +441,6 @@ class HSM2Protocol:
             self.BLOCKCHAIN_STATE_COMMAND: lambda r: 0,
             self.UPDATE_ANCESTOR_BLOCK_COMMAND: self._validate_update_ancestor_block,
             self.GET_BLOCKCHAIN_PARAMETERS: lambda r: 0,
+            self.SIGNER_HEARTBEAT: self._validate_signer_heartbeat,
         }
         self._known_commands = self._mappings.keys()

@@ -68,3 +68,25 @@ class TestHSM2DongleSignature(TestCase):
         for bs in cases:
             with self.assertRaises(ValueError):
                 HSM2DongleSignature(bs)
+
+    def test_equal(self):
+        bs = bytes.fromhex(
+            "3145022100f48d30ae4f01925939116c6b74c1c9afefc6d1a0b7109307a68126f3683308f"
+            "502206cec3ea71687eaf367885b44ec58daab06ff43c68a0817eb2177193218573cae9000"
+        )
+        sig1 = HSM2DongleSignature(bs)
+        sig2 = HSM2DongleSignature(bs)
+        self.assertEqual(sig1, sig2)
+
+    def test_not_equal(self):
+        bs1 = bytes.fromhex(
+            "3145022100f48d30ae4f01925939116c6b74c1c9afefc6d1a0b7109307a68126f3683308f"
+            "502206cec3ea71687eaf367885b44ec58daab06ff43c68a0817eb2177193218573cae9000"
+        )
+        bs2 = bytes.fromhex(
+            "3045022100e719a1a379143ee7b598390305f4f1a991d6e26f175545c739f89728e270671"
+            "402207fcc41e525508a27bdcf9bd82f4b75709e8771dde714d0cf3d362056ed1bb07c9000"
+        )
+        sig1 = HSM2DongleSignature(bs1)
+        sig2 = HSM2DongleSignature(bs2)
+        self.assertNotEqual(sig1, sig2)

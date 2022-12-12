@@ -1,0 +1,9 @@
+{
+    "name": "Get heartbeat after sign",
+    "operation": "heartbeat",
+    "udValue": "ccccccccccdddddddddd000000000011",
+    "expected": {
+        "best_block": "c38ac27d1f9021e358b0e633536bd381bf586f244d83417116c1d2040fa879fc",
+        "last_tx": "f8281941928796ae"
+    }
+}

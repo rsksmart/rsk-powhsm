@@ -22,19 +22,52 @@
  * IN THE SOFTWARE.
  */
 
-#include "os_attestation.h"
+#include <string.h>
 
-// XXX: We are returning zero at the moment since we're not using attestation
-// from the TCPSigner. We should implement this when the need arises.
-// XXX:
-// https://github.com/LedgerHQ/ledger-nanos-sdk/blob/master/nanos-secure-sdk/include/os_endorsement.h#L25
+#include "os_attestation.h"
+#include "hsmsim_attestation.h"
+#include "hsmsim_exceptions.h"
+#include "os_ecdsa.h"
+#include "sha256.h"
+#include "hmac_sha256.h"
 
 unsigned int os_endorsement_key2_derive_sign_data(unsigned char *src,
                                                   unsigned int srcLength,
                                                   unsigned char *signature) {
-    return 0;
+    uint8_t pubkey[PUBKEYUNCOMPRESSEDSIZE];
+    uint8_t tweak[HMAC_SHA256_SIZE];
+    uint8_t hash[HASH_LEN];
+
+    sha256(src, srcLength, hash, sizeof(hash));
+
+    if (hsmsim_helper_getpubkey(
+            attestation_id.key, pubkey, sizeof(pubkey), false) !=
+        sizeof(pubkey)) {
+        THROW(HSMSIM_EXC_SECP_ERROR);
+    }
+
+    if (hmac_sha256(attestation_id.code_hash,
+                    sizeof(attestation_id.code_hash),
+                    pubkey,
+                    sizeof(pubkey),
+                    tweak,
+                    sizeof(tweak)) != sizeof(tweak)) {
+        THROW(HSMSIM_EXC_HMAC_ERROR);
+    }
+
+    return hsmsim_helper_tweak_sign(attestation_id.key, tweak, hash, signature);
 }
 
 unsigned int os_endorsement_get_code_hash(unsigned char *buffer) {
-    return 0;
+    memmove(buffer, attestation_id.code_hash, sizeof(attestation_id.code_hash));
+    return sizeof(attestation_id.code_hash);
+}
+
+unsigned int os_endorsement_get_public_key(unsigned char index,
+                                           unsigned char *buffer) {
+    uint8_t tempbuf[PUBKEYUNCOMPRESSEDSIZE];
+    size_t tempbuf_size = hsmsim_helper_getpubkey(
+        attestation_id.key, tempbuf, sizeof(tempbuf), false);
+    memcpy(buffer, tempbuf, tempbuf_size);
+    return tempbuf_size;
 }

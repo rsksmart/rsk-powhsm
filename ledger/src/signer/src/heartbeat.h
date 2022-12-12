@@ -22,39 +22,40 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __ATTESTATION
-#define __ATTESTATION
-
-#include "bc_hash.h"
-#include "mem.h"
+#ifndef __HEARTBEAT
+#define __HEARTBEAT
 
 // -----------------------------------------------------------------------
-// Keys attestation
-// -----------------------------------------------------------------------
-
-// Attestation message prefix
-#define ATT_MSG_PREFIX "HSM:SIGNER:3.0"
-#define ATT_MSG_PREFIX_LENGTH (sizeof(ATT_MSG_PREFIX) - sizeof(""))
-
-// -----------------------------------------------------------------------
-// Protocol
+// Signer heartbeat
 // -----------------------------------------------------------------------
 
 // APDU instruction
-#define INS_ATTESTATION 0x50
+#define INS_HEARTBEAT 0x60
 
+// Maximum heartbeat message to sign size
+#define MAX_HEARTBEAT_MESSAGE_SIZE 100
+
+// Heartbeat SM stages
 typedef enum {
-    ATT_PROT_INVALID = 0x6b00, // Host not respecting protocol
-    ATT_INTERNAL = 0x6b01,     // Internal error while generating attestation
-} err_code_attestation_t;
+    heartbeat_stage_wait_ud_value = 0,
+    heartbeat_stage_ready,
+} heartbeat_stage_t;
+
+typedef struct heartbeat_s {
+    heartbeat_stage_t stage;
+
+    uint8_t msg[MAX_HEARTBEAT_MESSAGE_SIZE]; // Heartbeat message
+    unsigned int msg_offset;
+} heartbeat_t;
 
 /*
- * Implement the attestation protocol.
+ * Implement the heartbeat protocol.
  *
  * @arg[in] rx      number of received bytes from the Host
- * @arg[in] att_ctx attestation context
+ * @arg[in] heartbeat_ctx heartbeat context
  * @ret             number of transmited bytes to the host
  */
-unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx);
+unsigned int get_heartbeat(volatile unsigned int rx,
+                           heartbeat_t* heartbeat_ctx);
 
 #endif

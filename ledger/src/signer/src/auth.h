@@ -26,6 +26,7 @@
 #define __AUTH
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #include "auth_path.h"
 #include "auth_tx.h"
@@ -66,17 +67,14 @@
 typedef struct {
     uint8_t state;
     uint8_t expected_bytes;
+    bool auth_required;
 
     uint32_t path[RSK_PATH_LEN];
     uint32_t input_index_to_sign;
 
-    struct {
-        union {
-            uint8_t tx_hash[32];
-            uint8_t receipt_hash[32];
-        };
-        uint8_t sig_hash[32];
-    };
+    uint8_t tx_hash[32];
+    uint8_t receipt_hash[32];
+    uint8_t sig_hash[32];
 
     union {
         btctx_auth_ctx_t tx;

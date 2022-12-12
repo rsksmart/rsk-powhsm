@@ -54,7 +54,6 @@ void auth_transition_to(uint8_t state) {
  * Implement the signing authorization protocol.
  *
  * @arg[in] rx      number of received bytes from the host
- * @arg[in] att_ctx attestation context
  * @ret             number of transmited bytes to the host
  */
 unsigned int auth_sign(volatile unsigned int rx) {
@@ -94,6 +93,32 @@ unsigned int auth_sign(volatile unsigned int rx) {
                  sizeof(auth.sig_hash),
                  APDU_DATA_PTR,
                  APDU_TOTAL_DATA_SIZE_OUT);
+
+    // Save the BTC tx hash to NVM if this signature required authorization
+    if (auth.auth_required) {
+        // Sanity check: source and destination sizes
+        if (sizeof(N_bc_state.last_auth_signed_btc_tx_hash) !=
+            sizeof(auth.tx_hash)) {
+            THROW(ERR_INTERNAL);
+        }
+
+        // Avoid rewriting the same value to NVM multiple times
+        if (memcmp(N_bc_state.last_auth_signed_btc_tx_hash,
+                   auth.tx_hash,
+                   sizeof(auth.tx_hash))) {
+            NVM_WRITE(N_bc_state.last_auth_signed_btc_tx_hash,
+                      auth.tx_hash,
+                      sizeof(N_bc_state.last_auth_signed_btc_tx_hash));
+
+            // Log hash for debugging purposes
+            LOG_HEX("Saved BTC tx hash: ", auth.tx_hash, sizeof(auth.tx_hash));
+        } else {
+            // Log (already saved) hash for debugging purposes
+            LOG_HEX("Did not rewrite already saved BTC tx hash: ",
+                    auth.tx_hash,
+                    sizeof(auth.tx_hash));
+        }
+    }
 
     // Error signing?
     if (tx == DO_SIGN_ERROR) {

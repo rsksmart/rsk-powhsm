@@ -26,6 +26,7 @@
 #define __SIMULATOR_OS_ECDSA
 
 #include <stddef.h>
+#include <stdbool.h>
 
 // TODO: in the future, actual enum definitions for these
 // two types could be copied from the nanos SDK and used
@@ -46,6 +47,9 @@ typedef struct cx_ecfp_public_key_s {
     unsigned int W_len;
     unsigned char W[65];
 } cx_ecfp_public_key_t;
+
+#define PUBKEYUNCOMPRESSEDSIZE 65
+#define PUBKEYCOMPRESSEDSIZE 33
 
 void os_ecdsa_initialize();
 
@@ -72,8 +76,14 @@ int cx_ecdsa_sign(cx_ecfp_private_key_t *key,
                   unsigned int hash_len,
                   unsigned char *sig);
 
-size_t hsmsim_helper_getpubkey_compressed(const unsigned char *key,
-                                          unsigned char *dest,
-                                          size_t dest_size);
+size_t hsmsim_helper_getpubkey(const unsigned char *key,
+                               unsigned char *dest,
+                               size_t dest_size,
+                               bool compressed);
+
+size_t hsmsim_helper_tweak_sign(const unsigned char *key,
+                                const unsigned char *tweak,
+                                const unsigned char *hash,
+                                unsigned char *sig);
 
 #endif // __SIMULATOR_OS_ECDSA

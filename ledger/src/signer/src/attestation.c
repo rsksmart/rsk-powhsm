@@ -35,6 +35,11 @@
 // Attestation message prefix
 const char att_msg_prefix[ATT_MSG_PREFIX_LENGTH] = ATT_MSG_PREFIX;
 
+// Operation selectors
+#define OP_GET 0x01
+#define OP_GET_MESSAGE 0x02
+#define OP_APP_HASH 0x03
+
 // -----------------------------------------------------------------------
 // Protocol implementation
 // -----------------------------------------------------------------------

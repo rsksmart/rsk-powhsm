@@ -22,39 +22,28 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __ATTESTATION
-#define __ATTESTATION
+#ifndef __SIMULATOR_HSMSIM_ATTESTATION
+#define __SIMULATOR_HSMSIM_ATTESTATION
 
-#include "bc_hash.h"
-#include "mem.h"
+#include <stdbool.h>
 
-// -----------------------------------------------------------------------
-// Keys attestation
-// -----------------------------------------------------------------------
+#include "defs.h"
 
-// Attestation message prefix
-#define ATT_MSG_PREFIX "HSM:SIGNER:3.0"
-#define ATT_MSG_PREFIX_LENGTH (sizeof(ATT_MSG_PREFIX) - sizeof(""))
+// An attestation ID (in lack of a better name)
+// is simply a pair consisting of a secp256k1 private key
+// representing the device attestation private key and
+// a code hash representing the hash of the running
+// application that is attestating. Together, they can
+// be used to construct another secp256k1 private key
+// which is the attestation private key used to sign the
+// attestation messages.
+typedef struct {
+    unsigned char key[KEY_LEN];
+    unsigned char code_hash[HASH_LEN];
+} attestation_id_t;
 
-// -----------------------------------------------------------------------
-// Protocol
-// -----------------------------------------------------------------------
+extern attestation_id_t attestation_id;
 
-// APDU instruction
-#define INS_ATTESTATION 0x50
+bool hsmsim_attestation_initialize(char* att_file_path);
 
-typedef enum {
-    ATT_PROT_INVALID = 0x6b00, // Host not respecting protocol
-    ATT_INTERNAL = 0x6b01,     // Internal error while generating attestation
-} err_code_attestation_t;
-
-/*
- * Implement the attestation protocol.
- *
- * @arg[in] rx      number of received bytes from the Host
- * @arg[in] att_ctx attestation context
- * @ret             number of transmited bytes to the host
- */
-unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx);
-
-#endif
+#endif // __SIMULATOR_HSMSIM_ATTESTATION

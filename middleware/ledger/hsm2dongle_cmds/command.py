@@ -1,5 +1,3 @@
-# flake8: noqa
-
 # The MIT License (MIT)
 #
 # Copyright (c) 2021 RSK Labs Ltd
@@ -22,16 +20,23 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from .case import TestCase
-from .suite import TestSuite
-from .get import GetBlockchainState
-from .reset import ResetAdvanceBlockchain
-from .advance import AdvanceBlockchain
-from .update import UpdateAncestor
-from .sign_auth import SignAuthorized
-from .sign_noauth import SignUnauthorized
-from .parameters import GetBlockchainParameters
-from .reconnect import ReconnectDongle
-from .nvm_stats import NvmStats
-from .admin_is_onboarded import AdminIsOnboarded
-from .heartbeat import Heartbeat
+import logging
+
+
+# Base class for HSM2Dongle commands
+class HSM2DongleCommand:
+    # Shorthands
+    NoData = b''
+
+    def __init__(self, hsm2dongle):
+        self.dongle = hsm2dongle
+        self.logger = logging.getLogger("donglecommand")
+        self.Offset = hsm2dongle.OFF
+        self.ErrorResult = hsm2dongle.ErrorResult
+
+    def send(self, op, data, timeout=None):
+        # Default timeout
+        if timeout is None:
+            timeout = self.dongle.DONGLE_TIMEOUT
+
+        return self.dongle.send_command(self.Command, op, data, timeout)

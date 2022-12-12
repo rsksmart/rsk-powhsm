@@ -1,0 +1,9 @@
+{
+    "name": "Get heartbeat after sign for Iris",
+    "operation": "heartbeat",
+    "udValue": "11111111112222222222333333333344",
+    "expected": {
+        "best_block": "c38ac27d1f9021e358b0e633536bd381bf586f244d83417116c1d2040fa879fc",
+        "last_tx": "954487990dc49755"
+    }
+}
