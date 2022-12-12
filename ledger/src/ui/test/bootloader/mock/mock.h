@@ -45,7 +45,7 @@ extern unsigned char G_io_apdu_buffer[IO_APDU_BUFFER_SIZE];
 #define ASSERT_FALSE(cond) assert(!(cond))
 
 #define APDU_RETURN(offset) \
-    ((uint16_t)(G_io_apdu_buffer[offset] << 8) | (G_io_apdu_buffer[offset +1]))
+    ((uint16_t)(G_io_apdu_buffer[offset] << 8) | (G_io_apdu_buffer[offset + 1]))
 
 // Empty struct used to mock data types
 struct mock_struct {
@@ -74,7 +74,6 @@ void io_seproxyhal_disable_io(void);
 unsigned short io_exchange(unsigned char channel_and_flags,
                            unsigned short tx_len);
 void io_seproxyhal_setup_ticker(unsigned int interval_ms);
-
 
 void os_memmove(void *dst, const void *src, unsigned int length);
 unsigned int os_registry_count(void);
