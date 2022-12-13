@@ -35,11 +35,12 @@
 
 #define PUBKEY_UNCOMPRESSED_LENGTH 65
 
-static secp256k1_context *sp_ctx;
+static secp256k1_context *sp_ctx = NULL;
 
 void os_ecdsa_initialize() {
     // Init the secp256k1 context
-    sp_ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN);
+    if (!sp_ctx)
+        sp_ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN);
 }
 
 void os_perso_derive_node_bip32(cx_curve_t curve,
@@ -98,16 +99,43 @@ int cx_ecdsa_sign(cx_ecfp_private_key_t *key,
     return (int)sig_serialized_size;
 }
 
-size_t hsmsim_helper_getpubkey_compressed(const unsigned char *key,
-                                          unsigned char *dest,
-                                          size_t dest_size) {
+size_t hsmsim_helper_getpubkey(const unsigned char *key,
+                               unsigned char *dest,
+                               size_t dest_size,
+                               bool compressed) {
     secp256k1_pubkey pubkey;
 
     // Calculate the public key and serialize it compressed
     if (!secp256k1_ec_pubkey_create(sp_ctx, &pubkey, key)) {
         return 0;
     }
-    secp256k1_ec_pubkey_serialize(
-        sp_ctx, dest, &dest_size, &pubkey, SECP256K1_EC_COMPRESSED);
+    secp256k1_ec_pubkey_serialize(sp_ctx,
+                                  dest,
+                                  &dest_size,
+                                  &pubkey,
+                                  compressed ? SECP256K1_EC_COMPRESSED
+                                             : SECP256K1_EC_UNCOMPRESSED);
+
     return dest_size;
+}
+
+size_t hsmsim_helper_tweak_sign(const unsigned char *key,
+                                const unsigned char *tweak,
+                                const unsigned char *hash,
+                                unsigned char *sig) {
+    unsigned char tweaked_key[KEY_LEN];
+    secp256k1_ecdsa_signature sp_sig;
+    size_t sig_serialized_size = MAX_SIGNATURE_LEN;
+
+    // Tweak private key
+    memmove(tweaked_key, key, sizeof(tweaked_key));
+    if (!secp256k1_ec_privkey_tweak_add(sp_ctx, tweaked_key, tweak))
+        return 0;
+
+    // Sign and serialize as DER
+    secp256k1_ecdsa_sign(sp_ctx, &sp_sig, hash, tweaked_key, NULL, NULL);
+    secp256k1_ecdsa_signature_serialize_der(
+        sp_ctx, sig, &sig_serialized_size, &sp_sig);
+
+    return (int)sig_serialized_size;
 }

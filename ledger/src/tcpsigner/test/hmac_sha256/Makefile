@@ -1,5 +1,3 @@
-# flake8: noqa
-
 # The MIT License (MIT)
 #
 # Copyright (c) 2021 RSK Labs Ltd
@@ -22,16 +20,32 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from .case import TestCase
-from .suite import TestSuite
-from .get import GetBlockchainState
-from .reset import ResetAdvanceBlockchain
-from .advance import AdvanceBlockchain
-from .update import UpdateAncestor
-from .sign_auth import SignAuthorized
-from .sign_noauth import SignUnauthorized
-from .parameters import GetBlockchainParameters
-from .reconnect import ReconnectDongle
-from .nvm_stats import NvmStats
-from .admin_is_onboarded import AdminIsOnboarded
-from .heartbeat import Heartbeat
+SRCDIR = ../..
+SIGNERSRCDIR = ../../../signer/src
+CFLAGS = -I $(SRCDIR) -I $(SIGNERSRCDIR)
+
+PROG = test.out
+OBJS = sha256.o hmac_sha256.o test_hmac_sha256.o
+
+all: $(PROG)
+
+$(PROG): $(OBJS)
+	$(CC) -o $@ $^
+
+sha256.o: $(SIGNERSRCDIR)/sha256.c
+	$(CC) $(CFLAGS) -c -o $@ $^
+
+hmac_sha256.o: $(SRCDIR)/hmac_sha256.c
+	$(CC) $(CFLAGS) -c -o $@ $^
+
+test_sha256.o: test_sha256.c hmac_sha256.o sha256.o
+
+$(SRCDIR)/hmac_sha256.c: $(SRCDIR)/hmac_sha256.h
+$(SIGNERSRCDIR)/sha256.c: $(SIGNERSRCDIR)/sha256.h
+
+.PHONY: clean test
+clean:
+	rm -f $(PROG) ./*.o
+
+test: all
+	./$(PROG)

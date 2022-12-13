@@ -1,0 +1,9 @@
+{
+    "name": "Get heartbeat after advance",
+    "operation": "heartbeat",
+    "udValue": "aaaaaaaaaaaaaaaaaaaa112233445566",
+    "expected": {
+        "best_block": "f899db73b9fa342be52307f44bb390e0c4bfe85317a94d791d6fc402dee640c3",
+        "last_tx": "0000000000000000"
+    }
+}

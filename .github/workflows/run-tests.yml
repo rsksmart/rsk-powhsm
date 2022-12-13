@@ -41,6 +41,13 @@ jobs:
             (cd "$d" && make clean test)
           done
 
+      - name: Ledger TCPSigner's tests
+        working-directory: ledger/src/tcpsigner/test/
+        run: |
+          for d in hmac_sha256; do
+            (cd "$d" && make clean test)
+          done
+
   run-integration-tests:
     name: Integration tests
     runs-on: ubuntu-20.04

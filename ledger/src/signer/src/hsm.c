@@ -41,6 +41,7 @@
 #include "bc_ancestor.h"
 
 #include "attestation.h"
+#include "heartbeat.h"
 
 #include "dbg.h"
 
@@ -168,6 +169,13 @@ unsigned int hsm_process_apdu(volatile unsigned int rx) {
 
         reset_if_starting(INS_ATTESTATION);
         tx = get_attestation(rx, &attestation);
+        break;
+
+    case INS_HEARTBEAT:
+        REQUIRE_ONBOARDED();
+
+        reset_if_starting(INS_HEARTBEAT);
+        tx = get_heartbeat(rx, &heartbeat);
         break;
 
     // Get blockchain state

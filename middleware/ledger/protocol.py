@@ -462,3 +462,31 @@ class HSM2ProtocolLedger(HSM2Protocol):
             self._comm_issue = True
             self.logger.error("Dongle communication error in get parameters")
             return (self.ERROR_CODE_DEVICE,)
+
+    def _signer_heartbeat(self, request):
+        try:
+            self.ensure_connection()
+
+            heartbeat = self.hsm2dongle.get_signer_heartbeat(request["udValue"])
+            # Treat any user-errors as a device (unexpected) error
+            if not(heartbeat[0]):
+                return (self.ERROR_CODE_DEVICE,)
+            heartbeat = heartbeat[1]
+
+            return (self.ERROR_CODE_OK, {
+                "pubKey": heartbeat["pubKey"],
+                "message": heartbeat["message"],
+                "tweak": heartbeat["tweak"],
+                "signature": {
+                    "r": heartbeat["signature"].r,
+                    "s": heartbeat["signature"].s
+                }
+            })
+        except (HSM2DongleError, HSM2DongleTimeoutError) as e:
+            self.logger.error("Dongle error in signer heartbeat: %s", str(e))
+            return (self.ERROR_CODE_DEVICE,)
+        except HSM2DongleCommError:
+            # Signal a communication problem and return a device error
+            self._comm_issue = True
+            self.logger.error("Dongle communication error in signer heartbeat")
+            return (self.ERROR_CODE_DEVICE,)

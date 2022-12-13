@@ -41,6 +41,7 @@ Refer to the following documents for details on specifics:
 - [powHSM manager protocol specification](./docs/protocol.md)
 - [Blockchain bookkeeping documentation](./docs/blockchain-bookkeeping.md)
 - [Attestation documentation](./docs/attestation.md)
+- [Heartbeat documentation](./docs/heartbeat.md)
 - [Ledger apps](./ledger/README.md)
 - [Middleware](./middleware/README.md)
 - [Distribution](./dist/README.md)

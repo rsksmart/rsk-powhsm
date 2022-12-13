@@ -30,9 +30,11 @@
 #include "btctx.h"
 #include "btcscript.h"
 #include "auth.h"
+#include "heartbeat.h"
 
 // -----------------------------------------------------------------------
-// Global state for signing, blockchain bookkeeping and attestation.
+// Global state for signing, blockchain bookkeeping, attestation and
+// heartbeat.
 // -----------------------------------------------------------------------
 
 // Maximum attestation message to sign size (prefix + public keys hash)
@@ -58,6 +60,7 @@ typedef union {
     auth_ctx_t auth;
 
     att_t att;
+    heartbeat_t heartbeat;
 } mem_t;
 
 extern mem_t mem;
@@ -70,6 +73,7 @@ extern mem_t mem;
 #define bc_st_updating (mem.bc_st_updating)
 #define auth (mem.auth)
 #define attestation (mem.att)
+#define heartbeat (mem.heartbeat)
 #define ReceiptHash (mem.ReceiptHash_ctx)
 
 #endif

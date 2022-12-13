@@ -1,5 +1,3 @@
-# flake8: noqa
-
 # The MIT License (MIT)
 #
 # Copyright (c) 2021 RSK Labs Ltd
@@ -21,17 +19,3 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
-from .case import TestCase
-from .suite import TestSuite
-from .get import GetBlockchainState
-from .reset import ResetAdvanceBlockchain
-from .advance import AdvanceBlockchain
-from .update import UpdateAncestor
-from .sign_auth import SignAuthorized
-from .sign_noauth import SignUnauthorized
-from .parameters import GetBlockchainParameters
-from .reconnect import ReconnectDongle
-from .nvm_stats import NvmStats
-from .admin_is_onboarded import AdminIsOnboarded
-from .heartbeat import Heartbeat

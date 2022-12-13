@@ -25,7 +25,6 @@
 #include "hsmsim_ecdsa.h"
 #include "os_ecdsa.h"
 
-#include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
@@ -34,10 +33,9 @@
 #include "pathAuth.h"
 #include "defs.h"
 #include "cJSON.h"
+#include "json.h"
 #include "hex_reader.h"
 #include "log.h"
-
-#define PUBKEYCOMPRESSEDSIZE 33
 
 struct private_key_mapping_s {
     const unsigned char* path;
@@ -64,45 +62,10 @@ const char bip32_paths[][20] = {
     "m/44'/137'/1'/0/0", // MST
 };
 
-// Private key file reading
-static cJSON* read_key_file(char* key_file_path) {
-    FILE* key_file;
-    char* buffer;
-    long file_size;
-
-    key_file = fopen(key_file_path, "r");
-
-    // File does not exist?
-    if (key_file == NULL)
-        return NULL;
-
-    // Find file size
-    fseek(key_file, 0L, SEEK_END);
-    file_size = ftell(key_file);
-    fseek(key_file, 0L, SEEK_SET);
-
-    // Allocate buffer
-    buffer = (char*)malloc(file_size * sizeof(char));
-    if (buffer == NULL)
-        return NULL;
-
-    // Read into buffer and close the file
-    fread(buffer, sizeof(char), file_size, key_file);
-    fclose(key_file);
-
-    // Parse JSON
-    cJSON* json = cJSON_ParseWithLength(buffer, file_size * sizeof(char));
-
-    // Free buffer
-    free(buffer);
-
-    return json;
-}
-
 /**
  * Write current private keys in JSON-format to the given path
  */
-bool write_key_file(char* key_file_path) {
+static bool write_key_file(char* key_file_path) {
     cJSON* json = cJSON_CreateObject();
     char hex_key[sizeof(private_keys[0].key) * 2 + 1];
     char bip32_path[100];
@@ -115,24 +78,12 @@ bool write_key_file(char* key_file_path) {
         cJSON_AddStringToObject(json, bip32_paths[i], hex_key);
     }
 
-    FILE* key_file = fopen(key_file_path, "w");
-    if (key_file == NULL)
-        return false;
-
-    char* json_s = cJSON_Print(json);
-    fputs(json_s, key_file);
-    fputs("\n", key_file);
-
-    cJSON_free(json_s);
-    cJSON_Delete(json);
-    fclose(key_file);
-
-    return true;
+    return write_json_file(key_file_path, json);
 }
 
 bool hsmsim_ecdsa_initialize(char* key_file_path) {
     info("Loading key file '%s'\n", key_file_path);
-    cJSON* json = read_key_file(key_file_path);
+    cJSON* json = read_json_file(key_file_path);
 
     if (json == NULL) {
         info("Keyfile not found or file format incorrect. Creating a new "
@@ -178,13 +129,13 @@ bool hsmsim_ecdsa_initialize(char* key_file_path) {
     unsigned char pubkey[PUBKEYCOMPRESSEDSIZE];
     info("Loaded keys:\n");
     for (int i = 0; i < KEY_PATH_COUNT(); i++) {
-        if (hsmsim_helper_getpubkey_compressed(
-                private_keys[i].key, pubkey, sizeof(pubkey)) !=
+        if (hsmsim_helper_getpubkey(
+                private_keys[i].key, pubkey, sizeof(pubkey), true) !=
             PUBKEYCOMPRESSEDSIZE) {
             info("Error getting public key for key '%s'\n", bip32_paths[i]);
             return false;
         }
-        printf("%s: ", bip32_paths[i]);
+        printf("\t%s: ", bip32_paths[i]);
         for (int j = 0; j < sizeof(pubkey); j++)
             printf("%02x", pubkey[j]);
         printf("\n");

@@ -46,6 +46,7 @@ typedef struct {
     uint8_t newest_valid_block[HASH_SIZE];
     uint8_t ancestor_block[HASH_SIZE];
     uint8_t ancestor_receipt_root[HASH_SIZE];
+    uint8_t last_auth_signed_btc_tx_hash[HASH_SIZE];
 
     uint8_t initialized;
 } bc_state_t;

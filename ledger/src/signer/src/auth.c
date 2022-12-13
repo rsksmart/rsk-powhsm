@@ -29,6 +29,7 @@
 #include "err.h"
 #include "sign.h"
 #include "mem.h"
+#include "compiletime.h"
 
 #include "dbg.h"
 
@@ -54,11 +55,16 @@ void auth_transition_to(uint8_t state) {
  * Implement the signing authorization protocol.
  *
  * @arg[in] rx      number of received bytes from the host
- * @arg[in] att_ctx attestation context
  * @ret             number of transmited bytes to the host
  */
 unsigned int auth_sign(volatile unsigned int rx) {
     unsigned int tx;
+
+    // Sanity check: tx hash size and
+    // last auth signed tx hash size
+    // must match
+    COMPILE_TIME_ASSERT(sizeof(N_bc_state.last_auth_signed_btc_tx_hash) ==
+                        sizeof(auth.tx_hash));
 
     // Check we receive the amount of bytes we requested
     // (this is an extra check on the legacy protocol, not
@@ -94,6 +100,26 @@ unsigned int auth_sign(volatile unsigned int rx) {
                  sizeof(auth.sig_hash),
                  APDU_DATA_PTR,
                  APDU_TOTAL_DATA_SIZE_OUT);
+
+    // Save the BTC tx hash to NVM if this signature required authorization
+    if (auth.auth_required) {
+        // Avoid rewriting the same value to NVM multiple times
+        if (memcmp(N_bc_state.last_auth_signed_btc_tx_hash,
+                   auth.tx_hash,
+                   sizeof(auth.tx_hash))) {
+            NVM_WRITE(N_bc_state.last_auth_signed_btc_tx_hash,
+                      auth.tx_hash,
+                      sizeof(N_bc_state.last_auth_signed_btc_tx_hash));
+
+            // Log hash for debugging purposes
+            LOG_HEX("Saved BTC tx hash: ", auth.tx_hash, sizeof(auth.tx_hash));
+        } else {
+            // Log (already saved) hash for debugging purposes
+            LOG_HEX("Did not rewrite already saved BTC tx hash: ",
+                    auth.tx_hash,
+                    sizeof(auth.tx_hash));
+        }
+    }
 
     // Error signing?
     if (tx == DO_SIGN_ERROR) {

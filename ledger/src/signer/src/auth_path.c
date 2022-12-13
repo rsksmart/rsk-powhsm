@@ -60,6 +60,8 @@ unsigned int auth_sign_handle_path(volatile unsigned int rx) {
 
     if (pathRequireAuth(APDU_DATA_PTR)) {
         // If path requires authorization, continue with authorization
+        auth.auth_required = true;
+
         if (rx != DATA + PATH_LEN + INPUT_INDEX_LEN)
             THROW(AUTH_ERR_INVALID_DATA_SIZE_AUTH_SIGN);
 
@@ -82,6 +84,8 @@ unsigned int auth_sign_handle_path(volatile unsigned int rx) {
     } else if (pathDontRequireAuth(APDU_DATA_PTR)) {
         // If path doesn't require authorization,
         // go directly to signing
+        auth.auth_required = false;
+
         if (rx != DATA + PATH_LEN + HASH_LEN)
             THROW(AUTH_ERR_INVALID_DATA_SIZE_UNAUTH_SIGN);
 

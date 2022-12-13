@@ -74,3 +74,14 @@ class HSM2DongleSignature:
     @property
     def s(self):
         return self._s
+
+    def __repr__(self):
+        return f"{type(self).__name__}<0x{self.r}, 0x{self.s}>"
+
+    # Self explanatory
+    def __eq__(self, other):
+        return (
+            type(self) == type(other)
+            and self.r == other.r
+            and self.s == other.s
+        )

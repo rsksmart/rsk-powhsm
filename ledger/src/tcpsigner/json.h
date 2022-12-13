@@ -22,39 +22,15 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __ATTESTATION
-#define __ATTESTATION
+#ifndef __SIMULATOR_JSON
+#define __SIMULATOR_JSON
 
-#include "bc_hash.h"
-#include "mem.h"
+#include <stdlib.h>
+#include <stdbool.h>
+#include "cJSON.h"
 
-// -----------------------------------------------------------------------
-// Keys attestation
-// -----------------------------------------------------------------------
+cJSON* read_json_file(char* file_path);
 
-// Attestation message prefix
-#define ATT_MSG_PREFIX "HSM:SIGNER:3.0"
-#define ATT_MSG_PREFIX_LENGTH (sizeof(ATT_MSG_PREFIX) - sizeof(""))
+bool write_json_file(char* file_path, cJSON* json);
 
-// -----------------------------------------------------------------------
-// Protocol
-// -----------------------------------------------------------------------
-
-// APDU instruction
-#define INS_ATTESTATION 0x50
-
-typedef enum {
-    ATT_PROT_INVALID = 0x6b00, // Host not respecting protocol
-    ATT_INTERNAL = 0x6b01,     // Internal error while generating attestation
-} err_code_attestation_t;
-
-/*
- * Implement the attestation protocol.
- *
- * @arg[in] rx      number of received bytes from the Host
- * @arg[in] att_ctx attestation context
- * @ret             number of transmited bytes to the host
- */
-unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx);
-
-#endif
+#endif // __SIMULATOR_JSON

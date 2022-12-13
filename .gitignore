@@ -7,7 +7,6 @@
 **/changePIN
 **/seedbackup.bin
 
-
 # Ignore nodeJS modules
 **/node_modules
 
