@@ -211,6 +211,10 @@ def main():
                     raise Exception()
             except Exception:
                 raise AdminError(f"Bad signature from dongle! (got '{signature.hex()}')")
+        else:
+            raise AdminError("Unexpected state reached! "
+                             "Expected operation to be either 'eth' or 'key', "
+                             f"but was {options.operation}")
 
         # Add the signature to the authorization and save it to disk
         signer_authorization.add_signature(signature.hex())

@@ -908,54 +908,53 @@ class TestHSM2Dongle(_TestHSM2DongleBase):
         ])
 
     def test_sign_authorized_btctx_unexpected_error_exc(self):
-        for error_code in [0x6A88, 0x6A8D, 0x6A8E]:
-            self.dongle.exchange.reset_mock()
-            self.dongle.exchange.side_effect = [
-                bytes([0, 0, 0x02,
-                       0x09]),  # Response to key id, request 9 bytes of BTC tx
-                bytes([
-                    0, 0, 0x02, 0x03
-                ]),  # Response to first chunk of BTC tx, request additional 4 bytes
-                CommException("", 0xFF),  # Response to second chunk of BTC tx, exception
-            ]
-            key_id = Mock(**{"to_binary.return_value": bytes.fromhex("11223344")})
-            with self.assertRaises(HSM2DongleError):
-                self.hsm2dongle.sign_authorized(
-                    key_id=key_id,
-                    rsk_tx_receipt="00112233445566778899",
-                    receipt_merkle_proof=["334455", "6677", "aabbccddee"],
-                    btc_tx="aabbccddeeff7788",
-                    input_index=1234,
-                )
+        self.dongle.exchange.reset_mock()
+        self.dongle.exchange.side_effect = [
+            bytes([0, 0, 0x02,
+                   0x09]),  # Response to key id, request 9 bytes of BTC tx
+            bytes([
+                0, 0, 0x02, 0x03
+            ]),  # Response to first chunk of BTC tx, request additional 4 bytes
+            CommException("", 0xFF),  # Response to second chunk of BTC tx, exception
+        ]
+        key_id = Mock(**{"to_binary.return_value": bytes.fromhex("11223344")})
+        with self.assertRaises(HSM2DongleError):
+            self.hsm2dongle.sign_authorized(
+                key_id=key_id,
+                rsk_tx_receipt="00112233445566778899",
+                receipt_merkle_proof=["334455", "6677", "aabbccddee"],
+                btc_tx="aabbccddeeff7788",
+                input_index=1234,
+            )
 
-            self.assert_exchange([
-                [
-                    0x02,
-                    0x01,
-                    0x11,
-                    0x22,
-                    0x33,
-                    0x44,
-                    0xD2,
-                    0x04,
-                    0x00,
-                    0x00,
-                ],  # Path and input index
-                [
-                    0x02,
-                    0x02,
-                    0x0C,
-                    0x00,
-                    0x00,
-                    0x00,
-                    0xAA,
-                    0xBB,
-                    0xCC,
-                    0xDD,
-                    0xEE,
-                ],  # Length of payload plus first chunk of BTC tx
-                [0x02, 0x02, 0xFF, 0x77, 0x88],  # Second chunk of BTC tx
-            ])
+        self.assert_exchange([
+            [
+                0x02,
+                0x01,
+                0x11,
+                0x22,
+                0x33,
+                0x44,
+                0xD2,
+                0x04,
+                0x00,
+                0x00,
+            ],  # Path and input index
+            [
+                0x02,
+                0x02,
+                0x0C,
+                0x00,
+                0x00,
+                0x00,
+                0xAA,
+                0xBB,
+                0xCC,
+                0xDD,
+                0xEE,
+            ],  # Length of payload plus first chunk of BTC tx
+            [0x02, 0x02, 0xFF, 0x77, 0x88],  # Second chunk of BTC tx
+        ])
 
     @parameterized.expand([
         ("data_size", 0x6A87, -1),
@@ -1374,7 +1373,7 @@ class TestHSM2DongleAdvanceBlockchain(_TestHSM2DongleBase):
         ]
 
         self.dongle.exchange.side_effect = [
-            bs for excs in map(lambda s: self.spec_to_exchange(s), blocks_spec)
+            bs for excs in map(self.spec_to_exchange, blocks_spec)
             for bs in excs
         ] + [bytes([0, 0, device_response])]  # Success response
 
@@ -1455,7 +1454,7 @@ class TestHSM2DongleAdvanceBlockchain(_TestHSM2DongleBase):
         ]
 
         side_effect = [
-            bs for excs in map(lambda s: self.spec_to_exchange(s), blocks_spec)
+            bs for excs in map(self.spec_to_exchange, blocks_spec)
             for bs in excs
         ]
 
@@ -1543,7 +1542,7 @@ class TestHSM2DongleAdvanceBlockchain(_TestHSM2DongleBase):
         ]
 
         side_effect = [
-            bs for excs in map(lambda s: self.spec_to_exchange(s), blocks_spec)
+            bs for excs in map(self.spec_to_exchange, blocks_spec)
             for bs in excs
         ]
 
@@ -1722,7 +1721,7 @@ class TestHSM2DongleUpdateAncestor(_TestHSM2DongleBase):
         ]
 
         side_effect = [
-            bs for excs in map(lambda s: self.spec_to_exchange(s), blocks_spec)
+            bs for excs in map(self.spec_to_exchange, blocks_spec)
             for bs in excs
         ]
         # Make the second chunk of the second block fail
@@ -1773,7 +1772,7 @@ class TestHSM2DongleUpdateAncestor(_TestHSM2DongleBase):
         ]
 
         side_effect = [
-            bs for excs in map(lambda s: self.spec_to_exchange(s), blocks_spec)
+            bs for excs in map(self.spec_to_exchange, blocks_spec)
             for bs in excs
         ]
         # Make the metadata of the third block fail

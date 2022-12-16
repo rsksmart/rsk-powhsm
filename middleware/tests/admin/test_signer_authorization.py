@@ -34,12 +34,9 @@ logging.disable(logging.CRITICAL)
 class TestSignerAuthorization(TestCase):
     def setUp(self):
         self.sigs = [
-            "3044022039c6785195590cf80a39473a3c74196fb00768b4fa0afa42e542a2cdbf17a09102"
-            "201f47eb7939da1dded637dfef6911d7c6f2c52943f02f32947620a1c82ecfb1e9",
-            "304402206d327be3539bd0187525420554f6087a50a7edab89bf69b001d40936bff41adf02"
-            "206c46e02c7df30191eddbac780037bd6aed888a0cc09af02dac46afc8cbabe54a",
-            "3044022054440c5d33490590c7b75ec7c2f2756cded50796b8e5b984574656e5506cebd302"
-            "200ac695c65c4b2d43af072fa7068b1119245a5a72ecfa920794f2fa82398f563d",
+            "3044022039c6785195590cf80a39473a3c74196fb00768b4fa0afa42e542a2cdbf17a09102201f47eb7939da1dded637dfef6911d7c6f2c52943f02f32947620a1c82ecfb1e9", # noqa E501
+            "304402206d327be3539bd0187525420554f6087a50a7edab89bf69b001d40936bff41adf02206c46e02c7df30191eddbac780037bd6aed888a0cc09af02dac46afc8cbabe54a", # noqa E501
+            "3044022054440c5d33490590c7b75ec7c2f2756cded50796b8e5b984574656e5506cebd302200ac695c65c4b2d43af072fa7068b1119245a5a72ecfa920794f2fa82398f563d", # noqa E501
         ]
 
         self.sigver = SignerVersion("cc"*32, 123)
@@ -75,9 +72,9 @@ class TestSignerAuthorization(TestCase):
         }, self.sa.to_dict())
 
     def test_add_signature(self):
-        new_sig = "304402206028c2917d0dfd66b92754750b4e2dbc6459de2dff598f0014470ee02e3c"\
-                  "020702202baf9cab552b5021c7f3966fb7051be2ec1d273b3d5d1ce02e1ae73d1d80"\
-                  "38ed"
+        new_sig = "304402206028c2917d0dfd66b92754750b4e2dbc6459de"\
+                  "2dff598f0014470ee02e3c020702202baf9cab552b5021"\
+                  "c7f3966fb7051be2ec1d273b3d5d1ce02e1ae73d1d8038ed"
         self.sa.add_signature(new_sig)
 
         self.assertEqual(self.sa.signatures, self.sigs + [new_sig])
@@ -119,10 +116,8 @@ class TestSignerAuthorization(TestCase):
             sa.signer_version.hash)
         self.assertEqual(345, sa.signer_version.iteration)
         self.assertEqual([
-            "3044022039e6db716cd2ce9efbd29a01afd50ffb04bae58ac747dc847b5af34bec03a1950"
-            "22060ffa2e7758a92a53093a672f3813d17352212dfab9535fd4927dbbf487d910a",
-            "304402201ef9d2a728e86aa3e8a0cf27a1f6afeba84af90f89ea50ea14483c4bd0c17fcd0"
-            "2201b6130ab0aed38128a4637b93ac90484aa2361c014e89c915d061fd27cab6aa6"
+            "3044022039e6db716cd2ce9efbd29a01afd50ffb04bae58ac747dc847b5af34bec03a195022060ffa2e7758a92a53093a672f3813d17352212dfab9535fd4927dbbf487d910a",  # noqa E501
+            "304402201ef9d2a728e86aa3e8a0cf27a1f6afeba84af90f89ea50ea14483c4bd0c17fcd02201b6130ab0aed38128a4637b93ac90484aa2361c014e89c915d061fd27cab6aa6",  # noqa E501
         ], sa.signatures)
 
     def test_from_jsonfile_invalid_json(self):

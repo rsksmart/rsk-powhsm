@@ -215,6 +215,7 @@ class HSM2ProtocolLedger(HSM2Protocol):
         try:
             self.hsm2dongle.exit_menu()
         except Exception:
+            # exit_menu() always throws due to USB disconnection. we don't care
             pass
 
         # Wait a little bit to make sure the app is loaded
@@ -255,7 +256,7 @@ class HSM2ProtocolLedger(HSM2Protocol):
             self.logger.error("Dongle communication error getting public key")
             return (self.ERROR_CODE_DEVICE,)
         except HSM2DongleError as e:
-            self._error("Dongle error in get_pubkey: %s" % str(e))
+            return self._error("Dongle error in get_pubkey: %s" % str(e))
 
     def _sign(self, request):
         # First validate the required fields are OK

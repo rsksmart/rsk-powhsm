@@ -431,14 +431,18 @@ class HSM2Dongle:
             if HSM2DongleCommError.is_comm_error(e):
                 raise HSM2DongleCommError(str(e))
 
-            # Otherwise, raise a standard error
-            msg = "Error sending command: %s" % str(e)
-            self.logger.error(msg)
+            # Raise a standard error, but
+            # report differently for a CommException and any other
+            # type of exception
+            if type(e) == CommException:
+                msg = "Error sending command: %s" % str(e)
+                self.logger.error(msg)
+            else:
+                msg = "Unknown error sending command: %s" % str(e)
+                self.logger.critical(msg)
+
             raise HSM2DongleError(msg)
-        except Exception as e:
-            msg = "Unknown error sending command: %s" % str(e)
-            self.logger.critical(msg)
-            raise HSM2DongleError(msg)
+
         return result
 
     # Send command version to be used by command classes
@@ -471,6 +475,7 @@ class HSM2Dongle:
             try:
                 hid.hidapi_exit()
             except Exception:
+                # hidapi_exit() can sometimes throw. we don't care
                 pass
             # **** End hack ****
             self.logger.info("Disconnected")
@@ -1083,6 +1088,8 @@ class HSM2Dongle:
             raise HSM2DongleError("Not enough signatures given. "
                                   "Signer authorization failed")
 
+        return True
+
     # Used both for advance blockchain and update ancestor given the protocol
     # is very similar
     def _do_block_operation(
@@ -1401,7 +1408,7 @@ class HSM2Dongle:
                 self.logger.debug(
                     "Current operation %s, next operations %s, ledger requesting %s",
                     hex(operation),
-                    str(list(map(lambda op: hex(op), next_operations))),
+                    str(list(map(hex, next_operations))),
                     hex(response[2]),
                 )
                 self.logger.error(

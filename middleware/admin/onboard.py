@@ -124,8 +124,7 @@ def do_onboard(options):
     head(
         [
             "Onboarding done",
-            "Please disconnect and re-connect the ledger to proceed with "
-            "the attestation setup",
+            "Please disconnect and re-connect the ledger to proceed with the attestation setup",  # noqa E501
             "Press [Enter] to continue",
         ],
         nl=False,
