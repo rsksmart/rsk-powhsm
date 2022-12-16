@@ -431,14 +431,18 @@ class HSM2Dongle:
             if HSM2DongleCommError.is_comm_error(e):
                 raise HSM2DongleCommError(str(e))
 
-            # Otherwise, raise a standard error
-            msg = "Error sending command: %s" % str(e)
-            self.logger.error(msg)
+            # Raise a standard error, but
+            # report differently for a CommException and any other
+            # type of exception
+            if type(e) == CommException:
+                msg = "Error sending command: %s" % str(e)
+                self.logger.error(msg)
+            else:
+                msg = "Unknown error sending command: %s" % str(e)
+                self.logger.critical(msg)
+
             raise HSM2DongleError(msg)
-        except Exception as e:
-            msg = "Unknown error sending command: %s" % str(e)
-            self.logger.critical(msg)
-            raise HSM2DongleError(msg)
+
         return result
 
     # Send command version to be used by command classes
