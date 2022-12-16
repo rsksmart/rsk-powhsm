@@ -475,6 +475,7 @@ class HSM2Dongle:
             try:
                 hid.hidapi_exit()
             except Exception:
+                # hidapi_exit() can sometimes throw. we don't care
                 pass
             # **** End hack ****
             self.logger.info("Disconnected")
@@ -1405,7 +1406,7 @@ class HSM2Dongle:
                 self.logger.debug(
                     "Current operation %s, next operations %s, ledger requesting %s",
                     hex(operation),
-                    str(list(map(lambda op: hex(op), next_operations))),
+                    str(list(map(hex, next_operations))),
                     hex(response[2]),
                 )
                 self.logger.error(

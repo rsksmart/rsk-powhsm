@@ -88,6 +88,7 @@ def do_attestation(options):
     try:
         hsm.exit_menu()
     except Exception:
+        # exit_menu() always throws due to USB disconnection. we don't care
         pass
     info("Exit OK")
     dispose_hsm(hsm)

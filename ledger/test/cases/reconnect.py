@@ -72,6 +72,7 @@ class ReconnectDongle(TestCase):
                 try:
                     dongle.exit_menu(autoexec=True)
                 except Exception:
+                    # exit_menu() always throws due to USB disconnection. we don't care
                     pass
                 output.debug('Device unlocked')
                 # Disconnect from bootloader, connect to app

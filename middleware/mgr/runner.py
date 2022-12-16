@@ -56,6 +56,8 @@ class ManagerRunner:
         except PinError as e:
             logger.critical("While loading PIN: %s", e)
         except TCPServerError:
+            # This is a genuine error with no recovery
+            # and logging is handled by the server itself
             pass
         finally:
             logger.info(f"{self.name} terminated")

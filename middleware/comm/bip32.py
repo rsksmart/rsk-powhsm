@@ -95,7 +95,7 @@ class BIP32Path:
             _logger.debug(message)
             raise ValueError(message)
 
-        self._elements = list(map(lambda s: BIP32Element(s), spec[2:].split("/")))
+        self._elements = list(map(BIP32Element, spec[2:].split("/")))
 
         if nelements is not None and len(self._elements) != nelements:
             message = "BIP32Path spec must have exactly %d elements, got %d" % (
@@ -121,7 +121,7 @@ class BIP32Path:
         return binary
 
     def __str__(self):
-        return "m/%s" % "/".join(map(lambda e: str(e), self._elements))
+        return "m/%s" % "/".join(map(str, self._elements))
 
     def __repr__(self):
         return '<BIP32Path "%s">' % str(self)

@@ -96,6 +96,7 @@ def do_unlock(options, exit=True, no_exec=False, label=True):
         try:
             hsm.exit_menu(autoexec=autoexec)
         except Exception:
+            # exit_menu() always throws due to USB disconnection. we don't care
             pass
         info("Exit OK")
 

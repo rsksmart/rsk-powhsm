@@ -215,6 +215,7 @@ class HSM2ProtocolLedger(HSM2Protocol):
         try:
             self.hsm2dongle.exit_menu()
         except Exception:
+            # exit_menu() always throws due to USB disconnection. we don't care
             pass
 
         # Wait a little bit to make sure the app is loaded
