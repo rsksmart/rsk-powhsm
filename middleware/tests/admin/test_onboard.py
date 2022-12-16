@@ -40,8 +40,8 @@ logging.disable(logging.CRITICAL)
 @patch("admin.onboard.info")
 @patch("admin.onboard.get_hsm")
 class TestOnboard(TestCase):
-    VALID_PIN = '1234ABCD'
-    INVALID_PIN = '123456789'
+    VALID_PIN = "1234ABCD"
+    INVALID_PIN = "123456789"
 
     DEVICE_KEY = {
         "pubkey": "this-is-the-public-key",
@@ -62,13 +62,13 @@ class TestOnboard(TestCase):
     }
 
     def setUp(self):
-        self.certificate_path = 'cert-path'
+        self.certificate_path = "cert-path"
         options = {
-            'pin': self.VALID_PIN,
-            'output_file_path': self.certificate_path,
-            'any_pin': False,
-            'no_exec': False,
-            'verbose': False
+            "pin": self.VALID_PIN,
+            "output_file_path": self.certificate_path,
+            "any_pin": False,
+            "no_exec": False,
+            "verbose": False
         }
         self.default_options = SimpleNamespace(**options)
 
@@ -109,16 +109,16 @@ class TestOnboard(TestCase):
         self.dongle.onboard = Mock()
         readline.return_value = "yes\n"
 
-        with patch('builtins.open', mock_open()) as file_mock:
+        with patch("builtins.open", mock_open()) as file_mock:
             do_onboard(self.default_options)
 
-        self.assertTrue(info_mock.call_args_list[5][0][0] == 'Onboarded: Yes')
-        self.assertTrue(info_mock.call_args_list[10][0][0] == 'Onboarded')
-        self.assertTrue(info_mock.call_args_list[14][0][0] == 'Device key gathered')
-        self.assertTrue(info_mock.call_args_list[16][0][0] ==
-                        'Attestation key setup complete')
+        self.assertEqual(info_mock.call_args_list[5][0][0], "Onboarded: Yes")
+        self.assertEqual(info_mock.call_args_list[10][0][0], "Onboarded")
+        self.assertEqual(info_mock.call_args_list[14][0][0], "Device key gathered")
+        self.assertEqual(info_mock.call_args_list[16][0][0],
+                         "Attestation key setup complete")
 
-        self.assertEqual([call(self.certificate_path, 'w')], file_mock.call_args_list)
+        self.assertEqual([call(self.certificate_path, "w")], file_mock.call_args_list)
         self.assertEqual([call("%s\n" %
                                json.dumps(self.expected_cert.to_dict(), indent=2))],
                          file_mock.return_value.write.call_args_list)
@@ -139,15 +139,15 @@ class TestOnboard(TestCase):
         self.dongle.get_device_key = Mock()
         self.dongle.setup_endorsement_key = Mock()
         self.dongle.handshake = Mock()
-        self.dongle.onboard = Mock(side_effect=HSM2DongleError('error-msg'))
+        self.dongle.onboard = Mock(side_effect=HSM2DongleError("error-msg"))
         readline.return_value = "yes\n"
 
-        with patch('builtins.open', mock_open()) as file_mock:
+        with patch("builtins.open", mock_open()) as file_mock:
             with self.assertRaises(HSM2DongleError) as e:
                 do_onboard(self.default_options)
 
         self.assertTrue(self.dongle.onboard.called)
-        self.assertEqual('error-msg', str(e.exception))
+        self.assertEqual("error-msg", str(e.exception))
         self.assertFalse(self.dongle.get_device_key.called)
         self.assertFalse(self.dongle.setup_endorsement_key.called)
         self.assertFalse(self.dongle.handshake.called)
@@ -166,15 +166,15 @@ class TestOnboard(TestCase):
         self.dongle.is_onboarded = Mock(return_value=True)
         self.dongle.get_device_key = Mock()
         self.dongle.setup_endorsement_key = Mock()
-        self.dongle.handshake = Mock(side_effect=HSM2DongleError('error-msg'))
+        self.dongle.handshake = Mock(side_effect=HSM2DongleError("error-msg"))
         self.dongle.onboard = Mock()
         readline.return_value = "yes\n"
 
-        with patch('builtins.open', mock_open()) as file_mock:
+        with patch("builtins.open", mock_open()) as file_mock:
             with self.assertRaises(HSM2DongleError) as e:
                 do_onboard(self.default_options)
 
-        self.assertEqual('error-msg', str(e.exception))
+        self.assertEqual("error-msg", str(e.exception))
         self.assertTrue(self.dongle.onboard.called)
         self.assertTrue(self.dongle.handshake.called)
         self.assertFalse(self.dongle.get_device_key.called)
@@ -192,17 +192,17 @@ class TestOnboard(TestCase):
 
         self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.BOOTLOADER)
         self.dongle.is_onboarded = Mock(return_value=True)
-        self.dongle.get_device_key = Mock(side_effect=HSM2DongleError('error-msg'))
+        self.dongle.get_device_key = Mock(side_effect=HSM2DongleError("error-msg"))
         self.dongle.setup_endorsement_key = Mock()
         self.dongle.handshake = Mock()
         self.dongle.onboard = Mock()
         readline.return_value = "yes\n"
 
-        with patch('builtins.open', mock_open()) as file_mock:
+        with patch("builtins.open", mock_open()) as file_mock:
             with self.assertRaises(HSM2DongleError) as e:
                 do_onboard(self.default_options)
 
-        self.assertEqual('error-msg', str(e.exception))
+        self.assertEqual("error-msg", str(e.exception))
         self.assertTrue(self.dongle.onboard.called)
         self.assertTrue(self.dongle.handshake.called)
         self.assertTrue(self.dongle.get_device_key.called)
@@ -221,16 +221,16 @@ class TestOnboard(TestCase):
         self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.BOOTLOADER)
         self.dongle.is_onboarded = Mock(return_value=True)
         self.dongle.get_device_key = Mock()
-        self.dongle.setup_endorsement_key = Mock(side_effect=HSM2DongleError('error-msg'))
+        self.dongle.setup_endorsement_key = Mock(side_effect=HSM2DongleError("error-msg"))
         self.dongle.handshake = Mock()
         self.dongle.onboard = Mock()
         readline.return_value = "yes\n"
 
-        with patch('builtins.open', mock_open()) as file_mock:
+        with patch("builtins.open", mock_open()) as file_mock:
             with self.assertRaises(HSM2DongleError) as e:
                 do_onboard(self.default_options)
 
-        self.assertEqual('error-msg', str(e.exception))
+        self.assertEqual("error-msg", str(e.exception))
         self.assertTrue(self.dongle.onboard.called)
         self.assertTrue(self.dongle.handshake.called)
         self.assertTrue(self.dongle.get_device_key.called)
@@ -250,11 +250,11 @@ class TestOnboard(TestCase):
         hsm_admin.return_value = self.dongle
         readline.return_value = "no\n"
 
-        with patch('builtins.open', mock_open()) as file_mock:
+        with patch("builtins.open", mock_open()) as file_mock:
             with self.assertRaises(AdminError) as e:
                 do_onboard(self.default_options)
 
-        self.assertEqual('Cancelled by user', str(e.exception))
+        self.assertEqual("Cancelled by user", str(e.exception))
         self.assertFalse(self.dongle.onboard.called)
         self.assertFalse(self.dongle.get_device_key.called)
         self.assertFalse(self.dongle.setup_endorsement_key.called)
@@ -274,7 +274,7 @@ class TestOnboard(TestCase):
         with self.assertRaises(AdminError) as e:
             do_onboard(options)
 
-        self.assertEqual('No output file path given', str(e.exception))
+        self.assertEqual("No output file path given", str(e.exception))
         self.assertFalse(self.dongle.onboard.called)
 
     def test_onboard_invalid_pin(self, *_):
@@ -283,7 +283,7 @@ class TestOnboard(TestCase):
         with self.assertRaises(AdminError) as e:
             do_onboard(options)
 
-        self.assertTrue(str(e.exception).startswith('Invalid pin given.'))
+        self.assertTrue(str(e.exception).startswith("Invalid pin given."))
 
     def test_onboard_invalid_mode(self, get_hsm, *_):
         get_hsm.return_value = self.dongle
@@ -293,7 +293,7 @@ class TestOnboard(TestCase):
         with self.assertRaises(AdminError) as e:
             do_onboard(self.default_options)
 
-        self.assertTrue(str(e.exception).startswith('Device not in bootloader mode.'))
+        self.assertTrue(str(e.exception).startswith("Device not in bootloader mode."))
 
     @patch("admin.onboard.get_admin_hsm")
     @patch("admin.unlock.get_hsm")
@@ -313,8 +313,8 @@ class TestOnboard(TestCase):
         with self.assertRaises(ValueError) as e:
             do_onboard(self.default_options)
 
-        self.assertEqual(('Missing or invalid message for HSM certificate element'
-                          ' device'), str(e.exception))
+        self.assertEqual(("Missing or invalid message for HSM certificate element"
+                          " device"), str(e.exception))
 
     @patch("admin.onboard.get_admin_hsm")
     @patch("admin.unlock.get_hsm")
@@ -334,5 +334,5 @@ class TestOnboard(TestCase):
         with self.assertRaises(ValueError) as e:
             do_onboard(self.default_options)
 
-        self.assertEqual(('Missing or invalid message for HSM certificate element'
-                          ' attestation'), str(e.exception))
+        self.assertEqual(("Missing or invalid message for HSM certificate element"
+                          " attestation"), str(e.exception))

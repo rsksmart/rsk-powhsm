@@ -1088,6 +1088,8 @@ class HSM2Dongle:
             raise HSM2DongleError("Not enough signatures given. "
                                   "Signer authorization failed")
 
+        return True
+
     # Used both for advance blockchain and update ancestor given the protocol
     # is very similar
     def _do_block_operation(

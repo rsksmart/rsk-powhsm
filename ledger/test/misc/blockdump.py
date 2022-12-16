@@ -54,7 +54,6 @@ def blockdump(split_dir):
                 print(f"Block #{j} hash = {block_hash}")
 
                 if j == len(blocks) - 1:
-                    block_hash = sha3.keccak_256(rlp.encode(block[:-2])).digest().hex()
                     print(f"  Last block Receipt root = {block[5].hex()}")
 
                 diff = int.from_bytes(block[7], byteorder="big", signed=False)

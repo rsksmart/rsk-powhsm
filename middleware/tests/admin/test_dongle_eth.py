@@ -31,10 +31,10 @@ from unittest.mock import call, Mock, patch
 
 class TestDongleEth(TestCase):
     @classmethod
-    def setUpClass(self):
+    def setUpClass(cls):
         privkey = ecdsa.SigningKey.from_string(
             bytes.fromhex("aa"*32), curve=ecdsa.SECP256k1)
-        self.pubkey = privkey.get_verifying_key().to_string("uncompressed")
+        cls.pubkey = privkey.get_verifying_key().to_string("uncompressed")
 
     @patch("admin.dongle_eth.getDongle")
     def setUp(self, getDongleMock):

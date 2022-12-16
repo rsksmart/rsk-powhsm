@@ -1373,7 +1373,7 @@ class TestHSM2DongleAdvanceBlockchain(_TestHSM2DongleBase):
         ]
 
         self.dongle.exchange.side_effect = [
-            bs for excs in map(lambda s: self.spec_to_exchange(s), blocks_spec)
+            bs for excs in map(self.spec_to_exchange, blocks_spec)
             for bs in excs
         ] + [bytes([0, 0, device_response])]  # Success response
 
@@ -1772,7 +1772,7 @@ class TestHSM2DongleUpdateAncestor(_TestHSM2DongleBase):
         ]
 
         side_effect = [
-            bs for excs in map(lambda s: self.spec_to_exchange(s), blocks_spec)
+            bs for excs in map(self.spec_to_exchange, blocks_spec)
             for bs in excs
         ]
         # Make the metadata of the third block fail

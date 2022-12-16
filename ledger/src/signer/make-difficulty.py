@@ -55,7 +55,7 @@ result_ints = []
 remaining = dif
 digit_bits = DIGIT_SIZE*8
 mask = (1 << digit_bits)-1
-for i in range(NUM_DIGITS):
+for _ in range(NUM_DIGITS):
     result_ints.append(int(remaining & mask))
     remaining = remaining >> digit_bits
 
