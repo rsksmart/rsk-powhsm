@@ -70,7 +70,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           repository: rootstock/hsm-integration-test
-          ref: 3.0.0.plus
+          ref: fix/lgtm-warnings-202212
           path: hsm-integration-test
           ssh-key: ${{ secrets.HSM_INTEGRATION_TEST_SSH_KEY }}
 
