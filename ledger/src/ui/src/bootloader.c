@@ -22,21 +22,14 @@
  * IN THE SOFTWARE.
  */
 
-#include <bolos_ux.h>
-
 #include "apdu.h"
 #include "bolos_ux_common.h"
+#include "bolos_ux_handlers.h"
 #include "bootloader.h"
 #include "defs.h"
 #include "err.h"
 #include "communication.h"
 #include "unlock.h"
-
-// Accepted modes for bootloader_main
-typedef enum {
-    BOOTLOADER_MODE_ONBOARD,
-    BOOTLOADER_MODE_DEFAULT
-} bootloader_mode_t;
 
 // Attestation context shorthand
 #define attestation_ctx (G_bolos_ux_context.attestation)
@@ -49,8 +42,6 @@ typedef enum {
 
 // Operation being currently executed
 static unsigned char current_cmd;
-// autoexec signature app
-static char autoexec;
 
 /*
  * Reset all reseteable operations, only if the given operation is starting.
@@ -65,24 +56,6 @@ static void reset_if_starting(unsigned char cmd) {
         reset_attestation(&attestation_ctx);
         reset_signer_authorization(&sigaut_ctx);
         reset_onboard_ctx(&onboard_ctx);
-    }
-}
-
-// run the signer application
-static void run_signer_app(void) {
-    unsigned int i = 0;
-    while (i < os_registry_count()) {
-        application_t app;
-        os_registry_get(i, &app);
-        if (!(app.flags & APPLICATION_FLAG_BOLOS_UX)) {
-            if (is_authorized_signer(app.hash)) {
-                G_bolos_ux_context.app_auto_started = 1;
-                screen_stack_pop();
-                io_seproxyhal_disable_io();
-                os_sched_exec(i); // no return
-            }
-        }
-        i++;
     }
 }
 
@@ -165,11 +138,11 @@ unsigned int bootloader_process_apdu(
         break;
     case RSK_END_CMD: // return to dashboard
         reset_if_starting(RSK_END_CMD);
-        autoexec = 1;
+        set_autoexec(1);
         THROW(EX_BOOTLOADER_RSK_END);
     case RSK_END_CMD_NOSIG: // return to dashboard
         reset_if_starting(RSK_END_CMD_NOSIG);
-        autoexec = 0;
+        set_autoexec(0);
         THROW(EX_BOOTLOADER_RSK_END);
     default:
         THROW(ERR_INS_NOT_SUPPORTED);
@@ -211,7 +184,7 @@ unsigned int bootloader_process_exception(unsigned short ex, unsigned int tx) {
 
 // Main function for the bootloader. If mode == BOOTLOADER_MODE_ONBOARD,
 // commands are not accepted after the onboard is performed.
-static void bootloader_main(bootloader_mode_t mode) {
+void bootloader_main(bootloader_mode_t mode) {
     volatile unsigned int rx = 0;
     volatile unsigned int tx = 0;
     volatile unsigned char onboard_performed = 0;
@@ -250,126 +223,4 @@ static void bootloader_main(bootloader_mode_t mode) {
         }
         END_TRY;
     }
-}
-
-/**
- * BOLOS_UX_BOOT_ONBOARDING handler
- *
- * Shows onboarding screen and waits for commands if device is not onboarded,
- * does nothing otherwise.
- *
- * @ret BOLOS_UX_OK if device is already onboarded, never returns if an actual
- *      onboarding was performed
- */
-unsigned int handle_bolos_ux_boot_onboarding() {
-    // re apply settings in the L4 (ble, brightness, etc) after exiting
-    // application in case of wipe
-    screen_settings_apply();
-
-    // request animation when dashboard has finished displaying all the
-    // elements (after onboarding OR the first time displayed)
-    G_bolos_ux_context.dashboard_redisplayed = 1;
-
-    // avoid reperso is already onboarded to avoid leaking data through
-    // parameters due to user land call
-    if (os_perso_isonboarded()) {
-        return BOLOS_UX_OK;
-    }
-
-    io_seproxyhal_init();
-    USB_power(1);
-    screen_settings_apply();
-    screen_not_personalized_init();
-    bootloader_main(BOOTLOADER_MODE_ONBOARD);
-    // bootloader_main() actually never returns when onboarding mode is active,
-    // so this value is never actually returned to the caller
-    return BOLOS_UX_CANCEL;
-}
-
-/**
- * BOLOS_UX_DASHBOARD handler
- *
- * Shows dashboard screen when autoexec == 0, or loads signer app when
- * autoexec == 1
- */
-void handle_bolos_ux_boot_dashboard() {
-    // apply settings when redisplaying dashboard
-    screen_settings_apply();
-
-    // when returning from application, the ticker could have been
-    // disabled
-    io_seproxyhal_setup_ticker(100);
-    // Run signer application once
-    if (autoexec) {
-        autoexec = 0;
-        run_signer_app();
-    }
-    screen_dashboard_init();
-}
-
-/**
- * BOLOS_UX_VALIDATE_PIN handler
- *
- * Runs the bootloader_main function
- *
- * @ret BOLOS_UX_OK if bootloader_main runs successfully
- */
-unsigned int handle_bolos_ux_boot_validate_pin() {
-    io_seproxyhal_init();
-    USB_power(1);
-    autoexec = 0;
-    bootloader_main(BOOTLOADER_MODE_DEFAULT);
-    return BOLOS_UX_OK;
-}
-
-/**
- * BOLOS_UX_CONSENT_APP_ADD handler
- *
- * Unlocks the device only if the signer app is authorized
- *
- * @ret BOLOS_UX_OK if the signer app is authorized and the device was unlocked,
- *      BOLOS_UX_CANCEL otherwise
- */
-unsigned int handle_bolos_ux_boot_consent_app_add(unsigned char *app_hash) {
-    if (is_authorized_signer(app_hash)) {
-        // PIN is invalidated so we must check it again. The pin value
-        // used here is the same as in RSK_UNLOCK_CMD, so we also
-        // don't have a prepended length byte
-        unlock_with_pin(false);
-        clear_pin();
-        return BOLOS_UX_OK;
-    } else {
-        return BOLOS_UX_CANCEL;
-    }
-}
-
-/**
- * BOLOS_UX_CONSENT_FOREIGN_KEY handler
- *
- * Returns BOLOS_UX_OK to the caller
- *
- * @ret BOLOS_UX_OK
- */
-unsigned int handle_bolos_ux_boot_consent_foreing_key() {
-    return BOLOS_UX_OK;
-}
-
-/**
- * BOLOS_UX_CONSENT_APP_DEL handler
- *
- * Returns BOLOS_UX_OK to the caller
- *
- * @ret BOLOS_UX_OK
- */
-unsigned int handle_bolos_ux_boot_consent_app_del() {
-    return BOLOS_UX_OK;
-}
-
-/**
- * BOLOS_UX_PROCESSING handler
- *
- * Shows processing screen
- */
-void handle_bolos_ux_boot_processing() {
-    screen_processing_init();
 }

@@ -25,69 +25,16 @@
 #ifndef __BOOTLOADER
 #define __BOOTLOADER
 
-// Handlers for bootloader-related bolos UX ux_ids
+// Accepted modes for bootloader_main
+typedef enum {
+    BOOTLOADER_MODE_ONBOARD,
+    BOOTLOADER_MODE_DEFAULT
+} bootloader_mode_t;
 
-/**
- * BOLOS_UX_BOOT_ONBOARDING handler
- *
- * Shows onboarding screen and waits for commands if device is not onboarded,
- * does nothing otherwise.
- *
- * @ret BOLOS_UX_OK if device is already onboarded, never returns if an actual
- *      onboarding was performed
- */
-unsigned int handle_bolos_ux_boot_onboarding();
-
-/**
- * BOLOS_UX_DASHBOARD handler
- *
- * Shows dashboard screen when autoexec == 0, or loads signer app when
- * autoexec == 1
- */
-void handle_bolos_ux_boot_dashboard();
-
-/**
- * BOLOS_UX_VALIDATE_PIN handler
- *
- * Runs the bootloader_main function
- *
- * @ret BOLOS_UX_OK if bootloader_main runs successfully
- */
-unsigned int handle_bolos_ux_boot_validate_pin();
-
-/**
- * BOLOS_UX_CONSENT_APP_ADD handler
- *
- * Unlocks the device only if the signer app is authorized
- *
- * @ret BOLOS_UX_OK if the signer app is authorized and the device was unlocked,
- *      BOLOS_UX_CANCEL otherwise
- */
-unsigned int handle_bolos_ux_boot_consent_app_add(unsigned char *app_hash);
-
-/**
- * BOLOS_UX_CONSENT_APP_DEL handler
- *
- * Returns BOLOS_UX_OK to the caller
- *
- * @ret BOLOS_UX_OK
- */
-unsigned int handle_bolos_ux_boot_consent_app_del();
-
-/**
- * BOLOS_UX_CONSENT_FOREIGN_KEY handler
- *
- * Returns BOLOS_UX_OK to the caller
- *
- * @ret BOLOS_UX_OK
- */
-unsigned int handle_bolos_ux_boot_consent_foreing_key();
-
-/**
- * BOLOS_UX_PROCESSING handler
- *
- * Shows processing screen
- */
-void handle_bolos_ux_boot_processing();
+unsigned int bootloader_process_apdu(volatile unsigned int rx,
+                                     bootloader_mode_t mode,
+                                     volatile unsigned char *onboard_performed);
+unsigned int bootloader_process_exception(unsigned short ex, unsigned int tx);
+void bootloader_main(bootloader_mode_t mode);
 
 #endif

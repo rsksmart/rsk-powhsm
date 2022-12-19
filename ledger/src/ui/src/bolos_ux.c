@@ -46,7 +46,7 @@
 #include "string.h"
 
 #include "bolos_ux_common.h"
-
+#include "bolos_ux_handlers.h"
 #include "defs.h"
 #include "err.h"
 #include "bootloader.h"
