@@ -22,8 +22,9 @@
  * IN THE SOFTWARE.
  */
 
+#include <bolos_ux_common.h>
+
 #include "apdu.h"
-#include "bolos_ux_common.h"
 #include "bolos_ux_handlers.h"
 #include "bootloader.h"
 #include "defs.h"

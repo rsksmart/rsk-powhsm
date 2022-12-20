@@ -21,26 +21,10 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-#ifndef _MOCK_BOLOS_UX_H
-#define _MOCK_BOLOS_UX_H
+
+#ifndef _MOCK_BOLOS_UX_COMMON_H
+#define _MOCK_BOLOS_UX_COMMON_H
 
 #include "mock.h"
-
-#include "attestation.h"
-#include "onboard.h"
-#include "signer_authorization.h"
-
-typedef struct mock_bolos_ux_context {
-    unsigned int app_auto_started;
-    unsigned int dashboard_redisplayed;
-
-    union {
-        att_t attestation;
-        sigaut_t sigaut;
-        onboard_t onboard;
-    };
-} bolos_ux_context_t;
-
-extern bolos_ux_context_t G_bolos_ux_context;
 
 #endif

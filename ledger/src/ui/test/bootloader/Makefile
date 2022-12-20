@@ -22,9 +22,8 @@
 
 SRCDIR = ../../src
 MOCKDIR = ./mock
-CFLAGS = -I$(MOCKDIR) -I$(SRCDIR)
+CFLAGS = -I$(MOCKDIR) -I$(SRCDIR) -g
 CFLAGS += -DPARAM_SIGNERS_FILE="testing"
-LIBS = -lpthread
 
 PROG = test.out
 OBJS = bootloader.o test_bootloader.o
@@ -32,7 +31,7 @@ OBJS = bootloader.o test_bootloader.o
 all: $(PROG)
 
 $(PROG): $(OBJS)
-	$(CC) -o $@ $^ $(LIBS)
+	$(CC) -o $@ $^ -g
 
 test_bootloader.o: test_bootloader.c
 	$(CC) $(CFLAGS) -c -o $@ $^

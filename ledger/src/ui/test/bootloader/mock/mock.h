@@ -27,14 +27,11 @@
 
 #include <assert.h>
 #include <stdint.h>
-
 #include "os_exceptions.h"
 
-#define APPLICATION_FLAG_BOLOS_UX 0x8
 #define CHANNEL_APDU 0
-#define BOLOS_UX_OK 0xB0105011
-#define BOLOS_UX_CANCEL 0xB0105022
-#define BOLOS_UX_ERROR 0xB0105033
+#define INS_ATTESTATION 0x50
+#define INS_SIGNER_AUTHORIZATION 0x51
 
 #define IO_APDU_BUFFER_SIZE (5 + 255)
 extern unsigned char G_io_apdu_buffer[IO_APDU_BUFFER_SIZE];
@@ -43,44 +40,57 @@ extern unsigned char G_io_apdu_buffer[IO_APDU_BUFFER_SIZE];
 #define ASSERT_EQUALS(a, b) assert((a) == (b))
 #define ASSERT_TRUE(cond) assert(cond)
 #define ASSERT_FALSE(cond) assert(!(cond))
+#define ASSERT_NOT_NULL(obj) assert(NULL != obj)
+#define ASSERT_APTU_AT(i, val) assert(APDU_AT(i) == val)
+#define ASSERT_FAIL() assert(false)
 
 #define APDU_RETURN(offset) \
     ((uint16_t)(G_io_apdu_buffer[offset] << 8) | (G_io_apdu_buffer[offset + 1]))
 
 // Empty struct used to mock data types
 struct mock_struct {
-    void *mock_data;
+    void* mock_data;
 };
-
+/*
 typedef struct mock_application_s {
     unsigned int flags;
     unsigned char hash[32];
 } application_t;
+*/
+// Mock types
+typedef struct mock_struct att_t;
+typedef struct mock_struct sigaut_t;
+typedef struct mock_struct onboard_t;
+
+typedef struct mock_bolos_ux_context {
+    unsigned int app_auto_started;
+    unsigned int dashboard_redisplayed;
+
+    union {
+        att_t attestation;
+        sigaut_t sigaut;
+        onboard_t onboard;
+    };
+} bolos_ux_context_t;
+
+extern bolos_ux_context_t G_bolos_ux_context;
 
 typedef uint8_t cx_curve_t;
 typedef struct mock_struct cx_sha3_t;
 typedef struct mock_struct cx_ecfp_public_key_t;
 typedef struct mock_struct cx_ecfp_private_key_t;
 
-unsigned int screen_stack_pop(void);
-void screen_settings_apply(void);
-void screen_dashboard_init(void);
-void screen_dashboard_prepare(void);
-void screen_not_personalized_init(void);
-void screen_processing_init(void);
-
-void io_seproxyhal_init(void);
-void io_seproxyhal_disable_io(void);
-unsigned short io_exchange(unsigned char channel_and_flags,
-                           unsigned short tx_len);
-void io_seproxyhal_setup_ticker(unsigned int interval_ms);
-
-void os_memmove(void *dst, const void *src, unsigned int length);
-unsigned int os_registry_count(void);
-void os_registry_get(unsigned int index, application_t *out_application_entry);
-unsigned int os_sched_exec(unsigned int application_index);
-unsigned int os_perso_isonboarded(void);
-
-void USB_power(unsigned char enabled);
+// Mock function declarations
+void reset_attestation(att_t* att_ctx);
+void reset_signer_authorization(sigaut_t* sigaut_ctx);
+void reset_onboard_ctx(onboard_t* onboard_ctx);
+unsigned int set_host_seed(volatile unsigned int rx, onboard_t* onboard_ctx);
+unsigned int is_onboarded();
+unsigned int onboard_device(onboard_t* onboard_ctx);
+unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx);
+void init_signer_authorization();
+unsigned int do_authorize_signer(volatile unsigned int rx,
+                                 sigaut_t* sigaut_ctx);
+unsigned short io_exchange(unsigned char channel, unsigned short tx_len);
 
 #endif

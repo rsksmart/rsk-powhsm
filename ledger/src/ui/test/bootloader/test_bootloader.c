@@ -22,515 +22,598 @@
  * IN THE SOFTWARE.
  */
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
 #include <pthread.h>
 
-#include "bolos_ux.h"
 #include "bootloader.h"
-
-// Current active screen
-typedef enum active_screen_e {
-    SCREEN_DASHBOARD,
-    SCREEN_NOT_PERSONALIZED,
-    SCREEN_PROCESSING,
-    SCREEN_NONE
-} active_screen_t;
+#include "defs.h"
+#include "err.h"
+#include "mock.h"
 
 // Mock variables needed for bootloader module
 #define IO_APDU_BUFFER_SIZE (5 + 255)
 unsigned char G_io_apdu_buffer[IO_APDU_BUFFER_SIZE];
 bolos_ux_context_t G_bolos_ux_context;
 static try_context_t G_try_last_open_context_var;
-try_context_t *G_try_last_open_context = &G_try_last_open_context_var;
-bolos_ux_context_t G_bolos_ux_context;
-static active_screen_t G_active_screen = SCREEN_NONE;
+try_context_t* G_try_last_open_context = &G_try_last_open_context_var;
 
-// Mock variables used for the unit test
-static unsigned int G_is_onboarded = 0;
+// Mock variable used to assert function calls
+static unsigned char G_onboard_performed = 0;
+static bootloader_mode_t G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
+static bool G_host_seed_is_set = false;
+static bool G_pin_buffer_updated = false;
+static bool G_is_onboarded = false;
 static bool G_is_pin_set = false;
-static bool G_is_authorized_signer = false;
-static bool G_is_unlocked = false;
-static const int IS_ONBOARDED_RETURN = 0x1234;
-static unsigned char G_mock_apdu_buffer[IO_APDU_BUFFER_SIZE];
-static size_t G_mock_apdu_buffer_offset = 0;
-static size_t G_mock_apdu_buffer_size = 0;
-static pthread_mutex_t mutex;
-static pthread_cond_t io_exchange_called;
-static pthread_cond_t io_exchange_free_to_run;
+static bool G_is_pin_buffer_cleared = false;
+static bool G_get_attestation_called = false;
+static bool G_authorize_signer_called = false;
+static bool G_get_retries_called = false;
+static bool G_unlock_called = false;
+static unsigned char G_autoexec = 0;
+static bool G_reset_attestation_called = false;
+static bool G_reset_signer_authorization_called = false;
+static bool G_reset_onboard_called = false;
 
-// Mock OS calls
-unsigned int os_perso_isonboarded(void) {
-    return G_is_onboarded;
-}
+#define RESET_IF_STARTED_CALLED()                                         \
+    (G_reset_attestation_called && G_reset_signer_authorization_called && \
+     G_reset_onboard_called)
+#define ASSERT_RESET_IF_STARTED_CALLED() ASSERT_TRUE(RESET_IF_STARTED_CALLED())
 
-unsigned int os_registry_count(void) {
-    return 1;
-}
-
-void os_registry_get(unsigned int index, application_t *out_application_entry) {
-    out_application_entry->flags = 0;
-}
-
-void os_memmove(void *dst, const void *src, unsigned int length) {
-    return;
-}
-
-unsigned int os_sched_exec(unsigned int application_index) {
-    return 0;
-}
-
-// Other mocks
-unsigned int update_pin_buffer(volatile unsigned int rx) {
-    return 0;
-}
-
-void init_signer_authorization() {
-    return;
-}
-
-unsigned int do_authorize_signer(volatile unsigned int rx,
-                                 sigaut_t *sigaut_ctx) {
-    return 0;
-}
-
-void reset_signer_authorization(sigaut_t *sigaut_ctx) {
-    return;
-}
-
-unsigned int echo(unsigned int rx) {
-    return 0;
-}
-
-unsigned int get_retries() {
-    return 0;
-}
-
-void reset_onboard_ctx(onboard_t *onboard_ctx) {
-    return;
-}
-
-unsigned int set_host_seed(volatile unsigned int rx, onboard_t *onboard_ctx) {
-    return 0;
-}
-
-unsigned int get_attestation(volatile unsigned int rx, att_t *att_ctx) {
-    return 0;
-}
-
-void reset_attestation(att_t *att_ctx) {
-    return;
-}
-
-unsigned int unlock() {
-    return 0;
-}
-
-unsigned int onboard_device(onboard_t *onboard_ctx) {
-    ASSERT_FALSE(G_is_onboarded);
-    G_is_onboarded = 1;
-    return 0;
-}
-
-unsigned int is_onboarded() {
-    SET_APDU_AT(0, (IS_ONBOARDED_RETURN >> 8));
-    SET_APDU_AT(1, (IS_ONBOARDED_RETURN & 0xff));
+// Helper functions
+static unsigned int set_apdu_cmd(unsigned char cmd) {
+    G_io_apdu_buffer[0] = CLA;
+    G_io_apdu_buffer[1] = cmd;
     return 2;
 }
 
-void clear_pin() {
+static void clear_apdu_buffer() {
+    memset(G_io_apdu_buffer, 0, sizeof(G_io_apdu_buffer));
+}
+
+static void reset_flags() {
+    G_host_seed_is_set = false;
+    G_pin_buffer_updated = false;
+    G_is_onboarded = false;
     G_is_pin_set = false;
+    G_is_pin_buffer_cleared = false;
+    G_get_attestation_called = false;
+    G_authorize_signer_called = false;
+    G_get_retries_called = false;
+    G_unlock_called = false;
+    G_autoexec = 0;
+    G_reset_attestation_called = false;
+    G_reset_signer_authorization_called = false;
+    G_reset_onboard_called = false;
+}
+
+// Helper function used to set last command sent bootloader.c
+static void set_last_cmd(unsigned char cmd) {
+    unsigned int rx = set_apdu_cmd(cmd);
+    bootloader_process_apdu(rx, BOOTLOADER_MODE_DEFAULT, &G_onboard_performed);
+}
+
+// Mock function calls
+unsigned int set_host_seed(volatile unsigned int rx, onboard_t* onboard_ctx) {
+    ASSERT_NOT_NULL(onboard_ctx);
+    G_host_seed_is_set = true;
+    return 0;
+}
+
+unsigned int update_pin_buffer(volatile unsigned int rx) {
+    G_pin_buffer_updated = true;
+    return 3;
+}
+
+unsigned int is_onboarded() {
+    SET_APDU_AT(1, G_is_onboarded);
+    SET_APDU_AT(2, VERSION_MAJOR);
+    SET_APDU_AT(3, VERSION_MINOR);
+    SET_APDU_AT(4, VERSION_PATCH);
+    return 5;
+}
+
+unsigned int onboard_device(onboard_t* onboard_ctx) {
+    G_is_onboarded = true;
+    return 3;
+}
+
+void clear_pin() {
+    G_is_pin_buffer_cleared = true;
 }
 
 unsigned int set_pin() {
     G_is_pin_set = true;
-    return 0;
+    return 3;
+}
+
+unsigned int echo(unsigned int rx) {
+    return rx;
 }
 
 unsigned int get_mode() {
-    SET_APDU_AT(0, CLA);
     SET_APDU_AT(1, RSK_MODE_BOOTLOADER);
     return 2;
 }
 
-unsigned int unlock_with_pin(bool prepended_length) {
-    G_is_unlocked = true;
+unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx) {
+    ASSERT_NOT_NULL(att_ctx);
+    G_get_attestation_called = true;
+    return 3;
+}
+
+unsigned int do_authorize_signer(volatile unsigned int rx,
+                                 sigaut_t* sigaut_ctx) {
+    ASSERT_NOT_NULL(sigaut_ctx);
+    G_authorize_signer_called = true;
+    return 3;
+}
+
+unsigned int get_retries() {
+    G_get_retries_called = true;
+    return 3;
+}
+
+unsigned int unlock() {
+    G_unlock_called = true;
+    return 3;
+}
+
+void set_autoexec(char value) {
+    G_autoexec = value;
+}
+
+void reset_attestation(att_t* att_ctx) {
+    G_reset_attestation_called = true;
+}
+
+void reset_signer_authorization(sigaut_t* sigaut_ctx) {
+    G_reset_signer_authorization_called = true;
+}
+
+void reset_onboard_ctx(onboard_t* onboard_ctx) {
+    G_reset_onboard_called = true;
+}
+
+// Function definitions required for compiling bootloade.c
+void init_signer_authorization() {
+}
+
+unsigned short io_exchange(unsigned char channel, unsigned short tx_len) {
     return 0;
 }
 
-bool is_authorized_signer(unsigned char *signer_hash) {
-    return G_is_authorized_signer;
+void test_seed() {
+    printf("Test RSK_SEED_CMD...\n");
+
+    unsigned int rx;
+    unsigned int tx;
+    set_last_cmd(RSK_ECHO_CMD);
+    reset_flags();
+    G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
+    G_onboard_performed = 0;
+    G_host_seed_is_set = false;
+    rx = set_apdu_cmd(RSK_SEED_CMD);
+    tx = bootloader_process_apdu(rx, G_bootloader_mode, &G_onboard_performed);
+    ASSERT_EQUALS(0, tx);
+    ASSERT_EQUALS(0, G_onboard_performed);
+    ASSERT_TRUE(G_host_seed_is_set);
+    ASSERT_RESET_IF_STARTED_CALLED();
 }
 
-static void init_bolos_ux_context() {
-    memset(&G_bolos_ux_context, 0, sizeof(G_bolos_ux_context));
+void test_pin() {
+    printf("Test RSK_PIN_CMD...\n");
+
+    unsigned int rx;
+    unsigned int tx;
+    set_last_cmd(RSK_ECHO_CMD);
+    reset_flags();
+    G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
+    G_onboard_performed = 0;
+    G_host_seed_is_set = false;
+    rx = set_apdu_cmd(RSK_PIN_CMD);
+    tx = bootloader_process_apdu(rx, G_bootloader_mode, &G_onboard_performed);
+    ASSERT_EQUALS(3, tx);
+    ASSERT_EQUALS(0, G_onboard_performed);
+    ASSERT_TRUE(G_pin_buffer_updated);
+    ASSERT_RESET_IF_STARTED_CALLED();
 }
 
-void screen_dashboard_init(void) {
-    G_active_screen = SCREEN_DASHBOARD;
+void test_is_onboard() {
+    printf("Test RSK_IS_ONBOARD...\n");
+
+    unsigned int rx;
+    unsigned int tx;
+    set_last_cmd(RSK_ECHO_CMD);
+    reset_flags();
+    G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
+    G_onboard_performed = 0;
+
+    G_is_onboarded = false;
+    rx = set_apdu_cmd(RSK_IS_ONBOARD);
+    tx = bootloader_process_apdu(rx, G_bootloader_mode, &G_onboard_performed);
+    ASSERT_EQUALS(5, tx);
+    ASSERT_APTU_AT(1, G_is_onboarded);
+    ASSERT_APTU_AT(2, VERSION_MAJOR);
+    ASSERT_APTU_AT(3, VERSION_MINOR);
+    ASSERT_APTU_AT(4, VERSION_PATCH);
+
+    G_is_onboarded = true;
+    rx = set_apdu_cmd(RSK_IS_ONBOARD);
+    tx = bootloader_process_apdu(rx, G_bootloader_mode, &G_onboard_performed);
+    ASSERT_EQUALS(5, tx);
+    ASSERT_APTU_AT(1, G_is_onboarded);
+    ASSERT_APTU_AT(2, VERSION_MAJOR);
+    ASSERT_APTU_AT(3, VERSION_MINOR);
+    ASSERT_APTU_AT(4, VERSION_PATCH);
+    ASSERT_RESET_IF_STARTED_CALLED();
 }
 
-void screen_not_personalized_init(void) {
-    G_active_screen = SCREEN_NOT_PERSONALIZED;
-}
+void test_wipe_default_mode() {
+    printf("Test RSK_WIPE (default mode)...\n");
 
-void screen_processing_init(void) {
-    G_active_screen = SCREEN_PROCESSING;
-}
-
-unsigned int screen_stack_pop(void) {
-    return 0;
-}
-
-void screen_settings_apply(void) {
-    return;
-}
-
-void screen_dashboard_prepare(void) {
-    return;
-}
-
-// OS io operation mocks
-void io_seproxyhal_init(void) {
-    return;
-}
-
-void io_seproxyhal_disable_io(void) {
-    return;
-}
-
-void io_seproxyhal_setup_ticker(unsigned int interval_ms) {
-    return;
-}
-
-void USB_power(unsigned char enabled) {
-    return;
-}
-
-static void reset_mock_apdu_buffer() {
-    memset(G_mock_apdu_buffer, 0, sizeof(G_mock_apdu_buffer));
-    G_mock_apdu_buffer_offset = 0;
-    G_mock_apdu_buffer_size = 0;
-}
-
-static void add_mock_apdu_buffer(unsigned char data) {
-    G_mock_apdu_buffer[G_mock_apdu_buffer_size++] = data;
-}
-
-unsigned short io_exchange(unsigned char channel_and_flags,
-                           unsigned short tx_len) {
-    pthread_mutex_lock(&mutex);
-    pthread_cond_signal(&io_exchange_called);
-
-    assert(G_mock_apdu_buffer_offset < IO_APDU_BUFFER_SIZE);
-    // Reached end of buffer
-    if (0 == G_mock_apdu_buffer[G_mock_apdu_buffer_offset]) {
-        // All commands consumed, exit thread
-        pthread_mutex_unlock(&mutex);
-        pthread_exit(NULL);
-    }
-
-    // Wait until we are free to send the next command
-    pthread_cond_wait(&io_exchange_free_to_run, &mutex);
-
-    // Send next command
-    SET_APDU_CLA();
-    int pos = 1;
-    SET_APDU_AT(pos++, G_mock_apdu_buffer[G_mock_apdu_buffer_offset++]);
-
-    pthread_mutex_unlock(&mutex);
-    return pos;
-}
-
-void *handle_bolos_ux_boot_onboarding_wrapper(void *arg) {
-    handle_bolos_ux_boot_onboarding();
-    // handle_bolos_ux_boot_onboarding is expected to never return when we are
-    // in onboarding mode
-    assert(false);
-}
-
-void *bootloader_main_wrapper(void *arg) {
-    // This is the public interface for bootloader_main
-    uintptr_t ret = handle_bolos_ux_boot_validate_pin();
-    return (void *)ret;
-}
-
-void setup() {
-    init_bolos_ux_context();
-    pthread_mutex_init(&mutex, NULL);
-    pthread_cond_init(&io_exchange_called, NULL);
-    pthread_cond_init(&io_exchange_free_to_run, NULL);
-}
-
-void shutdown() {
-    pthread_mutex_destroy(&mutex);
-    pthread_cond_destroy(&io_exchange_called);
-    pthread_cond_destroy(&io_exchange_free_to_run);
-}
-
-void test_onboarding() {
-    printf("Test onboarding...\n");
-
-    setup();
-    G_is_onboarded = 0;
-    G_active_screen = SCREEN_NONE;
+    unsigned int rx;
+    unsigned int tx;
+    set_last_cmd(RSK_ECHO_CMD);
+    reset_flags();
+    G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
+    G_onboard_performed = 0;
+    G_is_onboarded = false;
+    G_is_pin_buffer_cleared = false;
     G_is_pin_set = true;
-
-    pthread_mutex_lock(&mutex);
-    reset_mock_apdu_buffer();
-    add_mock_apdu_buffer(RSK_WIPE);
-    add_mock_apdu_buffer(RSK_END_CMD);
-
-    pthread_t onboarding_thread;
-    pthread_create(&onboarding_thread,
-                   NULL,
-                   handle_bolos_ux_boot_onboarding_wrapper,
-                   NULL);
-
-    // First call to io_exchange, we have nothing to read
-    pthread_cond_wait(&io_exchange_called, &mutex);
-    pthread_cond_signal(&io_exchange_free_to_run);
-
-    // Wait for next call to io_exchange
-    pthread_cond_wait(&io_exchange_called, &mutex);
-
-    // Return of RSK_WIPE
-    ASSERT_EQUALS(APDU_OK, APDU_RETURN(0));
-    pthread_cond_signal(&io_exchange_free_to_run);
-
-    // Wait for next call to io_exchange
-    pthread_cond_wait(&io_exchange_called, &mutex);
-    // After onboarding, all commands return ERR_INS_NOT_SUPPORTED
-    ASSERT_EQUALS(ERR_INS_NOT_SUPPORTED, APDU_RETURN(0));
-    pthread_cond_signal(&io_exchange_free_to_run);
-
-    pthread_mutex_unlock(&mutex);
-
-    pthread_cancel(onboarding_thread);
-    pthread_join(onboarding_thread, NULL);
-
+    rx = set_apdu_cmd(RSK_WIPE);
+    tx = bootloader_process_apdu(rx, G_bootloader_mode, &G_onboard_performed);
+    ASSERT_EQUALS(3, tx);
     ASSERT_TRUE(G_is_onboarded);
-    ASSERT_FALSE(G_is_pin_set);
-    ASSERT_TRUE(G_bolos_ux_context.dashboard_redisplayed);
-    ASSERT_EQUALS(G_active_screen, SCREEN_NOT_PERSONALIZED);
-
-    shutdown();
+    ASSERT_EQUALS(0, G_onboard_performed);
+    ASSERT_TRUE(G_is_pin_buffer_cleared);
+    ASSERT_RESET_IF_STARTED_CALLED();
 }
 
-void test_onboarding_while_onboarded() {
-    printf("Test onboarding while device already onboarded...\n");
+void test_wipe_onboard_mode() {
+    printf("Test RSK_WIPE (onboard mode)...\n");
 
-    setup();
-
-    init_bolos_ux_context();
-    G_is_onboarded = 1;
+    unsigned int rx;
+    unsigned int tx;
+    set_last_cmd(RSK_ECHO_CMD);
+    reset_flags();
+    G_bootloader_mode = BOOTLOADER_MODE_ONBOARD;
+    G_onboard_performed = 0;
+    G_is_onboarded = false;
+    G_is_pin_buffer_cleared = false;
     G_is_pin_set = true;
-    G_active_screen = SCREEN_NONE;
-    ASSERT_EQUALS(BOLOS_UX_OK, handle_bolos_ux_boot_onboarding());
+    rx = set_apdu_cmd(RSK_WIPE);
+    tx = bootloader_process_apdu(rx, G_bootloader_mode, &G_onboard_performed);
+    ASSERT_EQUALS(3, tx);
+    ASSERT_TRUE(G_is_onboarded);
+    ASSERT_EQUALS(1, G_onboard_performed);
+    ASSERT_TRUE(G_is_pin_buffer_cleared);
+    ASSERT_RESET_IF_STARTED_CALLED();
+}
+
+void test_newpin() {
+    printf("Test RSK_NEWPIN...\n");
+
+    unsigned int rx;
+    unsigned int tx;
+    set_last_cmd(RSK_ECHO_CMD);
+    reset_flags();
+    G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
+    G_onboard_performed = 0;
+    G_is_pin_set = false;
+    G_is_pin_buffer_cleared = false;
+    rx = set_apdu_cmd(RSK_NEWPIN);
+    tx = bootloader_process_apdu(rx, G_bootloader_mode, &G_onboard_performed);
+    ASSERT_EQUALS(3, tx);
     ASSERT_TRUE(G_is_pin_set);
-    ASSERT_TRUE(G_bolos_ux_context.dashboard_redisplayed);
-    ASSERT_EQUALS(G_active_screen, SCREEN_NONE);
-
-    shutdown();
+    ASSERT_TRUE(G_is_pin_buffer_cleared);
+    ASSERT_EQUALS(0, G_onboard_performed);
+    ASSERT_RESET_IF_STARTED_CALLED();
 }
 
-void test_dashboard() {
-    printf("Test dashboard without autoexec...\n");
+void test_echo() {
+    printf("Test RSK_ECHO_CMD...\n");
 
-    setup();
-    G_active_screen = SCREEN_NONE;
-
-    // Run bootloader_main and send RSK_END_CMD_NOSIG to set autoexec = 0
-    pthread_mutex_lock(&mutex);
-    reset_mock_apdu_buffer();
-    add_mock_apdu_buffer(RSK_END_CMD_NOSIG);
-
-    pthread_t onboarding_thread;
-    pthread_create(&onboarding_thread, NULL, bootloader_main_wrapper, NULL);
-
-    // RSK_END_CMD_NOSIG returns nothing, we just need to release io_exchange()
-    pthread_cond_wait(&io_exchange_called, &mutex);
-    pthread_cond_signal(&io_exchange_free_to_run);
-
-    pthread_mutex_unlock(&mutex);
-
-    pthread_cancel(onboarding_thread);
-    pthread_join(onboarding_thread, NULL);
-
-    handle_bolos_ux_boot_dashboard();
-    ASSERT_EQUALS(G_active_screen, SCREEN_DASHBOARD);
-
-    shutdown();
+    unsigned int rx;
+    unsigned int tx;
+    set_last_cmd(RSK_RETRIES);
+    reset_flags();
+    G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
+    G_onboard_performed = 0;
+    rx = set_apdu_cmd(RSK_ECHO_CMD);
+    tx = bootloader_process_apdu(rx, G_bootloader_mode, &G_onboard_performed);
+    ASSERT_EQUALS(rx, tx);
+    ASSERT_EQUALS(0, G_onboard_performed);
+    ASSERT_RESET_IF_STARTED_CALLED();
 }
 
-void test_dashboard_autoexec() {
-    printf("Test dashboard with autoexec (authorized)...\n");
+void test_mode() {
+    printf("Test RSK_MODE_CMD...\n");
 
-    setup();
-    G_active_screen = SCREEN_NONE;
-    G_is_authorized_signer = true;
-
-    // Run bootloader_main and send RSK_END_CMD to set autoexec = 1
-    pthread_mutex_lock(&mutex);
-    reset_mock_apdu_buffer();
-    add_mock_apdu_buffer(RSK_END_CMD);
-
-    pthread_t onboarding_thread;
-    pthread_create(&onboarding_thread, NULL, bootloader_main_wrapper, NULL);
-
-    // RSK_END_CMD_NOSIG returns nothing, we just need to release io_exchange()
-    pthread_cond_wait(&io_exchange_called, &mutex);
-    pthread_cond_signal(&io_exchange_free_to_run);
-
-    pthread_mutex_unlock(&mutex);
-
-    pthread_join(onboarding_thread, NULL);
-
-    handle_bolos_ux_boot_dashboard();
-
-    ASSERT_TRUE(G_bolos_ux_context.app_auto_started);
-    ASSERT_EQUALS(G_active_screen, SCREEN_DASHBOARD);
-
-    shutdown();
+    unsigned int rx;
+    unsigned int tx;
+    set_last_cmd(RSK_ECHO_CMD);
+    reset_flags();
+    G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
+    G_onboard_performed = 0;
+    rx = set_apdu_cmd(RSK_MODE_CMD);
+    tx = bootloader_process_apdu(rx, G_bootloader_mode, &G_onboard_performed);
+    ASSERT_EQUALS(2, tx);
+    ASSERT_APTU_AT(1, RSK_MODE_BOOTLOADER);
+    ASSERT_EQUALS(0, G_onboard_performed);
 }
 
-void test_dashboard_autoexec_not_authorized() {
-    printf("Test dashboard with autoexec (not authorized)...\n");
+void test_attestation() {
+    printf("Test INS_ATTESTATION...\n");
 
-    setup();
-    G_active_screen = SCREEN_NONE;
-    G_is_authorized_signer = false;
-
-    // Run bootloader_main and send RSK_END_CMD to set autoexec = 1
-    pthread_mutex_lock(&mutex);
-    reset_mock_apdu_buffer();
-    add_mock_apdu_buffer(RSK_END_CMD);
-
-    pthread_t onboarding_thread;
-    pthread_create(&onboarding_thread, NULL, bootloader_main_wrapper, NULL);
-
-    // RSK_END_CMD_NOSIG returns nothing, we just need to release io_exchange()
-    pthread_cond_wait(&io_exchange_called, &mutex);
-    pthread_cond_signal(&io_exchange_free_to_run);
-
-    pthread_mutex_unlock(&mutex);
-
-    pthread_join(onboarding_thread, NULL);
-
-    handle_bolos_ux_boot_dashboard();
-
-    ASSERT_FALSE(G_bolos_ux_context.app_auto_started);
-    ASSERT_EQUALS(G_active_screen, SCREEN_DASHBOARD);
-
-    shutdown();
+    unsigned int rx;
+    unsigned int tx;
+    set_last_cmd(RSK_ECHO_CMD);
+    reset_flags();
+    G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
+    G_onboard_performed = 0;
+    G_get_attestation_called = false;
+    rx = set_apdu_cmd(INS_ATTESTATION);
+    tx = bootloader_process_apdu(rx, G_bootloader_mode, &G_onboard_performed);
+    ASSERT_EQUALS(3, tx);
+    ASSERT_TRUE(G_get_attestation_called);
+    ASSERT_EQUALS(0, G_onboard_performed);
 }
 
-void test_validate_pin() {
-    printf("Test validate pin (bootloader_main)...\n");
+void test_signer_authorization() {
+    printf("Test INS_SIGNER_AUTHORIZATION...\n");
 
-    setup();
-
-    G_is_onboarded = 1;
-
-    // Run bootloader_main and send RSK_END_CMD to set autoexec = 1
-    pthread_mutex_lock(&mutex);
-    reset_mock_apdu_buffer();
-    add_mock_apdu_buffer(RSK_IS_ONBOARD);
-    add_mock_apdu_buffer(RSK_MODE_CMD);
-    add_mock_apdu_buffer(RSK_END_CMD);
-
-    pthread_t onboarding_thread;
-    pthread_create(&onboarding_thread, NULL, bootloader_main_wrapper, NULL);
-
-    // First call to io_exchange, we have nothing to read
-    pthread_cond_wait(&io_exchange_called, &mutex);
-    pthread_cond_signal(&io_exchange_free_to_run);
-
-    // Wait for next call to io_exchange
-    pthread_cond_wait(&io_exchange_called, &mutex);
-
-    // Return of RSK_IS_ONBOARD
-    ASSERT_EQUALS(IS_ONBOARDED_RETURN, APDU_RETURN(0));
-    ASSERT_EQUALS(APDU_OK, APDU_RETURN(2));
-    pthread_cond_signal(&io_exchange_free_to_run);
-
-    // Wait for next call to io_exchange
-    pthread_cond_wait(&io_exchange_called, &mutex);
-    // Return of RSK_MODE_CMD
-    ASSERT_EQUALS(0x8002, APDU_RETURN(0));
-    ASSERT_EQUALS(APDU_OK, APDU_RETURN(2));
-
-    pthread_cond_signal(&io_exchange_free_to_run);
-    pthread_mutex_unlock(&mutex);
-    unsigned int validate_pin_return;
-    pthread_join(onboarding_thread, (void **)&validate_pin_return);
-
-    ASSERT_EQUALS(G_active_screen, SCREEN_DASHBOARD);
-    ASSERT_EQUALS(BOLOS_UX_OK, validate_pin_return);
-
-    shutdown();
+    unsigned int rx;
+    unsigned int tx;
+    set_last_cmd(RSK_ECHO_CMD);
+    reset_flags();
+    G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
+    G_onboard_performed = 0;
+    G_authorize_signer_called = false;
+    rx = set_apdu_cmd(INS_SIGNER_AUTHORIZATION);
+    tx = bootloader_process_apdu(rx, G_bootloader_mode, &G_onboard_performed);
+    ASSERT_EQUALS(3, tx);
+    ASSERT_TRUE(G_authorize_signer_called);
+    ASSERT_EQUALS(0, G_onboard_performed);
+    ASSERT_RESET_IF_STARTED_CALLED();
 }
 
-void test_consent_app_add_authorized() {
-    printf("Test consent app add (app authorized)...\n");
-    setup();
-    G_is_authorized_signer = true;
-    G_is_unlocked = false;
-    G_is_pin_set = true;
-    ASSERT_EQUALS(BOLOS_UX_OK, handle_bolos_ux_boot_consent_app_add(NULL));
-    ASSERT_TRUE(G_is_unlocked);
-    ASSERT_FALSE(G_is_pin_set);
-    shutdown();
+void test_retries() {
+    printf("Test RSK_RETRIES...\n");
+
+    unsigned int rx;
+    unsigned int tx;
+    set_last_cmd(RSK_ECHO_CMD);
+    reset_flags();
+    G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
+    G_onboard_performed = 0;
+    G_get_retries_called = false;
+    rx = set_apdu_cmd(RSK_RETRIES);
+    tx = bootloader_process_apdu(rx, G_bootloader_mode, &G_onboard_performed);
+    ASSERT_EQUALS(3, tx);
+    ASSERT_TRUE(G_get_retries_called);
+    ASSERT_EQUALS(0, G_onboard_performed);
+    ASSERT_RESET_IF_STARTED_CALLED();
 }
 
-void test_consent_app_add_not_authorized() {
-    printf("Test consent app add (app not authorized)...\n");
-    setup();
-    G_is_authorized_signer = false;
-    G_is_unlocked = false;
-    G_is_pin_set = true;
-    ASSERT_EQUALS(BOLOS_UX_CANCEL, handle_bolos_ux_boot_consent_app_add(NULL));
-    ASSERT_FALSE(G_is_unlocked);
-    ASSERT_TRUE(G_is_pin_set);
-    shutdown();
+void test_unlock() {
+    printf("Test RSK_UNLOCK_CMD...\n");
+
+    unsigned int rx;
+    unsigned int tx;
+    set_last_cmd(RSK_ECHO_CMD);
+    reset_flags();
+    G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
+    G_onboard_performed = 0;
+    G_unlock_called = false;
+    rx = set_apdu_cmd(RSK_UNLOCK_CMD);
+    tx = bootloader_process_apdu(rx, G_bootloader_mode, &G_onboard_performed);
+    ASSERT_EQUALS(3, tx);
+    ASSERT_TRUE(G_unlock_called);
+    ASSERT_EQUALS(0, G_onboard_performed);
+    ASSERT_RESET_IF_STARTED_CALLED();
 }
 
-void test_consent_foreing_key() {
-    printf("Test consent foreing key...\n");
-    setup();
-    ASSERT_EQUALS(BOLOS_UX_OK, handle_bolos_ux_boot_consent_foreing_key());
-    shutdown();
+void test_end() {
+    printf("Test RSK_END_CMD...\n");
+
+    unsigned int rx;
+    set_last_cmd(RSK_ECHO_CMD);
+    reset_flags();
+    G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
+    G_onboard_performed = 0;
+    G_autoexec = 0;
+    rx = set_apdu_cmd(RSK_END_CMD);
+    BEGIN_TRY {
+        TRY {
+            bootloader_process_apdu(
+                rx, G_bootloader_mode, &G_onboard_performed);
+            // bootloader_process_apdu should throw EX_BOOTLOADER_RSK_END
+            ASSERT_FAIL();
+        }
+        CATCH(EX_BOOTLOADER_RSK_END) {
+            ASSERT_EQUALS(1, G_autoexec);
+            ASSERT_EQUALS(0, G_onboard_performed);
+            ASSERT_RESET_IF_STARTED_CALLED();
+            return;
+        }
+        CATCH_OTHER(e) {
+            ASSERT_FAIL();
+        }
+        FINALLY {
+        }
+    }
+    END_TRY;
 }
 
-void test_consent_app_del() {
-    printf("Test consent app del...\n");
-    setup();
-    ASSERT_EQUALS(BOLOS_UX_OK, handle_bolos_ux_boot_consent_app_del());
-    shutdown();
+void test_end_nosig() {
+    printf("Test RSK_END_CMD_NOSIG...\n");
+
+    unsigned int rx;
+    set_last_cmd(RSK_ECHO_CMD);
+    reset_flags();
+    G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
+    G_onboard_performed = 0;
+    G_autoexec = 0;
+    rx = set_apdu_cmd(RSK_END_CMD_NOSIG);
+    BEGIN_TRY {
+        TRY {
+            bootloader_process_apdu(
+                rx, G_bootloader_mode, &G_onboard_performed);
+            // bootloader_process_apdu should throw EX_BOOTLOADER_RSK_END
+            ASSERT_FAIL();
+        }
+        CATCH(EX_BOOTLOADER_RSK_END) {
+            ASSERT_EQUALS(0, G_autoexec);
+            ASSERT_EQUALS(0, G_onboard_performed);
+            ASSERT_RESET_IF_STARTED_CALLED();
+            return;
+        }
+        CATCH_OTHER(e) {
+            ASSERT_FAIL();
+        }
+        FINALLY {
+        }
+    }
+    END_TRY;
 }
 
-void test_processing() {
-    printf("Test processing...\n");
-    setup();
-    G_active_screen = SCREEN_NONE;
-    handle_bolos_ux_boot_processing();
-    ASSERT_EQUALS(SCREEN_PROCESSING, G_active_screen);
-    shutdown();
+void test_invalid_command() {
+    printf("Test invalid command...\n");
+
+    unsigned int rx;
+    reset_flags();
+    G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
+    G_onboard_performed = 0;
+    rx = set_apdu_cmd(0x9);
+    BEGIN_TRY {
+        TRY {
+            bootloader_process_apdu(
+                rx, G_bootloader_mode, &G_onboard_performed);
+            // bootloader_process_apdu should throw ERR_INS_NOT_SUPPORTED
+            ASSERT_FAIL();
+        }
+        CATCH(ERR_INS_NOT_SUPPORTED) {
+            ASSERT_EQUALS(0, G_onboard_performed);
+            return;
+        }
+        CATCH_OTHER(e) {
+            ASSERT_FAIL();
+        }
+        FINALLY {
+        }
+    }
+    END_TRY;
+}
+
+void test_empty_buffer() {
+    printf("Test empty buffer...\n");
+
+    unsigned int rx;
+    reset_flags();
+    G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
+    G_onboard_performed = 0;
+    rx = 0;
+    BEGIN_TRY {
+        TRY {
+            bootloader_process_apdu(
+                rx, G_bootloader_mode, &G_onboard_performed);
+            // bootloader_process_apdu should throw ERR_EMPTY_BUFFER
+            ASSERT_FAIL();
+        }
+        CATCH(ERR_EMPTY_BUFFER) {
+            ASSERT_EQUALS(0, G_onboard_performed);
+            return;
+        }
+        CATCH_OTHER(e) {
+            ASSERT_FAIL();
+        }
+        FINALLY {
+        }
+    }
+    END_TRY;
+}
+
+void test_no_cla() {
+    printf("Test no CLA...\n");
+
+    unsigned int rx;
+    reset_flags();
+    G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
+    G_onboard_performed = 0;
+    clear_apdu_buffer();
+    rx = 2;
+
+    BEGIN_TRY {
+        TRY {
+            bootloader_process_apdu(
+                rx, G_bootloader_mode, &G_onboard_performed);
+            // bootloader_process_apdu should throw ERR_INVALID_CLA
+            ASSERT_FAIL();
+        }
+        CATCH(ERR_INVALID_CLA) {
+            ASSERT_EQUALS(0, G_onboard_performed);
+            return;
+        }
+        CATCH_OTHER(e) {
+            ASSERT_FAIL();
+        }
+        FINALLY {
+        }
+    }
+    END_TRY;
+}
+
+void test_onboard_mode() {
+    printf("Test send command after onboard...\n");
+
+    unsigned int rx;
+    reset_flags();
+    G_bootloader_mode = BOOTLOADER_MODE_ONBOARD;
+    G_onboard_performed = 1;
+    rx = set_apdu_cmd(RSK_ECHO_CMD);
+
+    BEGIN_TRY {
+        TRY {
+            bootloader_process_apdu(
+                rx, G_bootloader_mode, &G_onboard_performed);
+            // bootloader_process_apdu should throw ERR_INS_NOT_SUPPORTED
+            ASSERT_FAIL();
+        }
+        CATCH(ERR_INS_NOT_SUPPORTED) {
+            ASSERT_EQUALS(1, G_onboard_performed);
+            return;
+        }
+        CATCH_OTHER(e) {
+            ASSERT_FAIL();
+        }
+        FINALLY {
+        }
+    }
+    END_TRY;
 }
 
 int main() {
-    test_onboarding();
-    test_onboarding_while_onboarded();
-    test_dashboard();
-    test_dashboard_autoexec();
-    test_dashboard_autoexec_not_authorized();
-    test_validate_pin();
-    test_consent_app_add_authorized();
-    test_consent_app_add_not_authorized();
-    test_consent_foreing_key();
-    test_consent_app_del();
-    test_processing();
+    test_seed();
+    test_pin();
+    test_is_onboard();
+    test_wipe_default_mode();
+    test_wipe_onboard_mode();
+    test_newpin();
+    test_echo();
+    test_mode();
+    test_attestation();
+    test_signer_authorization();
+    test_retries();
+    test_unlock();
+    test_end();
+    test_end_nosig();
+    test_invalid_command();
+    test_empty_buffer();
+    test_no_cla();
+    test_onboard_mode();
 
     return 0;
 }
