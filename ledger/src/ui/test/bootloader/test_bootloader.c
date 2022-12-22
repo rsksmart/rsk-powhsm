@@ -177,7 +177,7 @@ void reset_onboard_ctx(onboard_t* onboard_ctx) {
     G_reset_onboard_called = true;
 }
 
-// Function definitions required for compiling bootloade.c
+// Function definitions required for compiling bootloader.c
 void init_signer_authorization() {
 }
 
@@ -235,19 +235,19 @@ void test_is_onboard() {
     rx = set_apdu_cmd(RSK_IS_ONBOARD);
     tx = bootloader_process_apdu(rx, G_bootloader_mode, &G_onboard_performed);
     ASSERT_EQUALS(5, tx);
-    ASSERT_APTU_AT(1, G_is_onboarded);
-    ASSERT_APTU_AT(2, VERSION_MAJOR);
-    ASSERT_APTU_AT(3, VERSION_MINOR);
-    ASSERT_APTU_AT(4, VERSION_PATCH);
+    ASSERT_APDU_AT(1, G_is_onboarded);
+    ASSERT_APDU_AT(2, VERSION_MAJOR);
+    ASSERT_APDU_AT(3, VERSION_MINOR);
+    ASSERT_APDU_AT(4, VERSION_PATCH);
 
     G_is_onboarded = true;
     rx = set_apdu_cmd(RSK_IS_ONBOARD);
     tx = bootloader_process_apdu(rx, G_bootloader_mode, &G_onboard_performed);
     ASSERT_EQUALS(5, tx);
-    ASSERT_APTU_AT(1, G_is_onboarded);
-    ASSERT_APTU_AT(2, VERSION_MAJOR);
-    ASSERT_APTU_AT(3, VERSION_MINOR);
-    ASSERT_APTU_AT(4, VERSION_PATCH);
+    ASSERT_APDU_AT(1, G_is_onboarded);
+    ASSERT_APDU_AT(2, VERSION_MAJOR);
+    ASSERT_APDU_AT(3, VERSION_MINOR);
+    ASSERT_APDU_AT(4, VERSION_PATCH);
     ASSERT_RESET_IF_STARTED_CALLED();
 }
 
@@ -341,7 +341,7 @@ void test_mode() {
     rx = set_apdu_cmd(RSK_MODE_CMD);
     tx = bootloader_process_apdu(rx, G_bootloader_mode, &G_onboard_performed);
     ASSERT_EQUALS(2, tx);
-    ASSERT_APTU_AT(1, RSK_MODE_BOOTLOADER);
+    ASSERT_APDU_AT(1, RSK_MODE_BOOTLOADER);
     ASSERT_EQUALS(0, G_onboard_performed);
 }
 

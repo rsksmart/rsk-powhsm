@@ -41,7 +41,7 @@ extern unsigned char G_io_apdu_buffer[IO_APDU_BUFFER_SIZE];
 #define ASSERT_TRUE(cond) assert(cond)
 #define ASSERT_FALSE(cond) assert(!(cond))
 #define ASSERT_NOT_NULL(obj) assert(NULL != obj)
-#define ASSERT_APTU_AT(i, val) assert(APDU_AT(i) == val)
+#define ASSERT_APDU_AT(i, val) assert(APDU_AT(i) == val)
 #define ASSERT_FAIL() assert(false)
 
 #define APDU_RETURN(offset) \
@@ -51,12 +51,7 @@ extern unsigned char G_io_apdu_buffer[IO_APDU_BUFFER_SIZE];
 struct mock_struct {
     void* mock_data;
 };
-/*
-typedef struct mock_application_s {
-    unsigned int flags;
-    unsigned char hash[32];
-} application_t;
-*/
+
 // Mock types
 typedef struct mock_struct att_t;
 typedef struct mock_struct sigaut_t;
