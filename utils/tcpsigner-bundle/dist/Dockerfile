@@ -1,4 +1,4 @@
-FROM debian:bullseye-slim
+FROM debian:stretch-slim
 
 RUN apt-get update && \
     apt-get install -y procps libsecp256k1-dev
