@@ -31,7 +31,10 @@
 #ifndef __SIMULATOR_LOG
 #define __SIMULATOR_LOG
 
+#include "bigdigits.h"
+
 void info(const char *format, ...);
 void info_hex(const char *prefix, void *buffer, size_t size);
+void info_bigd_hex(const char *prefix, const DIGIT_T *a, size_t len);
 
 #endif // __SIMULATOR_LOG
