@@ -24,7 +24,7 @@
 #include "bolos_ux_common.h"
 #include "bootloader.h"
 
-volatile unsigned char autoexec = 0;
+static unsigned char autoexec = 0;
 
 // run the signer application
 static void run_signer_app(void) {
@@ -95,6 +95,7 @@ void handle_bolos_ux_boot_dashboard() {
     if (autoexec) {
         autoexec = 0;
         run_signer_app();
+        return;
     }
     screen_dashboard_init();
 }

@@ -31,9 +31,9 @@ typedef enum {
     BOOTLOADER_MODE_DEFAULT
 } bootloader_mode_t;
 
+void bootloader_init();
 unsigned int bootloader_process_apdu(volatile unsigned int rx,
-                                     bootloader_mode_t mode,
-                                     volatile unsigned char *onboard_performed);
+                                     bootloader_mode_t mode);
 unsigned int bootloader_process_exception(unsigned short ex, unsigned int tx);
 void bootloader_main(bootloader_mode_t mode);
 

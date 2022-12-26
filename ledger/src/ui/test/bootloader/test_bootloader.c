@@ -41,7 +41,6 @@ static try_context_t G_try_last_open_context_var;
 try_context_t* G_try_last_open_context = &G_try_last_open_context_var;
 
 // Mock variable used to assert function calls
-static unsigned char G_onboard_performed = 0;
 static bootloader_mode_t G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
 static bool G_host_seed_is_set = false;
 static bool G_pin_buffer_updated = false;
@@ -60,13 +59,11 @@ static bool G_reset_onboard_called = false;
 #define RESET_IF_STARTED_CALLED()                                         \
     (G_reset_attestation_called && G_reset_signer_authorization_called && \
      G_reset_onboard_called)
-#define ASSERT_RESET_IF_STARTED_CALLED() ASSERT_TRUE(RESET_IF_STARTED_CALLED())
 
 // Helper functions
-static unsigned int set_apdu_cmd(unsigned char cmd) {
-    G_io_apdu_buffer[0] = CLA;
-    G_io_apdu_buffer[1] = cmd;
-    return 2;
+static size_t set_apdu(const char* str) {
+    strcpy((char*)G_io_apdu_buffer, str);
+    return strlen(str);
 }
 
 static void clear_apdu_buffer() {
@@ -87,12 +84,6 @@ static void reset_flags() {
     G_reset_attestation_called = false;
     G_reset_signer_authorization_called = false;
     G_reset_onboard_called = false;
-}
-
-// Helper function used to set last command sent bootloader.c
-static void set_last_cmd(unsigned char cmd) {
-    unsigned int rx = set_apdu_cmd(cmd);
-    bootloader_process_apdu(rx, BOOTLOADER_MODE_DEFAULT, &G_onboard_performed);
 }
 
 // Mock function calls
@@ -185,22 +176,32 @@ unsigned short io_exchange(unsigned char channel, unsigned short tx_len) {
     return 0;
 }
 
+void test_init() {
+    printf("Test bootloader init...\n");
+
+    reset_flags();
+
+    bootloader_init();
+
+    assert(G_reset_attestation_called);
+    assert(G_reset_signer_authorization_called);
+    assert(G_reset_onboard_called);
+}
+
 void test_seed() {
     printf("Test RSK_SEED_CMD...\n");
 
     unsigned int rx;
     unsigned int tx;
-    set_last_cmd(RSK_ECHO_CMD);
+    bootloader_init();
     reset_flags();
     G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
-    G_onboard_performed = 0;
     G_host_seed_is_set = false;
-    rx = set_apdu_cmd(RSK_SEED_CMD);
-    tx = bootloader_process_apdu(rx, G_bootloader_mode, &G_onboard_performed);
+    rx = set_apdu("\x80\x44"); // RSK_SEED_CMD
+    tx = bootloader_process_apdu(rx, G_bootloader_mode);
     ASSERT_EQUALS(0, tx);
-    ASSERT_EQUALS(0, G_onboard_performed);
-    ASSERT_TRUE(G_host_seed_is_set);
-    ASSERT_RESET_IF_STARTED_CALLED();
+    assert(G_host_seed_is_set);
+    assert(RESET_IF_STARTED_CALLED());
 }
 
 void test_pin() {
@@ -208,17 +209,15 @@ void test_pin() {
 
     unsigned int rx;
     unsigned int tx;
-    set_last_cmd(RSK_ECHO_CMD);
+    bootloader_init();
     reset_flags();
     G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
-    G_onboard_performed = 0;
     G_host_seed_is_set = false;
-    rx = set_apdu_cmd(RSK_PIN_CMD);
-    tx = bootloader_process_apdu(rx, G_bootloader_mode, &G_onboard_performed);
+    rx = set_apdu("\x80\x41"); // RSK_PIN_CMD
+    tx = bootloader_process_apdu(rx, G_bootloader_mode);
     ASSERT_EQUALS(3, tx);
-    ASSERT_EQUALS(0, G_onboard_performed);
-    ASSERT_TRUE(G_pin_buffer_updated);
-    ASSERT_RESET_IF_STARTED_CALLED();
+    assert(G_pin_buffer_updated);
+    assert(RESET_IF_STARTED_CALLED());
 }
 
 void test_is_onboard() {
@@ -226,29 +225,22 @@ void test_is_onboard() {
 
     unsigned int rx;
     unsigned int tx;
-    set_last_cmd(RSK_ECHO_CMD);
+    bootloader_init();
     reset_flags();
     G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
-    G_onboard_performed = 0;
 
     G_is_onboarded = false;
-    rx = set_apdu_cmd(RSK_IS_ONBOARD);
-    tx = bootloader_process_apdu(rx, G_bootloader_mode, &G_onboard_performed);
+    rx = set_apdu("\x80\x06"); // RSK_IS_ONBOARD
+    tx = bootloader_process_apdu(rx, G_bootloader_mode);
     ASSERT_EQUALS(5, tx);
-    ASSERT_APDU_AT(1, G_is_onboarded);
-    ASSERT_APDU_AT(2, VERSION_MAJOR);
-    ASSERT_APDU_AT(3, VERSION_MINOR);
-    ASSERT_APDU_AT(4, VERSION_PATCH);
+    ASSERT_APDU("\x80\x00\x03\x00\x01");
 
     G_is_onboarded = true;
-    rx = set_apdu_cmd(RSK_IS_ONBOARD);
-    tx = bootloader_process_apdu(rx, G_bootloader_mode, &G_onboard_performed);
+    rx = set_apdu("\x80\x06"); // RSK_IS_ONBOARD
+    tx = bootloader_process_apdu(rx, G_bootloader_mode);
     ASSERT_EQUALS(5, tx);
-    ASSERT_APDU_AT(1, G_is_onboarded);
-    ASSERT_APDU_AT(2, VERSION_MAJOR);
-    ASSERT_APDU_AT(3, VERSION_MINOR);
-    ASSERT_APDU_AT(4, VERSION_PATCH);
-    ASSERT_RESET_IF_STARTED_CALLED();
+    ASSERT_APDU("\x80\x01\x03\x00\x01");
+    assert(RESET_IF_STARTED_CALLED());
 }
 
 void test_wipe_default_mode() {
@@ -256,20 +248,18 @@ void test_wipe_default_mode() {
 
     unsigned int rx;
     unsigned int tx;
-    set_last_cmd(RSK_ECHO_CMD);
+    bootloader_init();
     reset_flags();
     G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
-    G_onboard_performed = 0;
     G_is_onboarded = false;
     G_is_pin_buffer_cleared = false;
     G_is_pin_set = true;
-    rx = set_apdu_cmd(RSK_WIPE);
-    tx = bootloader_process_apdu(rx, G_bootloader_mode, &G_onboard_performed);
+    rx = set_apdu("\x80\x07"); // RSK_WIPE
+    tx = bootloader_process_apdu(rx, G_bootloader_mode);
     ASSERT_EQUALS(3, tx);
-    ASSERT_TRUE(G_is_onboarded);
-    ASSERT_EQUALS(0, G_onboard_performed);
-    ASSERT_TRUE(G_is_pin_buffer_cleared);
-    ASSERT_RESET_IF_STARTED_CALLED();
+    assert(G_is_onboarded);
+    assert(G_is_pin_buffer_cleared);
+    assert(RESET_IF_STARTED_CALLED());
 }
 
 void test_wipe_onboard_mode() {
@@ -277,20 +267,18 @@ void test_wipe_onboard_mode() {
 
     unsigned int rx;
     unsigned int tx;
-    set_last_cmd(RSK_ECHO_CMD);
+    bootloader_init();
     reset_flags();
     G_bootloader_mode = BOOTLOADER_MODE_ONBOARD;
-    G_onboard_performed = 0;
     G_is_onboarded = false;
     G_is_pin_buffer_cleared = false;
     G_is_pin_set = true;
-    rx = set_apdu_cmd(RSK_WIPE);
-    tx = bootloader_process_apdu(rx, G_bootloader_mode, &G_onboard_performed);
+    rx = set_apdu("\x80\x07"); // RSK_WIPE
+    tx = bootloader_process_apdu(rx, G_bootloader_mode);
     ASSERT_EQUALS(3, tx);
-    ASSERT_TRUE(G_is_onboarded);
-    ASSERT_EQUALS(1, G_onboard_performed);
-    ASSERT_TRUE(G_is_pin_buffer_cleared);
-    ASSERT_RESET_IF_STARTED_CALLED();
+    assert(G_is_onboarded);
+    assert(G_is_pin_buffer_cleared);
+    assert(RESET_IF_STARTED_CALLED());
 }
 
 void test_newpin() {
@@ -298,19 +286,17 @@ void test_newpin() {
 
     unsigned int rx;
     unsigned int tx;
-    set_last_cmd(RSK_ECHO_CMD);
+    bootloader_init();
     reset_flags();
     G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
-    G_onboard_performed = 0;
     G_is_pin_set = false;
     G_is_pin_buffer_cleared = false;
-    rx = set_apdu_cmd(RSK_NEWPIN);
-    tx = bootloader_process_apdu(rx, G_bootloader_mode, &G_onboard_performed);
+    rx = set_apdu("\x80\x08"); // RSK_NEWPIN
+    tx = bootloader_process_apdu(rx, G_bootloader_mode);
     ASSERT_EQUALS(3, tx);
-    ASSERT_TRUE(G_is_pin_set);
-    ASSERT_TRUE(G_is_pin_buffer_cleared);
-    ASSERT_EQUALS(0, G_onboard_performed);
-    ASSERT_RESET_IF_STARTED_CALLED();
+    assert(G_is_pin_set);
+    assert(G_is_pin_buffer_cleared);
+    assert(RESET_IF_STARTED_CALLED());
 }
 
 void test_echo() {
@@ -318,15 +304,13 @@ void test_echo() {
 
     unsigned int rx;
     unsigned int tx;
-    set_last_cmd(RSK_RETRIES);
+    bootloader_init();
     reset_flags();
     G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
-    G_onboard_performed = 0;
-    rx = set_apdu_cmd(RSK_ECHO_CMD);
-    tx = bootloader_process_apdu(rx, G_bootloader_mode, &G_onboard_performed);
+    rx = set_apdu("\x80\x02"); // RSK_ECHO_CMD
+    tx = bootloader_process_apdu(rx, G_bootloader_mode);
     ASSERT_EQUALS(rx, tx);
-    ASSERT_EQUALS(0, G_onboard_performed);
-    ASSERT_RESET_IF_STARTED_CALLED();
+    assert(RESET_IF_STARTED_CALLED());
 }
 
 void test_mode() {
@@ -334,15 +318,13 @@ void test_mode() {
 
     unsigned int rx;
     unsigned int tx;
-    set_last_cmd(RSK_ECHO_CMD);
+    bootloader_init();
     reset_flags();
     G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
-    G_onboard_performed = 0;
-    rx = set_apdu_cmd(RSK_MODE_CMD);
-    tx = bootloader_process_apdu(rx, G_bootloader_mode, &G_onboard_performed);
+    rx = set_apdu("\x80\x43"); // RSK_MODE_CMD
+    tx = bootloader_process_apdu(rx, G_bootloader_mode);
     ASSERT_EQUALS(2, tx);
-    ASSERT_APDU_AT(1, RSK_MODE_BOOTLOADER);
-    ASSERT_EQUALS(0, G_onboard_performed);
+    ASSERT_APDU("\x80\x02");
 }
 
 void test_attestation() {
@@ -350,16 +332,14 @@ void test_attestation() {
 
     unsigned int rx;
     unsigned int tx;
-    set_last_cmd(RSK_ECHO_CMD);
+    bootloader_init();
     reset_flags();
     G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
-    G_onboard_performed = 0;
     G_get_attestation_called = false;
-    rx = set_apdu_cmd(INS_ATTESTATION);
-    tx = bootloader_process_apdu(rx, G_bootloader_mode, &G_onboard_performed);
+    rx = set_apdu("\x80\x50"); // INS_ATTESTATION
+    tx = bootloader_process_apdu(rx, G_bootloader_mode);
     ASSERT_EQUALS(3, tx);
-    ASSERT_TRUE(G_get_attestation_called);
-    ASSERT_EQUALS(0, G_onboard_performed);
+    assert(G_get_attestation_called);
 }
 
 void test_signer_authorization() {
@@ -367,17 +347,15 @@ void test_signer_authorization() {
 
     unsigned int rx;
     unsigned int tx;
-    set_last_cmd(RSK_ECHO_CMD);
+    bootloader_init();
     reset_flags();
     G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
-    G_onboard_performed = 0;
     G_authorize_signer_called = false;
-    rx = set_apdu_cmd(INS_SIGNER_AUTHORIZATION);
-    tx = bootloader_process_apdu(rx, G_bootloader_mode, &G_onboard_performed);
+    rx = set_apdu("\x80\x51"); // INS_SIGNER_AUTHORIZATION
+    tx = bootloader_process_apdu(rx, G_bootloader_mode);
     ASSERT_EQUALS(3, tx);
-    ASSERT_TRUE(G_authorize_signer_called);
-    ASSERT_EQUALS(0, G_onboard_performed);
-    ASSERT_RESET_IF_STARTED_CALLED();
+    assert(G_authorize_signer_called);
+    assert(RESET_IF_STARTED_CALLED());
 }
 
 void test_retries() {
@@ -385,17 +363,15 @@ void test_retries() {
 
     unsigned int rx;
     unsigned int tx;
-    set_last_cmd(RSK_ECHO_CMD);
+    bootloader_init();
     reset_flags();
     G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
-    G_onboard_performed = 0;
     G_get_retries_called = false;
-    rx = set_apdu_cmd(RSK_RETRIES);
-    tx = bootloader_process_apdu(rx, G_bootloader_mode, &G_onboard_performed);
+    rx = set_apdu("\x80\x45"); // RSK_RETRIES
+    tx = bootloader_process_apdu(rx, G_bootloader_mode);
     ASSERT_EQUALS(3, tx);
-    ASSERT_TRUE(G_get_retries_called);
-    ASSERT_EQUALS(0, G_onboard_performed);
-    ASSERT_RESET_IF_STARTED_CALLED();
+    assert(G_get_retries_called);
+    assert(RESET_IF_STARTED_CALLED());
 }
 
 void test_unlock() {
@@ -403,40 +379,35 @@ void test_unlock() {
 
     unsigned int rx;
     unsigned int tx;
-    set_last_cmd(RSK_ECHO_CMD);
+    bootloader_init();
     reset_flags();
     G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
-    G_onboard_performed = 0;
     G_unlock_called = false;
-    rx = set_apdu_cmd(RSK_UNLOCK_CMD);
-    tx = bootloader_process_apdu(rx, G_bootloader_mode, &G_onboard_performed);
+    rx = set_apdu("\x80\xfe"); // RSK_UNLOCK_CMD
+    tx = bootloader_process_apdu(rx, G_bootloader_mode);
     ASSERT_EQUALS(3, tx);
-    ASSERT_TRUE(G_unlock_called);
-    ASSERT_EQUALS(0, G_onboard_performed);
-    ASSERT_RESET_IF_STARTED_CALLED();
+    assert(G_unlock_called);
+    assert(RESET_IF_STARTED_CALLED());
 }
 
 void test_end() {
     printf("Test RSK_END_CMD...\n");
 
     unsigned int rx;
-    set_last_cmd(RSK_ECHO_CMD);
+    bootloader_init();
     reset_flags();
     G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
-    G_onboard_performed = 0;
     G_autoexec = 0;
-    rx = set_apdu_cmd(RSK_END_CMD);
+    rx = set_apdu("\x80\xff"); // RSK_END_CMD
     BEGIN_TRY {
         TRY {
-            bootloader_process_apdu(
-                rx, G_bootloader_mode, &G_onboard_performed);
+            bootloader_process_apdu(rx, G_bootloader_mode);
             // bootloader_process_apdu should throw EX_BOOTLOADER_RSK_END
             ASSERT_FAIL();
         }
         CATCH(EX_BOOTLOADER_RSK_END) {
             ASSERT_EQUALS(1, G_autoexec);
-            ASSERT_EQUALS(0, G_onboard_performed);
-            ASSERT_RESET_IF_STARTED_CALLED();
+            assert(RESET_IF_STARTED_CALLED());
             return;
         }
         CATCH_OTHER(e) {
@@ -452,23 +423,20 @@ void test_end_nosig() {
     printf("Test RSK_END_CMD_NOSIG...\n");
 
     unsigned int rx;
-    set_last_cmd(RSK_ECHO_CMD);
+    bootloader_init();
     reset_flags();
     G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
-    G_onboard_performed = 0;
     G_autoexec = 0;
-    rx = set_apdu_cmd(RSK_END_CMD_NOSIG);
+    rx = set_apdu("\x80\xfa"); // RSK_END_CMD_NOSIG
     BEGIN_TRY {
         TRY {
-            bootloader_process_apdu(
-                rx, G_bootloader_mode, &G_onboard_performed);
+            bootloader_process_apdu(rx, G_bootloader_mode);
             // bootloader_process_apdu should throw EX_BOOTLOADER_RSK_END
             ASSERT_FAIL();
         }
         CATCH(EX_BOOTLOADER_RSK_END) {
             ASSERT_EQUALS(0, G_autoexec);
-            ASSERT_EQUALS(0, G_onboard_performed);
-            ASSERT_RESET_IF_STARTED_CALLED();
+            assert(RESET_IF_STARTED_CALLED());
             return;
         }
         CATCH_OTHER(e) {
@@ -486,17 +454,15 @@ void test_invalid_command() {
     unsigned int rx;
     reset_flags();
     G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
-    G_onboard_performed = 0;
-    rx = set_apdu_cmd(0x9);
+    // 0x09 is not an accepted command
+    rx = set_apdu("\x80\x09");
     BEGIN_TRY {
         TRY {
-            bootloader_process_apdu(
-                rx, G_bootloader_mode, &G_onboard_performed);
+            bootloader_process_apdu(rx, G_bootloader_mode);
             // bootloader_process_apdu should throw ERR_INS_NOT_SUPPORTED
             ASSERT_FAIL();
         }
         CATCH(ERR_INS_NOT_SUPPORTED) {
-            ASSERT_EQUALS(0, G_onboard_performed);
             return;
         }
         CATCH_OTHER(e) {
@@ -514,17 +480,14 @@ void test_empty_buffer() {
     unsigned int rx;
     reset_flags();
     G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
-    G_onboard_performed = 0;
     rx = 0;
     BEGIN_TRY {
         TRY {
-            bootloader_process_apdu(
-                rx, G_bootloader_mode, &G_onboard_performed);
+            bootloader_process_apdu(rx, G_bootloader_mode);
             // bootloader_process_apdu should throw ERR_EMPTY_BUFFER
             ASSERT_FAIL();
         }
         CATCH(ERR_EMPTY_BUFFER) {
-            ASSERT_EQUALS(0, G_onboard_performed);
             return;
         }
         CATCH_OTHER(e) {
@@ -542,19 +505,16 @@ void test_no_cla() {
     unsigned int rx;
     reset_flags();
     G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
-    G_onboard_performed = 0;
     clear_apdu_buffer();
     rx = 2;
 
     BEGIN_TRY {
         TRY {
-            bootloader_process_apdu(
-                rx, G_bootloader_mode, &G_onboard_performed);
+            bootloader_process_apdu(rx, G_bootloader_mode);
             // bootloader_process_apdu should throw ERR_INVALID_CLA
             ASSERT_FAIL();
         }
         CATCH(ERR_INVALID_CLA) {
-            ASSERT_EQUALS(0, G_onboard_performed);
             return;
         }
         CATCH_OTHER(e) {
@@ -570,20 +530,25 @@ void test_onboard_mode() {
     printf("Test send command after onboard...\n");
 
     unsigned int rx;
+    unsigned int tx;
+    bootloader_init();
     reset_flags();
-    G_bootloader_mode = BOOTLOADER_MODE_ONBOARD;
-    G_onboard_performed = 1;
-    rx = set_apdu_cmd(RSK_ECHO_CMD);
 
     BEGIN_TRY {
         TRY {
-            bootloader_process_apdu(
-                rx, G_bootloader_mode, &G_onboard_performed);
+            G_bootloader_mode = BOOTLOADER_MODE_ONBOARD;
+            // Set onboard_performed flag
+            rx = set_apdu("\x80\x07"); // RSK_WIPE
+            tx = bootloader_process_apdu(rx, G_bootloader_mode);
+            ASSERT_EQUALS(3, tx);
+
+            // Echo command must fail after onboard is performed
+            rx = set_apdu("\x80\x02"); // RSK_ECHO_CMD
+            bootloader_process_apdu(rx, G_bootloader_mode);
             // bootloader_process_apdu should throw ERR_INS_NOT_SUPPORTED
             ASSERT_FAIL();
         }
         CATCH(ERR_INS_NOT_SUPPORTED) {
-            ASSERT_EQUALS(1, G_onboard_performed);
             return;
         }
         CATCH_OTHER(e) {
@@ -596,6 +561,7 @@ void test_onboard_mode() {
 }
 
 int main() {
+    test_init();
     test_seed();
     test_pin();
     test_is_onboard();

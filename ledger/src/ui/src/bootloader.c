@@ -43,6 +43,8 @@
 
 // Operation being currently executed
 static unsigned char current_cmd;
+// Flag used to prevent executing commands after the onboard is performed
+static bool onboard_performed = false;
 
 /*
  * Reset all reseteable operations, only if the given operation is starting.
@@ -60,10 +62,17 @@ static void reset_if_starting(unsigned char cmd) {
     }
 }
 
-unsigned int bootloader_process_apdu(
-    volatile unsigned int rx,
-    bootloader_mode_t mode,
-    volatile unsigned char *onboard_performed) {
+void bootloader_init() {
+    current_cmd = 0;
+    onboard_performed = false;
+
+    reset_attestation(&attestation_ctx);
+    reset_signer_authorization(&sigaut_ctx);
+    reset_onboard_ctx(&onboard_ctx);
+}
+
+unsigned int bootloader_process_apdu(volatile unsigned int rx,
+                                     bootloader_mode_t mode) {
     unsigned int tx = 0;
 
     // no apdu received, well, reset the session, and reset the
@@ -79,7 +88,7 @@ unsigned int bootloader_process_apdu(
     // We don't accept any command after onboard is performed in
     // onboard mode, the user is required to unplug the device
     // before proceeding
-    if (mode == BOOTLOADER_MODE_ONBOARD && *onboard_performed) {
+    if (mode == BOOTLOADER_MODE_ONBOARD && onboard_performed) {
         THROW(ERR_INS_NOT_SUPPORTED);
     }
 
@@ -101,9 +110,7 @@ unsigned int bootloader_process_apdu(
         reset_if_starting(RSK_META_CMD_UIOP);
         tx = onboard_device(&onboard_ctx);
         clear_pin();
-        if (mode == BOOTLOADER_MODE_ONBOARD) {
-            *onboard_performed = 1;
-        }
+        onboard_performed = true;
         break;
     case RSK_NEWPIN:
         reset_if_starting(RSK_META_CMD_UIOP);
@@ -188,7 +195,6 @@ unsigned int bootloader_process_exception(unsigned short ex, unsigned int tx) {
 void bootloader_main(bootloader_mode_t mode) {
     volatile unsigned int rx = 0;
     volatile unsigned int tx = 0;
-    volatile unsigned char onboard_performed = 0;
 
     // Initialize current operation
     current_cmd = 0; // 0 = no operation being executed
@@ -210,7 +216,7 @@ void bootloader_main(bootloader_mode_t mode) {
                         // an error
                 rx = io_exchange(CHANNEL_APDU, rx);
 
-                tx = bootloader_process_apdu(rx, mode, &onboard_performed);
+                tx = bootloader_process_apdu(rx, mode);
                 THROW(APDU_OK);
             }
             CATCH(EX_BOOTLOADER_RSK_END) {

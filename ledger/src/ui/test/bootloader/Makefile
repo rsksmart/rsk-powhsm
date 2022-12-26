@@ -23,7 +23,6 @@
 SRCDIR = ../../src
 MOCKDIR = ./mock
 CFLAGS = -I$(MOCKDIR) -I$(SRCDIR) -g
-CFLAGS += -DPARAM_SIGNERS_FILE="testing"
 
 PROG = test.out
 OBJS = bootloader.o test_bootloader.o
