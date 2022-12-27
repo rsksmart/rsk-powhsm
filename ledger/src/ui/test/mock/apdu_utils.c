@@ -22,9 +22,17 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef _MOCK_OS_H
-#define _MOCK_OS_H
+#include <string.h>
 
-#include "mock.h"
+#include "apdu_utils.h"
 
-#endif
+unsigned char G_io_apdu_buffer[IO_APDU_BUFFER_SIZE];
+
+size_t set_apdu(const char* str) {
+    strcpy((char*)G_io_apdu_buffer, str);
+    return strlen(str);
+}
+
+void clear_apdu_buffer() {
+    memset(G_io_apdu_buffer, 0, sizeof(G_io_apdu_buffer));
+}

@@ -22,20 +22,25 @@
  * IN THE SOFTWARE.
  */
 
-#include "cx.h"
+#include <string.h>
+#include "mock.h"
 
-static unsigned char mock_seed[32];
+// Mock variables used by os_exception.h
+static try_context_t G_try_last_open_context_var;
+try_context_t *G_try_last_open_context = &G_try_last_open_context_var;
 
-void mock_cx_rng(const unsigned char *data, unsigned int len) {
-    for (unsigned int i = 0; i < len; i++) {
-        mock_seed[i] = data[i];
-    }
+void explicit_bzero(void *s, size_t len) {
+    memset(s, '\0', len);
+    /* Compiler barrier.  */
+    asm volatile("" ::: "memory");
 }
 
-unsigned char *cx_rng(unsigned char *buffer, unsigned int len) {
-    // Mock 32 random bytes
-    for (int i = 0; i < len; i++) {
-        buffer[i] = mock_seed[i];
+void nvm_write(void *dst_adr, void *src_adr, unsigned int src_len) {
+    if (src_adr == NULL) {
+        // Treat as memory reset
+        memset(dst_adr, 0, src_len);
+    } else {
+        // Treat as normal copy
+        memmove(dst_adr, src_adr, src_len);
     }
-    return 0;
 }

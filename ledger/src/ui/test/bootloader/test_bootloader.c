@@ -28,14 +28,13 @@
 #include <assert.h>
 #include <pthread.h>
 
+#include "assert_utils.h"
 #include "bootloader.h"
 #include "defs.h"
 #include "err.h"
-#include "mock.h"
+#include "bootloader_mock.h"
 
 // Mock variables needed for bootloader module
-#define IO_APDU_BUFFER_SIZE (5 + 255)
-unsigned char G_io_apdu_buffer[IO_APDU_BUFFER_SIZE];
 bolos_ux_context_t G_bolos_ux_context;
 static try_context_t G_try_last_open_context_var;
 try_context_t* G_try_last_open_context = &G_try_last_open_context_var;
@@ -61,15 +60,6 @@ static bool G_reset_onboard_called = false;
      G_reset_onboard_called)
 
 // Helper functions
-static size_t set_apdu(const char* str) {
-    strcpy((char*)G_io_apdu_buffer, str);
-    return strlen(str);
-}
-
-static void clear_apdu_buffer() {
-    memset(G_io_apdu_buffer, 0, sizeof(G_io_apdu_buffer));
-}
-
 static void reset_flags() {
     G_host_seed_is_set = false;
     G_pin_buffer_updated = false;

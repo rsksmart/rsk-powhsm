@@ -25,6 +25,6 @@
 #ifndef _MOCK_BOLOS_UX_COMMON_H
 #define _MOCK_BOLOS_UX_COMMON_H
 
-#include "mock.h"
+#include "bootloader_mock.h"
 
 #endif

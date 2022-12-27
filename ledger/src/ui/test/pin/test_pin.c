@@ -28,12 +28,69 @@
 #include <string.h>
 
 #include "apdu.h"
-#include "os.h"
+#include "assert_utils.h"
+#include "defs.h"
+#include "err.h"
+#include "mock.h"
 #include "pin.h"
 
 #define IS_VALID true
 #define IS_NOT_VALID false
 
+// Reference G_pin_buffer from pin.c
+extern unsigned char G_pin_buffer[10];
+
+// Mock variables
+static unsigned char G_device_pin[10];
+static bool G_device_unlocked;
+static bool G_os_global_pin_invalidate_called;
+static bool G_successful_unlock_while_locked;
+
+// Helpers for RSK commands
+static void send_rsk_pin_cmd(const char *pin) {
+    unsigned int rx = 4;
+    for (int i = 0; i < strlen(pin); i++) {
+        SET_APDU_AT(0, CLA);
+        SET_APDU_AT(1, RSK_PIN_CMD);
+        SET_APDU_AT(2, i);
+        SET_APDU_AT(3, pin[i]);
+        ASSERT_EQUALS(3, update_pin_buffer(rx));
+    }
+}
+
+static void setup() {
+    memset(G_device_pin, 0, sizeof(G_device_pin));
+    memset(G_pin_buffer, 0, sizeof(G_pin_buffer));
+    G_device_unlocked = false;
+    G_successful_unlock_while_locked = false;
+    G_os_global_pin_invalidate_called = false;
+}
+
+// OS function mocks
+unsigned int os_global_pin_check(unsigned char *pin_buffer,
+                                 unsigned char pin_length) {
+    bool pin_matches = (0 == strncmp((const char *)G_device_pin,
+                                     (const char *)pin_buffer,
+                                     pin_length));
+    if (pin_matches && !G_device_unlocked) {
+        G_device_unlocked = true;
+        G_successful_unlock_while_locked = true;
+    }
+    return pin_matches;
+}
+
+void os_global_pin_invalidate(void) {
+    G_os_global_pin_invalidate_called = true;
+    G_device_unlocked = false;
+}
+
+void os_perso_set_pin(unsigned int identity,
+                      unsigned char *pin,
+                      unsigned int length) {
+    strncpy((char *)G_device_pin, (const char *)pin, length);
+}
+
+// Other helpers
 void assert_pin(char *pin, bool expected) {
     unsigned char pin_length = (char)strlen(pin);
     unsigned char pin_buffer[16];
@@ -101,148 +158,111 @@ void test_validate_pin_non_alpha() {
 void test_update_pin_buffer() {
     printf("Test update pin buffer...\n");
 
-    unsigned char pin_buffer[] = "X1234567a";
-    unsigned int rx = 4;
-    init_mock_ctx();
-    for (int i = 0; i < strlen((const char *)pin_buffer); i++) {
-        SET_APDU_AT(2, i);
-        SET_APDU_AT(3, pin_buffer[i]);
-        assert(3 == update_pin_buffer(rx));
-    }
-    mock_ctx_t mock_ctx;
-    get_mock_ctx(&mock_ctx);
-    const char *expected_global_pin[sizeof(mock_ctx.global_pin)];
-    memset(expected_global_pin, 0, sizeof(expected_global_pin));
-    assert(!strcmp((const char *)expected_global_pin,
-                   (const char *)mock_ctx.global_pin));
+    setup();
+    send_rsk_pin_cmd("X1234567a");
+
+    ASSERT_STR_EQUALS("X1234567a", G_pin_buffer);
 }
 
 void test_set_pin() {
     printf("Test set pin ok...\n");
 
-    unsigned char pin_buffer[] = "X1234567a";
-    unsigned int rx = 4;
-    init_mock_ctx();
-    for (int i = 0; i < strlen((const char *)pin_buffer); i++) {
-        SET_APDU_AT(2, i);
-        SET_APDU_AT(3, pin_buffer[i]);
-        assert(3 == update_pin_buffer(rx));
-    }
+    setup();
+    send_rsk_pin_cmd("X1234567a");
 
-    assert(3 == set_pin());
-    mock_ctx_t mock_ctx;
-    get_mock_ctx(&mock_ctx);
-    assert(true == mock_ctx.device_unlocked);
-    assert(1 == mock_ctx.successful_unlock_while_locked_count);
+    ASSERT_EQUALS(3, set_pin());
+    ASSERT_STR_EQUALS("1234567a", G_device_pin);
+    assert(G_device_unlocked);
+    assert(G_os_global_pin_invalidate_called);
+    assert(G_successful_unlock_while_locked);
 }
 
 void test_set_pin_invalid() {
     printf("Test set pin invalid...\n");
 
-    unsigned char pin_buffer[] = "X12345678";
-    unsigned int rx = 4;
-    init_mock_ctx();
-    for (int i = 0; i < strlen((const char *)pin_buffer); i++) {
-        SET_APDU_AT(2, i);
-        SET_APDU_AT(3, pin_buffer[i]);
-        assert(3 == update_pin_buffer(rx));
-    }
+    setup();
+    send_rsk_pin_cmd("X12345678");
 
-    assert(0x69A0 == set_pin()); // ERR_INVALID_PIN
-    mock_ctx_t mock_ctx;
-    get_mock_ctx(&mock_ctx);
-    assert(false == mock_ctx.device_unlocked);
+    BEGIN_TRY {
+        TRY {
+            set_pin();
+            // set_pin should throw ERR_INVALID_PIN
+            ASSERT_FAIL();
+        }
+        CATCH(ERR_INVALID_PIN) {
+            assert(!G_device_unlocked);
+            return;
+        }
+        CATCH_OTHER(e) {
+            ASSERT_FAIL();
+        }
+        FINALLY {
+        }
+    }
+    END_TRY;
 }
 
 void test_unlock_with_pin() {
     printf("Test unlock with pin...\n");
 
-    unsigned char pin_buffer[] = "X1234567a";
-    unsigned int rx = 4;
-    init_mock_ctx();
-    for (int i = 0; i < strlen((const char *)pin_buffer); i++) {
-        SET_APDU_AT(2, i);
-        SET_APDU_AT(3, pin_buffer[i]);
-        assert(3 == update_pin_buffer(rx));
-    }
+    setup();
+    send_rsk_pin_cmd("X1234567a");
+
+    ASSERT_EQUALS(3, set_pin());
+    ASSERT_EQUALS(1, unlock_with_pin(true));
     assert(3 == set_pin());
     assert(1 == unlock_with_pin(true));
-    mock_ctx_t mock_ctx;
-    get_mock_ctx(&mock_ctx);
     // Skip prepended length
-    assert(!strcmp((const char *)(pin_buffer + 1),
-                   (const char *)mock_ctx.global_pin));
-    assert(true == mock_ctx.device_unlocked);
-    assert(1 == mock_ctx.successful_unlock_while_locked_count);
+    ASSERT_STR_EQUALS("1234567a", G_device_pin);
+    assert(G_device_unlocked);
+    assert(G_successful_unlock_while_locked);
 }
 
 void test_unlock_with_pin_capping() {
     printf("Test unlock with pin capping...\n");
 
-    unsigned char pin_buffer[] = "X1234567abcdef";
-    unsigned int rx = 4;
-    init_mock_ctx();
-    for (int i = 0; i < strlen((const char *)pin_buffer); i++) {
-        SET_APDU_AT(2, i);
-        SET_APDU_AT(3, pin_buffer[i]);
-        assert(3 == update_pin_buffer(rx));
-    }
+    setup();
+    send_rsk_pin_cmd("X1234567abcdef");
+
     assert(3 == set_pin());
     assert(1 == unlock_with_pin(true));
-    mock_ctx_t mock_ctx;
-    get_mock_ctx(&mock_ctx);
+
     // Make sure pin capping is applied
     // (i.e. only the first 8 bytes are copied to global buffer)
-    assert(!strcmp("1234567a", (const char *)mock_ctx.global_pin));
-    assert(true == mock_ctx.device_unlocked);
-    assert(1 == mock_ctx.successful_unlock_while_locked_count);
+    ASSERT_STR_EQUALS("1234567a", G_device_pin);
+    assert(G_device_unlocked);
+    assert(G_successful_unlock_while_locked);
 }
 
 void test_unlock_with_pin_not_set() {
     printf("Test unlock with pin (pin not set)...\n");
 
-    unsigned char pin_buffer[] = "X1234567a";
-    unsigned int rx = 4;
-    init_mock_ctx();
-    for (int i = 0; i < strlen((const char *)pin_buffer); i++) {
-        SET_APDU_AT(2, i);
-        SET_APDU_AT(3, pin_buffer[i]);
-        assert(3 == update_pin_buffer(rx));
-    }
+    setup();
+    send_rsk_pin_cmd("X1234567a");
 
-    mock_ctx_t mock_ctx;
-    get_mock_ctx(&mock_ctx);
-    assert(0 == unlock_with_pin(true));
-    assert(false == mock_ctx.device_unlocked);
-    assert(0 == mock_ctx.successful_unlock_while_locked_count);
-    const char *expected_global_pin[sizeof(mock_ctx.global_pin)];
-    memset(expected_global_pin, 0, sizeof(expected_global_pin));
-    assert(!strcmp((const char *)expected_global_pin,
-                   (const char *)mock_ctx.global_pin));
+    ASSERT_EQUALS(0, unlock_with_pin(true));
+
+    assert(!G_device_unlocked);
+    assert(!G_successful_unlock_while_locked);
+
+    ASSERT_STR_EQUALS("\x0", G_device_pin);
 }
 
 void test_set_device_pin() {
     printf("Test set device pin...\n");
 
-    unsigned char pin_buffer[] = "X1234567a";
-    unsigned int rx = 4;
-    init_mock_ctx();
-    for (int i = 0; i < strlen((const char *)pin_buffer); i++) {
-        SET_APDU_AT(2, i);
-        SET_APDU_AT(3, pin_buffer[i]);
-        assert(3 == update_pin_buffer(rx));
-    }
+    setup();
+    send_rsk_pin_cmd("X1234567a");
 
     set_device_pin();
-    mock_ctx_t mock_ctx;
-    get_mock_ctx(&mock_ctx);
+
     // Skip prepended length
-    assert(!strcmp((const char *)(pin_buffer + 1),
-                   (const char *)mock_ctx.global_pin));
-    assert(false == mock_ctx.device_unlocked);
+    ASSERT_STR_EQUALS("1234567a", G_device_pin);
+    assert(!G_device_unlocked);
 }
 
 int main() {
+    test_validate_ok();
     test_validate_numeric_pin();
     test_validate_pin_too_long();
     test_validate_pin_too_short();
@@ -250,7 +270,6 @@ int main() {
     test_update_pin_buffer();
     test_set_pin();
     test_set_pin_invalid();
-    test_validate_ok();
     test_unlock_with_pin();
     test_unlock_with_pin_capping();
     test_unlock_with_pin_not_set();

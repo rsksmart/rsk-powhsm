@@ -22,9 +22,17 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __MOCK_CX_H
-#define __MOCK_CX_H
+#ifndef _ASSERT_UTILS_H
+#define _ASSERT_UTILS_H
 
-#include "mock.h"
+#include <assert.h>
+#include <string.h>
 
+#define ASSERT_EQUALS(a, b) assert((a) == (b))
+#define ASSERT_NOT_NULL(obj) assert(NULL != obj)
+#define ASSERT_FAIL() assert(false)
+#define ASSERT_STR_EQUALS(a, b) \
+    assert(0 == strcmp((const char *)a, (const char *)b))
+#define ASSERT_STR_N_EQUALS(a, b, n) \
+    assert(0 == strncmp((const char *)a, (const char *)b, n))
 #endif

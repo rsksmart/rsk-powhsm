@@ -22,45 +22,18 @@
  * IN THE SOFTWARE.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <assert.h>
+#include <stddef.h>
 #include <string.h>
 
-#include "apdu.h"
-#include "apdu_utils.h"
-#include "assert_utils.h"
-#include "defs.h"
-#include "mock.h"
-#include "unlock.h"
+#define CHANNEL_APDU 0
 
-// Mock variables
-static bool G_pin_accepted;
+#define IO_APDU_BUFFER_SIZE (5 + 255)
+extern unsigned char G_io_apdu_buffer[IO_APDU_BUFFER_SIZE];
 
-// Mock functions from other modules
-unsigned int unlock_with_pin(bool prepended_length) {
-    return G_pin_accepted;
-}
+#define ASSERT_APDU(str) \
+    assert(0 == strncmp((const char*)G_io_apdu_buffer, str, strlen(str)))
+#define ASSERT_APDU_AT(i, val) assert(APDU_AT(i) == val)
 
-void test_unlock() {
-    printf("Test unlock...\n");
-    G_pin_accepted = true;
-
-    ASSERT_EQUALS(3, unlock());
-    ASSERT_APDU_AT(2, 1);
-}
-
-void test_unlock_wrong_pin() {
-    printf("Test unlock (wrong pin)...\n");
-    G_pin_accepted = false;
-
-    ASSERT_EQUALS(3, unlock());
-    ASSERT_APDU_AT(2, 0);
-}
-
-int main() {
-    test_unlock();
-    test_unlock_wrong_pin();
-
-    return 0;
-}
+size_t set_apdu(const char* str);
+void clear_apdu_buffer();
