@@ -54,6 +54,7 @@ static unsigned char G_autoexec = 0;
 static bool G_reset_attestation_called = false;
 static bool G_reset_signer_authorization_called = false;
 static bool G_reset_onboard_called = false;
+static bool G_is_onboarded_called = false;
 
 #define RESET_IF_STARTED_CALLED()                                         \
     (G_reset_attestation_called && G_reset_signer_authorization_called && \
@@ -74,6 +75,7 @@ static void reset_flags() {
     G_reset_attestation_called = false;
     G_reset_signer_authorization_called = false;
     G_reset_onboard_called = false;
+    G_is_onboarded_called = false;
 }
 
 // Mock function calls
@@ -89,10 +91,8 @@ unsigned int update_pin_buffer(volatile unsigned int rx) {
 }
 
 unsigned int is_onboarded() {
+    G_is_onboarded_called = true;
     SET_APDU_AT(1, G_is_onboarded);
-    SET_APDU_AT(2, VERSION_MAJOR);
-    SET_APDU_AT(3, VERSION_MINOR);
-    SET_APDU_AT(4, VERSION_PATCH);
     return 5;
 }
 
@@ -215,21 +215,26 @@ void test_is_onboard() {
 
     unsigned int rx;
     unsigned int tx;
-    bootloader_init();
-    reset_flags();
     G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
 
+    bootloader_init();
+    reset_flags();
     G_is_onboarded = false;
     rx = set_apdu("\x80\x06"); // RSK_IS_ONBOARD
     tx = bootloader_process_apdu(rx, G_bootloader_mode);
+    assert(G_is_onboarded_called);
     ASSERT_EQUALS(5, tx);
-    ASSERT_APDU("\x80\x00\x03\x00\x01");
+    ASSERT_APDU("\x80\x00");
+    assert(RESET_IF_STARTED_CALLED());
 
+    bootloader_init();
+    reset_flags();
     G_is_onboarded = true;
     rx = set_apdu("\x80\x06"); // RSK_IS_ONBOARD
     tx = bootloader_process_apdu(rx, G_bootloader_mode);
+    assert(G_is_onboarded_called);
     ASSERT_EQUALS(5, tx);
-    ASSERT_APDU("\x80\x01\x03\x00\x01");
+    ASSERT_APDU("\x80\x01");
     assert(RESET_IF_STARTED_CALLED());
 }
 
