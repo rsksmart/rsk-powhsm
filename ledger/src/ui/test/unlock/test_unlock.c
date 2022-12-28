@@ -45,17 +45,19 @@ unsigned int unlock_with_pin(bool prepended_length) {
 void test_unlock() {
     printf("Test unlock...\n");
     G_pin_accepted = true;
+    set_apdu("\x80\xfe"); // RSK_UNLOCK_CMD
 
     ASSERT_EQUALS(3, unlock());
-    ASSERT_APDU_AT(2, 1);
+    ASSERT_APDU("\x80\xfe\x01");
 }
 
 void test_unlock_wrong_pin() {
     printf("Test unlock (wrong pin)...\n");
     G_pin_accepted = false;
+    set_apdu("\x80\xfe"); // RSK_UNLOCK_CMD
 
     ASSERT_EQUALS(3, unlock());
-    ASSERT_APDU_AT(2, 0);
+    ASSERT_APDU("\x80\xfe\x00");
 }
 
 int main() {

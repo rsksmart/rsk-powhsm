@@ -47,15 +47,17 @@ void test_echo() {
 
 void test_get_mode() {
     printf("Test get mode...\n");
+    set_apdu("\x80\x43"); // RSK_MODE_CMD
     ASSERT_EQUALS(2, get_mode());
-    ASSERT_APDU_AT(1, RSK_MODE_BOOTLOADER);
+    ASSERT_APDU("\x80\x02"); // RSK_MODE_BOOTLOADER
 }
 
 void test_get_retries() {
     printf("Test get retries...\n");
     G_retries = 123;
+    set_apdu("\x80\x45"); // RSK_RETRIES
     ASSERT_EQUALS(3, get_retries());
-    ASSERT_APDU_AT(2, 123);
+    ASSERT_APDU("\x80\x45\x7b");
 }
 
 int main() {

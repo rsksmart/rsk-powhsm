@@ -234,8 +234,7 @@ void test_onboard_device() {
     G_is_pin_valid = true;
     mock_cx_rng(seed, SEEDSIZE);
     ASSERT_EQUALS(3, onboard_device(&onboard_ctx));
-    ASSERT_APDU_AT(1, 2);
-    ASSERT_APDU_AT(2, 1);
+    ASSERT_APDU("\x80\x02\x01");
     assert(G_device_unlocked);
     assert(G_device_onboarded);
     assert(G_wiped_while_locked);
