@@ -81,6 +81,7 @@ static void reset_flags() {
 // Mock function calls
 unsigned int set_host_seed(volatile unsigned int rx, onboard_t* onboard_ctx) {
     ASSERT_NOT_NULL(onboard_ctx);
+    assert(onboard_ctx == &G_bolos_ux_context.onboard);
     G_host_seed_is_set = true;
     return 0;
 }
@@ -121,6 +122,7 @@ unsigned int get_mode() {
 
 unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx) {
     ASSERT_NOT_NULL(att_ctx);
+    assert(att_ctx == &G_bolos_ux_context.attestation);
     G_get_attestation_called = true;
     return 3;
 }
@@ -128,6 +130,7 @@ unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx) {
 unsigned int do_authorize_signer(volatile unsigned int rx,
                                  sigaut_t* sigaut_ctx) {
     ASSERT_NOT_NULL(sigaut_ctx);
+    assert(sigaut_ctx == &G_bolos_ux_context.sigaut);
     G_authorize_signer_called = true;
     return 3;
 }
@@ -163,6 +166,7 @@ void init_signer_authorization() {
 }
 
 unsigned short io_exchange(unsigned char channel, unsigned short tx_len) {
+    assert(CHANNEL_APDU == channel);
     return 0;
 }
 
