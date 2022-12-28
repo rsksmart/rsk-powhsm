@@ -26,7 +26,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
-#include <pthread.h>
 
 #include "assert_utils.h"
 #include "bootloader.h"
