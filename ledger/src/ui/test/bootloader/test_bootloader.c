@@ -79,7 +79,7 @@ static void reset_flags() {
 
 // Mock function calls
 unsigned int set_host_seed(volatile unsigned int rx, onboard_t* onboard_ctx) {
-    ASSERT_NOT_NULL(onboard_ctx);
+    assert(NULL != onboard_ctx);
     assert(onboard_ctx == &G_bolos_ux_context.onboard);
     G_host_seed_is_set = true;
     return 0;
@@ -120,7 +120,7 @@ unsigned int get_mode() {
 }
 
 unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx) {
-    ASSERT_NOT_NULL(att_ctx);
+    assert(NULL != att_ctx);
     assert(att_ctx == &G_bolos_ux_context.attestation);
     G_get_attestation_called = true;
     return 3;
@@ -128,7 +128,7 @@ unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx) {
 
 unsigned int do_authorize_signer(volatile unsigned int rx,
                                  sigaut_t* sigaut_ctx) {
-    ASSERT_NOT_NULL(sigaut_ctx);
+    assert(NULL != sigaut_ctx);
     assert(sigaut_ctx == &G_bolos_ux_context.sigaut);
     G_authorize_signer_called = true;
     return 3;
@@ -192,7 +192,7 @@ void test_seed() {
     G_host_seed_is_set = false;
     rx = set_apdu("\x80\x44"); // RSK_SEED_CMD
     tx = bootloader_process_apdu(rx, G_bootloader_mode);
-    ASSERT_EQUALS(0, tx);
+    assert(0 == tx);
     assert(G_host_seed_is_set);
     assert(RESET_IF_STARTED_CALLED());
 }
@@ -208,7 +208,7 @@ void test_pin() {
     G_host_seed_is_set = false;
     rx = set_apdu("\x80\x41"); // RSK_PIN_CMD
     tx = bootloader_process_apdu(rx, G_bootloader_mode);
-    ASSERT_EQUALS(3, tx);
+    assert(3 == tx);
     assert(G_pin_buffer_updated);
     assert(RESET_IF_STARTED_CALLED());
 }
@@ -226,7 +226,7 @@ void test_is_onboard() {
     rx = set_apdu("\x80\x06"); // RSK_IS_ONBOARD
     tx = bootloader_process_apdu(rx, G_bootloader_mode);
     assert(G_is_onboarded_called);
-    ASSERT_EQUALS(5, tx);
+    assert(5 == tx);
     ASSERT_APDU("\x80\x00");
     assert(RESET_IF_STARTED_CALLED());
 
@@ -236,7 +236,7 @@ void test_is_onboard() {
     rx = set_apdu("\x80\x06"); // RSK_IS_ONBOARD
     tx = bootloader_process_apdu(rx, G_bootloader_mode);
     assert(G_is_onboarded_called);
-    ASSERT_EQUALS(5, tx);
+    assert(5 == tx);
     ASSERT_APDU("\x80\x01");
     assert(RESET_IF_STARTED_CALLED());
 }
@@ -254,7 +254,7 @@ void test_wipe_default_mode() {
     G_is_pin_set = true;
     rx = set_apdu("\x80\x07"); // RSK_WIPE
     tx = bootloader_process_apdu(rx, G_bootloader_mode);
-    ASSERT_EQUALS(3, tx);
+    assert(3 == tx);
     assert(G_is_onboarded);
     assert(G_is_pin_buffer_cleared);
     assert(RESET_IF_STARTED_CALLED());
@@ -273,7 +273,7 @@ void test_wipe_onboard_mode() {
     G_is_pin_set = true;
     rx = set_apdu("\x80\x07"); // RSK_WIPE
     tx = bootloader_process_apdu(rx, G_bootloader_mode);
-    ASSERT_EQUALS(3, tx);
+    assert(3 == tx);
     assert(G_is_onboarded);
     assert(G_is_pin_buffer_cleared);
     assert(RESET_IF_STARTED_CALLED());
@@ -291,7 +291,7 @@ void test_newpin() {
     G_is_pin_buffer_cleared = false;
     rx = set_apdu("\x80\x08"); // RSK_NEWPIN
     tx = bootloader_process_apdu(rx, G_bootloader_mode);
-    ASSERT_EQUALS(3, tx);
+    assert(3 == tx);
     assert(G_is_pin_set);
     assert(G_is_pin_buffer_cleared);
     assert(RESET_IF_STARTED_CALLED());
@@ -307,7 +307,7 @@ void test_echo() {
     G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
     rx = set_apdu("\x80\x02"); // RSK_ECHO_CMD
     tx = bootloader_process_apdu(rx, G_bootloader_mode);
-    ASSERT_EQUALS(rx, tx);
+    assert(rx == tx);
     assert(RESET_IF_STARTED_CALLED());
 }
 
@@ -321,7 +321,7 @@ void test_mode() {
     G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
     rx = set_apdu("\x80\x43"); // RSK_MODE_CMD
     tx = bootloader_process_apdu(rx, G_bootloader_mode);
-    ASSERT_EQUALS(2, tx);
+    assert(2 == tx);
     ASSERT_APDU("\x80\x02");
 }
 
@@ -336,7 +336,7 @@ void test_attestation() {
     G_get_attestation_called = false;
     rx = set_apdu("\x80\x50"); // INS_ATTESTATION
     tx = bootloader_process_apdu(rx, G_bootloader_mode);
-    ASSERT_EQUALS(3, tx);
+    assert(3 == tx);
     assert(G_get_attestation_called);
 }
 
@@ -351,7 +351,7 @@ void test_signer_authorization() {
     G_authorize_signer_called = false;
     rx = set_apdu("\x80\x51"); // INS_SIGNER_AUTHORIZATION
     tx = bootloader_process_apdu(rx, G_bootloader_mode);
-    ASSERT_EQUALS(3, tx);
+    assert(3 == tx);
     assert(G_authorize_signer_called);
     assert(RESET_IF_STARTED_CALLED());
 }
@@ -367,7 +367,7 @@ void test_retries() {
     G_get_retries_called = false;
     rx = set_apdu("\x80\x45"); // RSK_RETRIES
     tx = bootloader_process_apdu(rx, G_bootloader_mode);
-    ASSERT_EQUALS(3, tx);
+    assert(3 == tx);
     assert(G_get_retries_called);
     assert(RESET_IF_STARTED_CALLED());
 }
@@ -383,7 +383,7 @@ void test_unlock() {
     G_unlock_called = false;
     rx = set_apdu("\x80\xfe"); // RSK_UNLOCK_CMD
     tx = bootloader_process_apdu(rx, G_bootloader_mode);
-    ASSERT_EQUALS(3, tx);
+    assert(3 == tx);
     assert(G_unlock_called);
     assert(RESET_IF_STARTED_CALLED());
 }
@@ -404,7 +404,7 @@ void test_end() {
             ASSERT_FAIL();
         }
         CATCH(EX_BOOTLOADER_RSK_END) {
-            ASSERT_EQUALS(1, G_autoexec);
+            assert(1 == G_autoexec);
             assert(RESET_IF_STARTED_CALLED());
             return;
         }
@@ -433,7 +433,7 @@ void test_end_nosig() {
             ASSERT_FAIL();
         }
         CATCH(EX_BOOTLOADER_RSK_END) {
-            ASSERT_EQUALS(0, G_autoexec);
+            assert(0 == G_autoexec);
             assert(RESET_IF_STARTED_CALLED());
             return;
         }
@@ -538,7 +538,7 @@ void test_onboard_mode() {
             // Set onboard_performed flag
             rx = set_apdu("\x80\x07"); // RSK_WIPE
             tx = bootloader_process_apdu(rx, G_bootloader_mode);
-            ASSERT_EQUALS(3, tx);
+            assert(3 == tx);
 
             // Echo command must fail after onboard is performed
             rx = set_apdu("\x80\x02"); // RSK_ECHO_CMD

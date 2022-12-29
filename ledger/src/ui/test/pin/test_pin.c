@@ -54,7 +54,7 @@ static void send_rsk_pin_cmd(const char *pin) {
         SET_APDU_AT(1, RSK_PIN_CMD);
         SET_APDU_AT(2, i);
         SET_APDU_AT(3, pin[i]);
-        ASSERT_EQUALS(3, update_pin_buffer(rx));
+        assert(3 == update_pin_buffer(rx));
     }
 }
 
@@ -170,7 +170,7 @@ void test_set_pin() {
     setup();
     send_rsk_pin_cmd("X1234567a");
 
-    ASSERT_EQUALS(3, set_pin());
+    assert(3 == set_pin());
     ASSERT_STR_EQUALS("1234567a", G_device_pin);
     assert(G_device_unlocked);
     assert(G_os_global_pin_invalidate_called);
@@ -208,8 +208,8 @@ void test_unlock_with_pin() {
     setup();
     send_rsk_pin_cmd("X1234567a");
 
-    ASSERT_EQUALS(3, set_pin());
-    ASSERT_EQUALS(1, unlock_with_pin(true));
+    assert(3 == set_pin());
+    assert(1 == unlock_with_pin(true));
     assert(3 == set_pin());
     assert(1 == unlock_with_pin(true));
     // Skip prepended length
@@ -240,7 +240,7 @@ void test_unlock_with_pin_not_set() {
     setup();
     send_rsk_pin_cmd("X1234567a");
 
-    ASSERT_EQUALS(0, unlock_with_pin(true));
+    assert(0 == unlock_with_pin(true));
 
     assert(!G_device_unlocked);
     assert(!G_successful_unlock_while_locked);

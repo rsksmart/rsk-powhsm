@@ -156,7 +156,7 @@ static void send_rsk_pin_cmd(const char *pin) {
         SET_APDU_AT(1, RSK_PIN_CMD);
         SET_APDU_AT(2, i);
         SET_APDU_AT(3, pin[i]);
-        ASSERT_EQUALS(3, update_pin_buffer(rx));
+        assert(3 == update_pin_buffer(rx));
     }
 }
 
@@ -167,7 +167,7 @@ static void send_rsk_seed_cmd(onboard_t *ctx, const unsigned char *host_seed) {
         SET_APDU_AT(1, RSK_SEED_CMD);
         SET_APDU_AT(2, i);
         SET_APDU_AT(3, host_seed[i]);
-        ASSERT_EQUALS(0, set_host_seed(rx, ctx));
+        assert(0 == set_host_seed(rx, ctx));
     }
 }
 
@@ -186,7 +186,7 @@ void test_reset_onboard_ctx() {
 
     ASSERT_STR_EQUALS("\x0", onboard_ctx.words_buffer);
     ASSERT_STR_EQUALS("\x0", onboard_ctx.seed);
-    ASSERT_EQUALS(0, onboard_ctx.words_buffer_length);
+    assert(0 == onboard_ctx.words_buffer_length);
 }
 
 void test_set_host_seed() {
@@ -204,7 +204,7 @@ void test_set_host_seed() {
     for (int i = 0; i < strlen(host_seed); i++) {
         SET_APDU_AT(2, i);
         SET_APDU_AT(3, host_seed[i]);
-        ASSERT_EQUALS(0, set_host_seed(rx, &onboard_ctx));
+        assert(0 == set_host_seed(rx, &onboard_ctx));
     }
     ASSERT_STR_N_EQUALS(host_seed, onboard_ctx.host_seed, SEEDSIZE);
 }
@@ -233,7 +233,7 @@ void test_onboard_device() {
 
     G_is_pin_valid = true;
     mock_cx_rng(seed, SEEDSIZE);
-    ASSERT_EQUALS(3, onboard_device(&onboard_ctx));
+    assert(3 == onboard_device(&onboard_ctx));
     ASSERT_APDU("\x80\x02\x01");
     assert(G_device_unlocked);
     assert(G_device_onboarded);
@@ -250,7 +250,7 @@ void test_onboard_device() {
     // Make sure all mnemonic and seed information is wiped after onboard_device
     ASSERT_STR_EQUALS("\x0", onboard_ctx.words_buffer);
     ASSERT_STR_EQUALS("\x0", onboard_ctx.seed);
-    ASSERT_EQUALS(0, onboard_ctx.words_buffer_length);
+    assert(0 == onboard_ctx.words_buffer_length);
 }
 
 void test_onboard_device_invalid_pin() {
@@ -306,11 +306,11 @@ void test_is_onboarded() {
     send_rsk_seed_cmd(&onboard_ctx, host_seed);
 
     G_device_onboarded = true;
-    ASSERT_EQUALS(5, is_onboarded());
+    assert(5 == is_onboarded());
     ASSERT_APDU("\x80\x01\x03\x00\x01");
 
     G_device_onboarded = false;
-    ASSERT_EQUALS(5, is_onboarded());
+    assert(5 == is_onboarded());
     ASSERT_APDU("\x80\x00\x03\x00\x01");
 }
 

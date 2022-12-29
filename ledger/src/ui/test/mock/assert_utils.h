@@ -28,8 +28,6 @@
 #include <assert.h>
 #include <string.h>
 
-#define ASSERT_EQUALS(a, b) assert((a) == (b))
-#define ASSERT_NOT_NULL(obj) assert(NULL != obj)
 #define ASSERT_FAIL() assert(false)
 #define ASSERT_STR_EQUALS(a, b) \
     assert(0 == strcmp((const char *)a, (const char *)b))
