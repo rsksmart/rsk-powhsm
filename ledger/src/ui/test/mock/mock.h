@@ -33,6 +33,9 @@
 
 #define PIC(x) (x)
 
+#define PARAM_SIGNERS_FILE testing
+#define CX_CURVE_256K1 33
+
 #define IO_APDU_BUFFER_SIZE (5 + 255)
 extern unsigned char G_io_apdu_buffer[IO_APDU_BUFFER_SIZE];
 
@@ -45,9 +48,17 @@ struct mock_struct {
 };
 
 typedef uint8_t cx_curve_t;
+
 typedef struct mock_struct cx_sha3_t;
-typedef struct mock_struct cx_ecfp_public_key_t;
-typedef struct mock_struct cx_ecfp_private_key_t;
+typedef struct cx_ecfp_public_key_s {
+    unsigned int W_len;
+    unsigned char W[65];
+} cx_ecfp_public_key_t;
+
+typedef struct cx_ecfp_private_key_s {
+    unsigned int d_len;
+    unsigned char d[32];
+} cx_ecfp_private_key_t;
 
 // Mock os calls
 unsigned int os_global_pin_retries(void);
@@ -67,6 +78,26 @@ void os_perso_set_pin(unsigned int identity,
                       unsigned int length);
 unsigned int os_global_pin_check(unsigned char *pin_buffer,
                                  unsigned char pin_length);
+void os_perso_derive_node_bip32(cx_curve_t curve,
+                                unsigned int *path,
+                                unsigned int pathLength,
+                                unsigned char *privateKey,
+                                unsigned char *chain);
+void os_memmove(void *dst, const void *src, unsigned int length);
+
+int cx_ecdsa_init_private_key(cx_curve_t curve,
+                              unsigned char *rawkey,
+                              unsigned int key_len,
+                              cx_ecfp_private_key_t *key);
+int cx_ecfp_generate_pair(cx_curve_t curve,
+                          cx_ecfp_public_key_t *pubkey,
+                          cx_ecfp_private_key_t *privkey,
+                          int keepprivate);
+unsigned int os_endorsement_key2_derive_sign_data(unsigned char *src,
+                                                  unsigned int srcLength,
+                                                  unsigned char *signature);
+
+unsigned int os_endorsement_get_code_hash(unsigned char *buffer);
 
 // Mock bolos ux calls
 unsigned int bolos_ux_mnemonic_from_data(unsigned char *in,

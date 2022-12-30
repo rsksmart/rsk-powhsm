@@ -37,5 +37,11 @@
 
 #define ASSERT_ARRAY_CLEARED(arr) \
     assert(memcmp(arr, (char[sizeof(arr)]){0}, sizeof(arr)) == 0)
+#define ASSERT_STR_N_EQUALS(a, b, n) \
+    assert(0 == strncmp((const char *)(a), (const char *)(b), n))
+#define ASSERT_STRUCT_CLEARED(struct_name, struct_instance) \
+    assert(memcmp(&(struct_instance),                       \
+                  &(struct_name){0},                        \
+                  sizeof(struct_name)) == 0)
 
 #endif
