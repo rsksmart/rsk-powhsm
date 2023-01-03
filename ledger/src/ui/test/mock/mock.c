@@ -22,47 +22,25 @@
  * IN THE SOFTWARE.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
 #include <string.h>
-
-#include "apdu.h"
-#include "apdu_utils.h"
-#include "assert_utils.h"
-#include "defs.h"
 #include "mock.h"
-#include "unlock.h"
 
-// Mock variables
-static bool G_pin_accepted;
+// Mock variables used by os_exception.h
+static try_context_t G_try_last_open_context_var;
+try_context_t *G_try_last_open_context = &G_try_last_open_context_var;
 
-// Mock functions from other modules
-unsigned int unlock_with_pin(bool prepended_length) {
-    return G_pin_accepted;
+void explicit_bzero(void *s, size_t len) {
+    memset(s, '\0', len);
+    /* Compiler barrier.  */
+    asm volatile("" ::: "memory");
 }
 
-void test_unlock() {
-    printf("Test unlock...\n");
-    G_pin_accepted = true;
-    set_apdu("\x80\xfe"); // RSK_UNLOCK_CMD
-
-    assert(3 == unlock());
-    ASSERT_APDU("\x80\xfe\x01");
-}
-
-void test_unlock_wrong_pin() {
-    printf("Test unlock (wrong pin)...\n");
-    G_pin_accepted = false;
-    set_apdu("\x80\xfe"); // RSK_UNLOCK_CMD
-
-    assert(3 == unlock());
-    ASSERT_APDU("\x80\xfe\x00");
-}
-
-int main() {
-    test_unlock();
-    test_unlock_wrong_pin();
-
-    return 0;
+void nvm_write(void *dst_adr, void *src_adr, unsigned int src_len) {
+    if (src_adr == NULL) {
+        // Treat as memory reset
+        memset(dst_adr, 0, src_len);
+    } else {
+        // Treat as normal copy
+        memmove(dst_adr, src_adr, src_len);
+    }
 }

@@ -22,9 +22,9 @@
  * IN THE SOFTWARE.
  */
 
-/**
- * generate a random buffer
- */
-unsigned char *cx_rng(unsigned char *buffer, unsigned int len);
+#ifndef _MOCK_CX_H
+#define _MOCK_CX_H
 
-void mock_cx_rng(const unsigned char *data, unsigned int len);
+#include "mock.h"
+
+#endif

@@ -22,26 +22,20 @@
 
 SRCDIR = ../../src
 MOCKDIR = ../mock
-CFLAGS = -I $(SRCDIR) -I $(MOCKDIR) -I ./
+CFLAGS = -I./mock -I$(MOCKDIR) -I$(SRCDIR) -g
 
 PROG = test.out
-OBJS = apdu_utils.o mock.o pin.o test_pin.o
+OBJS = bolos_ux_handlers.o test_bolos_ux_handlers.o
 
 all: $(PROG)
 
 $(PROG): $(OBJS)
-	$(CC) -o $@ $^
+	$(CC) -o $@ $^ -g
 
-test_pin.o: test_pin.c
+test_bolos_ux_handlers.o: test_bolos_ux_handlers.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
-pin.o: $(SRCDIR)/pin.c
-	$(CC) $(CFLAGS) -c -o $@ $^
-
-mock.o: $(MOCKDIR)/mock.c
-	$(CC) $(CFLAGS) -c -o $@ $^
-
-apdu_utils.o: $(MOCKDIR)/apdu_utils.c
+bolos_ux_handlers.o: $(SRCDIR)/bolos_ux_handlers.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
 .PHONY: clean test

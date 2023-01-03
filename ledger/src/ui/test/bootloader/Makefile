@@ -22,23 +22,20 @@
 
 SRCDIR = ../../src
 MOCKDIR = ../mock
-CFLAGS = -I $(SRCDIR) -I $(MOCKDIR) -I ./
+CFLAGS = -I./mock -I$(MOCKDIR) -I$(SRCDIR) -g
 
 PROG = test.out
-OBJS = apdu_utils.o mock.o pin.o test_pin.o
+OBJS = apdu_utils.o bootloader.o test_bootloader.o
 
 all: $(PROG)
 
 $(PROG): $(OBJS)
-	$(CC) -o $@ $^
+	$(CC) -o $@ $^ -g
 
-test_pin.o: test_pin.c
+test_bootloader.o: test_bootloader.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
-pin.o: $(SRCDIR)/pin.c
-	$(CC) $(CFLAGS) -c -o $@ $^
-
-mock.o: $(MOCKDIR)/mock.c
+bootloader.o: $(SRCDIR)/bootloader.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
 apdu_utils.o: $(MOCKDIR)/apdu_utils.c

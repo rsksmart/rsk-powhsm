@@ -22,20 +22,40 @@
  * IN THE SOFTWARE.
  */
 
-#include "cx.h"
+#ifndef _BOOTLOADER_MOCK_H
+#define _BOOTLOADER_MOCK_H
 
-static unsigned char mock_seed[32];
+// Needed for signer_authorization.h
+#define PARAM_SIGNERS_FILE testing
 
-void mock_cx_rng(const unsigned char *data, unsigned int len) {
-    for (unsigned int i = 0; i < len; i++) {
-        mock_seed[i] = data[i];
-    }
-}
+#include <assert.h>
+#include <stdint.h>
+#include "attestation.h"
+#include "os_exceptions.h"
+#include "apdu_utils.h"
+#include "mock.h"
 
-unsigned char *cx_rng(unsigned char *buffer, unsigned int len) {
-    // Mock 32 random bytes
-    for (int i = 0; i < len; i++) {
-        buffer[i] = mock_seed[i];
-    }
-    return 0;
-}
+// Mock types
+typedef struct mock_struct onboard_t;
+
+typedef struct mock_bolos_ux_context {
+    unsigned int app_auto_started;
+    unsigned int dashboard_redisplayed;
+
+    union {
+        att_t attestation;
+        sigaut_t sigaut;
+        onboard_t onboard;
+    };
+} bolos_ux_context_t;
+
+extern bolos_ux_context_t G_bolos_ux_context;
+
+// Mock function declarations
+void reset_onboard_ctx(onboard_t* onboard_ctx);
+unsigned int set_host_seed(volatile unsigned int rx, onboard_t* onboard_ctx);
+unsigned int is_onboarded();
+unsigned int onboard_device(onboard_t* onboard_ctx);
+unsigned short io_exchange(unsigned char channel, unsigned short tx_len);
+
+#endif

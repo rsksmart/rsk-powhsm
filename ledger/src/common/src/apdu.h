@@ -85,4 +85,7 @@
 #define ERR_INS_NOT_SUPPORTED (0x6D00)
 #define APDU_OK (0x9000)
 
+// Special exeption used by bootloader
+#define EX_BOOTLOADER_RSK_END (0x90FF)
+
 #endif

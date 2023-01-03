@@ -22,47 +22,9 @@
  * IN THE SOFTWARE.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
-#include <string.h>
+#ifndef __MOCK_OS_IO_SEPROXYHAL_H
+#define __MOCK_OS_IO_SEPROXYHAL_H
 
-#include "apdu.h"
-#include "apdu_utils.h"
-#include "assert_utils.h"
-#include "defs.h"
 #include "mock.h"
-#include "unlock.h"
 
-// Mock variables
-static bool G_pin_accepted;
-
-// Mock functions from other modules
-unsigned int unlock_with_pin(bool prepended_length) {
-    return G_pin_accepted;
-}
-
-void test_unlock() {
-    printf("Test unlock...\n");
-    G_pin_accepted = true;
-    set_apdu("\x80\xfe"); // RSK_UNLOCK_CMD
-
-    assert(3 == unlock());
-    ASSERT_APDU("\x80\xfe\x01");
-}
-
-void test_unlock_wrong_pin() {
-    printf("Test unlock (wrong pin)...\n");
-    G_pin_accepted = false;
-    set_apdu("\x80\xfe"); // RSK_UNLOCK_CMD
-
-    assert(3 == unlock());
-    ASSERT_APDU("\x80\xfe\x00");
-}
-
-int main() {
-    test_unlock();
-    test_unlock_wrong_pin();
-
-    return 0;
-}
+#endif

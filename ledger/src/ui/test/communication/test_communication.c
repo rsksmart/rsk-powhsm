@@ -26,10 +26,18 @@
 #include <string.h>
 #include <assert.h>
 
+#include "apdu_utils.h"
+#include "assert_utils.h"
 #include "defs.h"
+#include "mock.h"
 #include "communication.h"
-#include "os.h"
-#include "pin.h"
+
+static unsigned int G_retries;
+
+// Mock function calls
+unsigned int os_global_pin_retries(void) {
+    return G_retries;
+}
 
 void test_echo() {
     printf("Test echo...\n");
@@ -39,16 +47,17 @@ void test_echo() {
 
 void test_get_mode() {
     printf("Test get mode...\n");
+    set_apdu("\x80\x43"); // RSK_MODE_CMD
     assert(2 == get_mode());
-    assert(RSK_MODE_BOOTLOADER == APDU_AT(1));
+    ASSERT_APDU("\x80\x02"); // RSK_MODE_BOOTLOADER
 }
 
 void test_get_retries() {
     printf("Test get retries...\n");
-    set_mock_retries(123);
-
+    G_retries = 123;
+    set_apdu("\x80\x45"); // RSK_RETRIES
     assert(3 == get_retries());
-    assert(123 == APDU_AT(2));
+    ASSERT_APDU("\x80\x45\x7b");
 }
 
 int main() {
