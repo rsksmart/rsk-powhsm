@@ -1,0 +1,16 @@
+{
+    "name": "Get blockchain state before signing",
+    "operation": "getState",
+    "expected": {
+        "best_block": "c38ac27d1f9021e358b0e633536bd381bf586f244d83417116c1d2040fa879fc",
+        "newest_valid_block": "df875149b0cf41c6d97bfdac376c044db6477ad071df61cc847d89a6bcdcc4f9",
+        "ancestor_block": "a91f702314c77a8965b53d1dc8a44301a0bf915023de4258e80a47415a787349",
+        "ancestor_receipts_root": "21f82fa21d141a345338733fa871efb61cecd716f9f6c46341d9990ea678f7cd",
+        "updating.in_progress": true,
+        "updating.newest_valid_block": "895d0cacc71c5027af479290f63f9bc0983feaa3445cca39da0056d2bd9ab6c8",
+        "updating.best_block": "0000000000000000000000000000000000000000000000000000000000000000",
+        "updating.next_expected_block": "f0e9ec511bbff0efd732c145f4f39deb35175440c487d129a564bdef33216b3e",
+        "updating.total_difficulty": 6,
+        "updating.already_validated": false
+    }
+}

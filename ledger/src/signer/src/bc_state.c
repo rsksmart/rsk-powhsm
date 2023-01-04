@@ -62,6 +62,7 @@ void bc_init_state() {
         uint8_t t = 1;
         NVM_WRITE(&N_bc_state.initialized, &t, sizeof(t));
     }
+    explicit_bzero(&bc_st_updating, sizeof(bc_st_updating));
 }
 
 // -----------------------------------------------------------------------
