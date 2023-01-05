@@ -30,13 +30,13 @@
 #include <stddef.h>
 
 #include "os_exceptions.h"
+#include "apdu_utils.h"
 
 #define PIC(x) (x)
 
 #define PARAM_SIGNERS_FILE testing
 #define CX_CURVE_256K1 33
 
-#define IO_APDU_BUFFER_SIZE (5 + 255)
 extern unsigned char G_io_apdu_buffer[IO_APDU_BUFFER_SIZE];
 
 #define APDU_RETURN(offset) \

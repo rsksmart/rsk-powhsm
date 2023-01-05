@@ -217,9 +217,7 @@ void test_get_attestation_get_msg() {
 
     // CLA + INS_ATTESTATION + ATT_OP_GET_MSG + PAGE_NUM (0)
     set_apdu("\x80\x50\x02\x00");
-
-    int ret = get_attestation(4, &G_att_ctx);
-    assert((ATT_MESSAGE_SIZE + 4) == get_attestation(4, &G_att_ctx));
+    assert((APDU_TOTAL_DATA_SIZE_OUT + 3) == get_attestation(4, &G_att_ctx));
     ASSERT_APDU(
         "\x80\x50\x02\x00"
         "HSM:UI:3.0"
@@ -227,9 +225,15 @@ void test_get_attestation_get_msg() {
         "\x73\x60\x22\x26\xbb\xb5\xed\xf2\x7d\x98\xc8\xa3\x1b\xcc\xf0"
         "\x03\xe6\xd7\x1d\x5c\x2b\x06\x36\x03\x53\xfb\xd8\x22\x7a\xb3\xab\xfc"
         "\x3d\x46\x6a\x5f\x74\xdc\x28\xc2\xb7\x3e\xb0\x95\x2b\xec\x20\x87"
-        "\xdd\xa7\x70\x05\x55\xa3\x7b\x75\x34\x29\x1b\x96\x2d\x9f\x41\x41\xb9"
-        "\x64\x48\xda\xd7\x12\x81\xef\x7c\x2d\x61\x49\x4c\xcb\xb8\x59"
-        "\x00\x09");
+        "\xdd\xa7\x70\x05");
+
+    // CLA + INS_ATTESTATION + ATT_OP_GET_MSG + PAGE_NUM (1)
+    set_apdu("\x80\x50\x02\x01");
+    assert(34 == get_attestation(4, &G_att_ctx));
+    ASSERT_APDU("\x80\x50\x02\x00"
+                "\x55\xa3\x7b\x75\x34\x29\x1b\x96\x2d\x9f\x41\x41\xb9"
+                "\x64\x48\xda\xd7\x12\x81\xef\x7c\x2d\x61\x49\x4c\xcb\xb8\x59"
+                "\x00\x09");
 }
 
 void test_get_attestation_get_msg_wrong_stage() {
