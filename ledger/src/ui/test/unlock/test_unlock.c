@@ -47,7 +47,6 @@ void test_unlock() {
     G_pin_accepted = true;
     unsigned int rx;
     SET_APDU("\x80\xfe", rx); // RSK_UNLOCK_CMD
-
     assert(3 == unlock());
     ASSERT_APDU("\x80\xfe\x01");
 }
@@ -57,7 +56,6 @@ void test_unlock_wrong_pin() {
     G_pin_accepted = false;
     unsigned int rx;
     SET_APDU("\x80\xfe", rx); // RSK_UNLOCK_CMD
-
     assert(3 == unlock());
     ASSERT_APDU("\x80\xfe\x00");
 }

@@ -227,7 +227,7 @@ void test_is_onboard() {
     tx = bootloader_process_apdu(rx, G_bootloader_mode);
     assert(G_is_onboarded_called);
     assert(5 == tx);
-    ASSERT_APDU("\x80\x00");
+    ASSERT_APDU("\x80\x00", 2);
     assert(RESET_IF_STARTED_CALLED());
 
     bootloader_init();
@@ -237,7 +237,7 @@ void test_is_onboard() {
     tx = bootloader_process_apdu(rx, G_bootloader_mode);
     assert(G_is_onboarded_called);
     assert(5 == tx);
-    ASSERT_APDU("\x80\x01");
+    ASSERT_APDU("\x80\x01", 2);
     assert(RESET_IF_STARTED_CALLED());
 }
 
@@ -322,7 +322,7 @@ void test_mode() {
     SET_APDU("\x80\x43", rx); // RSK_MODE_CMD
     tx = bootloader_process_apdu(rx, G_bootloader_mode);
     assert(2 == tx);
-    ASSERT_APDU("\x80\x02");
+    ASSERT_APDU("\x80\x02", 2);
 }
 
 void test_attestation() {

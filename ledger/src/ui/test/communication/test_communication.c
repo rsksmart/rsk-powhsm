@@ -50,7 +50,7 @@ void test_get_mode() {
     unsigned int rx;
     SET_APDU("\x80\x43", rx); // RSK_MODE_CMD
     assert(2 == get_mode());
-    ASSERT_APDU("\x80\x02"); // RSK_MODE_BOOTLOADER
+    ASSERT_APDU("\x80\x02", 2); // RSK_MODE_BOOTLOADER
 }
 
 void test_get_retries() {
@@ -59,7 +59,7 @@ void test_get_retries() {
     unsigned int rx;
     SET_APDU("\x80\x45", rx); // RSK_RETRIES
     assert(3 == get_retries());
-    ASSERT_APDU("\x80\x45\x7b");
+    ASSERT_APDU("\x80\x45\x7b", 3);
 }
 
 int main() {
