@@ -279,6 +279,7 @@ void test_get_attestation_get() {
     assert(TX_FOR_DATA_SIZE(strlen(MSG_SIGNATURE)) ==
            get_attestation(3, &G_att_ctx));
 
+    ASSERT_APDU("\x80\x50\x03" MSG_SIGNATURE);
 }
 
 void test_get_attestation_get_wrong_stage() {
