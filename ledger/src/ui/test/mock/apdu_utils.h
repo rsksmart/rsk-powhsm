@@ -31,8 +31,7 @@
 #define IO_APDU_BUFFER_SIZE (5 + 255)
 extern unsigned char G_io_apdu_buffer[IO_APDU_BUFFER_SIZE];
 
-#define ASSERT_APDU(str) \
-    assert(0 == strncmp((const char*)G_io_apdu_buffer, str, strlen(str)))
+#define ASSERT_APDU(data, len) assert(0 == memcmp(G_io_apdu_buffer, data, len))
 
-size_t set_apdu(const char* str);
+void set_apdu(const char* data, size_t len);
 void clear_apdu_buffer();

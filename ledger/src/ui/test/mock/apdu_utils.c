@@ -28,9 +28,8 @@
 
 unsigned char G_io_apdu_buffer[IO_APDU_BUFFER_SIZE];
 
-size_t set_apdu(const char* str) {
-    strcpy((char*)G_io_apdu_buffer, str);
-    return strlen(str);
+void set_apdu(const char* data, size_t len) {
+    memcpy(G_io_apdu_buffer, data, len);
 }
 
 void clear_apdu_buffer() {

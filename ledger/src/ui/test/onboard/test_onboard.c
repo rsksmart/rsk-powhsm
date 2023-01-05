@@ -76,8 +76,11 @@ unsigned int bolos_ux_mnemonic_from_data(unsigned char *in,
                                          unsigned int inLength,
                                          unsigned char *out,
                                          unsigned int outLength) {
-    sprintf((char *)out, "mnemonics-generated-from-%s", in);
-    return strlen((const char *)out);
+    int len = strlen("mnemonics-generated-from-");
+    assert(outLength >= len + inLength);
+    memcpy(out, "mnemonics-generated-from-", len);
+    memcpy(out + len, in, inLength);
+    return len + inLength;
 }
 
 /**
@@ -234,18 +237,19 @@ void test_onboard_device() {
     G_is_pin_valid = true;
     mock_cx_rng(seed, SEEDSIZE);
     assert(3 == onboard_device(&onboard_ctx));
-    ASSERT_APDU("\x80\x02\x01");
+    ASSERT_APDU("\x80\x02\x01", 3);
     assert(G_device_unlocked);
     assert(G_device_onboarded);
     assert(G_wiped_while_locked);
 
     ASSERT_STR_EQUALS("1234567a", G_device_pin);
     // "seed-generated-from-" + "mnemonics-generated-from-" + host_seed XOR seed
-    ASSERT_STR_EQUALS(
+    ASSERT_MEMCMP(
         "seed-generated-from-mnemonics-generated-from-"
         "\xbd\x56\xaf\xe4\xb4\x90\x1d\x9a\x3f\xc5\x50\x9b\x3e\xc1\xeb\xdf\x58"
         "\x71\x5b\x1a\x68\xc0\xb4\x11\x8c\xa7\x57\x91\xb7\xfb\xa5\x00",
-        G_global_seed);
+        G_global_seed,
+        77);
 
     // Make sure all mnemonic and seed information is wiped after onboard_device
     ASSERT_STR_EQUALS("\x0", onboard_ctx.words_buffer);
@@ -307,11 +311,11 @@ void test_is_onboarded() {
 
     G_device_onboarded = true;
     assert(5 == is_onboarded());
-    ASSERT_APDU("\x80\x01\x03\x00\x01");
+    ASSERT_APDU("\x80\x01\x03\x00\x01", 5);
 
     G_device_onboarded = false;
     assert(5 == is_onboarded());
-    ASSERT_APDU("\x80\x00\x03\x00\x01");
+    ASSERT_APDU("\x80\x00\x03\x00\x01", 5);
 }
 
 int main() {
