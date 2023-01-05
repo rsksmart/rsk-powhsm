@@ -152,11 +152,12 @@ void test_get_attestation_ud_value() {
     memcpy(G_att_ctx.priv_key_data, PRIVATE_KEY, sizeof(PRIVATE_KEY));
     G_att_ctx.stage = att_stage_wait_ud_value;
     // CLA + INS_ATTESTATION + ATT_OP_UD_VALUE + UD_VALUE
-    set_apdu("\x80\x50\x01\x46\x8d\xa8\x7f\x6a\x85\xe6\x40\x93\x27\xe1\x17\xe8"
-             "\xc7\xd2\x11\x0c\x73\x60\x22\x26\xbb\xb5\xed\xf2\x7d\x98\xc8\xa3"
-             "\x1b\xcc\xf0");
+    unsigned int rx = set_apdu(
+        "\x80\x50\x01\x46\x8d\xa8\x7f\x6a\x85\xe6\x40\x93\x27\xe1\x17\xe8"
+        "\xc7\xd2\x11\x0c\x73\x60\x22\x26\xbb\xb5\xed\xf2\x7d\x98\xc8\xa3"
+        "\x1b\xcc\xf0");
 
-    assert(3 == get_attestation(35, &G_att_ctx));
+    assert(3 == get_attestation(rx, &G_att_ctx));
     // PREFIX + UD_VALUE + Compressed pubkey + Signer hash + Iteration
     ASSERT_STR_EQUALS(
         "HSM:UI:3.0"
@@ -275,7 +276,9 @@ void test_get_attestation_get() {
     // CLA + INS_ATTESTATION + ATT_OP_GET
     set_apdu("\x80\x50\x03");
 
-    assert(35 == get_attestation(3, &G_att_ctx));
+    assert(TX_FOR_DATA_SIZE(strlen(MSG_SIGNATURE)) ==
+           get_attestation(3, &G_att_ctx));
+
 }
 
 void test_get_attestation_get_wrong_stage() {
