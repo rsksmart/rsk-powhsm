@@ -70,7 +70,7 @@ int cx_ecdsa_init_private_key(cx_curve_t curve,
                               cx_ecfp_private_key_t *key) {
     assert(CX_CURVE_256K1 == curve);
     ASSERT_STR_N_EQUALS(rawkey, PRIVATE_KEY, KEYLEN);
-    assert(rawkey == (unsigned char *)&G_att_ctx.priv_key_data);
+    assert(rawkey == (unsigned char *)G_att_ctx.priv_key_data);
     assert(key == &G_att_ctx.priv_key);
     assert(KEYLEN == key_len);
     set_private_key(key, rawkey);
@@ -99,7 +99,7 @@ unsigned int os_endorsement_get_code_hash(unsigned char *buffer) {
 unsigned int os_endorsement_key2_derive_sign_data(unsigned char *src,
                                                   unsigned int srcLength,
                                                   unsigned char *signature) {
-    assert(src == (unsigned char *)&G_att_ctx.msg);
+    assert(src == (unsigned char *)G_att_ctx.msg);
     assert(srcLength == G_att_ctx.msg_offset);
     assert(signature == APDU_DATA_PTR);
     memcpy(signature, MSG_SIGNATURE, sizeof(MSG_SIGNATURE));
@@ -113,8 +113,8 @@ void os_perso_derive_node_bip32(cx_curve_t curve,
                                 unsigned char *privateKey,
                                 unsigned char *chain) {
     assert(CX_CURVE_256K1 == curve);
-    assert(path == (unsigned int *)&G_att_ctx.path);
-    assert(privateKey == (unsigned char *)&G_att_ctx.priv_key_data);
+    assert(path == (unsigned int *)G_att_ctx.path);
+    assert(privateKey == (unsigned char *)G_att_ctx.priv_key_data);
     ASSERT_STR_N_EQUALS(path, PUBKEY_PATH, PUBKEY_PATH_LENGTH);
     ASSERT_STR_N_EQUALS(privateKey, PRIVATE_KEY, KEYLEN);
     assert(NULL == chain);
@@ -149,7 +149,7 @@ void test_get_attestation_ud_value() {
     printf("Test ATT_OP_UD_VALUE...\n");
     reset_attestation(&G_att_ctx);
     *(unsigned char *)N_onboarded_ui = 1;
-    memcpy(&G_att_ctx.priv_key_data, PRIVATE_KEY, sizeof(PRIVATE_KEY));
+    memcpy(G_att_ctx.priv_key_data, PRIVATE_KEY, sizeof(PRIVATE_KEY));
     G_att_ctx.stage = att_stage_wait_ud_value;
     // CLA + INS_ATTESTATION + ATT_OP_UD_VALUE + UD_VALUE
     set_apdu("\x80\x50\x01\x46\x8d\xa8\x7f\x6a\x85\xe6\x40\x93\x27\xe1\x17\xe8"
@@ -175,7 +175,7 @@ void test_get_attestation_ud_value_wrong_stage() {
     printf("Test ATT_OP_UD_VALUE (wrong stage)...\n");
     reset_attestation(&G_att_ctx);
     *(unsigned char *)N_onboarded_ui = 1;
-    memcpy(&G_att_ctx.priv_key_data, PRIVATE_KEY, sizeof(PRIVATE_KEY));
+    memcpy(G_att_ctx.priv_key_data, PRIVATE_KEY, sizeof(PRIVATE_KEY));
     G_att_ctx.stage = att_stage_ready;
     // CLA + INS_ATTESTATION + ATT_OP_UD_VALUE + UD_VALUE
     set_apdu("\x80\x50\x01\x46\x8d\xa8\x7f\x6a\x85\xe6\x40\x93\x27\xe1\x17\xe8"
@@ -201,7 +201,7 @@ void test_get_attestation_get_msg() {
     reset_attestation(&G_att_ctx);
     *(unsigned char *)N_onboarded_ui = 1;
     memcpy(
-        &G_att_ctx.msg,
+        G_att_ctx.msg,
         "HSM:UI:3.0"
         "\x46\x8d\xa8\x7f\x6a\x85\xe6\x40\x93\x27\xe1\x17\xe8\xc7\xd2\x11\x0c"
         "\x73\x60\x22\x26\xbb\xb5\xed\xf2\x7d\x98\xc8\xa3\x1b\xcc\xf0"
