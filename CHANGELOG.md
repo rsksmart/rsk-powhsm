@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.0.3] - 05/01/2023
+
+### Features/enhancements
+
+- Moving partial advance blockchain state to an independent RAM area
+
 ## [3.0.2] - 29/09/2022
 
 ### Features/enhancements
