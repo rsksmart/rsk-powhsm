@@ -76,9 +76,10 @@ unsigned int bolos_ux_mnemonic_from_data(unsigned char *in,
                                          unsigned int inLength,
                                          unsigned char *out,
                                          unsigned int outLength) {
-    int len = strlen("mnemonics-generated-from-");
+    const char mnemonics_prefix[] = "mnemonics-generated-from-";
+    int len = sizeof(mnemonics_prefix) - 1;
     assert(outLength >= len + inLength);
-    memcpy(out, "mnemonics-generated-from-", len);
+    memcpy(out, mnemonics_prefix, len);
     memcpy(out + len, in, inLength);
     return len + inLength;
 }
