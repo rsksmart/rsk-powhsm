@@ -190,7 +190,7 @@ void test_seed() {
     reset_flags();
     G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
     G_host_seed_is_set = false;
-    rx = set_apdu("\x80\x44"); // RSK_SEED_CMD
+    SET_APDU("\x80\x44", rx); // RSK_SEED_CMD
     tx = bootloader_process_apdu(rx, G_bootloader_mode);
     assert(0 == tx);
     assert(G_host_seed_is_set);
@@ -206,7 +206,7 @@ void test_pin() {
     reset_flags();
     G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
     G_host_seed_is_set = false;
-    rx = set_apdu("\x80\x41"); // RSK_PIN_CMD
+    SET_APDU("\x80\x41", rx); // RSK_PIN_CMD
     tx = bootloader_process_apdu(rx, G_bootloader_mode);
     assert(3 == tx);
     assert(G_pin_buffer_updated);
@@ -223,7 +223,7 @@ void test_is_onboard() {
     bootloader_init();
     reset_flags();
     G_is_onboarded = false;
-    rx = set_apdu("\x80\x06"); // RSK_IS_ONBOARD
+    SET_APDU("\x80\x06", rx); // RSK_IS_ONBOARD
     tx = bootloader_process_apdu(rx, G_bootloader_mode);
     assert(G_is_onboarded_called);
     assert(5 == tx);
@@ -233,7 +233,7 @@ void test_is_onboard() {
     bootloader_init();
     reset_flags();
     G_is_onboarded = true;
-    rx = set_apdu("\x80\x06"); // RSK_IS_ONBOARD
+    SET_APDU("\x80\x06", rx); // RSK_IS_ONBOARD
     tx = bootloader_process_apdu(rx, G_bootloader_mode);
     assert(G_is_onboarded_called);
     assert(5 == tx);
@@ -252,7 +252,7 @@ void test_wipe_default_mode() {
     G_is_onboarded = false;
     G_is_pin_buffer_cleared = false;
     G_is_pin_set = true;
-    rx = set_apdu("\x80\x07"); // RSK_WIPE
+    SET_APDU("\x80\x07", rx); // RSK_WIPE
     tx = bootloader_process_apdu(rx, G_bootloader_mode);
     assert(3 == tx);
     assert(G_is_onboarded);
@@ -271,7 +271,7 @@ void test_wipe_onboard_mode() {
     G_is_onboarded = false;
     G_is_pin_buffer_cleared = false;
     G_is_pin_set = true;
-    rx = set_apdu("\x80\x07"); // RSK_WIPE
+    SET_APDU("\x80\x07", rx); // RSK_WIPE
     tx = bootloader_process_apdu(rx, G_bootloader_mode);
     assert(3 == tx);
     assert(G_is_onboarded);
@@ -289,7 +289,7 @@ void test_newpin() {
     G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
     G_is_pin_set = false;
     G_is_pin_buffer_cleared = false;
-    rx = set_apdu("\x80\x08"); // RSK_NEWPIN
+    SET_APDU("\x80\x08", rx); // RSK_NEWPIN
     tx = bootloader_process_apdu(rx, G_bootloader_mode);
     assert(3 == tx);
     assert(G_is_pin_set);
@@ -305,7 +305,7 @@ void test_echo() {
     bootloader_init();
     reset_flags();
     G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
-    rx = set_apdu("\x80\x02"); // RSK_ECHO_CMD
+    SET_APDU("\x80\x02", rx); // RSK_ECHO_CMD
     tx = bootloader_process_apdu(rx, G_bootloader_mode);
     assert(rx == tx);
     assert(RESET_IF_STARTED_CALLED());
@@ -319,7 +319,7 @@ void test_mode() {
     bootloader_init();
     reset_flags();
     G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
-    rx = set_apdu("\x80\x43"); // RSK_MODE_CMD
+    SET_APDU("\x80\x43", rx); // RSK_MODE_CMD
     tx = bootloader_process_apdu(rx, G_bootloader_mode);
     assert(2 == tx);
     ASSERT_APDU("\x80\x02");
@@ -334,7 +334,7 @@ void test_attestation() {
     reset_flags();
     G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
     G_get_attestation_called = false;
-    rx = set_apdu("\x80\x50"); // INS_ATTESTATION
+    SET_APDU("\x80\x50", rx); // INS_ATTESTATION
     tx = bootloader_process_apdu(rx, G_bootloader_mode);
     assert(3 == tx);
     assert(G_get_attestation_called);
@@ -349,7 +349,7 @@ void test_signer_authorization() {
     reset_flags();
     G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
     G_authorize_signer_called = false;
-    rx = set_apdu("\x80\x51"); // INS_SIGNER_AUTHORIZATION
+    SET_APDU("\x80\x51", rx); // INS_SIGNER_AUTHORIZATION
     tx = bootloader_process_apdu(rx, G_bootloader_mode);
     assert(3 == tx);
     assert(G_authorize_signer_called);
@@ -365,7 +365,7 @@ void test_retries() {
     reset_flags();
     G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
     G_get_retries_called = false;
-    rx = set_apdu("\x80\x45"); // RSK_RETRIES
+    SET_APDU("\x80\x45", rx); // RSK_RETRIES
     tx = bootloader_process_apdu(rx, G_bootloader_mode);
     assert(3 == tx);
     assert(G_get_retries_called);
@@ -381,7 +381,7 @@ void test_unlock() {
     reset_flags();
     G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
     G_unlock_called = false;
-    rx = set_apdu("\x80\xfe"); // RSK_UNLOCK_CMD
+    SET_APDU("\x80\xfe", rx); // RSK_UNLOCK_CMD
     tx = bootloader_process_apdu(rx, G_bootloader_mode);
     assert(3 == tx);
     assert(G_unlock_called);
@@ -396,7 +396,7 @@ void test_end() {
     reset_flags();
     G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
     G_autoexec = 0;
-    rx = set_apdu("\x80\xff"); // RSK_END_CMD
+    SET_APDU("\x80\xff", rx); // RSK_END_CMD
     BEGIN_TRY {
         TRY {
             bootloader_process_apdu(rx, G_bootloader_mode);
@@ -425,7 +425,7 @@ void test_end_nosig() {
     reset_flags();
     G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
     G_autoexec = 0;
-    rx = set_apdu("\x80\xfa"); // RSK_END_CMD_NOSIG
+    SET_APDU("\x80\xfa", rx); // RSK_END_CMD_NOSIG
     BEGIN_TRY {
         TRY {
             bootloader_process_apdu(rx, G_bootloader_mode);
@@ -453,7 +453,7 @@ void test_invalid_command() {
     reset_flags();
     G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
     // 0x09 is not an accepted command
-    rx = set_apdu("\x80\x09");
+    SET_APDU("\x80\x09", rx);
     BEGIN_TRY {
         TRY {
             bootloader_process_apdu(rx, G_bootloader_mode);
@@ -503,7 +503,7 @@ void test_no_cla() {
     unsigned int rx;
     reset_flags();
     G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
-    clear_apdu_buffer();
+    CLEAR_APDU();
     rx = 2;
 
     BEGIN_TRY {
@@ -536,12 +536,12 @@ void test_onboard_mode() {
         TRY {
             G_bootloader_mode = BOOTLOADER_MODE_ONBOARD;
             // Set onboard_performed flag
-            rx = set_apdu("\x80\x07"); // RSK_WIPE
+            SET_APDU("\x80\x07", rx); // RSK_WIPE
             tx = bootloader_process_apdu(rx, G_bootloader_mode);
             assert(3 == tx);
 
             // Echo command must fail after onboard is performed
-            rx = set_apdu("\x80\x02"); // RSK_ECHO_CMD
+            SET_APDU("\x80\x02", rx); // RSK_ECHO_CMD
             bootloader_process_apdu(rx, G_bootloader_mode);
             // bootloader_process_apdu should throw ERR_INS_NOT_SUPPORTED
             ASSERT_FAIL();

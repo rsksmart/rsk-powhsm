@@ -26,7 +26,7 @@ MOCKDIR = ../mock
 CFLAGS = -I $(SRCDIR) -I $(MOCKDIR) -I ./
 
 PROG = test.out
-OBJS = mock.o apdu_utils.o onboard.o test_onboard.o
+OBJS = mock.o onboard.o test_onboard.o
 
 all: $(PROG)
 
@@ -37,9 +37,6 @@ test_onboard.o: test_onboard.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
 onboard.o: $(SRCDIR)/onboard.c
-	$(CC) $(CFLAGS) -c -o $@ $^
-
-apdu_utils.o: $(MOCKDIR)/apdu_utils.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
 mock.o: $(MOCKDIR)/mock.c

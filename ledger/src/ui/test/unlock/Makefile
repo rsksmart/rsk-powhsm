@@ -25,7 +25,7 @@ MOCKDIR = ../mock
 CFLAGS = -I $(SRCDIR) -I $(MOCKDIR)
 
 PROG = test.out
-OBJS = apdu_utils.o unlock.o test_unlock.o
+OBJS = unlock.o test_unlock.o
 
 all: $(PROG)
 
@@ -36,9 +36,6 @@ test_unlock.o: test_unlock.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
 unlock.o: $(SRCDIR)/unlock.c
-	$(CC) $(CFLAGS) -c -o $@ $^
-
-apdu_utils.o: $(MOCKDIR)/apdu_utils.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
 .PHONY: clean test

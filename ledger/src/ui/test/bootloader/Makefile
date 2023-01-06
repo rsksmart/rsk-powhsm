@@ -25,7 +25,7 @@ MOCKDIR = ../mock
 CFLAGS = -I./mock -I$(MOCKDIR) -I$(SRCDIR) -g
 
 PROG = test.out
-OBJS = apdu_utils.o bootloader.o test_bootloader.o
+OBJS = bootloader.o test_bootloader.o
 
 all: $(PROG)
 
@@ -36,9 +36,6 @@ test_bootloader.o: test_bootloader.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
 bootloader.o: $(SRCDIR)/bootloader.c
-	$(CC) $(CFLAGS) -c -o $@ $^
-
-apdu_utils.o: $(MOCKDIR)/apdu_utils.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
 .PHONY: clean test
