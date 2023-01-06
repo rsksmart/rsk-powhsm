@@ -54,12 +54,12 @@ const unsigned char N_onboarded_ui[1];
 
 // Helper functions
 void set_public_key(cx_ecfp_public_key_t *pubkey, char *rawkey) {
-    pubkey->W_len = strlen(rawkey);
+    pubkey->W_len = PUBKEYSIZE;
     memcpy(pubkey->W, rawkey, pubkey->W_len);
 }
 
 void set_private_key(cx_ecfp_private_key_t *privkey, unsigned char *rawkey) {
-    privkey->d_len = strlen((const char *)rawkey);
+    privkey->d_len = KEYLEN;
     memcpy(privkey->d, rawkey, privkey->d_len);
 }
 
@@ -69,7 +69,7 @@ int cx_ecdsa_init_private_key(cx_curve_t curve,
                               unsigned int key_len,
                               cx_ecfp_private_key_t *key) {
     assert(CX_CURVE_256K1 == curve);
-    ASSERT_STR_N_EQUALS(rawkey, PRIVATE_KEY, KEYLEN);
+    ASSERT_MEMCMP(rawkey, PRIVATE_KEY, KEYLEN);
     assert(rawkey == (unsigned char *)G_att_ctx.priv_key_data);
     assert(key == &G_att_ctx.priv_key);
     assert(KEYLEN == key_len);
@@ -84,7 +84,7 @@ int cx_ecfp_generate_pair(cx_curve_t curve,
     assert(CX_CURVE_256K1 == curve);
     assert(pubkey == &G_att_ctx.pub_key);
     assert(privkey == &G_att_ctx.priv_key);
-    ASSERT_STR_N_EQUALS(PRIVATE_KEY, privkey->d, KEYLEN);
+    ASSERT_MEMCMP(PRIVATE_KEY, privkey->d, KEYLEN);
     assert(1 == keepprivate);
     set_public_key(pubkey, PUBLIC_KEY);
     return 0;
@@ -102,9 +102,9 @@ unsigned int os_endorsement_key2_derive_sign_data(unsigned char *src,
     assert(src == (unsigned char *)G_att_ctx.msg);
     assert(srcLength == G_att_ctx.msg_offset);
     assert(signature == APDU_DATA_PTR);
-    memcpy(signature, MSG_SIGNATURE, sizeof(MSG_SIGNATURE));
+    memcpy(signature, MSG_SIGNATURE, sizeof(MSG_SIGNATURE) - 1);
 
-    return strlen(MSG_SIGNATURE);
+    return sizeof(MSG_SIGNATURE) - 1;
 }
 
 void os_perso_derive_node_bip32(cx_curve_t curve,
@@ -115,8 +115,8 @@ void os_perso_derive_node_bip32(cx_curve_t curve,
     assert(CX_CURVE_256K1 == curve);
     assert(path == (unsigned int *)G_att_ctx.path);
     assert(privateKey == (unsigned char *)G_att_ctx.priv_key_data);
-    ASSERT_STR_N_EQUALS(path, PUBKEY_PATH, PUBKEY_PATH_LENGTH);
-    ASSERT_STR_N_EQUALS(privateKey, PRIVATE_KEY, KEYLEN);
+    ASSERT_MEMCMP(path, PUBKEY_PATH, PUBKEY_PATH_LENGTH);
+    ASSERT_MEMCMP(privateKey, PRIVATE_KEY, KEYLEN);
     assert(NULL == chain);
 }
 
@@ -147,45 +147,51 @@ void test_reset_attestation() {
 
 void test_get_attestation_ud_value() {
     printf("Test ATT_OP_UD_VALUE...\n");
+    unsigned int rx;
+
     reset_attestation(&G_att_ctx);
     *(unsigned char *)N_onboarded_ui = 1;
     memcpy(G_att_ctx.priv_key_data, PRIVATE_KEY, sizeof(PRIVATE_KEY));
     G_att_ctx.stage = att_stage_wait_ud_value;
     // CLA + INS_ATTESTATION + ATT_OP_UD_VALUE + UD_VALUE
-    unsigned int rx = set_apdu(
-        "\x80\x50\x01\x46\x8d\xa8\x7f\x6a\x85\xe6\x40\x93\x27\xe1\x17\xe8"
-        "\xc7\xd2\x11\x0c\x73\x60\x22\x26\xbb\xb5\xed\xf2\x7d\x98\xc8\xa3"
-        "\x1b\xcc\xf0");
+    SET_APDU("\x80\x50\x01\x46\x8d\xa8\x7f\x6a\x85\xe6\x40\x93\x27\xe1\x17\xe8"
+             "\xc7\xd2\x11\x0c\x73\x60\x22\x26\xbb\xb5\xed\xf2\x7d\x98\xc8\xa3"
+             "\x1b\xcc\xf0",
+             rx);
 
     assert(3 == get_attestation(rx, &G_att_ctx));
     // PREFIX + UD_VALUE + Compressed pubkey + Signer hash + Iteration
-    ASSERT_STR_EQUALS(
+    ASSERT_MEMCMP(
         "HSM:UI:3.0"
         "\x46\x8d\xa8\x7f\x6a\x85\xe6\x40\x93\x27\xe1\x17\xe8\xc7\xd2\x11\x0c"
         "\x73\x60\x22\x26\xbb\xb5\xed\xf2\x7d\x98\xc8\xa3\x1b\xcc\xf0"
-        "\x03\xe6\xd7\x1d\x5c\x2b\x06\x36\x03\x53\xfb\xd8\x22\x7a\xb3\xab\xfc"
+        "\x02\xe6\xd7\x1d\x5c\x2b\x06\x36\x03\x53\xfb\xd8\x22\x7a\xb3\xab\xfc"
         "\x3d\x46\x6a\x5f\x74\xdc\x28\xc2\xb7\x3e\xb0\x95\x2b\xec\x20\x87"
         "\xdd\xa7\x70\x05\x55\xa3\x7b\x75\x34\x29\x1b\x96\x2d\x9f\x41\x41\xb9"
         "\x64\x48\xda\xd7\x12\x81\xef\x7c\x2d\x61\x49\x4c\xcb\xb8\x59"
         "\x00\x09",
-        G_att_ctx.msg);
+        G_att_ctx.msg,
+        ATT_MESSAGE_SIZE);
     assert(att_stage_ready == G_att_ctx.stage);
 }
 
 void test_get_attestation_ud_value_wrong_stage() {
     printf("Test ATT_OP_UD_VALUE (wrong stage)...\n");
+    unsigned int rx;
+
     reset_attestation(&G_att_ctx);
     *(unsigned char *)N_onboarded_ui = 1;
     memcpy(G_att_ctx.priv_key_data, PRIVATE_KEY, sizeof(PRIVATE_KEY));
     G_att_ctx.stage = att_stage_ready;
     // CLA + INS_ATTESTATION + ATT_OP_UD_VALUE + UD_VALUE
-    set_apdu("\x80\x50\x01\x46\x8d\xa8\x7f\x6a\x85\xe6\x40\x93\x27\xe1\x17\xe8"
+    SET_APDU("\x80\x50\x01\x46\x8d\xa8\x7f\x6a\x85\xe6\x40\x93\x27\xe1\x17\xe8"
              "\xc7\xd2\x11\x0c\x73\x60\x22\x26\xbb\xb5\xed\xf2\x7d\x98\xc8\xa3"
-             "\x1b\xcc\xf0");
+             "\x1b\xcc\xf0",
+             rx);
 
     BEGIN_TRY {
         TRY {
-            get_attestation(35, &G_att_ctx);
+            get_attestation(rx, &G_att_ctx);
             ASSERT_FAIL();
         }
         CATCH_OTHER(e) {
@@ -199,6 +205,8 @@ void test_get_attestation_ud_value_wrong_stage() {
 
 void test_get_attestation_get_msg() {
     printf("Test ATT_OP_GET_MSG...\n");
+    unsigned int rx;
+
     reset_attestation(&G_att_ctx);
     *(unsigned char *)N_onboarded_ui = 1;
     memcpy(
@@ -216,10 +224,10 @@ void test_get_attestation_get_msg() {
     G_att_ctx.stage = att_stage_ready;
 
     // CLA + INS_ATTESTATION + ATT_OP_GET_MSG + PAGE_NUM (0)
-    set_apdu("\x80\x50\x02\x00");
-    assert((APDU_TOTAL_DATA_SIZE_OUT + 3) == get_attestation(4, &G_att_ctx));
+    SET_APDU("\x80\x50\x02\x00", rx);
+    assert((APDU_TOTAL_DATA_SIZE_OUT + 3) == get_attestation(rx, &G_att_ctx));
     ASSERT_APDU(
-        "\x80\x50\x02\x00"
+        "\x80\x50\x02\x01"
         "HSM:UI:3.0"
         "\x46\x8d\xa8\x7f\x6a\x85\xe6\x40\x93\x27\xe1\x17\xe8\xc7\xd2\x11\x0c"
         "\x73\x60\x22\x26\xbb\xb5\xed\xf2\x7d\x98\xc8\xa3\x1b\xcc\xf0"
@@ -228,8 +236,8 @@ void test_get_attestation_get_msg() {
         "\xdd\xa7\x70\x05");
 
     // CLA + INS_ATTESTATION + ATT_OP_GET_MSG + PAGE_NUM (1)
-    set_apdu("\x80\x50\x02\x01");
-    assert(34 == get_attestation(4, &G_att_ctx));
+    SET_APDU("\x80\x50\x02\x01", rx);
+    assert(34 == get_attestation(rx, &G_att_ctx));
     ASSERT_APDU("\x80\x50\x02\x00"
                 "\x55\xa3\x7b\x75\x34\x29\x1b\x96\x2d\x9f\x41\x41\xb9"
                 "\x64\x48\xda\xd7\x12\x81\xef\x7c\x2d\x61\x49\x4c\xcb\xb8\x59"
@@ -238,6 +246,8 @@ void test_get_attestation_get_msg() {
 
 void test_get_attestation_get_msg_wrong_stage() {
     printf("Test ATT_OP_GET_MSG (wrong stage)...\n");
+    unsigned int rx;
+
     reset_attestation(&G_att_ctx);
     *(unsigned char *)N_onboarded_ui = 1;
     memcpy(
@@ -255,11 +265,11 @@ void test_get_attestation_get_msg_wrong_stage() {
     G_att_ctx.stage = att_stage_wait_ud_value;
 
     // CLA + INS_ATTESTATION + ATT_OP_GET_MSG + PAGE_NUM (0)
-    set_apdu("\x80\x50\x02\x00");
+    SET_APDU("\x80\x50\x02\x00", rx);
 
     BEGIN_TRY {
         TRY {
-            get_attestation(4, &G_att_ctx);
+            get_attestation(rx, &G_att_ctx);
             ASSERT_FAIL();
         }
         CATCH_OTHER(e) {
@@ -273,31 +283,35 @@ void test_get_attestation_get_msg_wrong_stage() {
 
 void test_get_attestation_get() {
     printf("Test ATT_OP_GET...\n");
+    unsigned int rx;
+
     reset_attestation(&G_att_ctx);
     *(unsigned char *)N_onboarded_ui = 1;
     G_att_ctx.stage = att_stage_ready;
 
     // CLA + INS_ATTESTATION + ATT_OP_GET
-    set_apdu("\x80\x50\x03");
+    SET_APDU("\x80\x50\x03", rx);
 
-    assert(TX_FOR_DATA_SIZE(strlen(MSG_SIGNATURE)) ==
-           get_attestation(3, &G_att_ctx));
+    assert(TX_FOR_DATA_SIZE(sizeof(MSG_SIGNATURE) - 1) ==
+           get_attestation(rx, &G_att_ctx));
 
     ASSERT_APDU("\x80\x50\x03" MSG_SIGNATURE);
 }
 
 void test_get_attestation_get_wrong_stage() {
     printf("Test ATT_OP_GET (wrong stage)...\n");
+    unsigned int rx;
+
     reset_attestation(&G_att_ctx);
     *(unsigned char *)N_onboarded_ui = 1;
     G_att_ctx.stage = att_stage_wait_ud_value;
 
     // CLA + INS_ATTESTATION + ATT_OP_GET
-    set_apdu("\x80\x50\x03");
+    SET_APDU("\x80\x50\x03", rx);
 
     BEGIN_TRY {
         TRY {
-            get_attestation(3, &G_att_ctx);
+            get_attestation(rx, &G_att_ctx);
             ASSERT_FAIL();
         }
         CATCH_OTHER(e) {
@@ -311,15 +325,17 @@ void test_get_attestation_get_wrong_stage() {
 
 void test_get_attestation_invalid() {
     printf("Test invalid command...\n");
+    unsigned int rx;
+
     reset_attestation(&G_att_ctx);
     *(unsigned char *)N_onboarded_ui = 1;
     G_att_ctx.stage = att_stage_ready;
     // CLA + INS_ATTESTATION + Invalid command
-    set_apdu("\x80\x50\x99");
+    SET_APDU("\x80\x50\x99", rx);
 
     BEGIN_TRY {
         TRY {
-            get_attestation(4, &G_att_ctx);
+            get_attestation(rx, &G_att_ctx);
             ASSERT_FAIL();
         }
         CATCH_OTHER(e) {
@@ -333,15 +349,17 @@ void test_get_attestation_invalid() {
 
 void test_get_attestation_not_onboarded() {
     printf("Test get attestation (device not onboarded)...\n");
+    unsigned int rx;
+
     reset_attestation(&G_att_ctx);
     *(unsigned char *)N_onboarded_ui = 0;
     G_att_ctx.stage = att_stage_ready;
     // CLA + INS_ATTESTATION + ATT_OP_GET
-    set_apdu("\x80\x50\x03");
+    SET_APDU("\x80\x50\x03", rx);
 
     BEGIN_TRY {
         TRY {
-            get_attestation(4, &G_att_ctx);
+            get_attestation(rx, &G_att_ctx);
             ASSERT_FAIL();
         }
         CATCH_OTHER(e) {
