@@ -246,7 +246,7 @@ void test_unlock_with_pin_not_set() {
     assert(!G_device_unlocked);
     assert(!G_successful_unlock_while_locked);
 
-    ASSERT_STR_EQUALS("\x0", G_device_pin);
+    ASSERT_ARRAY_CLEARED(G_device_pin);
 }
 
 void test_set_device_pin() {

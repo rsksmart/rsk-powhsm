@@ -31,7 +31,8 @@
 #define ASSERT_FAIL() assert(false)
 #define ASSERT_STR_EQUALS(a, b) \
     assert(0 == strcmp((const char *)a, (const char *)b))
-#define ASSERT_STR_N_EQUALS(a, b, n) \
-    assert(0 == strncmp((const char *)a, (const char *)b, n))
 #define ASSERT_MEMCMP(a, b, n) assert(0 == memcmp(a, b, n))
+#define ASSERT_ARRAY_CLEARED(arr) \
+    assert(memcmp(arr, (char[sizeof(arr)]){0}, sizeof(arr)) == 0)
+
 #endif

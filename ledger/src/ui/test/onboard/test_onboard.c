@@ -187,8 +187,8 @@ void test_reset_onboard_ctx() {
 
     reset_onboard_ctx(&onboard_ctx);
 
-    ASSERT_STR_EQUALS("\x0", onboard_ctx.words_buffer);
-    ASSERT_STR_EQUALS("\x0", onboard_ctx.seed);
+    ASSERT_ARRAY_CLEARED(onboard_ctx.words_buffer);
+    ASSERT_ARRAY_CLEARED(onboard_ctx.seed);
     assert(0 == onboard_ctx.words_buffer_length);
 }
 
@@ -209,7 +209,7 @@ void test_set_host_seed() {
         SET_APDU_AT(3, host_seed[i]);
         assert(0 == set_host_seed(rx, &onboard_ctx));
     }
-    ASSERT_STR_N_EQUALS(host_seed, onboard_ctx.host_seed, SEEDSIZE);
+    ASSERT_MEMCMP(host_seed, onboard_ctx.host_seed, SEEDSIZE);
 }
 
 void test_onboard_device() {
@@ -252,8 +252,8 @@ void test_onboard_device() {
         77);
 
     // Make sure all mnemonic and seed information is wiped after onboard_device
-    ASSERT_STR_EQUALS("\x0", onboard_ctx.words_buffer);
-    ASSERT_STR_EQUALS("\x0", onboard_ctx.seed);
+    ASSERT_ARRAY_CLEARED(onboard_ctx.words_buffer);
+    ASSERT_ARRAY_CLEARED(onboard_ctx.seed);
     assert(0 == onboard_ctx.words_buffer_length);
 }
 
@@ -283,8 +283,8 @@ void test_onboard_device_invalid_pin() {
             return;
             assert(!G_device_onboarded);
             assert(!G_device_unlocked);
-            ASSERT_STR_EQUALS("\x0", G_device_pin);
-            ASSERT_STR_EQUALS("\x0", G_global_seed);
+            ASSERT_ARRAY_CLEARED(G_device_pin);
+            ASSERT_ARRAY_CLEARED(G_global_seed);
         }
         CATCH_OTHER(e) {
             ASSERT_FAIL();
