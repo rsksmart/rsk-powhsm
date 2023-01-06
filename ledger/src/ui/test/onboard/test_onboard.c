@@ -237,7 +237,7 @@ void test_onboard_device() {
     G_is_pin_valid = true;
     mock_cx_rng(seed, SEEDSIZE);
     assert(3 == onboard_device(&onboard_ctx));
-    ASSERT_APDU("\x80\x02\x01", 3);
+    ASSERT_APDU("\x80\x02\x01");
     assert(G_device_unlocked);
     assert(G_device_onboarded);
     assert(G_wiped_while_locked);
@@ -311,11 +311,11 @@ void test_is_onboarded() {
 
     G_device_onboarded = true;
     assert(5 == is_onboarded());
-    ASSERT_APDU("\x80\x01\x03\x00\x01", 5);
+    ASSERT_APDU("\x80\x01\x03\x00\x01");
 
     G_device_onboarded = false;
     assert(5 == is_onboarded());
-    ASSERT_APDU("\x80\x00\x03\x00\x01", 5);
+    ASSERT_APDU("\x80\x00\x03\x00\x01");
 }
 
 int main() {

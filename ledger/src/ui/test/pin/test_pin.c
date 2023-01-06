@@ -29,6 +29,7 @@
 
 #include "apdu.h"
 #include "assert_utils.h"
+#include "apdu_utils.h"
 #include "defs.h"
 #include "err.h"
 #include "mock.h"

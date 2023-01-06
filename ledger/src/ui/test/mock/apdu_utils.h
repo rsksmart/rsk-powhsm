@@ -29,9 +29,13 @@
 #define CHANNEL_APDU 0
 
 #define IO_APDU_BUFFER_SIZE (5 + 255)
-extern unsigned char G_io_apdu_buffer[IO_APDU_BUFFER_SIZE];
+unsigned char G_io_apdu_buffer[IO_APDU_BUFFER_SIZE];
 
-#define ASSERT_APDU(data, len) assert(0 == memcmp(G_io_apdu_buffer, data, len))
+#define ASSERT_APDU(str_literal) \
+    assert(0 == memcmp(G_io_apdu_buffer, str_literal, sizeof(str_literal) - 1))
 
-void set_apdu(const char* data, size_t len);
-void clear_apdu_buffer();
+#define SET_APDU(str_literal, rx)                                   \
+    memcpy(G_io_apdu_buffer, str_literal, sizeof(str_literal) - 1); \
+    rx = (sizeof(str_literal) - 1)
+
+#define CLEAR_APDU() memset(G_io_apdu_buffer, 0, sizeof(G_io_apdu_buffer))
