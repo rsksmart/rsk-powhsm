@@ -116,8 +116,8 @@ void os_perso_derive_node_bip32(cx_curve_t curve,
     assert(path == (unsigned int *)G_att_ctx.path);
     assert(privateKey == (unsigned char *)G_att_ctx.priv_key_data);
     ASSERT_MEMCMP(path, PUBKEY_PATH, PUBKEY_PATH_LENGTH);
-    ASSERT_MEMCMP(privateKey, PRIVATE_KEY, KEYLEN);
     assert(NULL == chain);
+    memcpy(privateKey, PRIVATE_KEY, sizeof(PRIVATE_KEY));
 }
 
 void os_memmove(void *dst, const void *src, unsigned int length) {
@@ -151,7 +151,6 @@ void test_get_attestation_ud_value() {
 
     reset_attestation(&G_att_ctx);
     *(unsigned char *)N_onboarded_ui = 1;
-    memcpy(G_att_ctx.priv_key_data, PRIVATE_KEY, sizeof(PRIVATE_KEY));
     G_att_ctx.stage = att_stage_wait_ud_value;
     // CLA + INS_ATTESTATION + ATT_OP_UD_VALUE + UD_VALUE
     SET_APDU("\x80\x50\x01\x46\x8d\xa8\x7f\x6a\x85\xe6\x40\x93\x27\xe1\x17\xe8"
@@ -181,7 +180,6 @@ void test_get_attestation_ud_value_wrong_stage() {
 
     reset_attestation(&G_att_ctx);
     *(unsigned char *)N_onboarded_ui = 1;
-    memcpy(G_att_ctx.priv_key_data, PRIVATE_KEY, sizeof(PRIVATE_KEY));
     G_att_ctx.stage = att_stage_ready;
     // CLA + INS_ATTESTATION + ATT_OP_UD_VALUE + UD_VALUE
     SET_APDU("\x80\x50\x01\x46\x8d\xa8\x7f\x6a\x85\xe6\x40\x93\x27\xe1\x17\xe8"
