@@ -28,7 +28,7 @@
 
 #define CHANNEL_APDU 0
 
-#define IO_APDU_BUFFER_SIZE (5 + 255)
+#define IO_APDU_BUFFER_SIZE (5 + 80)
 unsigned char G_io_apdu_buffer[IO_APDU_BUFFER_SIZE];
 
 #define ASSERT_APDU(str_literal) \
