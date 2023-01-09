@@ -1,0 +1,6 @@
+{
+	"name": "Sign non authorized",
+    "operation": "signUnauthorized",
+    "expected": true,
+	"hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+}
