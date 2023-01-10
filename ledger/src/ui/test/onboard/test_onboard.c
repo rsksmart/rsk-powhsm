@@ -35,6 +35,7 @@
 #include "pin.h"
 #include "assert_utils.h"
 #include "apdu_utils.h"
+#include "instructions.h"
 
 /**
  * Mock variables used to assert function calls

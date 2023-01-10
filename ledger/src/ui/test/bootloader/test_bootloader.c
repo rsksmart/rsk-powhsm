@@ -35,8 +35,6 @@
 
 // Mock variables needed for bootloader module
 bolos_ux_context_t G_bolos_ux_context;
-static try_context_t G_try_last_open_context_var;
-try_context_t* G_try_last_open_context = &G_try_last_open_context_var;
 
 // Mock variable used to assert function calls
 static bootloader_mode_t G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
