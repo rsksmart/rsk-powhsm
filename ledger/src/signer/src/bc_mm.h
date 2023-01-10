@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __BC_MM
-#define __BC_MM
+#ifndef __BC_MM_H
+#define __BC_MM_H
 
 #include <stdint.h>
 
@@ -74,4 +74,4 @@ void mm_hash_good_rlp_str_prefix(keccak_ctx_t* kctx, uint16_t str_size);
  */
 void mm_hash_bad_rlp_str_prefix(keccak_ctx_t* kctx, const uint8_t* str);
 
-#endif
+#endif // __BC_MM_H

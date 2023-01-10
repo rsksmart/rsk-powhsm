@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __COMMUNICATION
-#define __COMMUNICATION
+#ifndef __COMMUNICATION_H
+#define __COMMUNICATION_H
 
 #include <stdbool.h>
 
@@ -54,4 +54,4 @@ unsigned int get_mode();
  */
 unsigned int get_retries();
 
-#endif
+#endif // __COMMUNICATION_H

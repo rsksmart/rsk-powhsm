@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __HSMSIM_ADMIN
-#define __HSMSIM_ADMIN
+#ifndef __HSMSIM_ADMIN_H
+#define __HSMSIM_ADMIN_H
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -75,4 +75,4 @@ void hsmsim_admin_nvm_record_write();
 
 unsigned int hsmsim_admin_get_is_onboarded();
 
-#endif
+#endif // __HSMSIM_ADMIN_H

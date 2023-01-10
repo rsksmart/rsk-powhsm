@@ -26,6 +26,7 @@
 
 #include "os.h"
 #include "attestation.h"
+#include "apdu.h"
 #include "defs.h"
 #include "pathAuth.h"
 #include "bc_hash.h"
@@ -34,11 +35,6 @@
 
 // Attestation message prefix
 const char att_msg_prefix[ATT_MSG_PREFIX_LENGTH] = ATT_MSG_PREFIX;
-
-// Operation selectors
-#define OP_GET 0x01
-#define OP_GET_MESSAGE 0x02
-#define OP_APP_HASH 0x03
 
 // -----------------------------------------------------------------------
 // Protocol implementation
@@ -59,7 +55,7 @@ static void hash_public_key(const char* path,
                          path_size,
                          1,
                          sizeof(att_ctx->path),
-                         THROW(ATT_INTERNAL));
+                         THROW(ERR_ATT_INTERNAL));
 
             // Derive and init private key
             os_perso_derive_node_bip32(CX_CURVE_256K1,
@@ -93,7 +89,7 @@ static void hash_public_key(const char* path,
                            sizeof(att_ctx->priv_key_data));
             explicit_bzero(&att_ctx->priv_key, sizeof(att_ctx->priv_key));
             explicit_bzero(&att_ctx->pub_key, sizeof(att_ctx->pub_key));
-            THROW(ATT_INTERNAL);
+            THROW(ERR_ATT_INTERNAL);
         }
         FINALLY {
         }
@@ -119,7 +115,7 @@ static unsigned int generate_message_to_sign(att_t* att_ctx) {
                  ATT_MSG_PREFIX_LENGTH,
                  MEMMOVE_ZERO_OFFSET,
                  ATT_MSG_PREFIX_LENGTH,
-                 THROW(ATT_INTERNAL));
+                 THROW(ERR_ATT_INTERNAL));
 
     // Prepare the digest
     SHA256_INIT(&att_ctx->hash_ctx);
@@ -145,7 +141,7 @@ unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx) {
     unsigned int message_size;
 
     switch (APDU_OP()) {
-    case OP_GET:
+    case OP_ATT_GET:
         // Generate the message to sign
         message_size = generate_message_to_sign(att_ctx);
 
@@ -154,7 +150,7 @@ unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx) {
             att_ctx->msg, message_size, APDU_DATA_PTR);
 
         return TX_FOR_DATA_SIZE(endorsement_size);
-    case OP_GET_MESSAGE:
+    case OP_ATT_GET_MESSAGE:
         // Generate and output the message to sign
         message_size = generate_message_to_sign(att_ctx);
 
@@ -165,13 +161,13 @@ unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx) {
                      sizeof(att_ctx->msg),
                      MEMMOVE_ZERO_OFFSET,
                      message_size,
-                     THROW(ATT_INTERNAL));
+                     THROW(ERR_ATT_INTERNAL));
 
         return TX_FOR_DATA_SIZE(message_size);
-    case OP_APP_HASH:
+    case OP_ATT_APP_HASH:
         return TX_FOR_DATA_SIZE(os_endorsement_get_code_hash(APDU_DATA_PTR));
     default:
-        THROW(ATT_PROT_INVALID);
+        THROW(ERR_ATT_PROT_INVALID);
         break;
     }
 }

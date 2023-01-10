@@ -27,6 +27,7 @@
 #include "apdu.h"
 #include "bolos_ux_handlers.h"
 #include "bootloader.h"
+#include "instructions.h"
 #include "defs.h"
 #include "err.h"
 #include "communication.h"
@@ -140,7 +141,7 @@ unsigned int bootloader_process_apdu(volatile unsigned int rx,
     case RSK_UNLOCK_CMD: // Unlock
         reset_if_starting(RSK_META_CMD_UIOP);
         tx = unlock();
-        // The pin value will also be used in
+        // The pin value could also be used in
         // BOLOS_UX_CONSENT_APP_ADD command, so we can't wipe the
         // pin buffer here
         break;

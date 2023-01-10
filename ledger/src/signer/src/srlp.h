@@ -36,8 +36,8 @@
 // Then feed chunks of RLP with rlp_consume. This function
 // will process them and call your callbacks accordingly.
 
-#ifndef __SRLP
-#define __SRLP
+#ifndef __SRLP_H
+#define __SRLP_H
 
 #include <stddef.h>
 #include <stdint.h>
@@ -136,4 +136,4 @@ uint8_t guess_rlp_str_prefix_size(uint16_t str_size);
  */
 uint8_t rlp_list_prefix_size(uint16_t list_size);
 
-#endif
+#endif // __SRLP_H

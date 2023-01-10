@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __AUTH_TRIE
-#define __AUTH_TRIE
+#ifndef __AUTH_TRIE_H
+#define __AUTH_TRIE_H
 
 #include <stdint.h>
 
@@ -63,4 +63,4 @@ typedef struct {
  */
 unsigned int auth_sign_handle_merkleproof(volatile unsigned int rx);
 
-#endif
+#endif // __AUTH_TRIE_H

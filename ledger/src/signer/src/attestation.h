@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __ATTESTATION
-#define __ATTESTATION
+#ifndef __ATTESTATION_H
+#define __ATTESTATION_H
 
 #include "bc_hash.h"
 #include "mem.h"
@@ -40,12 +40,17 @@
 // Protocol
 // -----------------------------------------------------------------------
 
-// APDU instruction
-#define INS_ATTESTATION 0x50
-
+// Operation selectors
 typedef enum {
-    ATT_PROT_INVALID = 0x6b00, // Host not respecting protocol
-    ATT_INTERNAL = 0x6b01,     // Internal error while generating attestation
+    OP_ATT_GET = 0x01,
+    OP_ATT_GET_MESSAGE = 0x02,
+    OP_ATT_APP_HASH = 0x03,
+} op_code_attestation_t;
+
+// Error codes
+typedef enum {
+    ERR_ATT_PROT_INVALID = 0x6b00, // Host not respecting protocol
+    ERR_ATT_INTERNAL = 0x6b01, // Internal error while generating attestation
 } err_code_attestation_t;
 
 /*
@@ -57,4 +62,4 @@ typedef enum {
  */
 unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx);
 
-#endif
+#endif // __ATTESTATION_H

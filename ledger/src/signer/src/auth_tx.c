@@ -67,14 +67,14 @@ static void btctx_cb(const btctx_cb_event_t event) {
     if (event == BTCTX_EV_VERSION && auth.tx.ctx.parsed.version != 1 &&
         auth.tx.ctx.parsed.version != 2) {
         LOG("[E] Unsupported TX Version: %u\n", auth.tx.ctx.parsed.version);
-        THROW(AUTH_ERR_INVALID_TX_VERSION);
+        THROW(ERR_AUTH_INVALID_TX_VERSION);
     }
 
     // Validate that the input index to sign is valid
     if (event == BTCTX_EV_VIN_COUNT &&
         auth.input_index_to_sign >= auth.tx.ctx.parsed.varint.value) {
         LOG("[E] Input index to sign > number of inputs.\n");
-        THROW(AUTH_ERR_INVALID_TX_INPUT_INDEX);
+        THROW(ERR_AUTH_INVALID_TX_INPUT_INDEX);
     }
 
     // Update sighash
@@ -96,24 +96,24 @@ static void btctx_cb(const btctx_cb_event_t event) {
             auth.tx.ctx.raw_size) {
             LOG("[E] Expected to consume %u bytes from the script but didn't",
                 auth.tx.ctx.raw_size);
-            THROW(AUTH_ERR_TX_HASH_MISMATCH);
+            THROW(ERR_AUTH_TX_HASH_MISMATCH);
         }
 
         if (btcscript_result() < 0) {
             LOG("[E] Error %u parsing the scriptSig", btcscript_result());
-            THROW(AUTH_ERR_TX_HASH_MISMATCH);
+            THROW(ERR_AUTH_TX_HASH_MISMATCH);
         }
 
         if (auth.tx.ctx.script_remaining == 0) {
             if (btcscript_result() != BTCSCRIPT_ST_DONE) {
                 LOG("[E] No more scriptSig bytes to parse but "
                     "the script parser isn't finished");
-                THROW(AUTH_ERR_TX_HASH_MISMATCH);
+                THROW(ERR_AUTH_TX_HASH_MISMATCH);
             }
             if (!auth.tx.redeemscript_found) {
                 LOG("[E] Finished parsing the scriptSig "
                     "but the redeemScript was not found");
-                THROW(AUTH_ERR_TX_HASH_MISMATCH);
+                THROW(ERR_AUTH_TX_HASH_MISMATCH);
             }
         }
     } else if (event != BTCTX_EV_VIN_SCRIPT_DATA) {
@@ -132,9 +132,9 @@ static void btctx_cb(const btctx_cb_event_t event) {
 unsigned int auth_sign_handle_btctx(volatile unsigned int rx) {
     uint8_t apdu_offset = 0;
 
-    if (auth.state != AUTH_ST_BTCTX) {
+    if (auth.state != STATE_AUTH_BTCTX) {
         LOG("[E] Expected to be in the BTC tx state\n");
-        THROW(AUTH_ERR_INVALID_STATE);
+        THROW(ERR_AUTH_INVALID_STATE);
     }
 
     // Read little endian TX length
@@ -159,7 +159,7 @@ unsigned int auth_sign_handle_btctx(volatile unsigned int rx) {
     if (btctx_result() < 0) {
         LOG("[E] Error parsing BTC tx: %u\n", btctx_result());
         // To comply with the legacy implementation
-        THROW(AUTH_ERR_TX_HASH_MISMATCH);
+        THROW(ERR_AUTH_TX_HASH_MISMATCH);
     }
 
     if (btctx_result() == BTCTX_ST_DONE) {
@@ -167,7 +167,7 @@ unsigned int auth_sign_handle_btctx(volatile unsigned int rx) {
             LOG("[E] Error parsing BTC tx: more bytes reported "
                 "than actual tx bytes\n");
             // To comply with the legacy implementation
-            THROW(AUTH_ERR_INVALID_DATA_SIZE);
+            THROW(ERR_AUTH_INVALID_DATA_SIZE);
         }
 
         // Finalize TX hash computation
@@ -199,7 +199,7 @@ unsigned int auth_sign_handle_btctx(volatile unsigned int rx) {
         SET_APDU_OP(P1_RECEIPT);
         SET_APDU_TXLEN(AUTH_MAX_EXCHANGE_SIZE);
         auth.expected_bytes = APDU_TXLEN();
-        auth_transition_to(AUTH_ST_RECEIPT);
+        auth_transition_to(STATE_AUTH_RECEIPT);
         return TX_FOR_TXLEN();
     }
 
@@ -208,7 +208,7 @@ unsigned int auth_sign_handle_btctx(volatile unsigned int rx) {
         LOG("[E] Error parsing BTC tx: no more bytes should "
             "remain but haven't finished parsing\n");
         // To comply with the legacy implementation
-        THROW(AUTH_ERR_TX_HASH_MISMATCH);
+        THROW(ERR_AUTH_TX_HASH_MISMATCH);
     }
 
     SET_APDU_TXLEN(MIN(auth.tx.remaining_bytes, AUTH_MAX_EXCHANGE_SIZE));

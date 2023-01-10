@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __BC_DIFF
-#define __BC_DIFF
+#ifndef __BC_DIFF_H
+#define __BC_DIFF_H
 
 #include <stdint.h>
 
@@ -128,4 +128,4 @@ int cap_block_difficulty(DIGIT_T difficulty[]);
  */
 DIGIT_T accum_difficulty(DIGIT_T difficulty[], DIGIT_T total_difficulty[]);
 
-#endif
+#endif // __BC_DIFF_H

@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __HASH
-#define __HASH
+#ifndef __HASH_H
+#define __HASH_H
 
 #include "bc.h"
 
@@ -94,4 +94,4 @@ void double_sha256_rev(sha256_ctx_t* ctx,
  */
 void fold_left(sha256_ctx_t* ctx, uint8_t* left, uint8_t* right);
 
-#endif
+#endif // __HASH_H

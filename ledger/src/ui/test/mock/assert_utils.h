@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef _ASSERT_UTILS_H
-#define _ASSERT_UTILS_H
+#ifndef __ASSERT_UTILS_H
+#define __ASSERT_UTILS_H
 
 #include <assert.h>
 #include <string.h>
@@ -43,4 +43,4 @@
                   &(struct_name){0},                        \
                   sizeof(struct_name)) == 0)
 
-#endif
+#endif // __ASSERT_UTILS_H

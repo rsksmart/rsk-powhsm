@@ -22,9 +22,9 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __HSM_LEDGER
-#define __HSM_LEDGER
+#ifndef __HSM_LEDGER_H
+#define __HSM_LEDGER_H
 
 void hsm_ledger_main_loop();
 
-#endif // __HSM_LEDGER
+#endif // __HSM_LEDGER_H

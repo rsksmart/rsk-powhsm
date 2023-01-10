@@ -145,7 +145,7 @@ void test_reset_attestation() {
 
     reset_attestation(&G_att_ctx);
     ASSERT_STRUCT_CLEARED(att_t, G_att_ctx);
-    assert(att_stage_wait_ud_value == G_att_ctx.stage);
+    assert(att_state_wait_ud_value == G_att_ctx.state);
 }
 
 void test_get_attestation_ud_value() {
@@ -154,7 +154,7 @@ void test_get_attestation_ud_value() {
 
     reset_attestation(&G_att_ctx);
     *(unsigned char *)N_onboarded_ui = 1;
-    G_att_ctx.stage = att_stage_wait_ud_value;
+    G_att_ctx.state = att_state_wait_ud_value;
     // CLA + INS_ATTESTATION + ATT_OP_UD_VALUE + UD_VALUE
     SET_APDU("\x80\x50\x01\x46\x8d\xa8\x7f\x6a\x85\xe6\x40\x93\x27\xe1\x17\xe8"
              "\xc7\xd2\x11\x0c\x73\x60\x22\x26\xbb\xb5\xed\xf2\x7d\x98\xc8\xa3"
@@ -174,16 +174,16 @@ void test_get_attestation_ud_value() {
         "\x00\x09",
         G_att_ctx.msg,
         ATT_MESSAGE_SIZE);
-    assert(att_stage_ready == G_att_ctx.stage);
+    assert(att_state_ready == G_att_ctx.state);
 }
 
-void test_get_attestation_ud_value_wrong_stage() {
-    printf("Test ATT_OP_UD_VALUE (wrong stage)...\n");
+void test_get_attestation_ud_value_wrong_state() {
+    printf("Test ATT_OP_UD_VALUE (wrong state)...\n");
     unsigned int rx;
 
     reset_attestation(&G_att_ctx);
     *(unsigned char *)N_onboarded_ui = 1;
-    G_att_ctx.stage = att_stage_ready;
+    G_att_ctx.state = att_state_ready;
     // CLA + INS_ATTESTATION + ATT_OP_UD_VALUE + UD_VALUE
     SET_APDU("\x80\x50\x01\x46\x8d\xa8\x7f\x6a\x85\xe6\x40\x93\x27\xe1\x17\xe8"
              "\xc7\xd2\x11\x0c\x73\x60\x22\x26\xbb\xb5\xed\xf2\x7d\x98\xc8\xa3"
@@ -196,7 +196,7 @@ void test_get_attestation_ud_value_wrong_stage() {
             ASSERT_FAIL();
         }
         CATCH_OTHER(e) {
-            assert(PROT_INVALID == e);
+            assert(ERR_PROT_INVALID == e);
         }
         FINALLY {
         }
@@ -222,7 +222,7 @@ void test_get_attestation_get_msg() {
         "\x00\x09",
         ATT_MESSAGE_SIZE);
     G_att_ctx.msg_offset = ATT_MESSAGE_SIZE;
-    G_att_ctx.stage = att_stage_ready;
+    G_att_ctx.state = att_state_ready;
 
     // CLA + INS_ATTESTATION + ATT_OP_GET_MSG + PAGE_NUM (0)
     SET_APDU("\x80\x50\x02\x00", rx);
@@ -245,8 +245,8 @@ void test_get_attestation_get_msg() {
                 "\x00\x09");
 }
 
-void test_get_attestation_get_msg_wrong_stage() {
-    printf("Test ATT_OP_GET_MSG (wrong stage)...\n");
+void test_get_attestation_get_msg_wrong_state() {
+    printf("Test ATT_OP_GET_MSG (wrong state)...\n");
     unsigned int rx;
 
     reset_attestation(&G_att_ctx);
@@ -263,7 +263,7 @@ void test_get_attestation_get_msg_wrong_stage() {
         "\x00\x09",
         ATT_MESSAGE_SIZE);
     G_att_ctx.msg_offset = ATT_MESSAGE_SIZE;
-    G_att_ctx.stage = att_stage_wait_ud_value;
+    G_att_ctx.state = att_state_wait_ud_value;
 
     // CLA + INS_ATTESTATION + ATT_OP_GET_MSG + PAGE_NUM (0)
     SET_APDU("\x80\x50\x02\x00", rx);
@@ -274,7 +274,7 @@ void test_get_attestation_get_msg_wrong_stage() {
             ASSERT_FAIL();
         }
         CATCH_OTHER(e) {
-            assert(PROT_INVALID == e);
+            assert(ERR_PROT_INVALID == e);
         }
         FINALLY {
         }
@@ -288,7 +288,7 @@ void test_get_attestation_get() {
 
     reset_attestation(&G_att_ctx);
     *(unsigned char *)N_onboarded_ui = 1;
-    G_att_ctx.stage = att_stage_ready;
+    G_att_ctx.state = att_state_ready;
 
     // CLA + INS_ATTESTATION + ATT_OP_GET
     SET_APDU("\x80\x50\x03", rx);
@@ -299,13 +299,13 @@ void test_get_attestation_get() {
     ASSERT_APDU("\x80\x50\x03" MSG_SIGNATURE);
 }
 
-void test_get_attestation_get_wrong_stage() {
-    printf("Test ATT_OP_GET (wrong stage)...\n");
+void test_get_attestation_get_wrong_state() {
+    printf("Test ATT_OP_GET (wrong state)...\n");
     unsigned int rx;
 
     reset_attestation(&G_att_ctx);
     *(unsigned char *)N_onboarded_ui = 1;
-    G_att_ctx.stage = att_stage_wait_ud_value;
+    G_att_ctx.state = att_state_wait_ud_value;
 
     // CLA + INS_ATTESTATION + ATT_OP_GET
     SET_APDU("\x80\x50\x03", rx);
@@ -316,7 +316,7 @@ void test_get_attestation_get_wrong_stage() {
             ASSERT_FAIL();
         }
         CATCH_OTHER(e) {
-            assert(PROT_INVALID == e);
+            assert(ERR_PROT_INVALID == e);
         }
         FINALLY {
         }
@@ -330,7 +330,7 @@ void test_get_attestation_invalid() {
 
     reset_attestation(&G_att_ctx);
     *(unsigned char *)N_onboarded_ui = 1;
-    G_att_ctx.stage = att_stage_ready;
+    G_att_ctx.state = att_state_ready;
     // CLA + INS_ATTESTATION + Invalid command
     SET_APDU("\x80\x50\x99", rx);
 
@@ -340,7 +340,7 @@ void test_get_attestation_invalid() {
             ASSERT_FAIL();
         }
         CATCH_OTHER(e) {
-            assert(PROT_INVALID == e);
+            assert(ERR_PROT_INVALID == e);
         }
         FINALLY {
         }
@@ -354,7 +354,7 @@ void test_get_attestation_not_onboarded() {
 
     reset_attestation(&G_att_ctx);
     *(unsigned char *)N_onboarded_ui = 0;
-    G_att_ctx.stage = att_stage_ready;
+    G_att_ctx.state = att_state_ready;
     // CLA + INS_ATTESTATION + ATT_OP_GET
     SET_APDU("\x80\x50\x03", rx);
 
@@ -375,11 +375,11 @@ void test_get_attestation_not_onboarded() {
 int main() {
     test_reset_attestation();
     test_get_attestation_ud_value();
-    test_get_attestation_ud_value_wrong_stage();
+    test_get_attestation_ud_value_wrong_state();
     test_get_attestation_get_msg();
-    test_get_attestation_get_msg_wrong_stage();
+    test_get_attestation_get_msg_wrong_state();
     test_get_attestation_get();
-    test_get_attestation_get_wrong_stage();
+    test_get_attestation_get_wrong_state();
     test_get_attestation_invalid();
     test_get_attestation_not_onboarded();
     return 0;

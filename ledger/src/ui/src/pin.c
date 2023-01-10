@@ -55,7 +55,7 @@ unsigned char G_pin_buffer[PIN_BUFFER_LENGTH];
 unsigned int update_pin_buffer(volatile unsigned int rx) {
     // Should receive 1 byte per call
     if (APDU_DATA_SIZE(rx) != 1) {
-        THROW(PROT_INVALID);
+        THROW(ERR_PROT_INVALID);
     }
 
     unsigned char index = APDU_OP();

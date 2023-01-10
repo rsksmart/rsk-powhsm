@@ -120,7 +120,7 @@ static void list_end() {
         if (auth.receipt.index[LOG_LEVEL - 1] != LOG_ELEMENTS) {
             LOG("[E] Found log with %u elements\n",
                 auth.receipt.index[LOG_LEVEL - 1]);
-            THROW(AUTH_ERR_RECEIPT_INVALID);
+            THROW(ERR_AUTH_RECEIPT_INVALID);
         }
 
         if (HAS_FLAG(auth.receipt.flags, IS_VALID_EMITTER) &&
@@ -135,7 +135,7 @@ static void list_end() {
     if (auth.receipt.level == TOP_LEVEL &&
         auth.receipt.index[TOP_LEVEL - 1] != LIST_ELEMENTS) {
         LOG("[E] Receipt had %u elements\n", auth.receipt.index[TOP_LEVEL - 1]);
-        THROW(AUTH_ERR_RECEIPT_INVALID);
+        THROW(ERR_AUTH_RECEIPT_INVALID);
     }
 
     --auth.receipt.level;
@@ -149,7 +149,7 @@ static void str_start(const uint16_t size) {
     // Top level must be a list
     if (auth.receipt.level == 0) {
         LOG("[E] Receipt not a list\n");
-        THROW(AUTH_ERR_RECEIPT_INVALID);
+        THROW(ERR_AUTH_RECEIPT_INVALID);
     }
 
     update_indexes();
@@ -175,7 +175,7 @@ static void str_chunk(const uint8_t* chunk, const size_t size) {
                      size,
                      MEMMOVE_ZERO_OFFSET,
                      size,
-                     THROW(AUTH_ERR_INVALID_DATA_SIZE));
+                     THROW(ERR_AUTH_INVALID_DATA_SIZE));
         auth.receipt.aux_offset += size;
     }
 }
@@ -231,9 +231,9 @@ static const rlp_callbacks_t callbacks = {
  * @ret             number of transmited bytes to the host
  */
 unsigned int auth_sign_handle_receipt(volatile unsigned int rx) {
-    if (auth.state != AUTH_ST_RECEIPT) {
+    if (auth.state != STATE_AUTH_RECEIPT) {
         LOG("[E] Expected to be in the receipt state\n");
-        THROW(AUTH_ERR_INVALID_STATE);
+        THROW(ERR_AUTH_INVALID_STATE);
     }
 
     if (!HAS_FLAG(auth.receipt.flags, IS_INIT)) {
@@ -245,7 +245,7 @@ unsigned int auth_sign_handle_receipt(volatile unsigned int rx) {
     int res = rlp_consume(APDU_DATA_PTR, APDU_DATA_SIZE(rx));
     if (res < 0) {
         LOG("[E] RLP parser returned error %d\n", res);
-        THROW(AUTH_ERR_RECEIPT_RLP);
+        THROW(ERR_AUTH_RECEIPT_RLP);
     }
     auth.receipt.remaining_bytes -= APDU_DATA_SIZE(rx);
 
@@ -264,14 +264,14 @@ unsigned int auth_sign_handle_receipt(volatile unsigned int rx) {
             SET_APDU_OP(P1_MERKLEPROOF);
             SET_APDU_TXLEN(AUTH_MAX_EXCHANGE_SIZE);
             auth.expected_bytes = APDU_TXLEN();
-            auth_transition_to(AUTH_ST_MERKLEPROOF);
+            auth_transition_to(STATE_AUTH_MERKLEPROOF);
             return TX_FOR_TXLEN();
         }
 
         // No match
         LOG("[E] No log match found in the receipt\n");
         // To comply with the legacy implementation
-        THROW(AUTH_ERR_INVALID_DATA_SIZE);
+        THROW(ERR_AUTH_INVALID_DATA_SIZE);
     }
 
     SET_APDU_TXLEN(MIN(auth.receipt.remaining_bytes, AUTH_MAX_EXCHANGE_SIZE));

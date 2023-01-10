@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __SIMULATOR_OS_ECDSA
-#define __SIMULATOR_OS_ECDSA
+#ifndef __SIMULATOR_OS_ECDSA_H
+#define __SIMULATOR_OS_ECDSA_H
 
 #include <stddef.h>
 #include <stdbool.h>
@@ -86,4 +86,4 @@ size_t hsmsim_helper_tweak_sign(const unsigned char *key,
                                 const unsigned char *hash,
                                 unsigned char *sig);
 
-#endif // __SIMULATOR_OS_ECDSA
+#endif // __SIMULATOR_OS_ECDSA_H

@@ -22,9 +22,9 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef _MOCK_CX_H
-#define _MOCK_CX_H
+#ifndef __MOCK_CX_H
+#define __MOCK_CX_H
 
 #include "mock.h"
 
-#endif
+#endif // __MOCK_CX_H

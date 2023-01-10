@@ -38,12 +38,12 @@
  * @ret             number of transmited bytes to the host
  */
 unsigned int auth_sign_handle_path(volatile unsigned int rx) {
-    if (auth.state != AUTH_ST_PATH)
-        THROW(AUTH_ERR_INVALID_STATE);
+    if (auth.state != STATE_AUTH_PATH)
+        THROW(ERR_AUTH_INVALID_STATE);
 
     if ((rx != DATA + PATH_LEN + INPUT_INDEX_LEN) &&
         (rx != DATA + PATH_LEN + HASH_LEN))
-        THROW(AUTH_ERR_INVALID_DATA_SIZE); // Wrong buffer size,
+        THROW(ERR_AUTH_INVALID_DATA_SIZE); // Wrong buffer size,
                                            // has to be either 28
                                            // (DATA+PATH_LEN+INPUT_INDEX_LEN) or
                                            // 56 (DATA+PATH_LEN+HASHEN)
@@ -56,14 +56,14 @@ unsigned int auth_sign_handle_path(volatile unsigned int rx) {
                  APDU_TOTAL_DATA_SIZE,
                  1, // Skip path length (first byte)
                  sizeof(auth.path),
-                 THROW(AUTH_ERR_INVALID_DATA_SIZE));
+                 THROW(ERR_AUTH_INVALID_DATA_SIZE));
 
     if (pathRequireAuth(APDU_DATA_PTR)) {
         // If path requires authorization, continue with authorization
         auth.auth_required = true;
 
         if (rx != DATA + PATH_LEN + INPUT_INDEX_LEN)
-            THROW(AUTH_ERR_INVALID_DATA_SIZE_AUTH_SIGN);
+            THROW(ERR_AUTH_INVALID_DATA_SIZE_AUTH_SIGN);
 
         // Read input index to sign
         SAFE_MEMMOVE(&auth.input_index_to_sign,
@@ -73,13 +73,13 @@ unsigned int auth_sign_handle_path(volatile unsigned int rx) {
                      APDU_TOTAL_DATA_SIZE,
                      PATH_LEN,
                      INPUT_INDEX_LEN,
-                     THROW(AUTH_ERR_INVALID_DATA_SIZE));
+                     THROW(ERR_AUTH_INVALID_DATA_SIZE));
 
         // Request BTC transaction
         SET_APDU_OP(P1_BTC);
         SET_APDU_TXLEN(APDU_TOTAL_DATA_SIZE);
         auth.expected_bytes = APDU_TXLEN();
-        auth_transition_to(AUTH_ST_BTCTX);
+        auth_transition_to(STATE_AUTH_BTCTX);
         return TX_FOR_TXLEN();
     } else if (pathDontRequireAuth(APDU_DATA_PTR)) {
         // If path doesn't require authorization,
@@ -87,7 +87,7 @@ unsigned int auth_sign_handle_path(volatile unsigned int rx) {
         auth.auth_required = false;
 
         if (rx != DATA + PATH_LEN + HASH_LEN)
-            THROW(AUTH_ERR_INVALID_DATA_SIZE_UNAUTH_SIGN);
+            THROW(ERR_AUTH_INVALID_DATA_SIZE_UNAUTH_SIGN);
 
         // Read hash to sign
         SAFE_MEMMOVE(auth.sig_hash,
@@ -97,13 +97,13 @@ unsigned int auth_sign_handle_path(volatile unsigned int rx) {
                      APDU_TOTAL_DATA_SIZE,
                      PATH_LEN,
                      sizeof(auth.sig_hash),
-                     THROW(AUTH_ERR_INVALID_DATA_SIZE));
+                     THROW(ERR_AUTH_INVALID_DATA_SIZE));
 
-        auth_transition_to(AUTH_ST_SIGN);
+        auth_transition_to(STATE_AUTH_SIGN);
         return 0;
     }
 
     // If no path match, then bail out
     // signalling invalid path
-    THROW(AUTH_ERR_INVALID_PATH);
+    THROW(ERR_AUTH_INVALID_PATH);
 }

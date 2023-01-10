@@ -34,8 +34,8 @@
 // Immediately after calling this function, check error conditions and
 // parsing state with btctx_result.
 
-#ifndef __BTCTX
-#define __BTCTX
+#ifndef __BTCTX_H
+#define __BTCTX_H
 
 #include <stddef.h>
 #include <stdint.h>
@@ -142,4 +142,4 @@ int8_t btctx_result();
  */
 uint8_t btctx_consume(uint8_t* buf, const uint8_t len);
 
-#endif
+#endif // __BTCTX_H

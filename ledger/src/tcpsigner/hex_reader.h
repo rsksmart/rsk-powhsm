@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __HEX_READER
-#define __HEX_READER
+#ifndef __HEX_READER_H
+#define __HEX_READER_H
 
 #include <stdint.h>
 
@@ -34,4 +34,4 @@
  */
 int read_hex(const char* src, size_t src_length, void* dest);
 
-#endif
+#endif // __HEX_READER_H

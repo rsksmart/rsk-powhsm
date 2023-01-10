@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __SIMULATOR_OS_HASHING
-#define __SIMULATOR_OS_HASHING
+#ifndef __SIMULATOR_OS_HASHING_H
+#define __SIMULATOR_OS_HASHING_H
 
 #include "sha256.h"
 #include "keccak256.h"
@@ -54,4 +54,4 @@ int cx_hash(cx_hash_t *hash,
             unsigned int len,
             unsigned char *out);
 
-#endif // __SIMULATOR_OS_HASHING
+#endif // __SIMULATOR_OS_HASHING_H

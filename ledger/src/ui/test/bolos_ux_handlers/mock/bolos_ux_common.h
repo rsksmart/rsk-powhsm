@@ -22,11 +22,11 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef _MOCK_BOLOS_UX_COMMON_H
-#define _MOCK_BOLOS_UX_COMMON_H
+#ifndef __MOCK_BOLOS_UX_COMMON_H
+#define __MOCK_BOLOS_UX_COMMON_H
 
 #include "mock.h"
 #include "test_bolos_ux_handlers.h"
 #include "bolos_ux.h"
 
-#endif //_MOCK_BOLOS_UX_COMMON_H
+#endif // __MOCK_BOLOS_UX_COMMON_H

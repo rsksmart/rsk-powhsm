@@ -22,15 +22,32 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __SIMULATOR_JSON_H
-#define __SIMULATOR_JSON_H
+#ifndef __INSTRUCTIONS_H
+#define __INSTRUCTIONS_H
 
-#include <stdlib.h>
-#include <stdbool.h>
-#include "cJSON.h"
+/*
+ * All APDU instructions
+ */
 
-cJSON* read_json_file(char* file_path);
+typedef enum {
+    // Signing-related
+    INS_SIGN = 0x02,
+    INS_GET_PUBLIC_KEY = 0x04,
 
-bool write_json_file(char* file_path, cJSON* json);
+    // Misc
+    RSK_IS_ONBOARD = 0x06,
+    RSK_MODE_CMD = 0x43,
 
-#endif // __SIMULATOR_JSON_H
+    // Advance blockchain and blockchain state
+    INS_ADVANCE = 0x10,
+    INS_ADVANCE_PARAMS = 0x11,
+    INS_GET_STATE = 0x20,
+    INS_RESET_STATE = 0x21,
+    INS_UPD_ANCESTOR = 0x30,
+
+    // Attestation
+    INS_ATTESTATION = 0x50,
+    INS_HEARTBEAT = 0x60,
+} apdu_instruction_t;
+
+#endif // __INSTRUCTIONS_H

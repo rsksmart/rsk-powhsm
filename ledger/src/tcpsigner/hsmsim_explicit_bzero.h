@@ -49,12 +49,12 @@
 
 #pragma message "Using ad-hoc explicit_bzero"
 
-#ifndef __HSMSIM_EXPLICIT_BZERO
-#define __HSMSIM_EXPLICIT_BZERO
+#ifndef __HSMSIM_EXPLICIT_BZERO_H
+#define __HSMSIM_EXPLICIT_BZERO_H
 
 #include <stddef.h>
 void explicit_bzero(void *s, size_t len);
 
-#endif
+#endif // __HSMSIM_EXPLICIT_BZERO_H
 
 #endif

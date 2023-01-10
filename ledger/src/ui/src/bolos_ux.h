@@ -39,8 +39,8 @@
  *  limitations under the License.
  ********************************************************************************/
 
-#ifndef BOLOS_UX_H
-#define BOLOS_UX_H
+#ifndef __BOLOS_UX_H
+#define __BOLOS_UX_H
 
 #include "os_io_seproxyhal.h"
 
@@ -213,4 +213,4 @@ void screen_state_init(unsigned int stack_slot);
 
 #endif // HAVE_BOLOS_UX
 
-#endif // BOLOS_UX_H
+#endif // __BOLOS_UX_H

@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __SIGN
-#define __SIGN
+#ifndef __SIGN_H
+#define __SIGN_H
 
 #define DO_SIGN_ERROR (0)
 #define DO_PUBKEY_ERROR (0)
@@ -64,4 +64,4 @@ int do_sign(unsigned int* path,
             unsigned char* dest,
             size_t dest_size);
 
-#endif
+#endif // __SIGN_H

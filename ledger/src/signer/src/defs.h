@@ -22,28 +22,13 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef DEFS_H
-#define DEFS_H
-
-#include "apdu.h"
+#ifndef __DEFS_H
+#define __DEFS_H
 
 // Version and patchlevel
 #define VERSION_MAJOR 0x03
 #define VERSION_MINOR 0x00
 #define VERSION_PATCH 0x01
-
-// Instructions
-#define INS_SIGN 0x02
-#define INS_GET_PUBLIC_KEY 0x04
-#define RSK_IS_ONBOARD 0x06
-#define RSK_MODE_CMD 0x43
-
-// Operations within instructions
-#define P1_PATH 0x01
-#define P1_BTC 0x02
-#define P1_RECEIPT 0x04
-#define P1_MERKLEPROOF 0x08
-#define P1_SUCCESS 0x81
 
 // App mode response for the mode command
 #define RSK_MODE_APP 0x03
@@ -54,4 +39,4 @@
 #define RSK_PATH_LEN 5
 #define MAX_SIGNATURE_LEN 72
 
-#endif // DEFS_H
+#endif // __DEFS_H

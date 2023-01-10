@@ -28,6 +28,7 @@
 #include "os.h"
 
 #include "defs.h"
+#include "instructions.h"
 #include "err.h"
 #include "mem.h"
 #include "memutil.h"

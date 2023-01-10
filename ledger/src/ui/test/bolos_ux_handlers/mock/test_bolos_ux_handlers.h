@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef TEST_BOLOS_UX_HANDLERS_H
-#define TEST_BOLOS_UX_HANDLERS_H
+#ifndef __TEST_BOLOS_UX_HANDLERS_H
+#define __TEST_BOLOS_UX_HANDLERS_H
 
 // Needed for signer_authorization.h
 #define PARAM_SIGNERS_FILE testing
@@ -64,4 +64,4 @@ void screen_dashboard_init(void);
 void screen_dashboard_prepare(void);
 void screen_processing_init(void);
 
-#endif // TEST_BOLOS_UX_HANDLERS_H
+#endif // __TEST_BOLOS_UX_HANDLERS_H

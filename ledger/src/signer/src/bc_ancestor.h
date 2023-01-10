@@ -22,22 +22,21 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __BC_ANCESTOR
-#define __BC_ANCESTOR
+#ifndef __BC_ANCESTOR_H
+#define __BC_ANCESTOR_H
 
 /*
  * Blockchain update ancestor protocol definitions. These messages
  * define the protocol for updating the ancestor block.
  */
 
-// Command code for advancing blockchain
-#define INS_UPD_ANCESTOR 0x30
-
-// Operations for advancing blockchain protocol
-#define OP_UPD_ANCESTOR_INIT 0x02
-#define OP_UPD_ANCESTOR_HEADER_META 0x03
-#define OP_UPD_ANCESTOR_HEADER_CHUNK 0x04
-#define OP_UPD_ANCESTOR_SUCCESS 0x05
+// Operation selectors for update ancestor protocol
+typedef enum {
+    OP_UPD_ANCESTOR_INIT = 0x02,
+    OP_UPD_ANCESTOR_HEADER_META = 0x03,
+    OP_UPD_ANCESTOR_HEADER_CHUNK = 0x04,
+    OP_UPD_ANCESTOR_SUCCESS = 0x05,
+} op_code_updancestor_t;
 
 /*
  * Initialize Blockchain update ancestor protocol state.
@@ -52,4 +51,4 @@ void bc_init_upd_ancestor();
  */
 unsigned int bc_upd_ancestor(volatile unsigned int rx);
 
-#endif
+#endif // __BC_ANCESTOR_H

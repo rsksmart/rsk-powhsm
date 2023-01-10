@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __BOOTLOADER
-#define __BOOTLOADER
+#ifndef __BOOTLOADER_H
+#define __BOOTLOADER_H
 
 // Accepted modes for bootloader_main
 typedef enum {
@@ -37,4 +37,4 @@ unsigned int bootloader_process_apdu(volatile unsigned int rx,
 unsigned int bootloader_process_exception(unsigned short ex, unsigned int tx);
 void bootloader_main(bootloader_mode_t mode);
 
-#endif
+#endif // __BOOTLOADER_H

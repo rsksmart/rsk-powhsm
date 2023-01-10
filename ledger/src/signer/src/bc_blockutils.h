@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef _BLOCK_COMMONS
-#define _BLOCK_COMMONS
+#ifndef __BC_BLOCKUTILS_H
+#define __BC_BLOCKUTILS_H
 
 // -----------------------------------------------------------------------
 // Convenience macros and functions for operating on block_t
@@ -73,4 +73,4 @@
 #define MM_HASH_LAST_FIELD \
     (block.network_upgrade >= NU_PAPYRUS ? F_UMM_ROOT : F_UMM_ROOT - 1)
 
-#endif
+#endif // __BC_BLOCKUTILS_H

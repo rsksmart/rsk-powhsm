@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __MEMUTIL
-#define __MEMUTIL
+#ifndef __MEMUTIL_H
+#define __MEMUTIL_H
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -60,4 +60,4 @@ __attribute__((always_inline)) static inline int safe_memmove(
     }
 }
 
-#endif
+#endif // __MEMUTIL_H

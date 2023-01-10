@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __AUTH_RECEIPT
-#define __AUTH_RECEIPT
+#ifndef __AUTH_RECEIPT_H
+#define __AUTH_RECEIPT_H
 
 #include <stdint.h>
 
@@ -55,4 +55,4 @@ typedef struct {
  */
 unsigned int auth_sign_handle_receipt(volatile unsigned int rx);
 
-#endif
+#endif // __AUTH_RECEIPT_H

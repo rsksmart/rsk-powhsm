@@ -32,8 +32,8 @@
     Originally written by https://github.com/h5p9sl
  */
 
-#ifndef _HMAC_SHA256_H_
-#define _HMAC_SHA256_H_
+#ifndef __HMAC_SHA256_H
+#define __HMAC_SHA256_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -74,4 +74,4 @@ hmac_sha256(
 }
 #endif // __cplusplus
 
-#endif // _HMAC_SHA256_H_
+#endif // __HMAC_SHA256_H

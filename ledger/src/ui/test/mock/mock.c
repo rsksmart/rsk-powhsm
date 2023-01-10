@@ -25,6 +25,9 @@
 #include <string.h>
 #include "mock.h"
 
+// APDU buffer
+unsigned char G_io_apdu_buffer[IO_APDU_BUFFER_SIZE];
+
 // Mock variables used by os_exception.h
 static try_context_t G_try_last_open_context_var;
 try_context_t *G_try_last_open_context = &G_try_last_open_context_var;

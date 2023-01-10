@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __AUTH_PATH
-#define __AUTH_PATH
+#ifndef __AUTH_PATH_H
+#define __AUTH_PATH_H
 
 #include <stdint.h>
 
@@ -40,4 +40,4 @@
  */
 unsigned int auth_sign_handle_path(volatile unsigned int rx);
 
-#endif
+#endif // __AUTH_PATH_H

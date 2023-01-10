@@ -40,7 +40,7 @@
  * @arg[in] state   the state to transition to
  */
 void auth_transition_to(uint8_t state) {
-    if (state == AUTH_ST_START)
+    if (state == STATE_AUTH_START)
         memset(&auth, 0, sizeof(auth));
 
     auth.state = state;
@@ -69,9 +69,10 @@ unsigned int auth_sign(volatile unsigned int rx) {
     // Check we receive the amount of bytes we requested
     // (this is an extra check on the legacy protocol, not
     // really adding much validation)
-    if (auth.state != AUTH_ST_START && auth.state != AUTH_ST_MERKLEPROOF &&
+    if (auth.state != STATE_AUTH_START &&
+        auth.state != STATE_AUTH_MERKLEPROOF &&
         APDU_DATA_SIZE(rx) != auth.expected_bytes)
-        THROW(AUTH_ERR_INVALID_DATA_SIZE);
+        THROW(ERR_AUTH_INVALID_DATA_SIZE);
 
     switch (APDU_OP() & 0xF) {
     case P1_PATH:
@@ -88,11 +89,11 @@ unsigned int auth_sign(volatile unsigned int rx) {
         return tx;
     default:
         // Invalid OP
-        THROW(AUTH_ERR_INVALID_DATA_SIZE);
+        THROW(ERR_AUTH_INVALID_DATA_SIZE);
     }
 
-    if (auth.state != AUTH_ST_SIGN)
-        THROW(AUTH_ERR_INVALID_STATE); // Invalid state
+    if (auth.state != STATE_AUTH_SIGN)
+        THROW(ERR_AUTH_INVALID_STATE); // Invalid state
 
     tx = do_sign(auth.path,
                  RSK_PATH_LEN,
@@ -127,6 +128,6 @@ unsigned int auth_sign(volatile unsigned int rx) {
     }
 
     SET_APDU_OP(P1_SUCCESS);
-    auth_transition_to(AUTH_ST_START);
+    auth_transition_to(STATE_AUTH_START);
     return TX_FOR_DATA_SIZE(tx);
 }

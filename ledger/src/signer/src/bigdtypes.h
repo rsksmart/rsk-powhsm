@@ -41,8 +41,8 @@
  * $Author: dai $
  */
 
-#ifndef BIGDTYPES_H_
-#define BIGDTYPES_H_ 1
+#ifndef __BIGDTYPES_H
+#define __BIGDTYPES_H 1
 
 #include <stddef.h>
 
@@ -92,4 +92,4 @@ You can override by defining HAVE_C99INCLUDES or HAVE_SYS_TYPES.
 #define PRIxBIGD PRIx32
 #define PRIXBIGD PRIX32
 
-#endif /* BIGDTYPES_H_ */
+#endif // __BIGDTYPES_H

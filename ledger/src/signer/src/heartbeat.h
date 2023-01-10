@@ -22,27 +22,53 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __HEARTBEAT
-#define __HEARTBEAT
+#ifndef __HEARTBEAT_H
+#define __HEARTBEAT_H
 
 // -----------------------------------------------------------------------
 // Signer heartbeat
 // -----------------------------------------------------------------------
 
-// APDU instruction
-#define INS_HEARTBEAT 0x60
+// Operation selectors
+typedef enum {
+    OP_HBT_UD_VALUE = 0x01,
+    OP_HBT_GET = 0x02,
+    OP_HBT_GET_MESSAGE = 0x03,
+    OP_HBT_APP_HASH = 0x04,
+    OP_HBT_PUBKEY = 0x05,
+} op_code_heartbeat_t;
+
+// Error codes
+typedef enum {
+    ERR_HBT_PROT_INVALID = 0x6b10, // Host not respecting protocol
+    ERR_HBT_INTERNAL = 0x6b11,     // Internal error while generating heartbeat
+} err_code_heartbeat_t;
+
+// Heartbeat message prefix
+#define HEARTBEAT_MSG_PREFIX "HSM:SIGNER:HRTBT:3.0:"
+#define HEARTBEAT_MSG_PREFIX_LENGTH (sizeof(HEARTBEAT_MSG_PREFIX) - sizeof(""))
+
+// User-defined value size
+#define UD_VALUE_SIZE 16 // bytes
+
+// Number of trailing bytes of the last signed BTC tx
+// to include in the message
+#define LAST_SIGNED_TX_BYTES 8 // bytes
+
+// Index of the endorsement scheme
+#define ENDORSEMENT_SCHEME_INDEX 2
 
 // Maximum heartbeat message to sign size
 #define MAX_HEARTBEAT_MESSAGE_SIZE 100
 
-// Heartbeat SM stages
+// Heartbeat SM states
 typedef enum {
-    heartbeat_stage_wait_ud_value = 0,
-    heartbeat_stage_ready,
-} heartbeat_stage_t;
+    STATE_HEARTBEAT_WAIT_UD_VALUE = 0,
+    STATE_HEARTBEAT_READY,
+} state_heartbeat_t;
 
 typedef struct heartbeat_s {
-    heartbeat_stage_t stage;
+    state_heartbeat_t state;
 
     uint8_t msg[MAX_HEARTBEAT_MESSAGE_SIZE]; // Heartbeat message
     unsigned int msg_offset;
@@ -58,4 +84,4 @@ typedef struct heartbeat_s {
 unsigned int get_heartbeat(volatile unsigned int rx,
                            heartbeat_t* heartbeat_ctx);
 
-#endif
+#endif // __HEARTBEAT_H

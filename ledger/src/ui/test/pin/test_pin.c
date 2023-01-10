@@ -33,6 +33,7 @@
 #include "defs.h"
 #include "err.h"
 #include "mock.h"
+#include "instructions.h"
 #include "pin.h"
 
 #define IS_VALID true

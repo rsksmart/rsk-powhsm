@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __SIMULATOR_OS_ATTESTATION
-#define __SIMULATOR_OS_ATTESTATION
+#ifndef __SIMULATOR_OS_ATTESTATION_H
+#define __SIMULATOR_OS_ATTESTATION_H
 
 unsigned int os_endorsement_key2_derive_sign_data(unsigned char *src,
                                                   unsigned int srcLength,
@@ -34,4 +34,4 @@ unsigned int os_endorsement_get_code_hash(unsigned char *buffer);
 unsigned int os_endorsement_get_public_key(unsigned char index,
                                            unsigned char *buffer);
 
-#endif // __SIMULATOR_OS_ATTESTATION
+#endif // __SIMULATOR_OS_ATTESTATION_H

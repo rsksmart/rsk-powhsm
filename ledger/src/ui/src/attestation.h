@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __ATTESTATION
-#define __ATTESTATION
+#ifndef __ATTESTATION_H
+#define __ATTESTATION_H
 
 #include <stdint.h>
 #include "os.h"
@@ -34,13 +34,18 @@
 // Custom CA attestation
 // -----------------------------------------------------------------------
 
-// Command and sub-operations
-#define INS_ATTESTATION 0x50
+// Operation selectors
+typedef enum {
+    OP_ATT_UD_VALUE = 0x01,
+    OP_ATT_GET_MSG = 0x02,
+    OP_ATT_GET = 0x03,
+    OP_ATT_APP_HASH = 0x04,
+} op_code_att_t;
 
-#define ATT_OP_UD_VALUE 0x01
-#define ATT_OP_GET_MSG 0x02
-#define ATT_OP_GET 0x03
-#define ATT_OP_APP_HASH 0x04
+// Error codes
+typedef enum {
+    ATT_NO_ONBOARD = 0x6A02, // Device not onboarded using the UI
+} err_code_att_t;
 
 // Attestation message prefix
 #define ATT_MSG_PREFIX "HSM:UI:3.0"
@@ -62,15 +67,15 @@
     (ATT_MSG_PREFIX_LENGTH + UD_VALUE_SIZE + PUBKEYCOMPRESSEDSIZE + \
      SIGAUT_SIGNER_HASH_SIZE + SIGAUT_SIGNER_ITERATION_SIZE)
 
-// Attestation SM stages
+// Attestation SM states
 typedef enum {
-    att_stage_wait_ud_value = 0,
-    att_stage_ready,
-} att_stage_t;
+    att_state_wait_ud_value = 0,
+    att_state_ready,
+} att_state_t;
 
 // Attestation context
 typedef struct {
-    att_stage_t stage;
+    att_state_t state;
 
     uint8_t msg[ATT_MESSAGE_SIZE];
     unsigned int msg_offset;
@@ -101,4 +106,4 @@ void reset_attestation(att_t* att_ctx);
  */
 unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx);
 
-#endif
+#endif // __ATTESTATION_H

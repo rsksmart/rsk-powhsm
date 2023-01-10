@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __AUTH_CONSTANTS
-#define __AUTH_CONSTANTS
+#ifndef __AUTH_CONSTANTS_H
+#define __AUTH_CONSTANTS_H
 
 #include <stdint.h>
 
@@ -37,4 +37,4 @@ const uint8_t EVENT_SIGNATURE[] = {
     0x3a, 0x5c, 0x2b, 0x88, 0x51, 0x45, 0x57, 0xbc, 0xc7, 0x90};
 #define EVENT_SIGNATURE_SIZE (32)
 
-#endif
+#endif // __AUTH_CONSTANTS_H

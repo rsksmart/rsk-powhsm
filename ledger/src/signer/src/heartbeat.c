@@ -26,58 +26,32 @@
 
 #include "os.h"
 #include "heartbeat.h"
+#include "apdu.h"
 #include "defs.h"
 #include "memutil.h"
 #include "bc_state.h"
 #include "compiletime.h"
-
-// Heartbeat message prefix
-#define HEARTBEAT_MSG_PREFIX "HSM:SIGNER:HRTBT:3.0:"
-#define HEARTBEAT_MSG_PREFIX_LENGTH (sizeof(HEARTBEAT_MSG_PREFIX) - sizeof(""))
-
-// Operation selectors
-#define OP_UD_VALUE 0x01
-#define OP_GET 0x02
-#define OP_GET_MESSAGE 0x03
-#define OP_APP_HASH 0x04
-#define OP_PUBKEY 0x05
-
-// User-defined value size
-#define UD_VALUE_SIZE 16 // bytes
-
-// Number of trailing bytes of the last signed BTC tx
-// to include in the message
-#define LAST_SIGNED_TX_BYTES 8 // bytes
-
-// Index of the endorsement scheme
-#define ENDORSEMENT_SCHEME_INDEX 2
-
-// Error codes
-typedef enum {
-    PROT_INVALID = 0x6b10, // Host not respecting protocol
-    INTERNAL = 0x6b11,     // Internal error while generating heartbeat
-} err_code_heartbeat_t;
 
 /*
  * Reset the given heartbeat context
  */
 static void reset_heartbeat(heartbeat_t* heartbeat_ctx) {
     explicit_bzero(heartbeat_ctx, sizeof(heartbeat_t));
-    heartbeat_ctx->stage = heartbeat_stage_wait_ud_value;
+    heartbeat_ctx->state = STATE_HEARTBEAT_WAIT_UD_VALUE;
 }
 
 /*
  * Check that the SM for the heartbeat generation
- * matches the expected stage.
+ * matches the expected state.
  *
  * Reset the state and throw a protocol error
  * otherwise.
  */
-static void check_stage(heartbeat_t* heartbeat_ctx,
-                        heartbeat_stage_t expected) {
-    if (heartbeat_ctx->stage != expected) {
+static void check_state(heartbeat_t* heartbeat_ctx,
+                        state_heartbeat_t expected) {
+    if (heartbeat_ctx->state != expected) {
         reset_heartbeat(heartbeat_ctx);
-        THROW(PROT_INVALID);
+        THROW(ERR_HBT_PROT_INVALID);
     }
 }
 
@@ -100,10 +74,10 @@ unsigned int get_heartbeat(volatile unsigned int rx,
                         sizeof(N_bc_state.last_auth_signed_btc_tx_hash));
 
     switch (APDU_OP()) {
-    case OP_UD_VALUE:
+    case OP_HBT_UD_VALUE:
         // Should receive a user-defined value
         if (APDU_DATA_SIZE(rx) != UD_VALUE_SIZE)
-            THROW(PROT_INVALID);
+            THROW(ERR_HBT_PROT_INVALID);
 
         // Initialize message
         explicit_bzero(heartbeat_ctx->msg, sizeof(heartbeat_ctx->msg));
@@ -117,7 +91,7 @@ unsigned int get_heartbeat(volatile unsigned int rx,
                      HEARTBEAT_MSG_PREFIX_LENGTH,
                      MEMMOVE_ZERO_OFFSET,
                      HEARTBEAT_MSG_PREFIX_LENGTH,
-                     THROW(INTERNAL));
+                     THROW(ERR_HBT_INTERNAL));
         heartbeat_ctx->msg_offset += HEARTBEAT_MSG_PREFIX_LENGTH;
 
         // Copy the current best block
@@ -128,7 +102,7 @@ unsigned int get_heartbeat(volatile unsigned int rx,
                      sizeof(N_bc_state.best_block),
                      MEMMOVE_ZERO_OFFSET,
                      sizeof(N_bc_state.best_block),
-                     THROW(INTERNAL));
+                     THROW(ERR_HBT_INTERNAL));
         heartbeat_ctx->msg_offset += sizeof(N_bc_state.best_block);
 
         // Copy the last LAST_SIGNED_TX_BYTES bytes of the last auth signed tx
@@ -139,7 +113,7 @@ unsigned int get_heartbeat(volatile unsigned int rx,
                      sizeof(N_bc_state.last_auth_signed_btc_tx_hash),
                      MEMMOVE_ZERO_OFFSET,
                      LAST_SIGNED_TX_BYTES,
-                     THROW(INTERNAL));
+                     THROW(ERR_HBT_INTERNAL));
         heartbeat_ctx->msg_offset += LAST_SIGNED_TX_BYTES;
 
         // Copy the UD value from the APDU
@@ -150,22 +124,22 @@ unsigned int get_heartbeat(volatile unsigned int rx,
                      APDU_TOTAL_DATA_SIZE,
                      MEMMOVE_ZERO_OFFSET,
                      UD_VALUE_SIZE,
-                     THROW(INTERNAL));
+                     THROW(ERR_HBT_INTERNAL));
         heartbeat_ctx->msg_offset += UD_VALUE_SIZE;
 
-        heartbeat_ctx->stage = heartbeat_stage_ready;
+        heartbeat_ctx->state = STATE_HEARTBEAT_READY;
 
         return TX_FOR_DATA_SIZE(0);
-    case OP_GET:
-        check_stage(heartbeat_ctx, heartbeat_stage_ready);
+    case OP_HBT_GET:
+        check_state(heartbeat_ctx, STATE_HEARTBEAT_READY);
 
         // Sign message
         int endorsement_size = os_endorsement_key2_derive_sign_data(
             heartbeat_ctx->msg, heartbeat_ctx->msg_offset, APDU_DATA_PTR);
 
         return TX_FOR_DATA_SIZE(endorsement_size);
-    case OP_GET_MESSAGE:
-        check_stage(heartbeat_ctx, heartbeat_stage_ready);
+    case OP_HBT_GET_MESSAGE:
+        check_state(heartbeat_ctx, STATE_HEARTBEAT_READY);
 
         SAFE_MEMMOVE(APDU_DATA_PTR,
                      APDU_TOTAL_DATA_SIZE,
@@ -174,16 +148,16 @@ unsigned int get_heartbeat(volatile unsigned int rx,
                      sizeof(heartbeat_ctx->msg),
                      MEMMOVE_ZERO_OFFSET,
                      heartbeat_ctx->msg_offset,
-                     THROW(INTERNAL));
+                     THROW(ERR_HBT_INTERNAL));
 
         return TX_FOR_DATA_SIZE(heartbeat_ctx->msg_offset);
-    case OP_APP_HASH:
+    case OP_HBT_APP_HASH:
         return TX_FOR_DATA_SIZE(os_endorsement_get_code_hash(APDU_DATA_PTR));
-    case OP_PUBKEY:
+    case OP_HBT_PUBKEY:
         return TX_FOR_DATA_SIZE(os_endorsement_get_public_key(
             ENDORSEMENT_SCHEME_INDEX, APDU_DATA_PTR));
     default:
-        THROW(PROT_INVALID);
+        THROW(ERR_HBT_PROT_INVALID);
         break;
     }
 }

@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __BC_NU
-#define __BC_NU
+#ifndef __BC_NU_H
+#define __BC_NU_H
 
 // -----------------------------------------------------------------------
 // Determine network upgrade given a block number.
@@ -90,4 +90,4 @@ typedef enum {
 #define GET_NETWORK_IDENTIFIER() NETID_MAINNET
 #endif
 
-#endif // POWNU
+#endif // __BC_NU_H

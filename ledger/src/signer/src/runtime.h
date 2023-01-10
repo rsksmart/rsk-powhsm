@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __RUNTIME
-#define __RUNTIME
+#ifndef __RUNTIME_H
+#define __RUNTIME_H
 
 #ifdef HSM_SIMULATOR
 #define NON_VOLATILE
@@ -31,4 +31,4 @@
 #define NON_VOLATILE const
 #endif
 
-#endif
+#endif // __RUNTIME_H

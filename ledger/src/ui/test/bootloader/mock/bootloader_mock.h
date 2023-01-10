@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef _BOOTLOADER_MOCK_H
-#define _BOOTLOADER_MOCK_H
+#ifndef __BOOTLOADER_MOCK_H
+#define __BOOTLOADER_MOCK_H
 
 // Needed for signer_authorization.h
 #define PARAM_SIGNERS_FILE testing
@@ -58,4 +58,4 @@ unsigned int is_onboarded();
 unsigned int onboard_device(onboard_t* onboard_ctx);
 unsigned short io_exchange(unsigned char channel, unsigned short tx_len);
 
-#endif
+#endif // __BOOTLOADER_MOCK_H

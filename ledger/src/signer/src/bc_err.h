@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __BC_ERR
-#define __BC_ERR
+#ifndef __BC_ERR_H
+#define __BC_ERR_H
 
 // Error codes returned by blockchain protocols
 typedef enum {
@@ -75,4 +75,4 @@ void show_error(err_code_t errcode);
         THROW(errcode);      \
     }
 
-#endif
+#endif // __BC_ERR_H

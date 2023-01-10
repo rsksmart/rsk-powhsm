@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __BC
-#define __BC
+#ifndef __BC_H
+#define __BC_H
 
 // -----------------------------------------------------------------------
 // Constants referenced all around the code
@@ -60,4 +60,4 @@
 #define BTC_HEADER_RLP_LEN 82
 #define MERKLE_ROOT_OFFSET 36
 
-#endif
+#endif // __BC_H

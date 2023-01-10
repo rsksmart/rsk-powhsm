@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __AUTH_TX
-#define __AUTH_TX
+#ifndef __AUTH_TX_H
+#define __AUTH_TX_H
 
 #include <stdint.h>
 
@@ -54,4 +54,4 @@ typedef struct {
  */
 unsigned int auth_sign_handle_btctx(volatile unsigned int rx);
 
-#endif
+#endif // __AUTH_TX_H

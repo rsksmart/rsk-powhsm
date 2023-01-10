@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __SIMULATOR_HSMSIM_ECDSA
-#define __SIMULATOR_HSMSIM_ECDSA
+#ifndef __SIMULATOR_HSMSIM_ECDSA_H
+#define __SIMULATOR_HSMSIM_ECDSA_H
 
 #include <stdbool.h>
 
@@ -31,4 +31,4 @@ bool hsmsim_ecdsa_initialize(char* key_file_path);
 
 bool hsmsim_ecdsa_get_key(unsigned char* path, unsigned char* dst_key);
 
-#endif // __SIMULATOR_HSMSIM_ECDSA
+#endif // __SIMULATOR_HSMSIM_ECDSA_H

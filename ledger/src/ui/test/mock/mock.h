@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef _MOCK_H
-#define _MOCK_H
+#ifndef __MOCK_H
+#define __MOCK_H
 
 #include <assert.h>
 #include <stdint.h>
@@ -36,8 +36,6 @@
 
 #define PARAM_SIGNERS_FILE testing
 #define CX_CURVE_256K1 33
-
-extern unsigned char G_io_apdu_buffer[IO_APDU_BUFFER_SIZE];
 
 #define APDU_RETURN(offset) \
     ((uint16_t)(G_io_apdu_buffer[offset] << 8) | (G_io_apdu_buffer[offset + 1]))
@@ -110,4 +108,4 @@ void explicit_bzero(void *s, size_t len);
 void nvm_write(void *dst_adr, void *src_adr, unsigned int src_len);
 unsigned char *cx_rng(unsigned char *buffer, unsigned int len);
 
-#endif
+#endif // __MOCK_H
