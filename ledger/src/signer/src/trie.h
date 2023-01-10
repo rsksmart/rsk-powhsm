@@ -39,8 +39,8 @@
 // Immediately after calling this function, check error conditions and
 // parsing state with trie_result.
 
-#ifndef __TRIE
-#define __TRIE
+#ifndef __TRIE_H
+#define __TRIE_H
 
 #include <stddef.h>
 #include <stdint.h>
@@ -158,4 +158,4 @@ int8_t trie_result();
  */
 uint8_t trie_consume(uint8_t* buf, const uint8_t len);
 
-#endif
+#endif // __TRIE_H

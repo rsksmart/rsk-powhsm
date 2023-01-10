@@ -37,8 +37,8 @@
 // Immediately after calling this function, check error conditions and
 // parsing state with btcscript_result.
 
-#ifndef __BTCSCRIPT
-#define __BTCSCRIPT
+#ifndef __BTCSCRIPT_H
+#define __BTCSCRIPT_H
 
 #include <stddef.h>
 #include <stdint.h>
@@ -132,4 +132,4 @@ int8_t btcscript_result();
  */
 uint8_t btcscript_consume(uint8_t* buf, const uint8_t len);
 
-#endif
+#endif // __BTCSCRIPT_H

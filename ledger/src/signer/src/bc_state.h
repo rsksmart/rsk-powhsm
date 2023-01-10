@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __BC_STATE
-#define __BC_STATE
+#ifndef __BC_STATE_H
+#define __BC_STATE_H
 
 // -----------------------------------------------------------------------
 // Non-volatile blockchain state
@@ -73,10 +73,15 @@ extern uint8_t INITIAL_BLOCK_HASH[HASH_LEN];
 // Get/Reset blockchain state protocol
 // -----------------------------------------------------------------------
 
-#define INS_GET_STATE 0x20
-#define OP_GET_HASH 0x01
-#define OP_GET_DIFF 0x02
-#define OP_GET_FLAGS 0x03
+// Operation selectors
+typedef enum {
+    OP_STATE_GET_HASH = 0x01,
+    OP_STATE_GET_DIFF = 0x02,
+    OP_STATE_GET_FLAGS = 0x03,
+
+    OP_STATE_RESET_INIT = 0x01,
+    OP_STATE_RESET_DONE = 0x02,
+} op_code_state_t;
 
 // Hash descriptors
 #define BEST_BLOCK 0x01
@@ -86,10 +91,6 @@ extern uint8_t INITIAL_BLOCK_HASH[HASH_LEN];
 #define U_BEST_BLOCK 0x81
 #define U_NEWEST_VALID_BLOCK 0x82
 #define U_NEXT_EXPECTED_BLOCK 0x84
-
-#define INS_RESET_STATE 0x21
-#define OP_RESET_INIT 0x01
-#define OP_RESET_DONE 0x02
 
 /*
  * Initialize blockchain state.
@@ -126,4 +127,4 @@ unsigned int bc_reset_state(volatile unsigned int rx);
  */
 uint8_t bc_dump_initial_block_hash(int offset);
 
-#endif
+#endif // __BC_STATE_H

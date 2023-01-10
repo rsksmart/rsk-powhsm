@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef PATHAUTH_H
-#define PATHAUTH_H
+#ifndef __PATHAUTH_H
+#define __PATHAUTH_H
 
 #include <stdbool.h>
 
@@ -43,4 +43,4 @@ const char *get_ordered_path(unsigned int index);
 
 #define KEY_PATH_COUNT() (sizeof(ordered_paths) / sizeof(ordered_paths[0]))
 
-#endif // PATHAUTH_H
+#endif // __PATHAUTH_H

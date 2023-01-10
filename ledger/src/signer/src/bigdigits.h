@@ -45,8 +45,8 @@
  * $Author: dai $
  */
 
-#ifndef BIGDIGITS_H_
-#define BIGDIGITS_H_ 1
+#ifndef __BIGDIGITS_H
+#define __BIGDIGITS_H 1
 
 #include <stdlib.h>
 #include "bigdtypes.h"
@@ -157,4 +157,4 @@ DIGIT_T mpShortDiv(DIGIT_T q[], const DIGIT_T u[], DIGIT_T d, size_t ndigits);
 }
 #endif
 
-#endif    /* BIGDIGITS_H_ */
+#endif  // __BIGDIGITS_H

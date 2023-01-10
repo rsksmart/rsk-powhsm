@@ -132,7 +132,7 @@ unsigned int onboard_device(onboard_t *onboard_ctx) {
 unsigned int set_host_seed(volatile unsigned int rx, onboard_t *onboard_ctx) {
     // Should receive 1 byte per call
     if (APDU_DATA_SIZE(rx) != 1) {
-        THROW(PROT_INVALID);
+        THROW(ERR_PROT_INVALID);
     }
 
     unsigned char index = APDU_OP();

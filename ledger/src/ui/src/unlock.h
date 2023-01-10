@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __UNLOCK
-#define __UNLOCK
+#ifndef __UNLOCK_H
+#define __UNLOCK_H
 
 #include "pin.h"
 
@@ -36,4 +36,4 @@
  */
 unsigned int unlock();
 
-#endif
+#endif // __UNLOCK_H

@@ -22,32 +22,17 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __ERR
-#define __ERR
+#ifndef __ERR_H
+#define __ERR_H
 
-// Error codes for RSK operations
+// Generic error codes for the UI
 typedef enum {
-    PROT_INVALID = 0x6a01, // Ledger got invalid or unexpected message
-
-    ATT_NO_ONBOARD = 0x6a02, // Attestation: device not onboarded using the UI
-
-    SIG_AUT_INVALID_ITERATION =
-        0x6a03, // Signer authorization: invalid iteration given
-    SIG_AUT_INVALID_SIGNATURE =
-        0x6a04, // Signer authorization: invalid signature given
-    SIG_AUT_INVALID_AUTH_INVALID_INDEX =
-        0x6a05, // Signer authorization: invalid authorizer index
-
-    INTERNAL = 0x6a99, // Internal error while generating attestation
-} err_code_rsk_t;
-
-// Error codes for UI operations
-typedef enum {
+    ERR_PROT_INVALID = 0x6A01,
+    ERR_INVALID_CLA = 0x6E22,
+    ERR_INTERNAL = 0x6A99,
     ERR_INVALID_PIN = 0x69A0,
+
+    EX_BOOTLOADER_RSK_END = 0x90FF,
 } err_code_ui_t;
 
-typedef enum {
-    ERR_INVALID_CLA = 0x6E22,
-} err_code_ui_apdu_t;
-
-#endif
+#endif // __ERR_H

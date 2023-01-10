@@ -21,8 +21,8 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-#ifndef __BOLOS_UX_HANDLERS
-#define __BOLOS_UX_HANDLERS
+#ifndef __BOLOS_UX_HANDLERS_H
+#define __BOLOS_UX_HANDLERS_H
 
 /**
  * BOLOS_UX_BOOT_ONBOARDING handler
@@ -89,4 +89,4 @@ void handle_bolos_ux_boot_processing();
 
 void set_autoexec(char value);
 
-#endif
+#endif // __BOLOS_UX_HANDLERS_H

@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __DBG
-#define __DBG
+#ifndef __DBG_H
+#define __DBG_H
 
 #ifdef HSM_SIMULATOR
 
@@ -60,4 +60,4 @@ void LOG_SRLP_CTX(uint8_t v, rlp_ctx_t ctx[], uint8_t ptr);
 
 #endif
 
-#endif
+#endif // __DBG_H

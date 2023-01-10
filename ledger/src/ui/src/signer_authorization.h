@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __SIGNER_AUTHORIZATION
-#define __SIGNER_AUTHORIZATION
+#ifndef __SIGNER_AUTHORIZATION_H
+#define __SIGNER_AUTHORIZATION_H
 
 #ifndef PARAM_SIGNERS_FILE
 #error "Signers header file not defined!"
@@ -46,18 +46,27 @@
 // Signer installation & execution authorization
 // -----------------------------------------------------------------------
 
-// Command and sub-operations
-#define INS_SIGNER_AUTHORIZATION 0x51
+// Operation selectors
+typedef enum {
+    OP_SIGAUT_GET_CURRENT = 0x00,
+    OP_SIGAUT_SIGVER = 0x01,
+    OP_SIGAUT_SIGN = 0x02,
+    OP_SIGAUT_GET_AUTH_COUNT = 0x03,
+    OP_SIGAUT_GET_AUTH_AT = 0x04,
+} op_code_sigaut_t;
 
-#define SIG_AUT_OP_GET_CURRENT 0x00
-#define SIG_AUT_OP_SIGVER 0x01
-#define SIG_AUT_OP_SIGN 0x02
-#define SIG_AUT_OP_GET_AUTH_COUNT 0x03
-#define SIG_AUT_OP_GET_AUTH_AT 0x04
+// Error codes
+typedef enum {
+    ERR_SIGAUT_INVALID_ITERATION = 0x6A03,
+    ERR_SIGAUT_INVALID_SIGNATURE = 0x6A04,
+    ERR_SIGAUT_INVALID_AUTH_INVALID_INDEX = 0x6A05,
+} err_code_sigaut_t;
 
-// Signature providing possible return values
-#define SIG_AUT_OP_SIGN_RES_MORE 0x01
-#define SIG_AUT_OP_SIGN_RES_SUCCESS 0x02
+// Return values for signer authorization
+typedef enum {
+    RES_SIGAUT_MORE = 0x01,
+    RES_SIGAUT_SUCCESS = 0x02,
+} res_code_sigaut_t;
 
 // Ethereum message prefix
 #define ETHEREUM_MSG_PREFIX \
@@ -98,15 +107,15 @@ typedef struct {
     sigaut_signer_t signer;
 } sigaut_signer_status_t;
 
-// Signer authorization SM stages
+// Signer authorization SM states
 typedef enum {
-    sigaut_stage_wait_signer_version = 0,
-    sigaut_stage_wait_signature,
-} sigaut_stage_t;
+    sigaut_state_wait_signer_version = 0,
+    sigaut_state_wait_signature,
+} sigaut_state_t;
 
 // Signer authorization context
 typedef struct {
-    sigaut_stage_t stage;
+    sigaut_state_t state;
 
     sigaut_signer_t signer;
 
@@ -162,4 +171,4 @@ bool is_authorized_signer(unsigned char* signer_hash);
  */
 sigaut_signer_t* get_authorized_signer_info();
 
-#endif
+#endif // __SIGNER_AUTHORIZATION_H

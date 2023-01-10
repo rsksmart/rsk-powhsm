@@ -44,8 +44,8 @@
  * (https://github.com/LedgerHQ/nanos-secure-sdk/blob/nanos-1314/include/os.h)
  */
 
-#ifndef __SIMULATOR_OS_EXCEPTIONS
-#define __SIMULATOR_OS_EXCEPTIONS
+#ifndef __SIMULATOR_OS_EXCEPTIONS_H
+#define __SIMULATOR_OS_EXCEPTIONS_H
 
 #include <setjmp.h>
 #include <stdbool.h>
@@ -208,4 +208,4 @@ void os_longjmp(jmp_buf b, unsigned int exception);
 
 #endif
 
-#endif // __SIMULATOR_OS_EXCEPTIONS
+#endif // __SIMULATOR_OS_EXCEPTIONS_H

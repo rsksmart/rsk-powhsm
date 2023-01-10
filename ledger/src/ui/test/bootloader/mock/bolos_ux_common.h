@@ -22,9 +22,9 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef _MOCK_BOLOS_UX_COMMON_H
-#define _MOCK_BOLOS_UX_COMMON_H
+#ifndef __MOCK_BOLOS_UX_COMMON_H
+#define __MOCK_BOLOS_UX_COMMON_H
 
 #include "bootloader_mock.h"
 
-#endif
+#endif // __MOCK_BOLOS_UX_COMMON_H

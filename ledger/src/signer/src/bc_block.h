@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __BLOCK
-#define __BLOCK
+#ifndef __BLOCK_H
+#define __BLOCK_H
 
 #include <stdint.h>
 
@@ -104,4 +104,4 @@ typedef struct {
     DIGIT_T total_difficulty[BIGINT_LEN];
 } aux_bc_state_t;
 
-#endif
+#endif // __BLOCK_H

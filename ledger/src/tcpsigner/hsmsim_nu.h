@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __SIMULATOR_NU
-#define __SIMULATOR_NU
+#ifndef __SIMULATOR_NU_H
+#define __SIMULATOR_NU_H
 
 #include <stdint.h>
 
@@ -57,4 +57,4 @@ network_upgrade_activation_t* hsmsim_get_network_upgrade_activations();
 
 char* hsmsim_get_network_upgrade_name(network_upgrade_t nu);
 
-#endif // __SIMULATOR_NU
+#endif // __SIMULATOR_NU_H

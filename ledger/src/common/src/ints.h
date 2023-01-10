@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __INTS
-#define __INTS
+#ifndef __INTS_H
+#define __INTS_H
 
 // -----------------------------------------------------------------------
 // Utility macros for integer manipulation.
@@ -110,4 +110,4 @@
         NIBBLE_TO_HEXCHAR((buf)[1], (n)&0x0f);        \
     }
 
-#endif
+#endif // __INTS_H

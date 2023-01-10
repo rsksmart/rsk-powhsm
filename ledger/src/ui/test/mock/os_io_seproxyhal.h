@@ -27,4 +27,4 @@
 
 #include "mock.h"
 
-#endif
+#endif // __MOCK_OS_IO_SEPROXYHAL_H

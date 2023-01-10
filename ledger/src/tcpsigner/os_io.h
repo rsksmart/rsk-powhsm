@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __SIMULATOR_OS_IO
-#define __SIMULATOR_OS_IO
+#ifndef __SIMULATOR_OS_IO_H
+#define __SIMULATOR_OS_IO_H
 
 #include <stdio.h>
 
@@ -89,4 +89,4 @@ unsigned short io_exchange_file(unsigned char channel_and_flags,
  */
 unsigned int replicate_to_file(FILE *replica_file, unsigned short rx);
 
-#endif // __SIMULATOR_OS_IO
+#endif // __SIMULATOR_OS_IO_H

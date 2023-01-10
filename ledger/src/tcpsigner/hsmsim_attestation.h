@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __SIMULATOR_HSMSIM_ATTESTATION
-#define __SIMULATOR_HSMSIM_ATTESTATION
+#ifndef __SIMULATOR_HSMSIM_ATTESTATION_H
+#define __SIMULATOR_HSMSIM_ATTESTATION_H
 
 #include <stdbool.h>
 
@@ -46,4 +46,4 @@ extern attestation_id_t attestation_id;
 
 bool hsmsim_attestation_initialize(char* att_file_path);
 
-#endif // __SIMULATOR_HSMSIM_ATTESTATION
+#endif // __SIMULATOR_HSMSIM_ATTESTATION_H

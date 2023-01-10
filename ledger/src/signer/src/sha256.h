@@ -30,8 +30,8 @@
  * Details:    Defines the API for the corresponding SHA1 implementation.
  *********************************************************************/
 
-#ifndef SHA256_H
-#define SHA256_H
+#ifndef __SHA256_H
+#define __SHA256_H
 
 /*************************** HEADER FILES ***************************/
 #include <stdint.h>
@@ -53,4 +53,4 @@ void sha256_midstate(SHA256_CTX *ctx, uint8_t *midstate);
 void sha256_update(SHA256_CTX *ctx, const uint8_t data[], size_t len);
 void sha256_final(SHA256_CTX *ctx, uint8_t hash[]);
 
-#endif // SHA256_H
+#endif // __SHA256_H

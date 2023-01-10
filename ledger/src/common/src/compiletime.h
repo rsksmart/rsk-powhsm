@@ -26,11 +26,11 @@
  * Compile-time utilities
  */
 
-#ifndef COMPILETIME_H
-#define COMPILETIME_H
+#ifndef __COMPILETIME_H
+#define __COMPILETIME_H
 
 // Work-around for static_assert()
 #define COMPILE_TIME_ASSERT(condition) \
     ((void)sizeof(char[1 - 2 * !(condition)]))
 
-#endif
+#endif // __COMPILETIME_H

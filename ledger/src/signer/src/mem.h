@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __MEM
-#define __MEM
+#ifndef __MEM_H
+#define __MEM_H
 
 #include "bc_block.h"
 #include "bc_state.h"
@@ -80,4 +80,4 @@ extern sess_per_mem_t sess_per_mem;
 #define heartbeat (mem.heartbeat)
 #define ReceiptHash (mem.ReceiptHash_ctx)
 
-#endif
+#endif // __MEM_H

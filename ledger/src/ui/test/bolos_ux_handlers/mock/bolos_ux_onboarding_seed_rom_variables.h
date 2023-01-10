@@ -22,7 +22,7 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef BUSRV_H
-#define BUSRV_H
+#ifndef __BUSRV_H
+#define __BUSRV_H
 
-#endif // BUSRV_H
+#endif // __BUSRV_H

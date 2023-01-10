@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __SIMULATOR_OS
-#define __SIMULATOR_OS
+#ifndef __SIMULATOR_OS_H
+#define __SIMULATOR_OS_H
 
 #include "os_hash.h"
 #include "os_attestation.h"
@@ -44,4 +44,4 @@ unsigned int os_perso_isonboarded();
 
 void nvm_write(void *dst_adr, void *src_adr, unsigned int src_len);
 
-#endif // __SIMULATOR_OS
+#endif // __SIMULATOR_OS_H

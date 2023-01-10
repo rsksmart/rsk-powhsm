@@ -26,10 +26,13 @@
 #include <stddef.h>
 #include <string.h>
 
+#ifndef __APDU_UTILS_H
+#define __APDU_UTILS_H
+
 #define CHANNEL_APDU 0
 
 #define IO_APDU_BUFFER_SIZE (5 + 80)
-unsigned char G_io_apdu_buffer[IO_APDU_BUFFER_SIZE];
+extern unsigned char G_io_apdu_buffer[IO_APDU_BUFFER_SIZE];
 
 #define ASSERT_APDU(str_literal) \
     assert(0 == memcmp(G_io_apdu_buffer, str_literal, sizeof(str_literal) - 1))
@@ -39,3 +42,5 @@ unsigned char G_io_apdu_buffer[IO_APDU_BUFFER_SIZE];
     rx = (sizeof(str_literal) - 1)
 
 #define CLEAR_APDU() memset(G_io_apdu_buffer, 0, sizeof(G_io_apdu_buffer))
+
+#endif // __APDU_UTILS_H

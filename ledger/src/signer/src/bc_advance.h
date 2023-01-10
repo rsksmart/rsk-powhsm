@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __BC_ADVANCE
-#define __BC_ADVANCE
+#ifndef __BC_ADVANCE_H
+#define __BC_ADVANCE_H
 
 /*
  * Blockchain advance protocol definitions. These messages
@@ -31,21 +31,17 @@
  * bunch of blocks.
  */
 
-// Command code for advancing blockchain
-#define INS_ADVANCE 0x10
-
-// Command code for reading the advance blockchain precompiled parameters
-#define INS_ADVANCE_PARAMS 0x11
-
-// Operations for advancing blockchain protocol
-#define OP_ADVANCE_INIT 0x02
-#define OP_ADVANCE_HEADER_META 0x03
-#define OP_ADVANCE_HEADER_CHUNK 0x04
-#define OP_ADVANCE_PARTIAL 0x05
-#define OP_ADVANCE_SUCCESS 0x06
-#define OP_ADVANCE_BROTHER_LIST_META 0x07
-#define OP_ADVANCE_BROTHER_META 0x08
-#define OP_ADVANCE_BROTHER_CHUNK 0x09
+// Operation selectors
+typedef enum {
+    OP_ADVANCE_INIT = 0x02,
+    OP_ADVANCE_HEADER_META = 0x03,
+    OP_ADVANCE_HEADER_CHUNK = 0x04,
+    OP_ADVANCE_PARTIAL = 0x05,
+    OP_ADVANCE_SUCCESS = 0x06,
+    OP_ADVANCE_BROTHER_LIST_META = 0x07,
+    OP_ADVANCE_BROTHER_META = 0x08,
+    OP_ADVANCE_BROTHER_CHUNK = 0x09,
+} op_code_advance_t;
 
 #ifndef PARAM_MIN_REQUIRED_DIFFICULTY
 #include "bc.h"
@@ -73,4 +69,4 @@ unsigned int bc_advance(volatile unsigned int rx);
  */
 unsigned int bc_advance_get_params();
 
-#endif
+#endif // __BC_ADVANCE_H

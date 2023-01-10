@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __PIN
-#define __PIN
+#ifndef __PIN_H
+#define __PIN_H
 
 #include <stdbool.h>
 
@@ -83,4 +83,4 @@ unsigned int unlock_with_pin(bool prepended_length);
  */
 void set_device_pin();
 
-#endif
+#endif // __PIN_H

@@ -22,9 +22,9 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef _MOCK_OS_H
-#define _MOCK_OS_H
+#ifndef __MOCK_OS_H
+#define __MOCK_OS_H
 
 #include "mock.h"
 
-#endif
+#endif // __MOCK_OS_H

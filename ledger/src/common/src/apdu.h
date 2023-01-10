@@ -26,8 +26,8 @@
  * APDU buffer related constants and macros
  */
 
-#ifndef APDU_H
-#define APDU_H
+#ifndef __APDU_H
+#define __APDU_H
 
 // CLA for the entire protocol
 #define CLA 0x80
@@ -80,12 +80,11 @@
 // bytes to receive in the subsequent tx
 #define TX_FOR_TXLEN() (DATA + 1)
 
-// Error codes
-#define ERR_EMPTY_BUFFER (0x6982)
-#define ERR_INS_NOT_SUPPORTED (0x6D00)
-#define APDU_OK (0x9000)
+// Generic error codes used by both Signer and UI
+typedef enum {
+    ERR_EMPTY_BUFFER = 0x6982,
+    ERR_INS_NOT_SUPPORTED = 0x6D00,
+    APDU_OK = 0x9000,
+} err_code_generic_t;
 
-// Special exeption used by bootloader
-#define EX_BOOTLOADER_RSK_END (0x90FF)
-
-#endif
+#endif // __APDU_H

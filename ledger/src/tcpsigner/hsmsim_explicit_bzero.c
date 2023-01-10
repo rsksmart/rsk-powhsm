@@ -44,7 +44,7 @@
 
 #include "hsmsim_explicit_bzero.h"
 
-#ifdef __HSMSIM_EXPLICIT_BZERO
+#ifdef __HSMSIM_EXPLICIT_BZERO_H
 
 /* Set LEN bytes of S to 0.  The compiler will not delete a call to
    this function, even if S is dead after the call.  */
@@ -53,4 +53,5 @@ void explicit_bzero(void *s, size_t len) {
     /* Compiler barrier.  */
     asm volatile("" ::: "memory");
 }
-#endif
+
+#endif // __HSMSIM_EXPLICIT_BZERO_H

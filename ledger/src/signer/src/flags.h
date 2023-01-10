@@ -22,12 +22,12 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef _FLAGS
-#define _FLAGS
+#ifndef __FLAGS_H
+#define __FLAGS_H
 
 // Operate on bit flags
 #define SET_FLAG(flags, f) ((flags) |= (f))
 #define CLR_FLAG(flags, f) ((flags) &= ~(f))
 #define HAS_FLAG(flags, f) ((flags) & (f))
 
-#endif
+#endif // __FLAGS_H

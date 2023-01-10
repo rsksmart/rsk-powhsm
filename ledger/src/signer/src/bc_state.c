@@ -179,20 +179,20 @@ uint8_t dump_flags() {
 unsigned int bc_get_state(volatile unsigned int rx) {
     uint8_t op = APDU_OP();
 
-    uint8_t expected_data_size = op == OP_GET_HASH ? 1 : 0;
+    uint8_t expected_data_size = op == OP_STATE_GET_HASH ? 1 : 0;
     if (APDU_DATA_SIZE(rx) != expected_data_size) {
         FAIL(PROT_INVALID);
     }
 
-    if (op == OP_GET_HASH) {
+    if (op == OP_STATE_GET_HASH) {
         return TX_FOR_DATA_SIZE(dump_hash(APDU_DATA_PTR[0]));
     }
 
-    if (op == OP_GET_DIFF) {
+    if (op == OP_STATE_GET_DIFF) {
         return TX_FOR_DATA_SIZE(dump_difficulty());
     }
 
-    if (op == OP_GET_FLAGS) {
+    if (op == OP_STATE_GET_FLAGS) {
         return TX_FOR_DATA_SIZE(dump_flags());
     }
 
@@ -206,13 +206,13 @@ unsigned int bc_get_state(volatile unsigned int rx) {
  * @ret        number of transmited bytes to the host
  */
 unsigned int bc_reset_state(volatile unsigned int rx) {
-    if (APDU_OP() != OP_RESET_INIT) {
+    if (APDU_OP() != OP_STATE_RESET_INIT) {
         FAIL(PROT_INVALID);
     }
     if (APDU_DATA_SIZE(rx) != 0) {
         FAIL(PROT_INVALID);
     }
     RESET_BC_STATE();
-    SET_APDU_OP(OP_RESET_DONE);
+    SET_APDU_OP(OP_STATE_RESET_DONE);
     return TX_NO_DATA();
 }

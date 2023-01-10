@@ -45,7 +45,7 @@
     {                                              \
         if (auth.trie.current_node == 0) {         \
             LOG("[E] Leaf node not a leaf\n");     \
-            THROW(AUTH_ERR_RECEIPT_HASH_MISMATCH); \
+            THROW(ERR_AUTH_RECEIPT_HASH_MISMATCH); \
         }                                          \
     }
 
@@ -65,14 +65,14 @@ static void trie_cb(const trie_cb_event_t event) {
         if (TRIE_FG_VERSION(auth.trie.ctx.flags) != AUTH_TRIE_NODE_VERSION) {
             LOG("[E] Invalid node version: %u\n",
                 TRIE_FG_VERSION(auth.trie.ctx.flags));
-            THROW(AUTH_ERR_NODE_INVALID_VERSION);
+            THROW(ERR_AUTH_NODE_INVALID_VERSION);
         }
 
         if (auth.trie.current_node == 0 &&
             (TRIE_FG_NODE_PRESENT_LEFT(auth.trie.ctx.flags) ||
              TRIE_FG_NODE_PRESENT_RIGHT(auth.trie.ctx.flags))) {
             LOG("[E] Leaf node not a leaf\n");
-            THROW(AUTH_ERR_RECEIPT_HASH_MISMATCH);
+            THROW(ERR_AUTH_RECEIPT_HASH_MISMATCH);
         }
 
         // In a valid proof, the first node of the partial merkle proof
@@ -85,7 +85,7 @@ static void trie_cb(const trie_cb_event_t event) {
         if (auth.trie.current_node == 0 &&
             !TRIE_FG_HAS_LONG_VALUE(auth.trie.ctx.flags)) {
             LOG("[E] Leaf node must have a long value\n");
-            THROW(AUTH_ERR_RECEIPT_HASH_MISMATCH);
+            THROW(ERR_AUTH_RECEIPT_HASH_MISMATCH);
         }
         break;
     case TRIE_EV_VALUE_START:
@@ -93,7 +93,7 @@ static void trie_cb(const trie_cb_event_t event) {
     case TRIE_EV_VALUE_END:
         IGNORE_IF_INTERNAL();
         LOG("[E] Leaf node must have a long value\n");
-        THROW(AUTH_ERR_RECEIPT_HASH_MISMATCH);
+        THROW(ERR_AUTH_RECEIPT_HASH_MISMATCH);
         break;
     case TRIE_EV_VALUE_HASH_START:
         IGNORE_IF_INTERNAL();
@@ -108,7 +108,7 @@ static void trie_cb(const trie_cb_event_t event) {
                      sizeof(auth.trie.ctx.raw),
                      MEMMOVE_ZERO_OFFSET,
                      auth.trie.ctx.raw_size,
-                     THROW(AUTH_ERR_INVALID_DATA_SIZE));
+                     THROW(ERR_AUTH_INVALID_DATA_SIZE));
         auth.trie.offset += auth.trie.ctx.raw_size;
         break;
     case TRIE_EV_VALUE_HASH_END:
@@ -117,7 +117,7 @@ static void trie_cb(const trie_cb_event_t event) {
                    auth.trie.value_hash,
                    sizeof(auth.trie.value_hash))) {
             LOG("[E] Receipt hash mismatch\n");
-            THROW(AUTH_ERR_RECEIPT_HASH_MISMATCH);
+            THROW(ERR_AUTH_RECEIPT_HASH_MISMATCH);
         }
         break;
     case TRIE_EV_LEFT_NODE_START:
@@ -135,7 +135,7 @@ static void trie_cb(const trie_cb_event_t event) {
                      sizeof(auth.trie.ctx.raw),
                      MEMMOVE_ZERO_OFFSET,
                      auth.trie.ctx.raw_size,
-                     THROW(AUTH_ERR_INVALID_DATA_SIZE));
+                     THROW(ERR_AUTH_INVALID_DATA_SIZE));
         auth.trie.offset += auth.trie.ctx.raw_size;
         break;
     case TRIE_EV_LEFT_NODE_EMBEDDED_START:
@@ -175,9 +175,9 @@ static void trie_cb(const trie_cb_event_t event) {
 unsigned int auth_sign_handle_merkleproof(volatile unsigned int rx) {
     uint8_t apdu_offset = 0;
 
-    if (auth.state != AUTH_ST_MERKLEPROOF) {
+    if (auth.state != STATE_AUTH_MERKLEPROOF) {
         LOG("[E] Expected to be in the MP state\n");
-        THROW(AUTH_ERR_INVALID_STATE);
+        THROW(ERR_AUTH_INVALID_STATE);
     }
 
     while (true) {
@@ -194,7 +194,7 @@ unsigned int auth_sign_handle_merkleproof(volatile unsigned int rx) {
             // Verify node is at least one byte long
             if (APDU_DATA_PTR[apdu_offset] == 0) {
                 LOG("[E] Got MP node length zero\n");
-                THROW(AUTH_ERR_INVALID_DATA_SIZE);
+                THROW(ERR_AUTH_INVALID_DATA_SIZE);
             }
             trie_init(&auth.trie.ctx, &trie_cb, APDU_DATA_PTR[apdu_offset++]);
             keccak_init(&auth.trie.hash_ctx);
@@ -211,7 +211,7 @@ unsigned int auth_sign_handle_merkleproof(volatile unsigned int rx) {
             if (trie_result() < 0) {
                 LOG("[E] Error parsing MP node: %u\n", trie_result());
                 // Reusing an existing error code due to legacy protocol
-                THROW(AUTH_ERR_RECEIPT_ROOT_MISMATCH);
+                THROW(ERR_AUTH_RECEIPT_ROOT_MISMATCH);
             } else if (trie_result() == TRIE_ST_DONE) {
                 keccak_final(&auth.trie.hash_ctx, auth.trie.node_hash);
                 LOG("MP@%u ", auth.trie.current_node);
@@ -224,7 +224,7 @@ unsigned int auth_sign_handle_merkleproof(volatile unsigned int rx) {
                     // one child
                     if (auth.trie.num_linked != 1) {
                         LOG("[E] Node chaining mismatch\n");
-                        THROW(AUTH_ERR_NODE_CHAINING_MISMATCH);
+                        THROW(ERR_AUTH_NODE_CHAINING_MISMATCH);
                     }
                 }
 
@@ -236,12 +236,12 @@ unsigned int auth_sign_handle_merkleproof(volatile unsigned int rx) {
                     if (!memcmp(N_bc_state.ancestor_receipt_root,
                                 auth.trie.node_hash,
                                 sizeof(N_bc_state.ancestor_receipt_root))) {
-                        auth_transition_to(AUTH_ST_SIGN);
+                        auth_transition_to(STATE_AUTH_SIGN);
                         return 0;
                     }
 
                     LOG("[E] Receipt root mismatch\n");
-                    THROW(AUTH_ERR_RECEIPT_ROOT_MISMATCH);
+                    THROW(ERR_AUTH_RECEIPT_ROOT_MISMATCH);
                 }
 
                 auth.trie.state = AUTH_TRIE_STATE_NODE_LENGTH;

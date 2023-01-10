@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __HSM
-#define __HSM
+#ifndef __HSM_H
+#define __HSM_H
 
 void hsm_init();
 
@@ -31,4 +31,4 @@ unsigned int hsm_process_apdu(volatile unsigned int rx);
 
 unsigned int hsm_process_exception(unsigned short code, unsigned int tx);
 
-#endif // __HSM
+#endif // __HSM_H

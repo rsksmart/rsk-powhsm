@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __SIGNER_AUTHORIZATION_SIGNERS
-#define __SIGNER_AUTHORIZATION_SIGNERS
+#ifndef __SIGNER_AUTHORIZATION_SIGNERS_H
+#define __SIGNER_AUTHORIZATION_SIGNERS_H
 
 // IMPORTANT: these keys are FOR TESTING PURPOSES ONLY
 // In order to get the private keys associated with each
@@ -58,4 +58,5 @@
         "\xf5\x90\xc4\xae\x61",                     \
     }
 // clang-format on
-#endif
+
+#endif // __SIGNER_AUTHORIZATION_SIGNERS_H

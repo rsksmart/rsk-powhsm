@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __ONBOARD
-#define __ONBOARD
+#ifndef __ONBOARD_H
+#define __ONBOARD_H
 
 #include "pin.h"
 
@@ -76,4 +76,5 @@ unsigned int set_host_seed(volatile unsigned int rx, onboard_t *onboard_ctx);
  * @ret number of transmited bytes to the host
  */
 unsigned int is_onboarded();
-#endif
+
+#endif // __ONBOARD_H

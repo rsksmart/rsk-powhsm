@@ -22,15 +22,29 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __SIMULATOR_JSON_H
-#define __SIMULATOR_JSON_H
+#ifndef __INSTRUCTIONS_H
+#define __INSTRUCTIONS_H
 
-#include <stdlib.h>
-#include <stdbool.h>
-#include "cJSON.h"
+/*
+ * All APDU instructions
+ */
 
-cJSON* read_json_file(char* file_path);
+typedef enum {
+    RSK_PIN_CMD = 0x41,
+    RSK_SEED_CMD = 0x44,
+    RSK_ECHO_CMD = 0x02,
+    RSK_IS_ONBOARD = 0x06,
+    RSK_WIPE = 0x7,
+    RSK_NEWPIN = 0x8,
+    RSK_END_CMD = 0xff,
+    RSK_END_CMD_NOSIG = 0xfa,
+    RSK_UNLOCK_CMD = 0xfe,
+    RSK_RETRIES = 0x45,
+    RSK_MODE_CMD = 0x43,
+    RSK_META_CMD_UIOP = 0x66,
 
-bool write_json_file(char* file_path, cJSON* json);
+    INS_ATTESTATION = 0x50,
+    INS_SIGNER_AUTHORIZATION = 0x51,
+} apdu_instruction_t;
 
-#endif // __SIMULATOR_JSON_H
+#endif // __INSTRUCTIONS_H

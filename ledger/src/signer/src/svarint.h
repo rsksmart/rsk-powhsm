@@ -40,8 +40,8 @@
 //
 // Additional utility function to encode a varint provided.
 
-#ifndef __SVARINT
-#define __SVARINT
+#ifndef __SVARINT_H
+#define __SVARINT_H
 
 #include <stddef.h>
 #include <stdint.h>
@@ -109,4 +109,4 @@ uint8_t svarint_consume(const uint8_t* buf, const uint8_t len);
  */
 uint8_t svarint_encode(uint32_t value, uint8_t* buf, const uint8_t len);
 
-#endif
+#endif // __SVARINT_H

@@ -22,14 +22,16 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef ERR_H
-#define ERR_H
+#ifndef __ERR_H
+#define __ERR_H
 
-// Error codes for Signer operations
-#define ERR_INVALID_DATA_SIZE (0x6A87)
-#define ERR_INVALID_PATH (0x6A8F)
-#define ERR_INTERNAL (0x6A99)
-#define ERR_INVALID_CLA (0x6E11)
-#define ERR_DEVICE_NOT_ONBOARDED (0x6BEE)
+// Generic error codes for signer operations
+typedef enum {
+    ERR_INVALID_DATA_SIZE = 0x6A87,
+    ERR_INVALID_PATH = 0x6A8F,
+    ERR_INTERNAL = 0x6A99,
+    ERR_INVALID_CLA = 0x6E11,
+    ERR_DEVICE_NOT_ONBOARDED = 0x6BEE,
+} err_code_signer_t;
 
-#endif // DEFS_H
+#endif // __ERR_H

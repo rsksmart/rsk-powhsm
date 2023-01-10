@@ -39,8 +39,8 @@
  *  limitations under the License.
  ********************************************************************************/
 
-#ifndef BUSRV_H
-#define BUSRV_H
+#ifndef __COMM_BUSRV_H
+#define __COMM_BUSRV_H
 
 #define BIP39_WORDLIST_LENGTH 11068
 #define BIP39_WORDLIST_OFFSETS_LENGTH 2049
@@ -53,4 +53,4 @@ extern unsigned short const WIDE
     BIP39_WORDLIST_OFFSETS[BIP39_WORDLIST_OFFSETS_LENGTH];
 extern unsigned char const WIDE BIP39_MNEMONIC[BIP39_MNEMONIC_LENGTH];
 
-#endif // BUSRV_H
+#endif // __COMM_BUSRV_H
