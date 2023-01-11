@@ -30,9 +30,10 @@
 #include "err.h"
 #include "os.h"
 #include "onboard.h"
+#include "runtime.h"
 
 // Global onboarding flag
-const unsigned char N_onboarded_ui[1];
+NON_VOLATILE unsigned char N_onboarded_ui[1];
 
 /*
  * Reset the given onboard context

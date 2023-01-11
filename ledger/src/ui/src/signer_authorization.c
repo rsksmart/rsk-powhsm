@@ -32,6 +32,7 @@
 #include "memutil.h"
 #include "ints.h"
 #include "compiletime.h"
+#include "runtime.h"
 
 // Initial signer hash taken from an external definition (see Makefile for
 // details)
@@ -50,7 +51,7 @@ static const uint16_t INITIAL_SIGNER_ITERATION = PARAM_INITIAL_SIGNER_ITERATION;
 #endif
 
 // Current signer status
-static const sigaut_signer_status_t N_current_signer_status_var;
+static NON_VOLATILE sigaut_signer_status_t N_current_signer_status_var;
 #define N_current_signer_status \
     (*(sigaut_signer_status_t*)PIC(&N_current_signer_status_var))
 

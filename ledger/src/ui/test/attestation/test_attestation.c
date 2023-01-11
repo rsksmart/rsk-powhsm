@@ -27,6 +27,7 @@
 #include "apdu_utils.h"
 #include "assert_utils.h"
 #include "err.h"
+#include "runtime.h"
 
 #define PUBLIC_KEY                                                             \
     "\x0b\xe6\xd7\x1d\x5c\x2b\x06\x36\x03\x53\xfb\xd8\x22\x7a\xb3\xab\xfc\x3d" \
@@ -53,7 +54,7 @@ static cx_ecfp_private_key_t G_priv_key;
 static unsigned char G_path[PUBKEY_PATH_LENGTH];
 
 // Global onboarding flag
-const unsigned char N_onboarded_ui[1];
+NON_VOLATILE unsigned char N_onboarded_ui[1];
 
 // Helper functions
 void set_public_key(cx_ecfp_public_key_t *pubkey, char *rawkey) {
@@ -153,7 +154,7 @@ void test_get_attestation_ud_value() {
     unsigned int rx;
 
     reset_attestation(&G_att_ctx);
-    *(unsigned char *)N_onboarded_ui = 1;
+    *N_onboarded_ui = 1;
     G_att_ctx.state = att_state_wait_ud_value;
     // CLA + INS_ATTESTATION + ATT_OP_UD_VALUE + UD_VALUE
     SET_APDU("\x80\x50\x01\x46\x8d\xa8\x7f\x6a\x85\xe6\x40\x93\x27\xe1\x17\xe8"
@@ -182,7 +183,7 @@ void test_get_attestation_ud_value_wrong_state() {
     unsigned int rx;
 
     reset_attestation(&G_att_ctx);
-    *(unsigned char *)N_onboarded_ui = 1;
+    *N_onboarded_ui = 1;
     G_att_ctx.state = att_state_ready;
     // CLA + INS_ATTESTATION + ATT_OP_UD_VALUE + UD_VALUE
     SET_APDU("\x80\x50\x01\x46\x8d\xa8\x7f\x6a\x85\xe6\x40\x93\x27\xe1\x17\xe8"
@@ -209,7 +210,7 @@ void test_get_attestation_get_msg() {
     unsigned int rx;
 
     reset_attestation(&G_att_ctx);
-    *(unsigned char *)N_onboarded_ui = 1;
+    *N_onboarded_ui = 1;
     memcpy(
         G_att_ctx.msg,
         "HSM:UI:3.0"
@@ -250,7 +251,7 @@ void test_get_attestation_get_msg_wrong_state() {
     unsigned int rx;
 
     reset_attestation(&G_att_ctx);
-    *(unsigned char *)N_onboarded_ui = 1;
+    *N_onboarded_ui = 1;
     memcpy(
         &G_att_ctx.msg,
         "HSM:UI:3.0"
@@ -287,7 +288,7 @@ void test_get_attestation_get() {
     unsigned int rx;
 
     reset_attestation(&G_att_ctx);
-    *(unsigned char *)N_onboarded_ui = 1;
+    *N_onboarded_ui = 1;
     G_att_ctx.state = att_state_ready;
 
     // CLA + INS_ATTESTATION + ATT_OP_GET
@@ -304,7 +305,7 @@ void test_get_attestation_get_wrong_state() {
     unsigned int rx;
 
     reset_attestation(&G_att_ctx);
-    *(unsigned char *)N_onboarded_ui = 1;
+    *N_onboarded_ui = 1;
     G_att_ctx.state = att_state_wait_ud_value;
 
     // CLA + INS_ATTESTATION + ATT_OP_GET
@@ -329,7 +330,7 @@ void test_get_attestation_invalid() {
     unsigned int rx;
 
     reset_attestation(&G_att_ctx);
-    *(unsigned char *)N_onboarded_ui = 1;
+    *N_onboarded_ui = 1;
     G_att_ctx.state = att_state_ready;
     // CLA + INS_ATTESTATION + Invalid command
     SET_APDU("\x80\x50\x99", rx);
@@ -353,7 +354,7 @@ void test_get_attestation_not_onboarded() {
     unsigned int rx;
 
     reset_attestation(&G_att_ctx);
-    *(unsigned char *)N_onboarded_ui = 0;
+    *N_onboarded_ui = 0;
     G_att_ctx.state = att_state_ready;
     // CLA + INS_ATTESTATION + ATT_OP_GET
     SET_APDU("\x80\x50\x03", rx);

@@ -30,6 +30,7 @@
 #include "err.h"
 #include "memutil.h"
 #include "ints.h"
+#include "runtime.h"
 
 // Utility macros to save memory
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
@@ -37,7 +38,7 @@
 #define PAGECOUNT(itemcount) (((itemcount) + PAGESIZE - 1) / PAGESIZE)
 
 // Global onboarding flag
-extern const unsigned char* N_onboarded_ui[1];
+extern NON_VOLATILE unsigned char* N_onboarded_ui[1];
 
 // Attestation message prefix
 const char att_msg_prefix[ATT_MSG_PREFIX_LENGTH] = ATT_MSG_PREFIX;
