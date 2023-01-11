@@ -150,7 +150,7 @@ endif
 # Convert signer iteration to what the compiler expects
 ifneq ($(SIGNER_ITERATION),)
 CONVERTED_SIGNER_ITERATION = $(shell python make-initial-signer-iteration.py $(SIGNER_ITERATION))
-$(info Building with signer hash set to "$(SIGNER_ITERATION)")
+$(info Building with signer iteration set to "$(SIGNER_ITERATION)")
 CFLAGS += -DPARAM_INITIAL_SIGNER_ITERATION="$(CONVERTED_SIGNER_ITERATION)"
 endif
 
