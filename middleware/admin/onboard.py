@@ -85,10 +85,9 @@ def do_onboard(options):
     info(f"Onboarded: {bls(is_onboarded)}")
 
     if is_onboarded:
-        message = ("WARNING: The following operation will wipe the device and "
-                   "generate a new seed. This cannot be undone.")
-    else:
-        message = "The following operation will onboard the device."
+        raise AdminError("Device already onboarded")
+
+    message = "The following operation will onboard the device."
     head([
         message,
         "Do you want to proceed? Yes/No",

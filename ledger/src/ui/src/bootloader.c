@@ -47,6 +47,12 @@ static unsigned char current_cmd;
 // Flag used to prevent executing commands after the onboard is performed
 static bool onboard_performed = false;
 
+// Macro that throws an error unless
+// the device is not onboarded
+#define REQUIRE_NOT_ONBOARDED()      \
+    if (os_perso_isonboarded() == 1) \
+        THROW(ERR_DEVICE_ONBOARDED);
+
 /*
  * Reset all reseteable operations, only if the given operation is starting.
  *
@@ -96,6 +102,7 @@ unsigned int bootloader_process_apdu(volatile unsigned int rx,
     // unauthenticated instruction
     switch (APDU_CMD()) {
     case RSK_SEED_CMD: // Send wordlist
+        REQUIRE_NOT_ONBOARDED();
         reset_if_starting(RSK_META_CMD_UIOP);
         tx = set_host_seed(rx, &onboard_ctx);
         break;
@@ -108,6 +115,7 @@ unsigned int bootloader_process_apdu(volatile unsigned int rx,
         tx = is_onboarded();
         break;
     case RSK_WIPE: //--- wipe and onboard device ---
+        REQUIRE_NOT_ONBOARDED();
         reset_if_starting(RSK_META_CMD_UIOP);
         tx = onboard_device(&onboard_ctx);
         clear_pin();

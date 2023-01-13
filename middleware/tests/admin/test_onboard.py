@@ -102,7 +102,7 @@ class TestOnboard(TestCase):
         get_admin_hsm.return_value = self.dongle
 
         self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.BOOTLOADER)
-        self.dongle.is_onboarded = Mock(return_value=True)
+        self.dongle.is_onboarded = Mock(side_effect=[False, True])
         self.dongle.get_device_key = Mock(return_value=self.DEVICE_KEY)
         self.dongle.setup_endorsement_key = Mock(return_value=self.ENDORSEMENT_KEY)
         self.dongle.handshake = Mock()
@@ -112,7 +112,7 @@ class TestOnboard(TestCase):
         with patch("builtins.open", mock_open()) as file_mock:
             do_onboard(self.default_options)
 
-        self.assertEqual(info_mock.call_args_list[5][0][0], "Onboarded: Yes")
+        self.assertEqual(info_mock.call_args_list[5][0][0], "Onboarded: No")
         self.assertEqual(info_mock.call_args_list[10][0][0], "Onboarded")
         self.assertEqual(info_mock.call_args_list[14][0][0], "Device key gathered")
         self.assertEqual(info_mock.call_args_list[16][0][0],
@@ -128,6 +128,25 @@ class TestOnboard(TestCase):
     @patch("admin.onboard.get_admin_hsm")
     @patch("admin.unlock.get_hsm")
     @patch("sys.stdin.readline")
+    def test_onboard_already_onboarded(self, readline, get_hsm_unlock, get_admin_hsm,
+                                       get_hsm_onboard, info_mock, *_):
+        get_hsm_onboard.return_value = self.dongle
+        get_hsm_unlock.return_value = self.dongle
+        get_admin_hsm.return_value = self.dongle
+
+        self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.BOOTLOADER)
+        self.dongle.is_onboarded = Mock(return_value=True)
+
+        with self.assertRaises(AdminError) as e:
+            do_onboard(self.default_options)
+
+        self.assertEqual(info_mock.call_args_list[5][0][0], "Onboarded: Yes")
+        self.assertEqual(e.exception.args[0], "Device already onboarded")
+        self.assertFalse(self.dongle.onboard.called)
+
+    @patch("admin.onboard.get_admin_hsm")
+    @patch("admin.unlock.get_hsm")
+    @patch("sys.stdin.readline")
     def test_onboard_onboard_error(self, readline, get_hsm_unlock, get_admin_hsm,
                                    get_hsm_onboard, *_):
         get_hsm_onboard.return_value = self.dongle
@@ -135,7 +154,7 @@ class TestOnboard(TestCase):
         get_admin_hsm.return_value = self.dongle
 
         self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.BOOTLOADER)
-        self.dongle.is_onboarded = Mock(return_value=True)
+        self.dongle.is_onboarded = Mock(return_value=False)
         self.dongle.get_device_key = Mock()
         self.dongle.setup_endorsement_key = Mock()
         self.dongle.handshake = Mock()
@@ -163,7 +182,7 @@ class TestOnboard(TestCase):
         get_admin_hsm.return_value = self.dongle
 
         self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.BOOTLOADER)
-        self.dongle.is_onboarded = Mock(return_value=True)
+        self.dongle.is_onboarded = Mock(side_effect=[False, True])
         self.dongle.get_device_key = Mock()
         self.dongle.setup_endorsement_key = Mock()
         self.dongle.handshake = Mock(side_effect=HSM2DongleError("error-msg"))
@@ -191,7 +210,7 @@ class TestOnboard(TestCase):
         get_admin_hsm.return_value = self.dongle
 
         self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.BOOTLOADER)
-        self.dongle.is_onboarded = Mock(return_value=True)
+        self.dongle.is_onboarded = Mock(side_effect=[False, True])
         self.dongle.get_device_key = Mock(side_effect=HSM2DongleError("error-msg"))
         self.dongle.setup_endorsement_key = Mock()
         self.dongle.handshake = Mock()
@@ -219,7 +238,7 @@ class TestOnboard(TestCase):
         get_admin_hsm.return_value = self.dongle
 
         self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.BOOTLOADER)
-        self.dongle.is_onboarded = Mock(return_value=True)
+        self.dongle.is_onboarded = Mock(side_effect=[False, True])
         self.dongle.get_device_key = Mock()
         self.dongle.setup_endorsement_key = Mock(side_effect=HSM2DongleError("error-msg"))
         self.dongle.handshake = Mock()
@@ -245,7 +264,7 @@ class TestOnboard(TestCase):
         hsm_onboard.return_value = self.dongle
         hsm_unlock.return_value = self.dongle
         self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.BOOTLOADER)
-        self.dongle.is_onboarded = Mock(return_value=True)
+        self.dongle.is_onboarded = Mock(return_value=False)
         self.dongle.onboard = Mock()
         hsm_admin.return_value = self.dongle
         readline.return_value = "no\n"
@@ -266,7 +285,7 @@ class TestOnboard(TestCase):
         get_hsm.return_value = self.dongle
 
         self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.BOOTLOADER)
-        self.dongle.is_onboarded = Mock(return_value=True)
+        self.dongle.is_onboarded = Mock(return_value=False)
         self.dongle.onboard = Mock()
 
         options = self.default_options
@@ -288,7 +307,7 @@ class TestOnboard(TestCase):
     def test_onboard_invalid_mode(self, get_hsm, *_):
         get_hsm.return_value = self.dongle
         self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.APP)
-        self.dongle.is_onboarded = Mock(return_value=True)
+        self.dongle.is_onboarded = Mock(return_value=False)
 
         with self.assertRaises(AdminError) as e:
             do_onboard(self.default_options)
@@ -305,7 +324,7 @@ class TestOnboard(TestCase):
         get_admin_hsm.return_value = self.dongle
 
         self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.BOOTLOADER)
-        self.dongle.is_onboarded = Mock(return_value=True)
+        self.dongle.is_onboarded = Mock(side_effect=[False, True])
         self.dongle.get_device_key = Mock(return_value=self.INVALID_KEY)
         self.dongle.setup_endorsement_key = Mock(return_value=self.ENDORSEMENT_KEY)
         readline.return_value = "yes\n"
@@ -326,7 +345,7 @@ class TestOnboard(TestCase):
         get_admin_hsm.return_value = self.dongle
 
         self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.BOOTLOADER)
-        self.dongle.is_onboarded = Mock(return_value=True)
+        self.dongle.is_onboarded = Mock(side_effect=[False, True])
         self.dongle.get_device_key = Mock(return_value=self.DEVICE_KEY)
         self.dongle.setup_endorsement_key = Mock(return_value=self.INVALID_KEY)
         readline.return_value = "yes\n"

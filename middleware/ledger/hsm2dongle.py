@@ -369,6 +369,9 @@ class HSM2DongleErrorResult(HSM2DongleBaseError):
     def error_code(self):
         return self.args[0]
 
+    def __str__(self):
+        return f"Dongle returned error code {hex(self.error_code)}"
+
 
 # Handles low-level communication with a powHSM dongle
 class HSM2Dongle:

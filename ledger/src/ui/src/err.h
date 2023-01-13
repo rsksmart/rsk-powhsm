@@ -31,6 +31,7 @@ typedef enum {
     ERR_INVALID_CLA = 0x6E22,
     ERR_INTERNAL = 0x6A99,
     ERR_INVALID_PIN = 0x69A0,
+    ERR_DEVICE_ONBOARDED = 0x69A1,
 
     EX_BOOTLOADER_RSK_END = 0x90FF,
 } err_code_ui_t;
