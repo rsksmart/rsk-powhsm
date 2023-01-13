@@ -40,6 +40,7 @@ bolos_ux_context_t G_bolos_ux_context;
 static bootloader_mode_t G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
 static bool G_host_seed_is_set = false;
 static bool G_pin_buffer_updated = false;
+static unsigned int G_device_onboarded = 0;
 static bool G_is_onboarded = false;
 static bool G_is_pin_set = false;
 static bool G_is_pin_buffer_cleared = false;
@@ -62,6 +63,7 @@ static void reset_flags() {
     G_host_seed_is_set = false;
     G_pin_buffer_updated = false;
     G_is_onboarded = false;
+    G_device_onboarded = 0;
     G_is_pin_set = false;
     G_is_pin_buffer_cleared = false;
     G_get_attestation_called = false;
@@ -86,6 +88,10 @@ unsigned int set_host_seed(volatile unsigned int rx, onboard_t* onboard_ctx) {
 unsigned int update_pin_buffer(volatile unsigned int rx) {
     G_pin_buffer_updated = true;
     return 3;
+}
+
+unsigned int os_perso_isonboarded(void) {
+    return G_device_onboarded;
 }
 
 unsigned int is_onboarded() {
@@ -195,6 +201,36 @@ void test_seed() {
     assert(RESET_IF_STARTED_CALLED());
 }
 
+void test_seed_onboarded() {
+    printf("Test RSK_SEED_CMD when onboarded...\n");
+
+    unsigned int rx;
+    unsigned int tx;
+    bootloader_init();
+    reset_flags();
+    G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
+    G_device_onboarded = 1;
+    G_host_seed_is_set = false;
+    SET_APDU("\x80\x44", rx); // RSK_SEED_CMD
+    BEGIN_TRY {
+        TRY {
+            bootloader_process_apdu(rx, G_bootloader_mode);
+            // bootloader_process_apdu should throw EX_BOOTLOADER_RSK_END
+            ASSERT_FAIL();
+        }
+        CATCH(ERR_DEVICE_ONBOARDED) {
+            assert(!G_host_seed_is_set);
+            return;
+        }
+        CATCH_OTHER(e) {
+            ASSERT_FAIL();
+        }
+        FINALLY {
+        }
+    }
+    END_TRY;
+}
+
 void test_pin() {
     printf("Test RSK_PIN_CMD...\n");
 
@@ -258,6 +294,40 @@ void test_wipe_default_mode() {
     assert(RESET_IF_STARTED_CALLED());
 }
 
+void test_wipe_default_mode_onboarded() {
+    printf("Test RSK_WIPE (default mode) when onboarded...\n");
+
+    unsigned int rx;
+    unsigned int tx;
+    bootloader_init();
+    reset_flags();
+    G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
+    G_device_onboarded = 1;
+    G_is_onboarded = false;
+    G_is_pin_buffer_cleared = false;
+    G_is_pin_set = true;
+    SET_APDU("\x80\x07", rx); // RSK_WIPE
+    BEGIN_TRY {
+        TRY {
+            bootloader_process_apdu(rx, G_bootloader_mode);
+            // bootloader_process_apdu should throw EX_BOOTLOADER_RSK_END
+            ASSERT_FAIL();
+        }
+        CATCH(ERR_DEVICE_ONBOARDED) {
+            assert(!G_is_onboarded);
+            assert(!G_is_pin_buffer_cleared);
+            assert(G_is_pin_set);
+            return;
+        }
+        CATCH_OTHER(e) {
+            ASSERT_FAIL();
+        }
+        FINALLY {
+        }
+    }
+    END_TRY;
+}
+
 void test_wipe_onboard_mode() {
     printf("Test RSK_WIPE (onboard mode)...\n");
 
@@ -275,6 +345,40 @@ void test_wipe_onboard_mode() {
     assert(G_is_onboarded);
     assert(G_is_pin_buffer_cleared);
     assert(RESET_IF_STARTED_CALLED());
+}
+
+void test_wipe_onboard_mode_onboarded() {
+    printf("Test RSK_WIPE (onboard mode) when onboarded...\n");
+
+    unsigned int rx;
+    unsigned int tx;
+    bootloader_init();
+    reset_flags();
+    G_bootloader_mode = BOOTLOADER_MODE_ONBOARD;
+    G_device_onboarded = 1;
+    G_is_onboarded = false;
+    G_is_pin_buffer_cleared = false;
+    G_is_pin_set = true;
+    SET_APDU("\x80\x07", rx); // RSK_WIPE
+    BEGIN_TRY {
+        TRY {
+            bootloader_process_apdu(rx, G_bootloader_mode);
+            // bootloader_process_apdu should throw EX_BOOTLOADER_RSK_END
+            ASSERT_FAIL();
+        }
+        CATCH(ERR_DEVICE_ONBOARDED) {
+            assert(!G_is_onboarded);
+            assert(!G_is_pin_buffer_cleared);
+            assert(G_is_pin_set);
+            return;
+        }
+        CATCH_OTHER(e) {
+            ASSERT_FAIL();
+        }
+        FINALLY {
+        }
+    }
+    END_TRY;
 }
 
 void test_newpin() {
@@ -559,10 +663,13 @@ void test_onboard_mode() {
 int main() {
     test_init();
     test_seed();
+    test_seed_onboarded();
     test_pin();
     test_is_onboard();
     test_wipe_default_mode();
+    test_wipe_default_mode_onboarded();
     test_wipe_onboard_mode();
+    test_wipe_onboard_mode_onboarded();
     test_newpin();
     test_echo();
     test_mode();
