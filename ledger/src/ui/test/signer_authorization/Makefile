@@ -24,7 +24,8 @@ SRCDIR = ../../src
 SIGNERDIRS=$(SRCDIR)/signer_authorization_signers
 COMMONDIR = ../../../common/src
 MOCKDIR = ../mock
-CFLAGS = -I$(MOCKDIR) -I$(COMMONDIR) -I$(SRCDIR) -I$(SIGNERDIRS) -Wall
+CFLAGS = -I$(MOCKDIR) -I$(COMMONDIR) -I$(SRCDIR) -I$(SIGNERDIRS)
+CFLAGS += -DHSM_SIMULATOR
 
 PROG = test.out
 OBJS = mock.o signer_authorization.o test_signer_authorization.o

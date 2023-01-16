@@ -34,7 +34,6 @@
 #include "defs.h"
 
 #define PIC(x) (x)
-#define HSM_SIMULATOR
 
 #define PARAM_SIGNERS_FILE testing
 #define CX_CURVE_256K1 33
