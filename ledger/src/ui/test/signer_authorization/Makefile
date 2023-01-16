@@ -27,6 +27,12 @@ MOCKDIR = ../mock
 CFLAGS = -I$(MOCKDIR) -I$(COMMONDIR) -I$(SRCDIR) -I$(SIGNERDIRS)
 CFLAGS += -DHSM_SIMULATOR
 
+PARAM_INITIAL_SIGNER_HASH="\x09\x09\x66\x04\x52\xeb\x7a\x3a\x44\xb6\xca\x07$\
+\xed\x0b\x9c\xcf\xdd\xb9\xa6\x99\x9e\xb4\xad\xc3\x99\x50\x91\x71\xd2\x68\xe7$\
+\x3e"
+CFLAGS += -DPARAM_INITIAL_SIGNER_HASH=\"$(PARAM_INITIAL_SIGNER_HASH)\"
+CFLAGS += -DPARAM_INITIAL_SIGNER_ITERATION=1
+
 PROG = test.out
 OBJS = mock.o signer_authorization.o test_signer_authorization.o
 

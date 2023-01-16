@@ -37,10 +37,6 @@
 
 #define PARAM_SIGNERS_FILE testing
 #define CX_CURVE_256K1 33
-#define PARAM_INITIAL_SIGNER_HASH                                              \
-    "\x09\x09\x66\x04\x52\xeb\x7a\x3a\x44\xb6\xca\x07\xed\x0b\x9c\xcf\xdd\xb9" \
-    "\xa6\x99\x9e\xb4\xad\xc3\x99\x50\x91\x71\xd2\x68\xe7\x3e"
-#define PARAM_INITIAL_SIGNER_ITERATION 1
 
 #define CX_NONE 0
 #define CX_LAST 1
