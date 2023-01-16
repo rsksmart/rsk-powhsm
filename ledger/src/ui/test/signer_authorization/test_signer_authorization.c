@@ -31,6 +31,7 @@
 #include "testing.h"
 
 sigaut_t G_sigaut_ctx;
+extern sigaut_signer_status_t N_current_signer_status_var;
 
 #define TEST_SIGAUT_SIGNATURE_LEN 75
 static const unsigned char G_valid_signatures[][TEST_SIGAUT_SIGNATURE_LEN] = {
@@ -271,9 +272,6 @@ void test_op_sigaut_sign() {
     reset_signer_authorization(&G_sigaut_ctx);
     G_sigaut_ctx.state = sigaut_state_wait_signature;
 
-    // Note: These value will be validated on is_authorized_signer and
-    // get_authorized_signer_info tests. Those tests must be run after
-    // test_op_sigaut_sign
     memcpy(G_sigaut_ctx.signer.hash, G_authorized_signer_hash, HASHSIZE);
     G_sigaut_ctx.signer.iteration = 2;
 
@@ -303,6 +301,10 @@ void test_op_sigaut_sign() {
              rx);
     assert(4 == do_authorize_signer(rx, &G_sigaut_ctx));
     assert(RES_SIGAUT_SUCCESS == APDU_DATA_PTR[0]);
+    ASSERT_MEMCMP(G_authorized_signer_hash,
+                  N_current_signer_status_var.signer.hash,
+                  HASHSIZE);
+    assert(2 == N_current_signer_status_var.signer.iteration);
     assert_sigaut_ctx_reset(&G_sigaut_ctx);
 }
 
@@ -408,27 +410,31 @@ void test_op_sigaut_get_auth_at() {
                   sizeof(G_authorizers_pubkeys[2]));
 }
 
-// Note: this test trusts in values written to NVM during signer authorization,
-//       so it must be run after test_op_sigaut_sign
 void test_is_authorized_signer() {
     printf("Test is signer authorized...\n");
     reset_signer_authorization(&G_sigaut_ctx);
 
-    unsigned char wrong_hash[] = "A WRONG HASH - 123456789abcdef0";
-
+    memcpy(N_current_signer_status_var.signer.hash,
+           G_authorized_signer_hash,
+           HASHSIZE);
     assert(is_authorized_signer((unsigned char *)G_authorized_signer_hash));
+
+    unsigned char wrong_hash[] = "A WRONG HASH - 123456789abcdef0";
     assert(!is_authorized_signer(wrong_hash));
 }
 
-// Note: this test trusts in values written to NVM during signer authorization,
-//       so it must be run after test_op_sigaut_sign
 void test_get_authorized_signer_info() {
     printf("Test get signer authorization\n");
+
+    memcpy(N_current_signer_status_var.signer.hash,
+           G_authorized_signer_hash,
+           HASHSIZE);
+    N_current_signer_status_var.signer.iteration = 9;
 
     sigaut_signer_t *signer = get_authorized_signer_info();
     assert(NULL != signer);
     ASSERT_MEMCMP(G_authorized_signer_hash, signer->hash, HASHSIZE);
-    assert(2 == signer->iteration);
+    assert(9 == signer->iteration);
 }
 
 int main() {
