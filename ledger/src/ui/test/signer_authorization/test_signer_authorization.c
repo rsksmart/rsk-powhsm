@@ -80,11 +80,6 @@ static unsigned char *get_signature(cx_ecfp_public_key_t *key) {
     ASSERT_FAIL();
 }
 
-// Mock functions
-void os_memmove(void *dst, const void *src, unsigned int length) {
-    memmove(dst, src, length);
-}
-
 int cx_keccak_init(cx_sha3_t *hash, int size) {
     // Size is passed in bits for this call
     int size_in_bytes = size / 8;

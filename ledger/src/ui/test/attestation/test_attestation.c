@@ -124,10 +124,6 @@ void os_perso_derive_node_bip32(cx_curve_t curve,
     memcpy(privateKey, PRIVATE_KEY, sizeof(PRIVATE_KEY));
 }
 
-void os_memmove(void *dst, const void *src, unsigned int length) {
-    memmove(dst, src, length);
-}
-
 // signer_authorization mocks
 sigaut_signer_t *get_authorized_signer_info() {
     memcpy(G_signer_info.hash, SIGNER_HASH, sizeof(SIGNER_HASH));
