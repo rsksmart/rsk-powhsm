@@ -187,21 +187,26 @@ void test_op_sigaut_get_current() {
 void test_op_sigaut_sigver() {
     printf("Test OP_SIGAUT_SIGVER...\n");
 
+#define TEST_OP_SIGAUT_SIGNER_HASH                                             \
+    "\xe8\xe8\xa8\xe8\x1a\x2d\x4d\x22\xfa\xbb\xa2\xa1\x3d\x8d\x04\x1f\x89\xdd" \
+    "\x65\xa4\x73\xc5\xc6\x7c\x1f\x24\xe9\x94\x08\x0b\xf1\x34"
+
     unsigned int rx;
     reset_signer_authorization(&G_sigaut_ctx);
     G_sigaut_ctx.state = sigaut_state_wait_signer_version;
 
     // OP_SIGAUT_SIGVER + hash + iteration
-    SET_APDU("\x80\x81\x01" PARAM_INITIAL_SIGNER_HASH "\x00\x02", rx);
+    SET_APDU("\x80\x81\x01" TEST_OP_SIGAUT_SIGNER_HASH "\x00\x02", rx);
     assert(3 == do_authorize_signer(rx, &G_sigaut_ctx));
 
     assert(sigaut_state_wait_signature == G_sigaut_ctx.state);
-    ASSERT_MEMCMP(PARAM_INITIAL_SIGNER_HASH,
+    ASSERT_MEMCMP(TEST_OP_SIGAUT_SIGNER_HASH,
                   G_sigaut_ctx.signer.hash,
                   sizeof(G_sigaut_ctx.signer.hash));
     assert(2 == G_sigaut_ctx.signer.iteration);
+
     ASSERT_MEMCMP(
-        "\xb9\xb4\xb4\xad\x98\x83\x99\xab\xae\xfc\xac\xe5\xf1\xf6\xf4\xfe\xad"
+        "\xee\xba\xb4\xad\x98\x83\x99\xab\xae\xfc\xac\xe5\xf1\xf6\xf4\xfe\xad"
         "\xed\x9a\x8c\x8c\x9e\x98\x9a\xc5\xf5\xff\xff\xff\xff\xff\xff",
         G_sigaut_ctx.auth_hash,
         HASHSIZE);
