@@ -27,7 +27,6 @@
 #include "apdu_utils.h"
 #include "assert_utils.h"
 #include "err.h"
-#include "runtime.h"
 
 #define PUBLIC_KEY                                                             \
     "\x0b\xe6\xd7\x1d\x5c\x2b\x06\x36\x03\x53\xfb\xd8\x22\x7a\xb3\xab\xfc\x3d" \
