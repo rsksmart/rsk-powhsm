@@ -53,7 +53,7 @@ static cx_ecfp_private_key_t G_priv_key;
 static unsigned char G_path[PUBKEY_PATH_LENGTH];
 
 // Global onboarding flag
-const unsigned char N_onboarded_ui[1];
+unsigned char N_onboarded_ui[1];
 
 // Helper functions
 void set_public_key(cx_ecfp_public_key_t *pubkey, char *rawkey) {
@@ -123,10 +123,6 @@ void os_perso_derive_node_bip32(cx_curve_t curve,
     memcpy(privateKey, PRIVATE_KEY, sizeof(PRIVATE_KEY));
 }
 
-void os_memmove(void *dst, const void *src, unsigned int length) {
-    memmove(dst, src, length);
-}
-
 // signer_authorization mocks
 sigaut_signer_t *get_authorized_signer_info() {
     memcpy(G_signer_info.hash, SIGNER_HASH, sizeof(SIGNER_HASH));
@@ -153,7 +149,7 @@ void test_get_attestation_ud_value() {
     unsigned int rx;
 
     reset_attestation(&G_att_ctx);
-    *(unsigned char *)N_onboarded_ui = 1;
+    *N_onboarded_ui = 1;
     G_att_ctx.state = att_state_wait_ud_value;
     // CLA + INS_ATTESTATION + ATT_OP_UD_VALUE + UD_VALUE
     SET_APDU("\x80\x50\x01\x46\x8d\xa8\x7f\x6a\x85\xe6\x40\x93\x27\xe1\x17\xe8"
@@ -182,7 +178,7 @@ void test_get_attestation_ud_value_wrong_state() {
     unsigned int rx;
 
     reset_attestation(&G_att_ctx);
-    *(unsigned char *)N_onboarded_ui = 1;
+    *N_onboarded_ui = 1;
     G_att_ctx.state = att_state_ready;
     // CLA + INS_ATTESTATION + ATT_OP_UD_VALUE + UD_VALUE
     SET_APDU("\x80\x50\x01\x46\x8d\xa8\x7f\x6a\x85\xe6\x40\x93\x27\xe1\x17\xe8"
@@ -209,7 +205,7 @@ void test_get_attestation_get_msg() {
     unsigned int rx;
 
     reset_attestation(&G_att_ctx);
-    *(unsigned char *)N_onboarded_ui = 1;
+    *N_onboarded_ui = 1;
     memcpy(
         G_att_ctx.msg,
         "HSM:UI:3.0"
@@ -250,7 +246,7 @@ void test_get_attestation_get_msg_wrong_state() {
     unsigned int rx;
 
     reset_attestation(&G_att_ctx);
-    *(unsigned char *)N_onboarded_ui = 1;
+    *N_onboarded_ui = 1;
     memcpy(
         &G_att_ctx.msg,
         "HSM:UI:3.0"
@@ -287,7 +283,7 @@ void test_get_attestation_get() {
     unsigned int rx;
 
     reset_attestation(&G_att_ctx);
-    *(unsigned char *)N_onboarded_ui = 1;
+    *N_onboarded_ui = 1;
     G_att_ctx.state = att_state_ready;
 
     // CLA + INS_ATTESTATION + ATT_OP_GET
@@ -304,7 +300,7 @@ void test_get_attestation_get_wrong_state() {
     unsigned int rx;
 
     reset_attestation(&G_att_ctx);
-    *(unsigned char *)N_onboarded_ui = 1;
+    *N_onboarded_ui = 1;
     G_att_ctx.state = att_state_wait_ud_value;
 
     // CLA + INS_ATTESTATION + ATT_OP_GET
@@ -329,7 +325,7 @@ void test_get_attestation_invalid() {
     unsigned int rx;
 
     reset_attestation(&G_att_ctx);
-    *(unsigned char *)N_onboarded_ui = 1;
+    *N_onboarded_ui = 1;
     G_att_ctx.state = att_state_ready;
     // CLA + INS_ATTESTATION + Invalid command
     SET_APDU("\x80\x50\x99", rx);
@@ -353,7 +349,7 @@ void test_get_attestation_not_onboarded() {
     unsigned int rx;
 
     reset_attestation(&G_att_ctx);
-    *(unsigned char *)N_onboarded_ui = 0;
+    *N_onboarded_ui = 0;
     G_att_ctx.state = att_state_ready;
     // CLA + INS_ATTESTATION + ATT_OP_GET
     SET_APDU("\x80\x50\x03", rx);

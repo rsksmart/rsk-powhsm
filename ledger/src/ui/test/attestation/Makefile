@@ -24,6 +24,7 @@ SRCDIR = ../../src
 COMMONDIR = ../../../common/src
 MOCKDIR = ../mock
 CFLAGS = -I$(COMMONDIR) -I$(MOCKDIR) -I$(SRCDIR)
+CFLAGS += -DHSM_SIMULATOR
 
 PROG = test.out
 OBJS = mock.o attestation.o test_attestation.o

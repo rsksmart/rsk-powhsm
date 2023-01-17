@@ -31,11 +31,15 @@
 
 #include "os_exceptions.h"
 #include "apdu_utils.h"
+#include "defs.h"
 
 #define PIC(x) (x)
 
 #define PARAM_SIGNERS_FILE testing
 #define CX_CURVE_256K1 33
+
+#define CX_NONE 0
+#define CX_LAST 1
 
 #define APDU_RETURN(offset) \
     ((uint16_t)(G_io_apdu_buffer[offset] << 8) | (G_io_apdu_buffer[offset + 1]))
@@ -45,9 +49,15 @@ struct mock_struct {
     void *mock_data;
 };
 
+typedef char cx_md_t;
 typedef uint8_t cx_curve_t;
 
-typedef struct mock_struct cx_sha3_t;
+typedef struct cx_hash_s {
+    unsigned char hash[HASHSIZE];
+    int size_in_bytes;
+} cx_hash_t;
+
+typedef cx_hash_t cx_sha3_t;
 typedef struct cx_ecfp_public_key_s {
     unsigned int W_len;
     unsigned char W[65];
@@ -107,5 +117,22 @@ unsigned int bolos_ux_mnemonic_from_data(unsigned char *in,
 void explicit_bzero(void *s, size_t len);
 void nvm_write(void *dst_adr, void *src_adr, unsigned int src_len);
 unsigned char *cx_rng(unsigned char *buffer, unsigned int len);
+int cx_keccak_init(cx_sha3_t *hash, int size);
+int cx_hash(cx_hash_t *hash,
+            int mode,
+            unsigned char *in,
+            unsigned int len,
+            unsigned char *out);
+int cx_ecfp_init_public_key(cx_curve_t curve,
+                            unsigned char *rawkey,
+                            unsigned int key_len,
+                            cx_ecfp_public_key_t *key);
+int cx_ecdsa_verify(cx_ecfp_public_key_t *key,
+                    int mode,
+                    cx_md_t hashID,
+                    unsigned char *hash,
+                    unsigned int hash_len,
+                    unsigned char *sig,
+                    unsigned int sig_len);
 
 #endif // __MOCK_H

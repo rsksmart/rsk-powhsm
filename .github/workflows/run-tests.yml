@@ -30,7 +30,7 @@ jobs:
       - name: Ledger UI's tests
         working-directory: ledger/src/ui/test/
         run: |
-          for d in attestation communication onboard pin unlock bootloader bolos_ux_handlers; do
+          for d in attestation signer_authorization communication onboard pin unlock bootloader bolos_ux_handlers; do
             (cd "$d" && make clean test)
           done
 
