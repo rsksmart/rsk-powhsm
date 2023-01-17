@@ -54,7 +54,7 @@ static cx_ecfp_private_key_t G_priv_key;
 static unsigned char G_path[PUBKEY_PATH_LENGTH];
 
 // Global onboarding flag
-NON_VOLATILE unsigned char N_onboarded_ui[1];
+unsigned char N_onboarded_ui[1];
 
 // Helper functions
 void set_public_key(cx_ecfp_public_key_t *pubkey, char *rawkey) {
