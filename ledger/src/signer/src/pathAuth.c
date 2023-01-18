@@ -41,27 +41,18 @@ const char authPaths[][SINGLE_PATH_SIZE_BYTES] = {
 /* Paths that don't require authorization
     m/44'/137'/0'/0/0 (RSK)
     m/44'/137'/1'/0/0 (MST)
-    m/44'/137'/0'/0/1 (deprecated MST)
     m/44'/1'/1'/0/0 (tRSK)
-    m/44'/1'/0'/0/1 (deprecated tRSK)
     m/44'/1'/2'/0/0 (tMST)
-    m/44'/1'/0'/0/2 (deprecated tMST)
 */
 const char noAuthPaths[][SINGLE_PATH_SIZE_BYTES] = {
     "\x05\x2c\x00\x00\x80\x89\x00\x00\x80\x00\x00\x00\x80\x00\x00\x00\x00\x00"
     "\x00\x00\x00", // RSK
     "\x05\x2c\x00\x00\x80\x89\x00\x00\x80\x01\x00\x00\x80\x00\x00\x00\x00\x00"
     "\x00\x00\x00", // MST
-    "\x05\x2c\x00\x00\x80\x89\x00\x00\x80\x00\x00\x00\x80\x00\x00\x00\x00\x01"
-    "\x00\x00\x00", // deprecated MST
     "\x05\x2c\x00\x00\x80\x01\x00\x00\x80\x01\x00\x00\x80\x00\x00\x00\x00\x00"
     "\x00\x00\x00", // tRSK
-    "\x05\x2c\x00\x00\x80\x01\x00\x00\x80\x00\x00\x00\x80\x00\x00\x00\x00\x01"
-    "\x00\x00\x00", // deprecated tRSK
     "\x05\x2c\x00\x00\x80\x01\x00\x00\x80\x02\x00\x00\x80\x00\x00\x00\x00\x00"
     "\x00\x00\x00", // tMST
-    "\x05\x2c\x00\x00\x80\x01\x00\x00\x80\x00\x00\x00\x80\x00\x00\x00\x00\x02"
-    "\x00\x00\x00" // deprecated tMST
 };
 
 // Derivation-path-lexicographically (and statically) ordered binary paths
@@ -72,12 +63,9 @@ const char noAuthPaths[][SINGLE_PATH_SIZE_BYTES] = {
 const int ordered_paths[TOTAL_AUTHORIZED_PATHS] = {
     0x0000, // BTC
     0x0001, // tBTC
-    0x0104, // deprecated tRSK
-    0x0106, // deprecated tMST
-    0x0103, // tRSK
-    0x0105, // tMST
+    0x0102, // tRSK
+    0x0103, // tMST
     0x0100, // RSK
-    0x0102, // deprecated MST
     0x0101, // MST
 };
 

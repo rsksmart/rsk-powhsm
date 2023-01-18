@@ -108,11 +108,7 @@ only accepted BIP44 paths:
 
 - RSK key id - `m/44'/137'/0'/0/0` (\*)
 - MST key id - `m/44'/137'/1'/0/0` (\*)
-- MST key id - `m/44'/137'/0'/0/1` (\*) (\*\*)
 - tRSK key id - `m/44'/1'/1'/0/0` (\*)
-- tRSK key id - `m/44'/1'/0'/0/1` (\*) (\*\*)
 - tMST key id - `m/44'/1'/2'/0/0` (\*)
-- tMST key id - `m/44'/1'/0'/0/2` (\*) (\*\*)
 
 (\*) Sign operations using these keys don't require authorization.
-(\*\*) These keys are deprecated and will be removed in a future version.

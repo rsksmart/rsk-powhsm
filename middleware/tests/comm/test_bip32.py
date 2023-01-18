@@ -75,7 +75,6 @@ class TestBIP32Element(TestCase):
 class TestBIP32Path(TestCase):
     def test_paths(self):
         self.assertEqual("m/44'/137'/0'/0/0", str(BIP32Path("m/44'/137'/0'/0/0")))
-        self.assertEqual("m/44'/137'/0'/0/1", str(BIP32Path("m/44'/137'/0'/0/1")))
         self.assertEqual("m/44'/0'/0'/0/0", str(BIP32Path("m/44'/0'/0'/0/0")))
 
     def test_to_binary(self):
@@ -86,14 +85,6 @@ class TestBIP32Path(TestCase):
         self.assertEqual(
             "058000002c80000089800000000000000000000000",
             BIP32Path("m/44'/137'/0'/0/0").to_binary("big").hex(),
-        )
-        self.assertEqual(
-            "052c00008089000080000000800000000001000000",
-            BIP32Path("m/44'/137'/0'/0/1").to_binary().hex(),
-        )
-        self.assertEqual(
-            "058000002c80000089800000000000000000000001",
-            BIP32Path("m/44'/137'/0'/0/1").to_binary("big").hex(),
         )
         self.assertEqual(
             "052c00008000000080000000800000000000000000",
@@ -112,9 +103,6 @@ class TestBIP32Path(TestCase):
     def test_equality(self):
         self.assertEqual(BIP32Path("m/44'/0'/0'/0/0"), BIP32Path("m/44'/0'/0'/0/0"))
         self.assertEqual(BIP32Path("m/44'/137'/0'/0/0"), BIP32Path("m/44'/137'/0'/0/0"))
-        self.assertEqual(BIP32Path("m/44'/137'/0'/0/1"), BIP32Path("m/44'/137'/0'/0/1"))
-        self.assertNotEqual(BIP32Path("m/44'/137'/0'/0/1"),
-                            BIP32Path("m/44'/137'/0'/0/0"))
         self.assertNotEqual(BIP32Path("m/44'/137'/0'/0/0'"),
                             BIP32Path("m/44'/137'/0'/0/0"))
         self.assertNotEqual(BIP32Path("m/45'/137'/0'/0/0"),

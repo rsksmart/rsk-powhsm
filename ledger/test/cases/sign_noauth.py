@@ -30,11 +30,8 @@ class SignUnauthorized(TestCase):
     PATHS = {
         "rsk": BIP32Path("m/44'/137'/0'/0/0"),
         "mst": BIP32Path("m/44'/137'/1'/0/0"),
-        "dep_mst": BIP32Path("m/44'/137'/0'/0/1"),
         "trsk": BIP32Path("m/44'/1'/1'/0/0"),
-        "dep_trsk": BIP32Path("m/44'/1'/0'/0/1"),
         "tmst": BIP32Path("m/44'/1'/2'/0/0"),
-        "dep_tmst": BIP32Path("m/44'/1'/0'/0/2"),
     }
 
     @classmethod

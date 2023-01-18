@@ -27,7 +27,7 @@
 
 #include <stdbool.h>
 
-#define TOTAL_AUTHORIZED_PATHS 9
+#define TOTAL_AUTHORIZED_PATHS 6
 #define SINGLE_PATH_SIZE_BYTES 21
 
 // Paths

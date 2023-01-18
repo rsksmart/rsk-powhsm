@@ -53,12 +53,9 @@ static struct private_key_mapping_s private_keys[TOTAL_AUTHORIZED_PATHS];
 const char bip32_paths[][20] = {
     "m/44'/0'/0'/0/0",   // BTC
     "m/44'/1'/0'/0/0",   // tBTC
-    "m/44'/1'/0'/0/1",   // deprecated tRSK
-    "m/44'/1'/0'/0/2",   // deprecated tMST
     "m/44'/1'/1'/0/0",   // tRSK
     "m/44'/1'/2'/0/0",   // tMST
     "m/44'/137'/0'/0/0", // RSK
-    "m/44'/137'/0'/0/1", // deprecated MST
     "m/44'/137'/1'/0/0", // MST
 };
 
