@@ -69,7 +69,7 @@ class HSM2Protocol:
     ERROR_CODE_UNKNOWN = -906
 
     # Protocol version
-    VERSION = 3
+    VERSION = 4
 
     # Commands
     VERSION_COMMAND = "version"

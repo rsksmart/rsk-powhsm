@@ -313,11 +313,11 @@ void test_is_onboarded() {
 
     G_device_onboarded = true;
     assert(5 == is_onboarded());
-    ASSERT_APDU("\x80\x01\x03\x00\x01");
+    ASSERT_APDU("\x80\x01\x04\x00\x00");
 
     G_device_onboarded = false;
     assert(5 == is_onboarded());
-    ASSERT_APDU("\x80\x00\x03\x00\x01");
+    ASSERT_APDU("\x80\x00\x04\x00\x00");
 }
 
 int main() {
