@@ -26,9 +26,9 @@
 #define __DEFS_H
 
 // Version and patchlevel
-#define VERSION_MAJOR 0x03
+#define VERSION_MAJOR 0x04
 #define VERSION_MINOR 0x00
-#define VERSION_PATCH 0x01
+#define VERSION_PATCH 0x00
 
 // App mode response for the mode command
 #define RSK_MODE_APP 0x03

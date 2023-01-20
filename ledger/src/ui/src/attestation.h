@@ -48,7 +48,7 @@ typedef enum {
 } err_code_att_t;
 
 // Attestation message prefix
-#define ATT_MSG_PREFIX "HSM:UI:3.0"
+#define ATT_MSG_PREFIX "HSM:UI:4.0"
 #define ATT_MSG_PREFIX_LENGTH (sizeof(ATT_MSG_PREFIX) - sizeof(""))
 
 // User defined value size

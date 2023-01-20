@@ -27,7 +27,7 @@ import hashlib
 
 
 class Heartbeat(TestCase):
-    EXPECTED_HEADER = "HSM:SIGNER:HRTBT:3.0:"
+    EXPECTED_HEADER = "HSM:SIGNER:HRTBT:4.0:"
 
     @classmethod
     def op_name(cls):

@@ -47,7 +47,7 @@ class TestHSM1ProtocolLedger(TestCase):
         self.dongle.disconnect = Mock()
         self.dongle.is_onboarded = Mock(return_value=True)
         self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.APP)
-        self.dongle.get_version = Mock(return_value=HSM2FirmwareVersion(3, 0, 0))
+        self.dongle.get_version = Mock(return_value=HSM2FirmwareVersion(4, 0, 0))
         self.dongle.get_signer_parameters = Mock(return_value=Mock(
             min_required_difficulty=123))
         self.protocol = HSM1ProtocolLedger(self.pin, self.dongle)

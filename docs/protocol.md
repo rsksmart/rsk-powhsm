@@ -1,4 +1,4 @@
-# FedHM protocol definition v3.x
+# FedHM protocol definition v4.x
 
 ## Definitions
 
@@ -21,7 +21,7 @@
 #### Response
 ```
 {
-    "version": 3,
+    "version": 4,
     "errorcode": i
 }
 ```
@@ -53,7 +53,7 @@ This format is only valid for the BTC and tBTC key ids (see corresponding sectio
             "hhhh", "hhhh", ..., "hhhh"
         ]
     },
-    "version": 3
+    "version": 4
 }
 
 // (*) the given string must be the
@@ -81,7 +81,7 @@ This format is only valid for the RSK, MST, tRSK and tMST key ids (see correspon
     "message": {
         hash: "hhhh", // (**)
     },
-    "version": 3
+    "version": 4
 }
 
 // (*) the given string must be the
@@ -111,7 +111,7 @@ This operation can return `0`, `-101`, `-102`, `-103`, and generic errors. See t
 {
     "command": "getPubKey",
     "keyId": "xxxxx", // (*)
-    "version": 3
+    "version": 4
 }
 
 // (*) the given string must be the
@@ -142,7 +142,7 @@ This operation can return `0`, `-103`, and generic errors. See the error codes s
     "brothers": [
         ["hhhh", ..., "hhhh"], ..., ["hhhh", ..., "hhhh"] // (**)
     ],
-    "version": 3
+    "version": 4
 }
 
 // (*) each element must be the binary serialization of a block header as
@@ -176,7 +176,7 @@ This operation can return `0`, `1`, `-201`, `-202`, `-204`, `-205`, and generic 
 ```
 {
     "command": "resetAdvanceBlockchain",
-    "version": 3
+    "version": 4
 }
 ```
 
@@ -196,7 +196,7 @@ This operation can return `0` and generic errors. See the error codes section fo
 ```
 {
     "command": "blockchainState",
-    "version": 3
+    "version": 4
 }
 ```
 
@@ -238,7 +238,7 @@ This operation can return `0` and generic errors. See the error codes section fo
     "blocks": [
         "hhhh", "hhhh", ..., "hhhh" // (*)
     ],
-    "version": 3
+    "version": 4
 }
 
 // (*) each element must be the binary serialization of a block header as
@@ -262,7 +262,7 @@ This operation can return `0`, `-201`, `-203`, `-204`, and generic errors. See t
 ```
 {
     "command": "blockchainParameters",
-    "version": 3
+    "version": 4
 }
 ```
 
@@ -291,7 +291,7 @@ This operation can return `0` and generic errors. See the error codes section fo
 {
     "command": "signerHeartbeat",
     "udValue: "hhhh" (*),
-    "version": 3
+    "version": 4
 }
 
 // (*) Value corresponds to the user-defined value, and must be 16 bytes in size.
