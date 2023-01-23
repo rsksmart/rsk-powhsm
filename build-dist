@@ -52,6 +52,7 @@ $ROOT_DIR/middleware/build/dist
 cp $ROOT_DIR/middleware/bin/adm.tgz $BIN_DIR
 cp $ROOT_DIR/middleware/bin/lbutils.tgz $BIN_DIR
 cp $ROOT_DIR/middleware/bin/manager.tgz $BIN_DIR
+cp $ROOT_DIR/middleware/bin/signapp.tgz $BIN_DIR
 echo
 
 computeHash() {

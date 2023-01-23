@@ -8,7 +8,9 @@ echo "Building distribution binaries..."
 QUIET=1 $BUILDDIR/manager && \
 QUIET=1 $BUILDDIR/adm && \
 QUIET=1 $BUILDDIR/lbutils && \
+QUIET=1 $BUILDDIR/signapp && \
 echo "" && \
 sha256sum $BINDIR/manager.tgz && \
 sha256sum $BINDIR/adm.tgz && \
 sha256sum $BINDIR/lbutils.tgz
+sha256sum $BINDIR/signapp.tgz
