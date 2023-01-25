@@ -39,7 +39,7 @@ class TestSignAppHash(TestCase):
     def test_ok(self, info_mock, compute_app_hash_mock):
         compute_app_hash_mock.return_value = bytes.fromhex("aabbcc")
 
-        with patch("sys.argv", ["signapp.py", "hash", "-s", "a-path"]):
+        with patch("sys.argv", ["signapp.py", "hash", "-a", "a-path"]):
             with self.assertRaises(SystemExit) as exit:
                 main()
 
@@ -62,7 +62,7 @@ class TestSignAppMessage(TestCase):
         signer_version_mock.return_value = signer_version
         signer_version.get_authorization_msg.return_value = b"the-authorization-message"
 
-        with patch("sys.argv", ["signapp.py", "message", "-s", "a-path",
+        with patch("sys.argv", ["signapp.py", "message", "-a", "a-path",
                                 "-i", "an-iteration"]):
             with self.assertRaises(SystemExit) as exit:
                 main()
@@ -85,7 +85,7 @@ class TestSignAppMessage(TestCase):
         signer_authorization = Mock()
         signer_authorization_mock.for_signer_version.return_value = signer_authorization
 
-        with patch("sys.argv", ["signapp.py", "message", "-s", "a-path",
+        with patch("sys.argv", ["signapp.py", "message", "-a", "a-path",
                                 "-i", "an-iteration", "-o", "an-output-path"]):
             with self.assertRaises(SystemExit) as exit:
                 main()
@@ -117,7 +117,7 @@ class TestSignAppKey(TestCase):
         signer_authorization_mock.for_signer_version.return_value = signer_authorization
         isfile_mock.return_value = False
 
-        with patch("sys.argv", ["signapp.py", "key", "-s", "a-path",
+        with patch("sys.argv", ["signapp.py", "key", "-a", "a-path",
                                 "-i", "an-iteration", "-o", "an-output-path",
                                 "-k", "aa"*32]):
             with self.assertRaises(SystemExit) as exit:
@@ -200,7 +200,7 @@ class TestSignAppEth(TestCase):
             bytes.fromhex("bb"*32), sigencode=ecdsa.util.sigencode_der)
         get_eth_mock.return_value = eth_mock
         isfile_mock.return_value = False
-        with patch("sys.argv", ["signapp.py", "eth", "-s", "a-path",
+        with patch("sys.argv", ["signapp.py", "eth", "-a", "a-path",
                                 "-i", "an-iteration", "-o", "an-output-path"]):
             with self.assertRaises(SystemExit) as exit:
                 main()
