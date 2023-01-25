@@ -49,7 +49,7 @@ To upgrade an existing powHSM device, you will first need:
 Then, to execute the upgrade process, within the `/path/to/dist` directory, issue:
 
 ```
-/path/to/dist> ./upgrade-v2-device
+/path/to/dist> ./upgrade-existing-device
 ```
 
 and follow the instructions.

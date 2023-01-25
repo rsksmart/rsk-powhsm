@@ -1,3 +1,0 @@
-#!/bin/bash
-
-$(dirname $0)/scripts/run_with_docker upgrade-v2 $1
