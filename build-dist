@@ -56,7 +56,7 @@ cp $ROOT_DIR/middleware/bin/signapp.tgz $BIN_DIR
 echo
 
 computeHash() {
-    APP_HASH=$($ROOT_DIR/docker/mware/do-notty-nousb /hsm2 "python middleware/signapp.py hash -s $HEX_PATH" | \
+    APP_HASH=$($ROOT_DIR/docker/mware/do-notty-nousb /hsm2 "python middleware/signapp.py hash -a $HEX_PATH" | \
         grep "Computed hash:" | \
         sed "s/Computed hash: //g")
 
@@ -90,7 +90,7 @@ mv -f $ROOT_DIR/$CA_FILE $SCRIPTS_DIR/$CA_FILE
 
 SIGNER_AUTH_FILE="signer_auth.json"
 echo -e "\e[33mCreating empty signer authorization for upgrades...\e[0m"
-$ROOT_DIR/docker/mware/do-notty-nousb /hsm2 "python middleware/signapp.py message -s ledger/src/signer/bin/app.hex -i $UI_ITERATION -o $SIGNER_AUTH_FILE" > /dev/null
+$ROOT_DIR/docker/mware/do-notty-nousb /hsm2 "python middleware/signapp.py message -a ledger/src/signer/bin/app.hex -i $UI_ITERATION -o $SIGNER_AUTH_FILE" > /dev/null
 mv -f $ROOT_DIR/$SIGNER_AUTH_FILE $FIRMWARE_DIR/$SIGNER_AUTH_FILE
 
 echo

@@ -52,10 +52,10 @@ def main():
     parser = ArgumentParser(description="powHSM Signer Authorization Generator")
     parser.add_argument("operation", choices=["hash", "message", "key", "eth", "manual"])
     parser.add_argument(
-        "-s",
-        "--signer",
-        dest="signer_path",
-        help="Signer path (used to compute the signer hash and authorization message).",
+        "-a",
+        "--app",
+        dest="app_path",
+        help="App path (used to compute the app hash and authorization message).",
     )
     parser.add_argument(
         "-i",
@@ -167,20 +167,20 @@ def main():
             signer_authorization = SignerAuthorization.from_jsonfile(options.output_path)
             signer_version = signer_authorization.signer_version
         else:
-            if options.signer_path is None:
-                raise AdminError("Must provide a signer path with '-s/--signer'")
+            if options.app_path is None:
+                raise AdminError("Must provide an app path with '-a/--app'")
 
             if options.operation != "hash" and options.iteration is None:
                 raise AdminError("Must provide a signer iteration with '-i/--iteration'")
 
             info("Computing hash...")
-            signer_hash = compute_app_hash(options.signer_path).hex()
+            app_hash = compute_app_hash(options.app_path).hex()
             if options.operation == "hash":
-                info(f"Computed hash: {signer_hash}")
+                info(f"Computed hash: {app_hash}")
                 sys.exit(0)
 
             info("Computing signer authorization message...")
-            signer_version = SignerVersion(signer_hash, options.iteration)
+            signer_version = SignerVersion(app_hash, options.iteration)
             signer_authorization = SignerAuthorization.for_signer_version(signer_version)
 
         if options.operation == "message":
