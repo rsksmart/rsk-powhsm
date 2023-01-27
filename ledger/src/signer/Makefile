@@ -45,7 +45,8 @@ include $(BOLOS_SDK)/Makefile.defines
 # Main app configuration
 APPNAME = "RSK Sign"
 APPVERSION = 3
-APP_LOAD_PARAMS = --appFlags 0x00 $(COMMON_LOAD_PARAMS)
+# No flags
+APPFLAGS = 0x00
 PROG = "app"
 
 # Build configuration
@@ -111,7 +112,7 @@ load: bin/app.hex
 		--delete \
 		--targetId $(TARGET_ID)  \
 		--fileName bin/$(PROG).hex \
-		--appFlags 0x0 \
+		--appFlags $(APPFLAGS) \
 		--appName $(APPNAME) \
 		--appVersion $(APPVERSION) \
 		--icon `cat icon.hex` \

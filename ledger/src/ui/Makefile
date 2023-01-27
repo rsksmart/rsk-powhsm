@@ -44,6 +44,8 @@ endif
 APPNAME = UX
 APPVERSION = 3
 VERSION = ux$(APPVERSION)
+# APPLICATION_FLAG_BOLOS_UX | APPLICATION_FLAG_GLOBAL_PIN | APPLICATION_FLAG_BOLOS_SETTINGS
+APPFLAGS = 0x248
 # By default, don't build debug code.
 DEBUG_BUILD = 0
 ################
@@ -219,7 +221,7 @@ load: bin/built
 		--delete \
 		--targetId $(TARGET_ID) \
 		--fileName bin/$(PROG).hex \
-		--appFlags 0x248 \
+		--appFlags $(APPFLAGS) \
 		--appName $(APPNAME) \
 		--appVersion $(APPVERSION) \
 		--icon `cat icon.hex` \
