@@ -47,7 +47,6 @@ APPNAME = "RSK Sign"
 APPVERSION = 3
 # No flags
 APPFLAGS = 0x00
-APP_LOAD_PARAMS = --appFlags $(APPFLAGS) $(COMMON_LOAD_PARAMS)
 PROG = "app"
 
 # Build configuration
