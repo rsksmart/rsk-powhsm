@@ -47,7 +47,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.dongle.connect = Mock()
         self.dongle.disconnect = Mock()
         self.dongle.is_onboarded = Mock(return_value=True)
-        self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.APP)
+        self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.SIGNER)
         self.dongle.get_version = Mock(return_value=HSM2FirmwareVersion(4, 0, 0))
         self.dongle.get_signer_parameters = Mock(return_value=Mock(
             min_required_difficulty=123))
@@ -1170,6 +1170,242 @@ class TestHSM2ProtocolLedger(TestCase):
                 "udValue": "22"*16,
             }),
         )
+
+    @patch("time.sleep")
+    def test_ui_heartbeat_from_signer_ok(self, sleep_mock):
+        self.dongle.get_current_mode.side_effect = [
+            self.dongle.MODE.SIGNER,
+            self.dongle.MODE.UI_HEARTBEAT,
+            self.dongle.MODE.SIGNER,
+        ]
+
+        self.dongle.exit_app.side_effect = [
+            HSM2DongleCommError(""),
+            HSM2DongleCommError(""),
+        ]
+
+        self.dongle.get_ui_heartbeat.side_effect = lambda ud: (True, {
+            "pubKey": "66778899",
+            "message": "aabbccdd" + ud,
+            "signature": Mock(r="this-is-r", s="this-is-s"),
+            "tweak": "1122334455",
+        })
+
+        self.assertEqual(
+            {
+                "errorcode": 0,
+                "pubKey": "66778899",
+                "message": "aabbccdd" + "77"*32,
+                "tweak": "1122334455",
+                "signature": {
+                    "r": "this-is-r",
+                    "s": "this-is-s",
+                },
+            },
+            self.protocol.handle_request({
+                "version": 4,
+                "command": "uiHeartbeat",
+                "udValue": "77"*32,
+            }),
+        )
+
+    @patch("time.sleep")
+    def test_ui_heartbeat_exit_signer_error(self, sleep_mock):
+        self.dongle.get_current_mode.return_value = self.dongle.MODE.SIGNER
+
+        self.dongle.exit_app.side_effect = HSM2DongleError("")
+
+        self.assertEqual({"errorcode": -905},
+                         self.protocol.handle_request({
+                             "version": 4,
+                             "command": "uiHeartbeat",
+                             "udValue": "77"*32,
+                         }))
+
+    @patch("time.sleep")
+    def test_ui_heartbeat_from_signer_no_ui_heartbeat(self, sleep_mock):
+        self.dongle.get_current_mode.side_effect = [
+            self.dongle.MODE.SIGNER,
+            self.dongle.MODE.BOOTLOADER,
+        ]
+
+        self.dongle.exit_app.side_effect = HSM2DongleCommError("")
+
+        self.assertEqual({"errorcode": -905},
+                         self.protocol.handle_request({
+                             "version": 4,
+                             "command": "uiHeartbeat",
+                             "udValue": "77"*32,
+                         }))
+
+    @patch("time.sleep")
+    def test_ui_heartbeat_from_signer_hb_error(self, sleep_mock):
+        self.dongle.get_current_mode.side_effect = [
+            self.dongle.MODE.SIGNER,
+            self.dongle.MODE.UI_HEARTBEAT,
+        ]
+
+        self.dongle.exit_app.side_effect = HSM2DongleCommError("")
+        self.dongle.get_ui_heartbeat.side_effect = HSM2DongleError("")
+
+        self.assertEqual({"errorcode": -905},
+                         self.protocol.handle_request({
+                             "version": 4,
+                             "command": "uiHeartbeat",
+                             "udValue": "77"*32,
+                         }))
+
+        self.assertTrue(self.dongle.get_ui_heartbeat.called)
+
+    @patch("time.sleep")
+    def test_ui_heartbeat_from_signer_hb_error_result(self, sleep_mock):
+        self.dongle.get_current_mode.side_effect = [
+            self.dongle.MODE.SIGNER,
+            self.dongle.MODE.UI_HEARTBEAT,
+            self.dongle.MODE.SIGNER,
+        ]
+
+        self.dongle.exit_app.side_effect = [
+            HSM2DongleCommError(""),
+            HSM2DongleCommError(""),
+        ]
+
+        self.dongle.get_ui_heartbeat.return_value = (False, )
+
+        self.assertEqual({"errorcode": -905},
+                         self.protocol.handle_request({
+                             "version": 4,
+                             "command": "uiHeartbeat",
+                             "udValue": "77"*32,
+                         }))
+
+        self.assertTrue(self.dongle.get_ui_heartbeat.called)
+
+    @patch("time.sleep")
+    def test_ui_heartbeat_from_signer_back_to_signer_error(self, sleep_mock):
+        self.dongle.get_current_mode.side_effect = [
+            self.dongle.MODE.SIGNER,
+            self.dongle.MODE.UI_HEARTBEAT,
+        ]
+
+        self.dongle.exit_app.side_effect = [
+            HSM2DongleCommError(""),
+            HSM2DongleError(""),
+        ]
+
+        self.dongle.get_ui_heartbeat.side_effect = lambda ud: (True, {
+            "pubKey": "66778899",
+            "message": "aabbccdd" + ud,
+            "signature": Mock(r="this-is-r", s="this-is-s"),
+            "tweak": "1122334455",
+        })
+
+        self.assertEqual({"errorcode": -905},
+                         self.protocol.handle_request({
+                             "version": 4,
+                             "command": "uiHeartbeat",
+                             "udValue": "77"*32,
+                         }))
+
+        self.assertTrue(self.dongle.get_ui_heartbeat.called)
+
+    @patch("time.sleep")
+    def test_ui_heartbeat_from_signer_no_back_to_signer(self, sleep_mock):
+        self.dongle.get_current_mode.side_effect = [
+            self.dongle.MODE.SIGNER,
+            self.dongle.MODE.UI_HEARTBEAT,
+            self.dongle.MODE.UI_HEARTBEAT,
+        ]
+
+        self.dongle.exit_app.side_effect = [
+            HSM2DongleCommError(""),
+            HSM2DongleCommError(""),
+        ]
+
+        self.dongle.get_ui_heartbeat.side_effect = lambda ud: (True, {
+            "pubKey": "66778899",
+            "message": "aabbccdd" + ud,
+            "signature": Mock(r="this-is-r", s="this-is-s"),
+            "tweak": "1122334455",
+        })
+
+        self.assertEqual({"errorcode": -905},
+                         self.protocol.handle_request({
+                             "version": 4,
+                             "command": "uiHeartbeat",
+                             "udValue": "77"*32,
+                         }))
+
+        self.assertTrue(self.dongle.get_ui_heartbeat.called)
+
+    @patch("time.sleep")
+    def test_ui_heartbeat_from_invalid_start_mode(self, sleep_mock):
+        self.dongle.get_current_mode.return_value = self.dongle.MODE.BOOTLOADER
+
+        self.assertEqual({"errorcode": -905},
+                         self.protocol.handle_request({
+                             "version": 4,
+                             "command": "uiHeartbeat",
+                             "udValue": "77"*32,
+                         }))
+
+    def test_ui_heartbeat_from_hb_ok(self):
+        self.dongle.get_current_mode.return_value = self.dongle.MODE.UI_HEARTBEAT
+
+        self.dongle.get_ui_heartbeat.side_effect = lambda ud: (True, {
+            "pubKey": "66778899",
+            "message": "aabbccdd" + ud,
+            "signature": Mock(r="this-is-r", s="this-is-s"),
+            "tweak": "1122334455",
+        })
+
+        self.assertEqual(
+            {
+                "errorcode": 0,
+                "pubKey": "66778899",
+                "message": "aabbccdd" + "77"*32,
+                "tweak": "1122334455",
+                "signature": {
+                    "r": "this-is-r",
+                    "s": "this-is-s",
+                },
+            },
+            self.protocol.handle_request({
+                "version": 4,
+                "command": "uiHeartbeat",
+                "udValue": "77"*32,
+            }),
+        )
+
+        self.assertFalse(self.dongle.exit_app.called)
+
+    def test_ui_heartbeat_from_hb_hb_error(self):
+        self.dongle.get_current_mode.return_value = self.dongle.MODE.UI_HEARTBEAT
+
+        self.dongle.get_ui_heartbeat.side_effect = HSM2DongleError()
+
+        self.assertEqual({"errorcode": -905},
+                         self.protocol.handle_request({
+                             "version": 4,
+                             "command": "uiHeartbeat",
+                             "udValue": "77"*32,
+                         }))
+
+        self.assertFalse(self.dongle.exit_app.called)
+
+    def test_ui_heartbeat_from_hb_hb_error_result(self):
+        self.dongle.get_current_mode.return_value = self.dongle.MODE.UI_HEARTBEAT
+
+        self.dongle.get_ui_heartbeat.return_value = (False, )
+
+        self.assertEqual({"errorcode": -905},
+                         self.protocol.handle_request({
+                             "version": 4,
+                             "command": "uiHeartbeat",
+                             "udValue": "77"*32,
+                         }))
+
+        self.assertFalse(self.dongle.exit_app.called)
 
     def _assert_reconnected(self):
         self.assertTrue(self.dongle.disconnect.called)

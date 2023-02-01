@@ -29,9 +29,12 @@
 
 #include "assert_utils.h"
 #include "bootloader.h"
+#include "ux_handlers.h"
 #include "defs.h"
-#include "err.h"
+#include "modes.h"
+#include "ui_err.h"
 #include "bootloader_mock.h"
+#include "communication.h"
 
 // Mock variables needed for bootloader module
 bolos_ux_context_t G_bolos_ux_context;
@@ -48,7 +51,7 @@ static bool G_get_attestation_called = false;
 static bool G_authorize_signer_called = false;
 static bool G_get_retries_called = false;
 static bool G_unlock_called = false;
-static unsigned char G_autoexec = 0;
+static dashboard_action_t G_dashboard_action = 0xFF;
 static bool G_reset_attestation_called = false;
 static bool G_reset_signer_authorization_called = false;
 static bool G_reset_onboard_called = false;
@@ -70,7 +73,7 @@ static void reset_flags() {
     G_authorize_signer_called = false;
     G_get_retries_called = false;
     G_unlock_called = false;
-    G_autoexec = 0;
+    G_dashboard_action = 0xFF;
     G_reset_attestation_called = false;
     G_reset_signer_authorization_called = false;
     G_reset_onboard_called = false;
@@ -118,8 +121,9 @@ unsigned int echo(unsigned int rx) {
     return rx;
 }
 
-unsigned int get_mode() {
-    SET_APDU_AT(1, RSK_MODE_BOOTLOADER);
+unsigned int get_mode(bool heartbeat_main) {
+    assert(false == heartbeat_main);
+    SET_APDU_AT(1, APP_MODE_BOOTLOADER);
     return 2;
 }
 
@@ -148,10 +152,6 @@ unsigned int unlock() {
     return 3;
 }
 
-void set_autoexec(char value) {
-    G_autoexec = value;
-}
-
 void reset_attestation(att_t* att_ctx) {
     G_reset_attestation_called = true;
 }
@@ -164,12 +164,22 @@ void reset_onboard_ctx(onboard_t* onboard_ctx) {
     G_reset_onboard_called = true;
 }
 
+void set_dashboard_action(dashboard_action_t action) {
+    G_dashboard_action = action;
+}
+
 // Function definitions required for compiling bootloader.c
 void init_signer_authorization() {
 }
 
 unsigned short io_exchange(unsigned char channel, unsigned short tx_len) {
     assert(CHANNEL_APDU == channel);
+    return 0;
+}
+
+unsigned int comm_process_exception(unsigned short ex,
+                                    unsigned int tx,
+                                    comm_reset_cb_t comm_reset_cb) {
     return 0;
 }
 
@@ -218,7 +228,7 @@ void test_seed_onboarded() {
             // bootloader_process_apdu should throw EX_BOOTLOADER_RSK_END
             ASSERT_FAIL();
         }
-        CATCH(ERR_DEVICE_ONBOARDED) {
+        CATCH(ERR_UI_DEVICE_ONBOARDED) {
             assert(!G_host_seed_is_set);
             return;
         }
@@ -313,7 +323,7 @@ void test_wipe_default_mode_onboarded() {
             // bootloader_process_apdu should throw EX_BOOTLOADER_RSK_END
             ASSERT_FAIL();
         }
-        CATCH(ERR_DEVICE_ONBOARDED) {
+        CATCH(ERR_UI_DEVICE_ONBOARDED) {
             assert(!G_is_onboarded);
             assert(!G_is_pin_buffer_cleared);
             assert(G_is_pin_set);
@@ -366,7 +376,7 @@ void test_wipe_onboard_mode_onboarded() {
             // bootloader_process_apdu should throw EX_BOOTLOADER_RSK_END
             ASSERT_FAIL();
         }
-        CATCH(ERR_DEVICE_ONBOARDED) {
+        CATCH(ERR_UI_DEVICE_ONBOARDED) {
             assert(!G_is_onboarded);
             assert(!G_is_pin_buffer_cleared);
             assert(G_is_pin_set);
@@ -497,7 +507,7 @@ void test_end() {
     bootloader_init();
     reset_flags();
     G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
-    G_autoexec = 0;
+    G_dashboard_action = 0xFF;
     SET_APDU("\x80\xff", rx); // RSK_END_CMD
     BEGIN_TRY {
         TRY {
@@ -506,7 +516,7 @@ void test_end() {
             ASSERT_FAIL();
         }
         CATCH(EX_BOOTLOADER_RSK_END) {
-            assert(1 == G_autoexec);
+            assert(DASHBOARD_ACTION_APP == G_dashboard_action);
             assert(RESET_IF_STARTED_CALLED());
             return;
         }
@@ -526,7 +536,7 @@ void test_end_nosig() {
     bootloader_init();
     reset_flags();
     G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
-    G_autoexec = 0;
+    G_dashboard_action = 0xFF;
     SET_APDU("\x80\xfa", rx); // RSK_END_CMD_NOSIG
     BEGIN_TRY {
         TRY {
@@ -535,7 +545,7 @@ void test_end_nosig() {
             ASSERT_FAIL();
         }
         CATCH(EX_BOOTLOADER_RSK_END) {
-            assert(0 == G_autoexec);
+            assert(DASHBOARD_ACTION_DASHBOARD == G_dashboard_action);
             assert(RESET_IF_STARTED_CALLED());
             return;
         }
@@ -559,7 +569,7 @@ void test_invalid_command() {
     BEGIN_TRY {
         TRY {
             bootloader_process_apdu(rx, G_bootloader_mode);
-            // bootloader_process_apdu should throw ERR_INS_NOT_SUPPORTED
+            // bootloader_process_apdu should throw ERR_UI_INS_NOT_SUPPORTED
             ASSERT_FAIL();
         }
         CATCH(ERR_INS_NOT_SUPPORTED) {
@@ -611,10 +621,10 @@ void test_no_cla() {
     BEGIN_TRY {
         TRY {
             bootloader_process_apdu(rx, G_bootloader_mode);
-            // bootloader_process_apdu should throw ERR_INVALID_CLA
+            // bootloader_process_apdu should throw ERR_UI_INVALID_CLA
             ASSERT_FAIL();
         }
-        CATCH(ERR_INVALID_CLA) {
+        CATCH(ERR_UI_INVALID_CLA) {
             return;
         }
         CATCH_OTHER(e) {

@@ -1,5 +1,6 @@
 {
     "name": "Reconnect dongle",
     "operation": "reconnectDongle",
+    "exitSigner": true,
     "runOn": "dongle"
 }

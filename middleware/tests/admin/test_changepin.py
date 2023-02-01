@@ -79,7 +79,7 @@ class TestChangepin(TestCase):
     @patch("admin.changepin.do_unlock")
     def test_changepin_invalid_mode(self, do_unlock_mock, get_hsm, _):
         get_hsm.return_value = self.dongle
-        self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.APP)
+        self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.SIGNER)
         self.dongle.is_onboarded = Mock(return_value=True)
         self.dongle.new_pin = Mock(return_value=True)
 

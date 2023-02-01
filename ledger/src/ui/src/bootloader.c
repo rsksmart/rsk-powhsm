@@ -25,11 +25,11 @@
 #include <bolos_ux_common.h>
 
 #include "apdu.h"
-#include "bolos_ux_handlers.h"
+#include "ux_handlers.h"
 #include "bootloader.h"
-#include "instructions.h"
+#include "ui_instructions.h"
 #include "defs.h"
-#include "err.h"
+#include "ui_err.h"
 #include "communication.h"
 #include "unlock.h"
 
@@ -51,7 +51,7 @@ static bool onboard_performed = false;
 // the device is not onboarded
 #define REQUIRE_NOT_ONBOARDED()      \
     if (os_perso_isonboarded() == 1) \
-        THROW(ERR_DEVICE_ONBOARDED);
+        THROW(ERR_UI_DEVICE_ONBOARDED);
 
 /*
  * Reset all reseteable operations, only if the given operation is starting.
@@ -67,6 +67,10 @@ static void reset_if_starting(unsigned char cmd) {
         reset_signer_authorization(&sigaut_ctx);
         reset_onboard_ctx(&onboard_ctx);
     }
+}
+
+static void reset_state() {
+    reset_if_starting(0);
 }
 
 void bootloader_init() {
@@ -89,7 +93,7 @@ unsigned int bootloader_process_apdu(volatile unsigned int rx,
     }
 
     if (APDU_CLA() != CLA) {
-        THROW(ERR_INVALID_CLA);
+        THROW(ERR_UI_INVALID_CLA);
     }
 
     // We don't accept any command after onboard is performed in
@@ -132,7 +136,7 @@ unsigned int bootloader_process_apdu(volatile unsigned int rx,
         break;
     case RSK_MODE_CMD: // print mode
         reset_if_starting(RSK_MODE_CMD);
-        tx = get_mode();
+        tx = get_mode(false);
         break;
     case INS_ATTESTATION:
         reset_if_starting(INS_ATTESTATION);
@@ -153,48 +157,18 @@ unsigned int bootloader_process_apdu(volatile unsigned int rx,
         // BOLOS_UX_CONSENT_APP_ADD command, so we can't wipe the
         // pin buffer here
         break;
-    case RSK_END_CMD: // return to dashboard
+    case RSK_END_CMD: // return to dashboard and run the app
         reset_if_starting(RSK_END_CMD);
-        set_autoexec(1);
+        set_dashboard_action(DASHBOARD_ACTION_APP);
         THROW(EX_BOOTLOADER_RSK_END);
     case RSK_END_CMD_NOSIG: // return to dashboard
         reset_if_starting(RSK_END_CMD_NOSIG);
-        set_autoexec(0);
+        set_dashboard_action(DASHBOARD_ACTION_DASHBOARD);
         THROW(EX_BOOTLOADER_RSK_END);
     default:
         THROW(ERR_INS_NOT_SUPPORTED);
         break;
     }
-
-    return tx;
-}
-
-unsigned int bootloader_process_exception(unsigned short ex, unsigned int tx) {
-    unsigned short sw = 0;
-
-    // Reset the state in case of an error
-    if (ex != APDU_OK) {
-        reset_if_starting(0);
-    }
-
-    switch (ex & 0xF000) {
-    case 0x6000:
-    case 0x9000:
-        sw = ex;
-        break;
-    default:
-        sw = 0x6800 | (ex & 0x7FF);
-        break;
-    }
-
-    // Unexpected exception => report
-    // (check for a potential overflow first)
-    if (tx + 2 > sizeof(G_io_apdu_buffer)) {
-        tx = 0;
-        sw = 0x6983;
-    }
-    SET_APDU_AT(tx++, sw >> 8);
-    SET_APDU_AT(tx++, sw);
 
     return tx;
 }
@@ -232,7 +206,7 @@ void bootloader_main(bootloader_mode_t mode) {
                 break;
             }
             CATCH_OTHER(e) {
-                tx = bootloader_process_exception(e, tx);
+                tx = comm_process_exception(e, tx, &reset_state);
             }
             FINALLY {
             }

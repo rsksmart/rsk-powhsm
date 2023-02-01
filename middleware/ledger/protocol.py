@@ -90,12 +90,12 @@ class HSM2ProtocolLedger(HSM2Protocol):
             current_mode = self.hsm2dongle.get_current_mode()
             self.logger.debug("Mode #%s", current_mode)
 
-        # In this point, the mode should be app.
-        # Otherwise, we tell the user to manually enter the app and run
+        # In this point, the mode should be signer.
+        # Otherwise, we tell the user to manually enter the signer and run
         # the manager again
-        if current_mode != HSM2Dongle.MODE.APP:
+        if current_mode != HSM2Dongle.MODE.SIGNER:
             self.logger.info(
-                "Dongle mode unknown. Please manually enter the signing app "
+                "Dongle mode unknown. Please manually enter the signer "
                 "and re-run the manager"
             )
             raise HSM2ProtocolInterrupt()
@@ -218,6 +218,9 @@ class HSM2ProtocolLedger(HSM2Protocol):
             # exit_menu() always throws due to USB disconnection. we don't care
             pass
 
+        self._wait_and_reconnect()
+
+    def _wait_and_reconnect(self):
         # Wait a little bit to make sure the app is loaded
         # and then reconnect to the dongle
         time.sleep(self.OPEN_APP_WAIT)
@@ -490,4 +493,78 @@ class HSM2ProtocolLedger(HSM2Protocol):
             # Signal a communication problem and return a device error
             self._comm_issue = True
             self.logger.error("Dongle communication error in signer heartbeat")
+            return (self.ERROR_CODE_DEVICE,)
+
+    def _ui_heartbeat(self, request):
+        try:
+            self.ensure_connection()
+
+            # Check the current mode
+            initial_mode = self.hsm2dongle.get_current_mode()
+
+            # Can only gather the UI heartbeat from either the Signer or
+            # the UI heartbeat mode itself
+            if not(initial_mode in [self.hsm2dongle.MODE.SIGNER,
+                                    self.hsm2dongle.MODE.UI_HEARTBEAT]):
+                self.logger.error("Dongle not in Signer or UI heartbeat mode when"
+                                  " trying to gather UI heartbeat")
+                return (self.ERROR_CODE_DEVICE,)
+
+            # Exit the signer
+            if initial_mode == self.hsm2dongle.MODE.SIGNER:
+                # This should raise a communication error due to USB
+                # disconnection. Treat as successful
+                try:
+                    self.hsm2dongle.exit_app()
+                except HSM2DongleCommError:
+                    pass
+                self._wait_and_reconnect()
+                # Check we are now in UI heartbeat mode
+                new_mode = self.hsm2dongle.get_current_mode()
+                if new_mode != self.hsm2dongle.MODE.UI_HEARTBEAT:
+                    self.logger.error("Expected dongle to be in UI heartbeat"
+                                      f" mode but got {new_mode}")
+                    return (self.ERROR_CODE_DEVICE,)
+
+            # Gather the heartbeat and immediately try to go back
+            # to the signer. Deal with the heartbeat result later.
+            heartbeat = self.hsm2dongle.get_ui_heartbeat(request["udValue"])
+
+            # Exit the UI heartbeat to return to the signer
+            if initial_mode == self.hsm2dongle.MODE.SIGNER:
+                # This should raise a communication error due to USB
+                # disconnection. Treat as successful
+                try:
+                    self.hsm2dongle.exit_app()
+                except HSM2DongleCommError:
+                    pass
+                self._wait_and_reconnect()
+                # Check we are now back in the Signer
+                new_mode = self.hsm2dongle.get_current_mode()
+                if new_mode != self.hsm2dongle.MODE.SIGNER:
+                    self.logger.error("Expected dongle to be in Signer"
+                                      f" mode but got {new_mode}")
+                    return (self.ERROR_CODE_DEVICE,)
+
+            # Treat any user-errors as a device (unexpected) error
+            if not(heartbeat[0]):
+                return (self.ERROR_CODE_DEVICE,)
+            heartbeat = heartbeat[1]
+
+            return (self.ERROR_CODE_OK, {
+                "pubKey": heartbeat["pubKey"],
+                "message": heartbeat["message"],
+                "tweak": heartbeat["tweak"],
+                "signature": {
+                    "r": heartbeat["signature"].r,
+                    "s": heartbeat["signature"].s
+                }
+            })
+        except (HSM2DongleError, HSM2DongleTimeoutError) as e:
+            self.logger.error("Dongle error in UI heartbeat: %s", str(e))
+            return (self.ERROR_CODE_DEVICE,)
+        except HSM2DongleCommError:
+            # Signal a communication problem and return a device error
+            self._comm_issue = True
+            self.logger.error("Dongle communication error in UI heartbeat")
             return (self.ERROR_CODE_DEVICE,)

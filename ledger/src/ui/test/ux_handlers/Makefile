@@ -21,21 +21,22 @@
 # SOFTWARE.
 
 SRCDIR = ../../src
+COMMONDIR = ../../../common/src
 MOCKDIR = ../mock
-CFLAGS = -I./mock -I$(MOCKDIR) -I$(SRCDIR) -g
+CFLAGS = -I./mock -I$(MOCKDIR) -I$(SRCDIR) -I$(COMMONDIR) -g
 
 PROG = test.out
-OBJS = bolos_ux_handlers.o test_bolos_ux_handlers.o
+OBJS = ux_handlers.o test_ux_handlers.o
 
 all: $(PROG)
 
 $(PROG): $(OBJS)
 	$(CC) -o $@ $^ -g
 
-test_bolos_ux_handlers.o: test_bolos_ux_handlers.c
+test_ux_handlers.o: test_ux_handlers.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
-bolos_ux_handlers.o: $(SRCDIR)/bolos_ux_handlers.c
+ux_handlers.o: $(SRCDIR)/ux_handlers.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
 .PHONY: clean test

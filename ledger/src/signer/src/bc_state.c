@@ -27,6 +27,7 @@
 
 #include "runtime.h"
 #include "defs.h"
+#include "err.h"
 #include "dbg.h"
 #include "nvm.h"
 #include "memutil.h"
@@ -47,7 +48,7 @@ static const uint8_t INITIAL_BLOCK_HASH[] = PARAM_INITIAL_BLOCK_HASH;
 #ifndef HSM_SIMULATOR
 #error "Initial block hash not defined!"
 #endif
-uint8_t INITIAL_BLOCK_HASH[HASH_LEN];
+uint8_t INITIAL_BLOCK_HASH[HASH_LENGTH];
 #endif
 
 /*
@@ -62,7 +63,44 @@ void bc_init_state() {
         uint8_t t = 1;
         NVM_WRITE(&N_bc_state.initialized, &t, sizeof(t));
     }
+
     explicit_bzero(&bc_st_updating, sizeof(bc_st_updating));
+    if (N_bc_state_updating_backup.valid) {
+        uint8_t f = 0;
+        NVM_WRITE(&N_bc_state_updating_backup.valid, &f, sizeof(f));
+        SAFE_MEMMOVE(&bc_st_updating,
+                     sizeof(bc_st_updating),
+                     MEMMOVE_ZERO_OFFSET,
+                     &N_bc_state_updating_backup.data,
+                     sizeof(N_bc_state_updating_backup.data),
+                     MEMMOVE_ZERO_OFFSET,
+                     sizeof(N_bc_state_updating_backup.data),
+                     { return; });
+    }
+}
+
+/**
+ * Backup the current partial advance blockchain state
+ * to NVM
+ */
+void bc_backup_partial_state() {
+    bc_state_updating_backup_t backup;
+
+    if (bc_st_updating.in_progress) {
+        backup.valid = 1;
+        SAFE_MEMMOVE(&backup.data,
+                     sizeof(backup.data),
+                     MEMMOVE_ZERO_OFFSET,
+                     &bc_st_updating,
+                     sizeof(bc_st_updating),
+                     MEMMOVE_ZERO_OFFSET,
+                     sizeof(bc_st_updating),
+                     { return; });
+
+        NVM_WRITE(&N_bc_state_updating_backup,
+                  &backup,
+                  sizeof(N_bc_state_updating_backup));
+    }
 }
 
 // -----------------------------------------------------------------------
@@ -71,6 +109,9 @@ void bc_init_state() {
 
 // Non-volatile blockchain validation state
 NON_VOLATILE bc_state_t N_bc_state_var;
+
+// Non-volatile intermediate advance blockchain state backup
+NON_VOLATILE bc_state_updating_backup_t N_bc_state_updating_backup_var;
 
 /*
  * Dump hash corresponding to hash_codes[hash_ix] to APDU.

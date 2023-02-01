@@ -61,12 +61,21 @@ typedef struct {
     DIGIT_T total_difficulty[BIGINT_LEN];
 } bc_state_updating_t;
 
+typedef struct {
+    uint8_t valid;
+    bc_state_updating_t data;
+} bc_state_updating_backup_t;
+
 extern NON_VOLATILE bc_state_t N_bc_state_var;
 #define N_bc_state (*(bc_state_t*)PIC(&N_bc_state_var))
 
+extern NON_VOLATILE bc_state_updating_backup_t N_bc_state_updating_backup_var;
+#define N_bc_state_updating_backup \
+    (*(bc_state_updating_backup_t*)PIC(&N_bc_state_updating_backup_var))
+
 #ifndef PARAM_INITIAL_BLOCK_HASH
 #include "defs.h"
-extern uint8_t INITIAL_BLOCK_HASH[HASH_LEN];
+extern uint8_t INITIAL_BLOCK_HASH[HASH_LENGTH];
 #endif
 
 // -----------------------------------------------------------------------
@@ -96,6 +105,12 @@ typedef enum {
  * Initialize blockchain state.
  */
 void bc_init_state();
+
+/**
+ * Backup the current partial advance blockchain state
+ * to NVM
+ */
+void bc_backup_partial_state();
 
 /*
  * Implement the get blockchain state procotol.

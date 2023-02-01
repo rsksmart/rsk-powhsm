@@ -31,7 +31,7 @@
 
 #include "hsmsim_random.h"
 #include "pathAuth.h"
-#include "defs.h"
+#include "constants.h"
 #include "cJSON.h"
 #include "json.h"
 #include "hex_reader.h"
@@ -39,7 +39,7 @@
 
 struct private_key_mapping_s {
     const unsigned char* path;
-    unsigned char key[KEY_LEN];
+    unsigned char key[PRIVATE_KEY_LENGTH];
 };
 
 static struct private_key_mapping_s private_keys[TOTAL_AUTHORIZED_PATHS];
@@ -123,12 +123,12 @@ bool hsmsim_ecdsa_initialize(char* key_file_path) {
     // Init OS ECDSA
     os_ecdsa_initialize();
 
-    unsigned char pubkey[PUBKEYCOMPRESSEDSIZE];
+    unsigned char pubkey[PUBKEY_CMP_LENGTH];
     info("Loaded keys:\n");
     for (int i = 0; i < KEY_PATH_COUNT(); i++) {
         if (hsmsim_helper_getpubkey(
                 private_keys[i].key, pubkey, sizeof(pubkey), true) !=
-            PUBKEYCOMPRESSEDSIZE) {
+            PUBKEY_CMP_LENGTH) {
             info("Error getting public key for key '%s'\n", bip32_paths[i]);
             return false;
         }

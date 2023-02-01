@@ -46,6 +46,7 @@
 
 #include "hsm.h"
 #include "hsm-ledger.h"
+#include "ui_heartbeat.h"
 #include "bc_advance.h"
 #include "bc_state.h"
 #include "bc_diff.h"
@@ -59,6 +60,12 @@ typedef enum {
     ARG_NU_PAPYRUS,
     ARG_NU_IRIS,
 } arg_non_printable_t;
+
+/**
+ * UI heartbeat memory area
+ * There's probably a better
+ */
+ui_heartbeat_t ui_heartbeat_ctx;
 
 // Argp option spec
 static struct argp_option options[] = {
@@ -386,7 +393,23 @@ void main(int argc, char **argv) {
             os_io_set_replica_file(replicafd);
         };
 
-        hsm_ledger_main_loop();
+        // Run the Signer main loop and the
+        // UI heartbeat main loop in an alternate
+        // fashion.
+        while (true) {
+            info("Running signer main loop...\n");
+            hsm_init();
+            hsm_ledger_main_loop();
+            // Send an empty reply so that the client
+            // doesn't hang waiting
+            io_exchange_reply();
+
+            info("Running UI heartbeat main loop...\n");
+            ui_heartbeat_init(&ui_heartbeat_ctx);
+            ui_heartbeat_main(&ui_heartbeat_ctx);
+            // Ditto
+            io_exchange_reply();
+        }
 
         if (replicafd != NULL) {
             fclose(replicafd);

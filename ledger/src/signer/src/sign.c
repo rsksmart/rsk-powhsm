@@ -47,7 +47,7 @@ int do_pubkey(unsigned int* path,
               unsigned char* dest,
               size_t dest_size) {
 
-    volatile unsigned char private_key_data[KEY_LEN];
+    volatile unsigned char private_key_data[PRIVATE_KEY_LENGTH];
     volatile cx_ecfp_private_key_t private_key;
     volatile cx_ecfp_public_key_t public_key;
 
@@ -63,7 +63,7 @@ int do_pubkey(unsigned int* path,
                                        NULL);
             cx_ecdsa_init_private_key(CX_CURVE_256K1,
                                       (unsigned char*)private_key_data,
-                                      KEY_LEN,
+                                      PRIVATE_KEY_LENGTH,
                                       (cx_ecfp_private_key_t*)&private_key);
             // Cleanup private key data
             explicit_bzero((void*)private_key_data, sizeof(private_key_data));
@@ -123,13 +123,13 @@ int do_sign(unsigned int* path,
             unsigned char* dest,
             size_t dest_size) {
 
-    volatile unsigned char private_key_data[KEY_LEN];
+    volatile unsigned char private_key_data[PRIVATE_KEY_LENGTH];
     volatile cx_ecfp_private_key_t private_key;
 
     volatile int sig_size;
 
     // Check the destination buffer won't be overflowed by the signature
-    if (dest_size < MAX_SIGNATURE_LEN) {
+    if (dest_size < MAX_SIGNATURE_LENGTH) {
         return DO_SIGN_ERROR;
     }
 
@@ -143,7 +143,7 @@ int do_sign(unsigned int* path,
                                        NULL);
             cx_ecdsa_init_private_key(CX_CURVE_256K1,
                                       (unsigned char*)private_key_data,
-                                      KEY_LEN,
+                                      PRIVATE_KEY_LENGTH,
                                       (cx_ecfp_private_key_t*)&private_key);
             // Cleanup private key data
             explicit_bzero((void*)private_key_data, sizeof(private_key_data));

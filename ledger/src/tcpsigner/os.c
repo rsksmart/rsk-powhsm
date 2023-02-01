@@ -35,6 +35,10 @@ unsigned int os_perso_isonboarded() {
     return hsmsim_admin_get_is_onboarded();
 }
 
+unsigned int os_global_pin_retries(void) {
+    return HSMSIM_RETRIES;
+}
+
 void nvm_write(void *dst_adr, void *src_adr, unsigned int src_len) {
     if (src_adr == NULL) {
         // Treat as memory reset

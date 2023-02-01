@@ -26,6 +26,7 @@ from unittest.mock import Mock, call, patch
 from admin.misc import AdminError
 from admin.unlock import do_unlock
 from ledger.hsm2dongle import HSM2Dongle
+from parameterized import parameterized
 
 import logging
 
@@ -77,14 +78,18 @@ class TestUnlock(TestCase):
             do_unlock(self.default_options)
         self.assertEqual('Device not onboarded', str(e.exception))
 
-    def test_unlock_invalid_mode(self, get_hsm, _):
+    @parameterized.expand([
+        (HSM2Dongle.MODE.SIGNER, ),
+        (HSM2Dongle.MODE.UI_HEARTBEAT, ),
+    ])
+    def test_unlock_invalid_mode(self, get_hsm, _, mode):
         get_hsm.return_value = self.dongle
-        self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.APP)
+        self.dongle.get_current_mode = Mock(return_value=mode)
         self.dongle.is_onboarded = Mock(return_value=True)
 
         with self.assertRaises(AdminError) as e:
             do_unlock(self.default_options)
-        self.assertEqual('Device already unlocked and in app mode', str(e.exception))
+        self.assertEqual('Device already unlocked', str(e.exception))
 
         self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.UNKNOWN)
         with self.assertRaises(AdminError) as e:

@@ -21,3 +21,4 @@
 # SOFTWARE.
 
 from .signer_heartbeat import HSM2SignerHeartbeat
+from .ui_heartbeat import HSM2UIHeartbeat

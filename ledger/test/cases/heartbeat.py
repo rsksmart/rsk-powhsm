@@ -27,7 +27,8 @@ import hashlib
 
 
 class Heartbeat(TestCase):
-    EXPECTED_HEADER = "HSM:SIGNER:HRTBT:4.0:"
+    EXPECTED_HEADER = "HSM:SIGNER:HB:4.0:"
+    EHL = len(EXPECTED_HEADER)
 
     @classmethod
     def op_name(cls):
@@ -47,8 +48,8 @@ class Heartbeat(TestCase):
         def get_message_part(msg, part):
             try:
                 return ({
-                    "best_block": lambda m: m[21*2:(21+32)*2],
-                    "last_tx": lambda m: m[(21+32)*2:(21+32+8)*2],
+                    "best_block": lambda m: m[self.EHL*2:(self.EHL+32)*2],
+                    "last_tx": lambda m: m[(self.EHL+32)*2:(self.EHL+32+8)*2],
                 })[part](msg)
             except KeyError:
                 raise TestCaseError(f"Unknown message part \"{part}\"")
@@ -82,7 +83,7 @@ class Heartbeat(TestCase):
                 raise TestCaseError("Expected signature to be valid but it wasn't")
 
             # Validate header
-            header_msg = message[:21].decode('ascii')
+            header_msg = message[:self.EHL].decode('ascii')
             if header_msg != self.EXPECTED_HEADER:
                 raise TestCaseError(f"Expected header to be {self.EXPECTED_HEADER} but"
                                     f" got {header_msg}")

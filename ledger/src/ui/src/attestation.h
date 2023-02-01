@@ -63,8 +63,8 @@ typedef enum {
 
 // Attestation message to sign size (prefix + UD value + BTC compressed public
 // key + authorized signer version + authorized signer iteration)
-#define ATT_MESSAGE_SIZE                                            \
-    (ATT_MSG_PREFIX_LENGTH + UD_VALUE_SIZE + PUBKEYCOMPRESSEDSIZE + \
+#define ATT_MESSAGE_SIZE                                         \
+    (ATT_MSG_PREFIX_LENGTH + UD_VALUE_SIZE + PUBKEY_CMP_LENGTH + \
      SIGAUT_SIGNER_HASH_SIZE + SIGAUT_SIGNER_ITERATION_SIZE)
 
 // Attestation SM states
@@ -81,7 +81,7 @@ typedef struct {
     unsigned int msg_offset;
 
     unsigned char path[PUBKEY_PATH_LENGTH];
-    unsigned char priv_key_data[SEEDSIZE];
+    unsigned char priv_key_data[SEED_LENGTH];
     cx_ecfp_private_key_t priv_key;
     cx_ecfp_public_key_t pub_key;
 } att_t;

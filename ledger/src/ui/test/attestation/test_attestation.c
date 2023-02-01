@@ -26,7 +26,7 @@
 #include "attestation.h"
 #include "apdu_utils.h"
 #include "assert_utils.h"
-#include "err.h"
+#include "ui_err.h"
 
 #define PUBLIC_KEY                                                             \
     "\x0b\xe6\xd7\x1d\x5c\x2b\x06\x36\x03\x53\xfb\xd8\x22\x7a\xb3\xab\xfc\x3d" \
@@ -57,12 +57,12 @@ unsigned char N_onboarded_ui[1];
 
 // Helper functions
 void set_public_key(cx_ecfp_public_key_t *pubkey, char *rawkey) {
-    pubkey->W_len = PUBKEYSIZE;
+    pubkey->W_len = PUBKEY_UNCMP_LENGTH;
     memcpy(pubkey->W, rawkey, pubkey->W_len);
 }
 
 void set_private_key(cx_ecfp_private_key_t *privkey, unsigned char *rawkey) {
-    privkey->d_len = KEYLEN;
+    privkey->d_len = PRIVATE_KEY_LENGTH;
     memcpy(privkey->d, rawkey, privkey->d_len);
 }
 
@@ -72,10 +72,10 @@ int cx_ecdsa_init_private_key(cx_curve_t curve,
                               unsigned int key_len,
                               cx_ecfp_private_key_t *key) {
     assert(CX_CURVE_256K1 == curve);
-    ASSERT_MEMCMP(rawkey, PRIVATE_KEY, KEYLEN);
+    ASSERT_MEMCMP(rawkey, PRIVATE_KEY, PRIVATE_KEY_LENGTH);
     assert(rawkey == (unsigned char *)G_att_ctx.priv_key_data);
     assert(key == &G_att_ctx.priv_key);
-    assert(KEYLEN == key_len);
+    assert(PRIVATE_KEY_LENGTH == key_len);
     set_private_key(key, rawkey);
     return 0;
 }
@@ -87,7 +87,7 @@ int cx_ecfp_generate_pair(cx_curve_t curve,
     assert(CX_CURVE_256K1 == curve);
     assert(pubkey == &G_att_ctx.pub_key);
     assert(privkey == &G_att_ctx.priv_key);
-    ASSERT_MEMCMP(PRIVATE_KEY, privkey->d, KEYLEN);
+    ASSERT_MEMCMP(PRIVATE_KEY, privkey->d, PRIVATE_KEY_LENGTH);
     assert(1 == keepprivate);
     set_public_key(pubkey, PUBLIC_KEY);
     return 0;
@@ -192,7 +192,7 @@ void test_get_attestation_ud_value_wrong_state() {
             ASSERT_FAIL();
         }
         CATCH_OTHER(e) {
-            assert(ERR_PROT_INVALID == e);
+            assert(ERR_UI_PROT_INVALID == e);
         }
         FINALLY {
         }
@@ -270,7 +270,7 @@ void test_get_attestation_get_msg_wrong_state() {
             ASSERT_FAIL();
         }
         CATCH_OTHER(e) {
-            assert(ERR_PROT_INVALID == e);
+            assert(ERR_UI_PROT_INVALID == e);
         }
         FINALLY {
         }
@@ -312,7 +312,7 @@ void test_get_attestation_get_wrong_state() {
             ASSERT_FAIL();
         }
         CATCH_OTHER(e) {
-            assert(ERR_PROT_INVALID == e);
+            assert(ERR_UI_PROT_INVALID == e);
         }
         FINALLY {
         }
@@ -336,7 +336,7 @@ void test_get_attestation_invalid() {
             ASSERT_FAIL();
         }
         CATCH_OTHER(e) {
-            assert(ERR_PROT_INVALID == e);
+            assert(ERR_UI_PROT_INVALID == e);
         }
         FINALLY {
         }

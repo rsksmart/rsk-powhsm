@@ -318,6 +318,40 @@ This operation can return `0` and generic errors. See the error codes section fo
 **Error codes:**
 This operation can return `0`, `-301` and generic errors. See the error codes section for details.
 
+### UI heartbeat
+
+#### Request
+```
+{
+    "command": "uiHeartbeat",
+    "udValue: "hhhh" (*),
+    "version": 4
+}
+
+// (*) Value corresponds to the user-defined value, and must be 32 bytes in size.
+```
+
+#### Response
+```
+{
+    "errorcode": i,
+    "pubKey": "hhhh", (*)
+    "message": "hhhh", (**)
+    "tweak": "hhhh", (***)
+    "signature": {
+        "r": "hhhh",
+        "s": "hhhh"
+    }
+}
+
+// (*) Value corresponds to an uncompressed public key (65 bytes).
+// (**) The specific message will depend on the running UI version.
+// (***) Value corresponds to the running UI hash (32 bytes).
+```
+
+**Error codes:**
+This operation can return `0`, `-301` and generic errors. See the error codes section for details.
+
 ### Error and success codes
 
 The following are all the possible error and success codes:

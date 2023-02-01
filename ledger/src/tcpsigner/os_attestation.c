@@ -34,9 +34,9 @@
 unsigned int os_endorsement_key2_derive_sign_data(unsigned char *src,
                                                   unsigned int srcLength,
                                                   unsigned char *signature) {
-    uint8_t pubkey[PUBKEYUNCOMPRESSEDSIZE];
+    uint8_t pubkey[PUBKEY_UNCMP_LENGTH];
     uint8_t tweak[HMAC_SHA256_SIZE];
-    uint8_t hash[HASH_LEN];
+    uint8_t hash[HASH_LENGTH];
 
     sha256(src, srcLength, hash, sizeof(hash));
 
@@ -65,7 +65,7 @@ unsigned int os_endorsement_get_code_hash(unsigned char *buffer) {
 
 unsigned int os_endorsement_get_public_key(unsigned char index,
                                            unsigned char *buffer) {
-    uint8_t tempbuf[PUBKEYUNCOMPRESSEDSIZE];
+    uint8_t tempbuf[PUBKEY_UNCMP_LENGTH];
     size_t tempbuf_size = hsmsim_helper_getpubkey(
         attestation_id.key, tempbuf, sizeof(tempbuf), false);
     memcpy(buffer, tempbuf, tempbuf_size);

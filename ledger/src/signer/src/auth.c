@@ -96,7 +96,7 @@ unsigned int auth_sign(volatile unsigned int rx) {
         THROW(ERR_AUTH_INVALID_STATE); // Invalid state
 
     tx = do_sign(auth.path,
-                 RSK_PATH_LEN,
+                 DERIVATION_PATH_PARTS,
                  auth.sig_hash,
                  sizeof(auth.sig_hash),
                  APDU_DATA_PTR,

@@ -56,6 +56,12 @@ void os_io_set_input_file(FILE *_input_file);
  */
 void os_io_set_replica_file(FILE *_replica_file);
 
+/**
+ * Perform an empty message
+ * write on the IO channel
+ */
+void io_exchange_reply();
+
 /*
  * This function performs the input / output to a simulated dongle,
  * either via a TCP server of via an input file depending on global state.

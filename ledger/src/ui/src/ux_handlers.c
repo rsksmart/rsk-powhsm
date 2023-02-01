@@ -22,12 +22,22 @@
  * IN THE SOFTWARE.
  */
 #include <bolos_ux_common.h>
+#include "ux_handlers.h"
 #include "bootloader.h"
+#include "ui_heartbeat.h"
 
-static unsigned char autoexec = 0;
+dashboard_action_t dashboard_action;
 
-// run the signer application
-static void run_signer_app(void) {
+void set_dashboard_action(dashboard_action_t action) {
+    dashboard_action = action;
+}
+
+/**
+ * Run the signer application
+ *
+ * @returns bool whether the application was scheduled to run
+ */
+static bool run_signer_app(void) {
     unsigned int i = 0;
     while (i < os_registry_count()) {
         application_t app;
@@ -35,13 +45,16 @@ static void run_signer_app(void) {
         if (!(app.flags & APPLICATION_FLAG_BOLOS_UX)) {
             if (is_authorized_signer(app.hash)) {
                 G_bolos_ux_context.app_auto_started = 1;
+                set_dashboard_action(DASHBOARD_ACTION_UI_HEARTBEAT);
                 screen_stack_pop();
                 io_seproxyhal_disable_io();
                 os_sched_exec(i); // no return
+                return true;
             }
         }
         i++;
     }
+    return false;
 }
 
 /**
@@ -81,22 +94,40 @@ unsigned int handle_bolos_ux_boot_onboarding() {
 /**
  * BOLOS_UX_DASHBOARD handler
  *
- * Shows dashboard screen when autoexec == 0, or loads signer app when
- * autoexec == 1
+ * Different ways of handling this depending
+ * on the value of dashboard_action
+ * Can run the heartbeat frontend, the app or
+ * the dashboard itself.
  */
 void handle_bolos_ux_boot_dashboard() {
+    if (dashboard_action == DASHBOARD_ACTION_UI_HEARTBEAT) {
+        USB_power(0);
+        io_seproxyhal_disable_io();
+        USB_power(1);
+        io_seproxyhal_init();
+
+        // Run the heartbeat frontend and then
+        // run the app (i.e., signer) upon exit
+        ui_heartbeat_main(&G_bolos_ux_context.ui_heartbeat);
+        if (run_signer_app())
+            return;
+    }
+
     // apply settings when redisplaying dashboard
     screen_settings_apply();
 
     // when returning from application, the ticker could have been
     // disabled
     io_seproxyhal_setup_ticker(100);
-    // Run signer application once
-    if (autoexec) {
-        autoexec = 0;
-        run_signer_app();
-        return;
+
+    // Run application (i.e., signer)
+    if (dashboard_action == DASHBOARD_ACTION_APP) {
+        if (run_signer_app())
+            return;
     }
+
+    // If we're here, then the dashboard action
+    // is dashboard itself. Init the dashboard screen.
     screen_dashboard_init();
 }
 
@@ -110,7 +141,6 @@ void handle_bolos_ux_boot_dashboard() {
 unsigned int handle_bolos_ux_boot_validate_pin() {
     io_seproxyhal_init();
     USB_power(1);
-    autoexec = 0;
     bootloader_main(BOOTLOADER_MODE_DEFAULT);
     return BOLOS_UX_OK;
 }
@@ -165,8 +195,4 @@ unsigned int handle_bolos_ux_boot_consent_app_del() {
  */
 void handle_bolos_ux_boot_processing() {
     screen_processing_init();
-}
-
-void set_autoexec(char value) {
-    autoexec = value;
 }

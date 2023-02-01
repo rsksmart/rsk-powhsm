@@ -126,10 +126,10 @@ bool hsmsim_attestation_initialize(char* att_file_path) {
     os_ecdsa_initialize();
 
     // Grab attestation id public key
-    unsigned char pubkey[PUBKEYCOMPRESSEDSIZE];
+    unsigned char pubkey[PUBKEY_CMP_LENGTH];
     if (hsmsim_helper_getpubkey(
             attestation_id.key, pubkey, sizeof(pubkey), true) !=
-        PUBKEYCOMPRESSEDSIZE) {
+        PUBKEY_CMP_LENGTH) {
         info("Error getting compressed public key for attestation id key\n");
         return false;
     }

@@ -24,14 +24,13 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "err.h"
+#include "ui_err.h"
 #include "mock.h"
 #include "assert_utils.h"
 #include "signer_authorization.h"
 #include "testing.h"
 
 sigaut_t G_sigaut_ctx;
-extern sigaut_signer_status_t N_current_signer_status_var;
 
 #define TEST_SIGAUT_SIGNATURE_LEN 75
 static const unsigned char G_valid_signatures[][TEST_SIGAUT_SIGNATURE_LEN] = {
@@ -65,7 +64,8 @@ static const unsigned char G_authorized_signer_hash[] =
 // Helper functions
 static bool is_key_authorized(cx_ecfp_public_key_t *key) {
     for (int i = 0; i < G_num_pubkeys; i++) {
-        if (0 == memcmp(G_authorizers_pubkeys[i], key->W, PUBKEYSIZE)) {
+        if (0 ==
+            memcmp(G_authorizers_pubkeys[i], key->W, PUBKEY_UNCMP_LENGTH)) {
             return true;
         }
     }
@@ -74,7 +74,8 @@ static bool is_key_authorized(cx_ecfp_public_key_t *key) {
 
 static unsigned char *get_signature(cx_ecfp_public_key_t *key) {
     for (int i = 0; i < G_num_pubkeys; i++) {
-        if (0 == memcmp(G_authorizers_pubkeys[i], key->W, PUBKEYSIZE)) {
+        if (0 ==
+            memcmp(G_authorizers_pubkeys[i], key->W, PUBKEY_UNCMP_LENGTH)) {
             return (unsigned char *)G_valid_signatures[i];
         }
     }
@@ -168,7 +169,7 @@ void test_init_signer_authorization() {
     init_signer_authorization();
     sigaut_signer_t *signer = get_authorized_signer_info();
     assert(NULL != signer);
-    ASSERT_MEMCMP(PARAM_INITIAL_SIGNER_HASH, signer->hash, HASHSIZE);
+    ASSERT_MEMCMP(PARAM_INITIAL_SIGNER_HASH, signer->hash, HASH_LENGTH);
     assert(PARAM_INITIAL_SIGNER_ITERATION == signer->iteration);
 }
 
@@ -210,7 +211,7 @@ void test_op_sigaut_sigver() {
         "\xee\xba\xb4\xad\x98\x83\x99\xab\xae\xfc\xac\xe5\xf1\xf6\xf4\xfe\xad"
         "\xed\x9a\x8c\x8c\x9e\x98\x9a\xc5\xf5\xff\xff\xff\xff\xff\xff",
         G_sigaut_ctx.auth_hash,
-        HASHSIZE);
+        HASH_LENGTH);
 }
 
 void test_op_sigaut_sigver_invalid_iteration() {
@@ -255,7 +256,7 @@ void test_op_sigaut_sigver_invalid_input() {
             ASSERT_FAIL();
         }
         CATCH_OTHER(e) {
-            assert(ERR_PROT_INVALID == e);
+            assert(ERR_UI_PROT_INVALID == e);
         }
         FINALLY {
         }
@@ -272,13 +273,14 @@ void test_op_sigaut_sign() {
     reset_signer_authorization(&G_sigaut_ctx);
     G_sigaut_ctx.state = sigaut_state_wait_signature;
 
-    memcpy(G_sigaut_ctx.signer.hash, G_authorized_signer_hash, HASHSIZE);
+    memcpy(G_sigaut_ctx.signer.hash, G_authorized_signer_hash, HASH_LENGTH);
     G_sigaut_ctx.signer.iteration = 2;
 
     // Perform 2 of 3 authorization
 
-    G_sigaut_ctx.pubkey.W_len = PUBKEYSIZE;
-    memcpy(G_sigaut_ctx.pubkey.W, G_authorizers_pubkeys[0], PUBKEYSIZE);
+    G_sigaut_ctx.pubkey.W_len = PUBKEY_UNCMP_LENGTH;
+    memcpy(
+        G_sigaut_ctx.pubkey.W, G_authorizers_pubkeys[0], PUBKEY_UNCMP_LENGTH);
     // OP_SIGAUT_SIGN + G_valid_signature[0]
     SET_APDU("\x80\x81\x02\xd1\x98\x62\x0e\x60\x25\x5a\xd0\xb3\xc4\x1f\x0b\x0c"
              "\x7f\x7e\xd4\x94\xa9\xfe\x45\x29\xe8\x9b\xe0\x77\xb3\x95\x87\x53"
@@ -290,8 +292,9 @@ void test_op_sigaut_sign() {
     assert(RES_SIGAUT_MORE == APDU_DATA_PTR[0]);
     ASSERT_STRUCT_CLEARED(cx_ecfp_public_key_t, G_sigaut_ctx.pubkey);
 
-    G_sigaut_ctx.pubkey.W_len = PUBKEYSIZE;
-    memcpy(G_sigaut_ctx.pubkey.W, G_authorizers_pubkeys[1], PUBKEYSIZE);
+    G_sigaut_ctx.pubkey.W_len = PUBKEY_UNCMP_LENGTH;
+    memcpy(
+        G_sigaut_ctx.pubkey.W, G_authorizers_pubkeys[1], PUBKEY_UNCMP_LENGTH);
     // OP_SIGAUT_SIGN + G_valid_signature[1]
     SET_APDU("\x80\x81\x02\xf9\x6f\x6b\x3e\x3c\xe5\x08\x8b\x46\x83\xbe\x87\x3c"
              "\x07\x5a\x61\x4a\x8c\x65\x64\x9a\x4c\xa8\x6a\x78\xa0\xc6\x6c\x9e"
@@ -303,7 +306,7 @@ void test_op_sigaut_sign() {
     assert(RES_SIGAUT_SUCCESS == APDU_DATA_PTR[0]);
     ASSERT_MEMCMP(G_authorized_signer_hash,
                   N_current_signer_status_var.signer.hash,
-                  HASHSIZE);
+                  HASH_LENGTH);
     assert(2 == N_current_signer_status_var.signer.iteration);
     assert_sigaut_ctx_reset(&G_sigaut_ctx);
 }
@@ -315,8 +318,9 @@ void test_op_sigaut_sign_not_enough_signatures() {
     reset_signer_authorization(&G_sigaut_ctx);
     G_sigaut_ctx.state = sigaut_state_wait_signature;
 
-    G_sigaut_ctx.pubkey.W_len = PUBKEYSIZE;
-    memcpy(G_sigaut_ctx.pubkey.W, G_authorizers_pubkeys[0], PUBKEYSIZE);
+    G_sigaut_ctx.pubkey.W_len = PUBKEY_UNCMP_LENGTH;
+    memcpy(
+        G_sigaut_ctx.pubkey.W, G_authorizers_pubkeys[0], PUBKEY_UNCMP_LENGTH);
     // OP_SIGAUT_SIGN + G_valid_signature[0]
     SET_APDU("\x80\x81\x02\xd1\x98\x62\x0e\x60\x25\x5a\xd0\xb3\xc4\x1f\x0b\x0c"
              "\x7f\x7e\xd4\x94\xa9\xfe\x45\x29\xe8\x9b\xe0\x77\xb3\x95\x87\x53"
@@ -329,8 +333,9 @@ void test_op_sigaut_sign_not_enough_signatures() {
     ASSERT_STRUCT_CLEARED(cx_ecfp_public_key_t, G_sigaut_ctx.pubkey);
 
     // Send same valid signature with same pubkey
-    G_sigaut_ctx.pubkey.W_len = PUBKEYSIZE;
-    memcpy(G_sigaut_ctx.pubkey.W, G_authorizers_pubkeys[0], PUBKEYSIZE);
+    G_sigaut_ctx.pubkey.W_len = PUBKEY_UNCMP_LENGTH;
+    memcpy(
+        G_sigaut_ctx.pubkey.W, G_authorizers_pubkeys[0], PUBKEY_UNCMP_LENGTH);
     // OP_SIGAUT_SIGN + G_valid_signature[0]
     SET_APDU("\x80\x81\x02\xd1\x98\x62\x0e\x60\x25\x5a\xd0\xb3\xc4\x1f\x0b\x0c"
              "\x7f\x7e\xd4\x94\xa9\xfe\x45\x29\xe8\x9b\xe0\x77\xb3\x95\x87\x53"
@@ -342,8 +347,9 @@ void test_op_sigaut_sign_not_enough_signatures() {
     assert(RES_SIGAUT_MORE == APDU_DATA_PTR[0]);
 
     // Send same valid signature with another pubkey
-    G_sigaut_ctx.pubkey.W_len = PUBKEYSIZE;
-    memcpy(G_sigaut_ctx.pubkey.W, G_authorizers_pubkeys[1], PUBKEYSIZE);
+    G_sigaut_ctx.pubkey.W_len = PUBKEY_UNCMP_LENGTH;
+    memcpy(
+        G_sigaut_ctx.pubkey.W, G_authorizers_pubkeys[1], PUBKEY_UNCMP_LENGTH);
     // OP_SIGAUT_SIGN + G_valid_signature[0]
     SET_APDU("\x80\x81\x02\xd1\x98\x62\x0e\x60\x25\x5a\xd0\xb3\xc4\x1f\x0b\x0c"
              "\x7f\x7e\xd4\x94\xa9\xfe\x45\x29\xe8\x9b\xe0\x77\xb3\x95\x87\x53"
@@ -355,8 +361,9 @@ void test_op_sigaut_sign_not_enough_signatures() {
     assert(RES_SIGAUT_MORE == APDU_DATA_PTR[0]);
 
     // Send invalid signature with valid pubkey
-    G_sigaut_ctx.pubkey.W_len = PUBKEYSIZE;
-    memcpy(G_sigaut_ctx.pubkey.W, G_authorizers_pubkeys[0], PUBKEYSIZE);
+    G_sigaut_ctx.pubkey.W_len = PUBKEY_UNCMP_LENGTH;
+    memcpy(
+        G_sigaut_ctx.pubkey.W, G_authorizers_pubkeys[0], PUBKEY_UNCMP_LENGTH);
     // OP_SIGAUT_SIGN + invalid signature
     SET_APDU("\x80\x81\x02\x01\x02\x03\x04\x60\x25\x5a\xd0\xb3\xc4\x1f\x0b\x0c"
              "\x7f\x7e\xd4\x94\xa9\xfe\x45\x29\xe8\x9b\xe0\x77\xb3\x95\x87\x53"
@@ -416,7 +423,7 @@ void test_is_authorized_signer() {
 
     memcpy(N_current_signer_status_var.signer.hash,
            G_authorized_signer_hash,
-           HASHSIZE);
+           HASH_LENGTH);
     assert(is_authorized_signer((unsigned char *)G_authorized_signer_hash));
 
     unsigned char wrong_hash[] = "A WRONG HASH - 123456789abcdef0";
@@ -428,12 +435,12 @@ void test_get_authorized_signer_info() {
 
     memcpy(N_current_signer_status_var.signer.hash,
            G_authorized_signer_hash,
-           HASHSIZE);
+           HASH_LENGTH);
     N_current_signer_status_var.signer.iteration = 9;
 
     sigaut_signer_t *signer = get_authorized_signer_info();
     assert(NULL != signer);
-    ASSERT_MEMCMP(G_authorized_signer_hash, signer->hash, HASHSIZE);
+    ASSERT_MEMCMP(G_authorized_signer_hash, signer->hash, HASH_LENGTH);
     assert(9 == signer->iteration);
 }
 

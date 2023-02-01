@@ -28,9 +28,8 @@
 #include <assert.h>
 
 #include "assert_utils.h"
-#include "bolos_ux_handlers.h"
+#include "ux_handlers.h"
 #include "defs.h"
-#include "err.h"
 #include "bolos_ux_common.h"
 #include "bootloader.h"
 
@@ -41,7 +40,7 @@ typedef enum current_screen_t {
     SCREEN_PROCESSING
 } current_screen_t;
 
-// Mock variables needed for bolos_ux_handlers module
+// Mock variables needed for ux_handlers module
 bolos_ux_context_t G_bolos_ux_context;
 static current_screen_t G_current_screen;
 static bootloader_mode_t G_bootloader_mode;
@@ -52,7 +51,7 @@ static unsigned char G_app_hash[] = "app-hash";
 static bool G_screen_settings_apply_called;
 static bool G_os_perso_isonboarded_called;
 static bool G_io_seproxyhal_init_called;
-static bool G_usb_power_called;
+static int G_usb_power_called;
 static bool G_bootloader_main_called;
 static bool G_io_seproxyhal_setup_ticker_called;
 static bool G_is_authorized_signer_called;
@@ -62,6 +61,7 @@ static bool G_os_sched_exec_called;
 static bool G_is_authorized_signer_called;
 static bool G_unlock_with_pin_called;
 static bool G_clear_pin_called;
+static bool G_heartbeat_main_called;
 
 static bool G_is_onboarded;
 static bool G_is_authorized;
@@ -72,7 +72,7 @@ static void setup() {
     G_screen_settings_apply_called = false;
     G_os_perso_isonboarded_called = false;
     G_io_seproxyhal_init_called = false;
-    G_usb_power_called = false;
+    G_usb_power_called = 1;
     G_bootloader_main_called = false;
     G_io_seproxyhal_setup_ticker_called = false;
     G_is_authorized_signer_called = false;
@@ -86,12 +86,13 @@ static void setup() {
     G_clear_pin_called = false;
     G_current_screen = SCREEN_NONE;
     G_interval_ms = 0;
+    G_heartbeat_main_called = false;
 }
 
 // Mock os function definitions
 void USB_power(unsigned char enabled) {
-    assert(1 == enabled);
-    G_usb_power_called = true;
+    G_usb_power_called <<= 1;
+    G_usb_power_called += enabled ? 1 : 0;
 }
 
 void io_seproxyhal_setup_ticker(unsigned int interval_ms) {
@@ -172,6 +173,11 @@ unsigned int screen_stack_pop(void) {
     return 0;
 }
 
+void ui_heartbeat_main(ui_heartbeat_t* ui_heartbeat_ctx) {
+    assert(&G_bolos_ux_context.ui_heartbeat == ui_heartbeat_ctx);
+    G_heartbeat_main_called = true;
+}
+
 // Test cases
 void test_handle_boot_onboarding() {
     printf("Test BOLOS_UX_BOOT_ONBOARDING...\n");
@@ -184,7 +190,7 @@ void test_handle_boot_onboarding() {
     assert(1 == G_bolos_ux_context.dashboard_redisplayed);
     assert(G_os_perso_isonboarded_called);
     assert(G_io_seproxyhal_init_called);
-    assert(G_usb_power_called);
+    assert(G_usb_power_called == 3);
     assert(G_bootloader_main_called);
     assert(SCREEN_NOT_PERSONALIZED == G_current_screen);
 }
@@ -199,15 +205,15 @@ void test_handle_boot_onboarding_already_onboarded() {
     assert(1 == G_bolos_ux_context.dashboard_redisplayed);
     assert(G_os_perso_isonboarded_called);
     assert(!G_io_seproxyhal_init_called);
-    assert(!G_usb_power_called);
+    assert(G_usb_power_called == 1);
     assert(!G_bootloader_main_called);
     assert(SCREEN_NONE == G_current_screen);
 }
 
-void test_handle_dashboard() {
-    printf("Test BOLOS_UX_DASHBOARD (no auto exec)...\n");
+void test_handle_dashboard_action_dashboard() {
+    printf("Test BOLOS_UX_DASHBOARD when action is set to dashboard...\n");
     setup();
-    set_autoexec(0);
+    set_dashboard_action(DASHBOARD_ACTION_DASHBOARD);
     G_interval_ms = 100;
 
     handle_bolos_ux_boot_dashboard();
@@ -221,10 +227,11 @@ void test_handle_dashboard() {
     assert(!G_os_sched_exec_called);
 }
 
-void test_handle_dashboard_autoexec_authorized() {
-    printf("Test BOLOS_UX_DASHBOARD (auto exec, signer authorized)...\n");
+void test_handle_dashboard_action_app_authorized() {
+    printf("Test BOLOS_UX_DASHBOARD when action is set to app and signer is "
+           "authorized...\n");
     setup();
-    set_autoexec(1);
+    set_dashboard_action(DASHBOARD_ACTION_APP);
     G_interval_ms = 100;
     G_is_authorized = true;
 
@@ -239,22 +246,65 @@ void test_handle_dashboard_autoexec_authorized() {
     assert(G_os_sched_exec_called);
 }
 
-void test_handle_dashboard_autoexec_not_authorized() {
-    printf("Test BOLOS_UX_DASHBOARD (auto exec, signer not authorized)...\n");
+void test_handle_dashboard_action_app_not_authorized() {
+    printf("Test BOLOS_UX_DASHBOARD when action is set to app and signer is "
+           "not authorized...\n");
     setup();
-    set_autoexec(1);
+    set_dashboard_action(DASHBOARD_ACTION_APP);
     G_interval_ms = 100;
     G_is_authorized = false;
 
     handle_bolos_ux_boot_dashboard();
     assert(G_screen_settings_apply_called);
     assert(G_io_seproxyhal_setup_ticker_called);
-    assert(SCREEN_NONE == G_current_screen);
+    assert(SCREEN_DASHBOARD == G_current_screen);
     assert(0 == G_bolos_ux_context.app_auto_started);
     assert(G_is_authorized_signer_called);
     assert(!G_screen_stack_pop_called);
     assert(!G_io_seproxyhal_disable_io_called);
     assert(!G_os_sched_exec_called);
+}
+
+void test_handle_dashboard_action_heartbeat_app_authorized() {
+    printf("Test BOLOS_UX_DASHBOARD when action is set to heartbeat and app is "
+           "authorized...\n");
+    setup();
+    set_dashboard_action(DASHBOARD_ACTION_UI_HEARTBEAT);
+    G_interval_ms = 100;
+    G_is_authorized = true;
+
+    handle_bolos_ux_boot_dashboard();
+    assert(G_io_seproxyhal_disable_io_called);
+    assert(G_io_seproxyhal_init_called);
+    assert(G_usb_power_called == 5);
+    assert(G_heartbeat_main_called);
+    assert(G_is_authorized_signer_called);
+    assert(1 == G_bolos_ux_context.app_auto_started);
+    assert(G_os_sched_exec_called);
+    assert(!G_screen_settings_apply_called);
+    assert(!G_io_seproxyhal_setup_ticker_called);
+    assert(SCREEN_NONE == G_current_screen);
+}
+
+void test_handle_dashboard_action_heartbeat_app_not_authorized() {
+    printf("Test BOLOS_UX_DASHBOARD when action is set to heartbeat and app is "
+           "not authorized...\n");
+    setup();
+    set_dashboard_action(DASHBOARD_ACTION_UI_HEARTBEAT);
+    G_interval_ms = 100;
+    G_is_authorized = false;
+
+    handle_bolos_ux_boot_dashboard();
+    assert(G_io_seproxyhal_disable_io_called);
+    assert(G_io_seproxyhal_init_called);
+    assert(G_usb_power_called == 5);
+    assert(G_heartbeat_main_called);
+    assert(G_is_authorized_signer_called);
+    assert(0 == G_bolos_ux_context.app_auto_started);
+    assert(!G_os_sched_exec_called);
+    assert(G_screen_settings_apply_called);
+    assert(G_io_seproxyhal_setup_ticker_called);
+    assert(SCREEN_DASHBOARD == G_current_screen);
 }
 
 void test_handle_validate_pin() {
@@ -264,7 +314,7 @@ void test_handle_validate_pin() {
 
     assert(BOLOS_UX_OK == handle_bolos_ux_boot_validate_pin());
     assert(G_io_seproxyhal_init_called);
-    assert(G_usb_power_called);
+    assert(G_usb_power_called == 3);
     assert(G_bootloader_main_called);
 }
 
@@ -309,9 +359,10 @@ void test_handle_processing() {
 int main() {
     test_handle_boot_onboarding();
     test_handle_boot_onboarding_already_onboarded();
-    test_handle_dashboard();
-    test_handle_dashboard_autoexec_authorized();
-    test_handle_dashboard_autoexec_not_authorized();
+    test_handle_dashboard_action_dashboard();
+    test_handle_dashboard_action_app_authorized();
+    test_handle_dashboard_action_app_not_authorized();
+    test_handle_dashboard_action_heartbeat_app_authorized();
     test_handle_validate_pin();
     test_handle_consent_app_add_authorized();
     test_handle_consent_app_add_not_authorized();

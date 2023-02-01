@@ -1,0 +1,1 @@
+../ui/src/signer_authorization_status.c

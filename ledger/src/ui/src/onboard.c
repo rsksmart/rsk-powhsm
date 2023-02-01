@@ -27,7 +27,7 @@
 #include "apdu.h"
 #include "bolos_ux_onboarding_seed_bip39.h"
 #include "defs.h"
-#include "err.h"
+#include "ui_err.h"
 #include "os.h"
 #include "onboard.h"
 #include "runtime.h"
@@ -63,7 +63,7 @@ unsigned int onboard_device(onboard_t *onboard_ctx) {
 
 #ifndef DEBUG_BUILD
     if (!is_pin_valid()) {
-        THROW(ERR_INVALID_PIN);
+        THROW(ERR_UI_INVALID_PIN);
     }
 #endif
 
@@ -133,7 +133,7 @@ unsigned int onboard_device(onboard_t *onboard_ctx) {
 unsigned int set_host_seed(volatile unsigned int rx, onboard_t *onboard_ctx) {
     // Should receive 1 byte per call
     if (APDU_DATA_SIZE(rx) != 1) {
-        THROW(ERR_PROT_INVALID);
+        THROW(ERR_UI_PROT_INVALID);
     }
 
     unsigned char index = APDU_OP();

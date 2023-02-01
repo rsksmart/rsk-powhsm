@@ -26,7 +26,7 @@
 
 #include "apdu.h"
 #include "os.h"
-#include "err.h"
+#include "ui_err.h"
 #include "pin.h"
 
 // Helper macros for pin validation
@@ -55,7 +55,7 @@ unsigned char G_pin_buffer[PIN_BUFFER_LENGTH];
 unsigned int update_pin_buffer(volatile unsigned int rx) {
     // Should receive 1 byte per call
     if (APDU_DATA_SIZE(rx) != 1) {
-        THROW(ERR_PROT_INVALID);
+        THROW(ERR_UI_PROT_INVALID);
     }
 
     unsigned char index = APDU_OP();
@@ -77,7 +77,7 @@ unsigned int update_pin_buffer(volatile unsigned int rx) {
 unsigned int set_pin() {
 #ifndef DEBUG_BUILD
     if (!is_pin_valid()) {
-        THROW(ERR_INVALID_PIN);
+        THROW(ERR_UI_INVALID_PIN);
     }
 #endif
     // Set PIN

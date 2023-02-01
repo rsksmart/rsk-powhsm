@@ -302,6 +302,12 @@ class TestHSM2Dongle(_TestHSM2DongleBase):
         self.hsm2dongle.exit_menu(autoexec=False)
         self.assert_exchange([[0xFA, 0x00, 0x00]])
 
+    def test_exit_app(self):
+        self.dongle.exchange.side_effect = OSError("read error")
+        with self.assertRaises(HSM2DongleCommError):
+            self.hsm2dongle.exit_app()
+        self.assert_exchange([[0xFF]])
+
     def test_get_public_key_ok(self):
         key_id = Mock(**{"to_binary.return_value": bytes.fromhex("11223344")})
         self.dongle.exchange.return_value = bytes.fromhex("aabbccddee")

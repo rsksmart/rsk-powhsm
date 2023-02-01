@@ -82,37 +82,37 @@ unsigned int hsmsim_admin_process_apdu(unsigned int rx) {
 
     switch (APDU_CMD()) {
     case HSMSIM_ADMIN_CMD_SET_ANCESTOR_RCPT_ROOT:
-        if (APDU_DATA_SIZE(rx) != HASH_LEN) {
+        if (APDU_DATA_SIZE(rx) != HASH_LENGTH) {
             info("ADMIN: Invalid ancestor receipts root size. Expected %d "
                  "bytes, got %d.\n",
-                 HASH_LEN,
+                 HASH_LENGTH,
                  APDU_DATA_SIZE(rx));
             return hsmsim_admin_error(HSMSIM_ADMIN_ERROR_DATA_SIZE);
         }
         memcpy(hsmsim_admin_data.old_ancestor_receipts_root,
                N_bc_state.ancestor_receipt_root,
-               HASH_LEN);
-        memcpy(N_bc_state.ancestor_receipt_root, APDU_DATA_PTR, HASH_LEN);
+               HASH_LENGTH);
+        memcpy(N_bc_state.ancestor_receipt_root, APDU_DATA_PTR, HASH_LENGTH);
         hsmsim_admin_data.ancestor_receipts_root_set = true;
         info_hex("ADMIN: Ancestor receipts root set to",
                  N_bc_state.ancestor_receipt_root,
-                 HASH_LEN);
+                 HASH_LENGTH);
         tx = TX_FOR_DATA_SIZE(0);
         break;
     case HSMSIM_ADMIN_CMD_RESET_ANCESTOR_RCPT_ROOT:
         if (!hsmsim_admin_data.ancestor_receipts_root_set) {
             info("ADMIN: Cannot reset ancestor receipts root: not set.\n",
-                 HASH_LEN,
+                 HASH_LENGTH,
                  APDU_DATA_SIZE(rx));
             return hsmsim_admin_error(HSMSIM_ADMIN_ERROR_INVALID_STATE);
         }
         memcpy(N_bc_state.ancestor_receipt_root,
                hsmsim_admin_data.old_ancestor_receipts_root,
-               HASH_LEN);
+               HASH_LENGTH);
         hsmsim_admin_data.ancestor_receipts_root_set = false;
         info_hex("ADMIN: Ancestor receipts root reset to",
                  N_bc_state.ancestor_receipt_root,
-                 HASH_LEN);
+                 HASH_LENGTH);
         tx = TX_FOR_DATA_SIZE(0);
         break;
     case HSMSIM_ADMIN_CMD_RESET_NVM_STATS:

@@ -28,7 +28,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "defs.h"
+#include "constants.h"
 
 // Admin APDU constants
 #define MIN_ADMIN_BYTES 2
@@ -52,13 +52,15 @@
 #define HSMSIM_ADMIN_IS_ONBOARDED_YES (1)
 #define HSMSIM_ADMIN_IS_ONBOARDED_NO (0)
 
+#define HSMSIM_RETRIES (3)
+
 typedef struct hsmsim_admin_nvm_info_s {
     unsigned int write_count;
 } hsmsim_admin_nvm_info_t;
 
 typedef struct hsmsim_admin_data_s {
     bool ancestor_receipts_root_set;
-    uint8_t old_ancestor_receipts_root[HASH_LEN];
+    uint8_t old_ancestor_receipts_root[HASH_LENGTH];
 
     hsmsim_admin_nvm_info_t nvm_stats;
 

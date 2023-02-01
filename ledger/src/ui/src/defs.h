@@ -26,22 +26,11 @@
 #define __DEFS_H
 
 #include "apdu.h"
+#include "constants.h"
 
 // Version and patchlevel
 #define VERSION_MAJOR 0x04
 #define VERSION_MINOR 0x00
 #define VERSION_PATCH 0x00
-
-// Bootloader mode response for the mode command
-#define RSK_MODE_BOOTLOADER 0x02
-
-// Sizes
-#define HASHSIZE 32
-#define SEEDSIZE 32
-#define KEYLEN 32
-#define COMPRESSEDHASHSIZE 16
-#define PUBKEYSIZE 65
-#define PUBKEYCOMPRESSEDSIZE 33
-#define MAX_SIGNATURE_LENGTH 72
 
 #endif // __DEFS_H

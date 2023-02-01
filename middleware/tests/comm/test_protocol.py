@@ -888,3 +888,47 @@ class TestHSM2Protocol(TestCase):
                 "udValue": "aa"*16,
                 "version": 4
             })
+
+    def test_ui_heartbeat_invalid_ud_value(self):
+        self.assertEqual(
+            self.protocol.handle_request({
+                "command": "uiHeartbeat",
+                "version": 4
+            }),
+            {"errorcode": -301},
+        )
+
+        self.assertEqual(
+            self.protocol.handle_request({
+                "command": "uiHeartbeat",
+                "udValue": 123,
+                "version": 4
+            }),
+            {"errorcode": -301},
+        )
+
+        self.assertEqual(
+            self.protocol.handle_request({
+                "command": "uiHeartbeat",
+                "udValue": "notahex",
+                "version": 4
+            }),
+            {"errorcode": -301},
+        )
+
+        self.assertEqual(
+            self.protocol.handle_request({
+                "command": "uiHeartbeat",
+                "udValue": "aabbcc",
+                "version": 4
+            }),
+            {"errorcode": -301},
+        )
+
+    def test_ui_heartbeat_notimplemented(self):
+        with self.assertRaises(NotImplementedError):
+            self.protocol.handle_request({
+                "command": "uiHeartbeat",
+                "udValue": "aa"*32,
+                "version": 4
+            })

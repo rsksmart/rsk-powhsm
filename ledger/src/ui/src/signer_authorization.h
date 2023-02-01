@@ -40,6 +40,7 @@
 #include "os.h"
 #include "cx.h"
 #include "defs.h"
+#include "signer_authorization_status.h"
 #include SIGNERS_FILE
 
 // -----------------------------------------------------------------------
@@ -90,22 +91,10 @@ typedef enum {
 #define MAX_AUTHORIZERS 10
 
 // Hash and iteration sizes
-#define SIGAUT_SIGNER_HASH_SIZE HASHSIZE
+#define SIGAUT_SIGNER_HASH_SIZE HASH_LENGTH
 #define SIGAUT_SIGNER_ITERATION_SIZE sizeof(uint16_t)
 
 #define AUX_BUFFER_SIZE 10
-
-// Signer version
-typedef struct {
-    uint8_t hash[HASHSIZE];
-    uint16_t iteration;
-} sigaut_signer_t;
-
-// Signer status
-typedef struct {
-    bool initialized;
-    sigaut_signer_t signer;
-} sigaut_signer_status_t;
 
 // Signer authorization SM states
 typedef enum {
@@ -128,7 +117,7 @@ typedef struct {
 
     union {
         uint8_t buf[AUX_BUFFER_SIZE];
-        uint8_t auth_hash[HASHSIZE];
+        uint8_t auth_hash[HASH_LENGTH];
     };
 } sigaut_t;
 

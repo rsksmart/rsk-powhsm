@@ -33,9 +33,9 @@
 typedef struct {
     union {
         unsigned char words_buffer[WORDS_BUFFER_SIZE];
-        unsigned char host_seed[SEEDSIZE];
+        unsigned char host_seed[SEED_LENGTH];
     };
-    unsigned char seed[SEEDSIZE];
+    unsigned char seed[SEED_LENGTH];
     unsigned int words_buffer_length;
 } onboard_t;
 

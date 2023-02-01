@@ -394,8 +394,8 @@ static void bc_mm_header_received() {
         if (curr_block == 0) {
             bc_adv_prologue();
         } else if (HNEQ(aux_bc_st.prev_parent_hash, block.block_hash)) {
-            LOG_HEX("PAR", aux_bc_st.prev_parent_hash, HASH_LEN);
-            LOG_HEX("BLK", block.block_hash, HASH_LEN);
+            LOG_HEX("PAR", aux_bc_st.prev_parent_hash, HASH_LENGTH);
+            LOG_HEX("BLK", block.block_hash, HASH_LENGTH);
             FAIL(CHAIN_MISMATCH);
         }
         // Store parent hash to validate chaining for next block

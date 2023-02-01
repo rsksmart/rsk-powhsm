@@ -64,6 +64,11 @@ FILE *input_file;
  */
 FILE *replica_file;
 
+/**
+ * For flushing in between mains
+ */
+static bool io_exchange_write_only;
+
 /*
  * Sets the server on which io_exchange will perform
  * the IO operations
@@ -73,6 +78,7 @@ void os_io_set_server(int svr) {
     server = svr;
     socketfd = 0;
     io_mode = IO_MODE_SERVER;
+    io_exchange_write_only = false;
 }
 
 void os_io_set_input_file(FILE *_input_file) {
@@ -116,6 +122,17 @@ unsigned short io_exchange(unsigned char channel_and_flags, unsigned short tx) {
     }
 
     return rx;
+}
+
+/**
+ * Perform an empty message
+ * write on the IO channel
+ */
+void io_exchange_reply() {
+    io_exchange_write_only = true;
+    G_io_apdu_buffer[0] = (APDU_OK & 0xff00) >> 8;
+    G_io_apdu_buffer[1] = APDU_OK & 0xff;
+    io_exchange(0, 2);
 }
 
 /*
@@ -166,6 +183,13 @@ unsigned short io_exchange_server(unsigned char channel_and_flags,
             }
             info_hex("Dongle =>", G_io_apdu_buffer, tx);
         }
+
+        // Only write? We're done
+        if (io_exchange_write_only) {
+            io_exchange_write_only = false;
+            return 0;
+        }
+
         // Read APDU length
         // (encoded in 4 bytes network byte-order)
         // (compatibility with LegerBlue commTCP.py)
@@ -220,6 +244,12 @@ unsigned short io_exchange_file(unsigned char channel_and_flags,
     // File input format: |1 byte length| |len bytes data|
     static unsigned long file_index = 0;
     info_hex("Dongle => ", G_io_apdu_buffer, tx);
+
+    // Only write? We're done
+    if (io_exchange_write_only) {
+        io_exchange_write_only = false;
+        return 0;
+    }
 
     unsigned char announced_rx;
     if (fread(&announced_rx, sizeof(char), 1, input_file) != 1) {

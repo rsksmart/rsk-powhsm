@@ -26,9 +26,11 @@
 
 #include "hsm.h"
 #include "os.h"
+#include "os_io_seproxyhal.h"
 
 #include "defs.h"
 #include "instructions.h"
+#include "modes.h"
 #include "err.h"
 #include "mem.h"
 #include "memutil.h"
@@ -55,6 +57,9 @@
 // Operation being currently executed
 static unsigned char curr_cmd;
 
+// Whether exit has been requested
+static bool _hsm_exit_requested;
+
 /*
  * Reset shared memory state.
  */
@@ -78,6 +83,19 @@ static void reset_if_starting(unsigned char cmd) {
     }
 }
 
+// Exit the application
+static void app_exit(void) {
+    BEGIN_TRY_L(exit) {
+        TRY_L(exit) {
+            os_sched_exit(-1);
+            _hsm_exit_requested = true;
+        }
+        FINALLY_L(exit) {
+        }
+    }
+    END_TRY_L(exit);
+}
+
 unsigned int hsm_process_apdu(volatile unsigned int rx) {
     unsigned int tx = 0;
 
@@ -98,10 +116,10 @@ unsigned int hsm_process_apdu(volatile unsigned int rx) {
     }
 
     switch (APDU_CMD()) {
-    // Reports the current mode (i.e., always reports app aka signer mode)
+    // Reports the current mode (i.e., always reports signer mode)
     case RSK_MODE_CMD:
         reset_if_starting(RSK_MODE_CMD);
-        SET_APDU_CMD(RSK_MODE_APP);
+        SET_APDU_CMD(APP_MODE_SIGNER);
         tx = 2;
         break;
 
@@ -123,7 +141,7 @@ unsigned int hsm_process_apdu(volatile unsigned int rx) {
         reset_if_starting(INS_GET_PUBLIC_KEY);
 
         // Check the received data size
-        if (rx != DATA + sizeof(uint32_t) * RSK_PATH_LEN)
+        if (rx != DATA + sizeof(uint32_t) * DERIVATION_PATH_PARTS)
             THROW(ERR_INVALID_DATA_SIZE); // Wrong buffer size
 
         // Check for path validity before returning the public key
@@ -147,7 +165,7 @@ unsigned int hsm_process_apdu(volatile unsigned int rx) {
                      sizeof(auth.path),
                      THROW(ERR_INVALID_PATH));
         tx = do_pubkey(auth.path,
-                       RSK_PATH_LEN,
+                       DERIVATION_PATH_PARTS,
                        G_io_apdu_buffer,
                        sizeof(G_io_apdu_buffer));
 
@@ -221,6 +239,12 @@ unsigned int hsm_process_apdu(volatile unsigned int rx) {
         tx = bc_upd_ancestor(rx);
         break;
 
+    case INS_EXIT:
+        bc_backup_partial_state();
+        app_exit();
+        tx = TX_FOR_DATA_SIZE(0);
+        break;
+
     default: // Unknown command
         THROW(ERR_INS_NOT_SUPPORTED);
         break;
@@ -266,6 +290,13 @@ void hsm_init() {
     // (0 = no operation being executed)
     curr_cmd = 0;
 
+    // No exit requested
+    _hsm_exit_requested = false;
+
     // Blockchain state initialization
     bc_init_state();
+}
+
+bool hsm_exit_requested() {
+    return _hsm_exit_requested;
 }

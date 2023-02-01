@@ -27,7 +27,7 @@
 
 #include <stdbool.h>
 
-#include "defs.h"
+#include "constants.h"
 
 // An attestation ID (in lack of a better name)
 // is simply a pair consisting of a secp256k1 private key
@@ -38,8 +38,8 @@
 // which is the attestation private key used to sign the
 // attestation messages.
 typedef struct {
-    unsigned char key[KEY_LEN];
-    unsigned char code_hash[HASH_LEN];
+    unsigned char key[PRIVATE_KEY_LENGTH];
+    unsigned char code_hash[HASH_LENGTH];
 } attestation_id_t;
 
 extern attestation_id_t attestation_id;

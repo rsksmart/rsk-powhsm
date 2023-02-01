@@ -21,8 +21,14 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-#ifndef __BOLOS_UX_HANDLERS_H
-#define __BOLOS_UX_HANDLERS_H
+#ifndef __UX_HANDLERS_H
+#define __UX_HANDLERS_H
+
+typedef enum {
+    DASHBOARD_ACTION_UI_HEARTBEAT,
+    DASHBOARD_ACTION_DASHBOARD,
+    DASHBOARD_ACTION_APP,
+} dashboard_action_t;
 
 /**
  * BOLOS_UX_BOOT_ONBOARDING handler
@@ -38,8 +44,10 @@ unsigned int handle_bolos_ux_boot_onboarding();
 /**
  * BOLOS_UX_DASHBOARD handler
  *
- * Shows dashboard screen when autoexec == 0, or loads signer app when
- * autoexec == 1
+ * Different ways of handling this depending
+ * on the value of dashboard_action
+ * Can run the heartbeat frontend, the app or
+ * the dashboard itself.
  */
 void handle_bolos_ux_boot_dashboard();
 
@@ -87,6 +95,6 @@ unsigned int handle_bolos_ux_boot_consent_foreing_key();
  */
 void handle_bolos_ux_boot_processing();
 
-void set_autoexec(char value);
+void set_dashboard_action(dashboard_action_t action);
 
-#endif // __BOLOS_UX_HANDLERS_H
+#endif // __UX_HANDLERS_H

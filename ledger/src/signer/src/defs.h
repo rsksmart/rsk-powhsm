@@ -25,18 +25,11 @@
 #ifndef __DEFS_H
 #define __DEFS_H
 
+#include "constants.h"
+
 // Version and patchlevel
 #define VERSION_MAJOR 0x04
 #define VERSION_MINOR 0x00
 #define VERSION_PATCH 0x00
-
-// App mode response for the mode command
-#define RSK_MODE_APP 0x03
-
-// Size constants
-#define HASH_LEN 32
-#define KEY_LEN 32
-#define RSK_PATH_LEN 5
-#define MAX_SIGNATURE_LEN 72
 
 #endif // __DEFS_H

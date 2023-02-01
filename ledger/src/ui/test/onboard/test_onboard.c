@@ -29,13 +29,13 @@
 
 #include "cx.h"
 #include "defs.h"
-#include "err.h"
+#include "ui_err.h"
 #include "onboard.h"
 #include "os.h"
 #include "pin.h"
 #include "assert_utils.h"
 #include "apdu_utils.h"
-#include "instructions.h"
+#include "ui_instructions.h"
 
 /**
  * Mock variables used to assert function calls
@@ -167,7 +167,7 @@ static void send_rsk_pin_cmd(const char *pin) {
 
 static void send_rsk_seed_cmd(onboard_t *ctx, const unsigned char *host_seed) {
     unsigned int rx = 4;
-    for (int i = 0; i < SEEDSIZE; i++) {
+    for (int i = 0; i < SEED_LENGTH; i++) {
         SET_APDU_AT(0, CLA);
         SET_APDU_AT(1, RSK_SEED_CMD);
         SET_APDU_AT(2, i);
@@ -211,7 +211,7 @@ void test_set_host_seed() {
         SET_APDU_AT(3, host_seed[i]);
         assert(0 == set_host_seed(rx, &onboard_ctx));
     }
-    ASSERT_MEMCMP(host_seed, onboard_ctx.host_seed, SEEDSIZE);
+    ASSERT_MEMCMP(host_seed, onboard_ctx.host_seed, SEED_LENGTH);
 }
 
 void test_onboard_device() {
@@ -237,7 +237,7 @@ void test_onboard_device() {
     send_rsk_seed_cmd(&onboard_ctx, host_seed);
 
     G_is_pin_valid = true;
-    mock_cx_rng(seed, SEEDSIZE);
+    mock_cx_rng(seed, SEED_LENGTH);
     assert(3 == onboard_device(&onboard_ctx));
     ASSERT_APDU("\x80\x02\x01");
     assert(G_device_unlocked);
@@ -277,10 +277,10 @@ void test_onboard_device_invalid_pin() {
         TRY {
             G_is_pin_valid = false;
             onboard_device(&onboard_ctx);
-            // onboard_device should throw ERR_INVALID_PIN
+            // onboard_device should throw ERR_UI_INVALID_PIN
             ASSERT_FAIL();
         }
-        CATCH(ERR_INVALID_PIN) {
+        CATCH(ERR_UI_INVALID_PIN) {
 
             return;
             assert(!G_device_onboarded);
