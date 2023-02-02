@@ -5,7 +5,8 @@ WORKDIR /opt
 RUN apt-get update && \
     apt-get install -y apt-utils && \
     apt-get install -y curl && \
-    apt-get install -y build-essential=12.8ubuntu1
+    apt-get install -y build-essential=12.8ubuntu1 && \
+    apt-get install -y clang-tools
 
 RUN curl -L -o gcc-arm-none-eabi-9-2020-q2-update-x86_64-linux.tar.bz2 \
         https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2020q2/gcc-arm-none-eabi-9-2020-q2-update-x86_64-linux.tar.bz2 && \
