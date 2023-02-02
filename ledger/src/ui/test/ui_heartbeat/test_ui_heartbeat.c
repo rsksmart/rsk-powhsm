@@ -121,10 +121,9 @@ sigaut_signer_t *get_authorized_signer_info() {
     return &M_signer_info;
 }
 
-unsigned int get_mode(bool ui_heartbeat_main) {
+unsigned int get_mode_heartbeat() {
     unsigned int foo;
     SET_APDU("\x12\x34\x56\x78\x9a\xbc\xde", foo);
-    assert(ui_heartbeat_main);
     return 7;
 }
 

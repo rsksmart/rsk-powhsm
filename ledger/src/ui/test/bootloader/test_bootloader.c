@@ -121,8 +121,7 @@ unsigned int echo(unsigned int rx) {
     return rx;
 }
 
-unsigned int get_mode(bool heartbeat_main) {
-    assert(false == heartbeat_main);
+unsigned int get_mode_bootloader() {
     SET_APDU_AT(1, APP_MODE_BOOTLOADER);
     return 2;
 }

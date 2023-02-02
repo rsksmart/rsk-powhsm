@@ -38,19 +38,30 @@ unsigned int echo(unsigned int rx) {
 }
 
 /**
- * Implement the RSK MODE command.
+ * Implement the RSK MODE command
+ * to be used from the bootloader.
  *
- * This returns either bootloader or heartbeat mode, depending
- * on the argument (which signals where it is called from)
+ * This always returns bootloader mode.
  *
- * @arg[in] ui_heartbeat_main whether called from the ui heartbeat main
  * @returns number of transmited bytes to the host
  */
-unsigned int get_mode(bool ui_heartbeat_main) {
+unsigned int get_mode_bootloader() {
     unsigned char output_index = CMDPOS;
-    SET_APDU_AT(output_index++,
-                ui_heartbeat_main ? APP_MODE_UI_HEARTBEAT
-                                  : APP_MODE_BOOTLOADER);
+    SET_APDU_AT(output_index++, APP_MODE_BOOTLOADER);
+    return output_index;
+}
+
+/**
+ * Implement the RSK MODE command
+ * to be used from the heartbeat main.
+ *
+ * This always returns heartbeat mode.
+ *
+ * @returns number of transmited bytes to the host
+ */
+unsigned int get_mode_heartbeat() {
+    unsigned char output_index = CMDPOS;
+    SET_APDU_AT(output_index++, APP_MODE_UI_HEARTBEAT);
     return output_index;
 }
 

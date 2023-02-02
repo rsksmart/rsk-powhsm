@@ -45,19 +45,19 @@ void test_echo() {
     assert(4 == echo(rx));
 }
 
-void test_get_mode_from_bootloader() {
+void test_get_mode_bootloader() {
     printf("Test get mode from bootloader...\n");
     unsigned int rx;
     SET_APDU("\x80\x43", rx); // RSK_MODE_CMD
-    assert(2 == get_mode(false));
+    assert(2 == get_mode_bootloader());
     ASSERT_APDU("\x80\x02"); // APP_MODE_BOOTLOADER
 }
 
-void test_get_mode_from_heartbeat() {
+void test_get_mode_heartbeat() {
     printf("Test get mode from heartbeat...\n");
     unsigned int rx;
     SET_APDU("\x80\x43", rx); // RSK_MODE_CMD
-    assert(2 == get_mode(true));
+    assert(2 == get_mode_heartbeat());
     ASSERT_APDU("\x80\x04"); // APP_MODE_UI_HEARTBEAT
 }
 
@@ -146,8 +146,8 @@ void test_process_exception_apdu_too_large() {
 
 int main() {
     test_echo();
-    test_get_mode_from_bootloader();
-    test_get_mode_from_heartbeat();
+    test_get_mode_bootloader();
+    test_get_mode_heartbeat();
     test_get_retries();
     test_process_exception_ok();
     test_process_exception_start_6_or_9();

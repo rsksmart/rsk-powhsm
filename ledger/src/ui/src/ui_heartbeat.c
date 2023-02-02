@@ -204,7 +204,7 @@ unsigned int ui_heartbeat_process_apdu(ui_heartbeat_t *ui_heartbeat_ctx,
     // unauthenticated instruction
     switch (APDU_CMD()) {
     case RSK_MODE_CMD:
-        tx = get_mode(true);
+        tx = get_mode_heartbeat();
         break;
     case INS_UI_HEARTBEAT:
         tx = get_ui_heartbeat(ui_heartbeat_ctx, rx);

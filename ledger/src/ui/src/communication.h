@@ -41,15 +41,24 @@ typedef void (*comm_reset_cb_t)();
 unsigned int echo(unsigned int rx);
 
 /**
- * Implement the RSK MODE command.
+ * Implement the RSK MODE command
+ * to be used from the bootloader.
  *
- * This returns either bootloader or heartbeat mode, depending
- * on the argument (which signals where it is called from)
+ * This always returns bootloader mode.
  *
- * @arg[in] ui_heartbeat_main whether called from the ui heartbeat main
  * @returns number of transmited bytes to the host
  */
-unsigned int get_mode(bool ui_heartbeat_main);
+unsigned int get_mode_bootloader();
+
+/**
+ * Implement the RSK MODE command
+ * to be used from the heartbeat main.
+ *
+ * This always returns heartbeat mode.
+ *
+ * @returns number of transmited bytes to the host
+ */
+unsigned int get_mode_heartbeat();
 
 /**
  * Implement the RSK RETRIES command.

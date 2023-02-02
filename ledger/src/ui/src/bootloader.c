@@ -136,7 +136,7 @@ unsigned int bootloader_process_apdu(volatile unsigned int rx,
         break;
     case RSK_MODE_CMD: // print mode
         reset_if_starting(RSK_MODE_CMD);
-        tx = get_mode(false);
+        tx = get_mode_bootloader();
         break;
     case INS_ATTESTATION:
         reset_if_starting(INS_ATTESTATION);

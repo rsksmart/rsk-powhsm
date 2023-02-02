@@ -64,6 +64,8 @@ typedef enum {
 /**
  * UI heartbeat memory area
  * There's probably a better
+ * place for this. Leave here
+ * for now.
  */
 ui_heartbeat_t ui_heartbeat_ctx;
 
