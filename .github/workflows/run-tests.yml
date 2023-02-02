@@ -9,7 +9,7 @@ jobs:
 
     steps:
       - name: Checkout this repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Build the middleware docker image
         run: docker/mware/build
@@ -54,7 +54,7 @@ jobs:
 
     steps:
       - name: Checkout rsk-powhsm repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           path: rsk-powhsm
 
@@ -67,7 +67,7 @@ jobs:
           ledger/build/build-tcpsigner
 
       - name: Checkout hsm-integration-test repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: rootstock/hsm-integration-test
           ref: 4.0.0.plus
