@@ -48,6 +48,9 @@ typedef enum {
     // Attestation
     INS_ATTESTATION = 0x50,
     INS_HEARTBEAT = 0x60,
+
+    // Exit
+    INS_EXIT = 0xff,
 } apdu_instruction_t;
 
 #endif // __INSTRUCTIONS_H

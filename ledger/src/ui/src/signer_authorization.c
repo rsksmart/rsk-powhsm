@@ -28,7 +28,7 @@
 #include "cx.h"
 #include "signer_authorization.h"
 #include "defs.h"
-#include "err.h"
+#include "ui_err.h"
 #include "memutil.h"
 #include "ints.h"
 #include "compiletime.h"
@@ -50,11 +50,6 @@ static const uint16_t INITIAL_SIGNER_ITERATION = PARAM_INITIAL_SIGNER_ITERATION;
 #error "Initial signer iteration not defined!"
 #endif
 
-// Current signer status
-NON_VOLATILE sigaut_signer_status_t N_current_signer_status_var;
-#define N_current_signer_status \
-    (*(sigaut_signer_status_t*)PIC(&N_current_signer_status_var))
-
 // Authorized signers
 static const uint8_t authorizers_pubkeys[][AUTHORIZED_SIGNER_PUBKEY_LENGTH] =
     AUTHORIZERS_PUBKEYS;
@@ -72,7 +67,7 @@ static const uint8_t authorizers_pubkeys[][AUTHORIZED_SIGNER_PUBKEY_LENGTH] =
  */
 static void sanity_check() {
     if (!N_current_signer_status.initialized)
-        THROW(ERR_INTERNAL);
+        THROW(ERR_UI_INTERNAL);
 }
 
 /*
@@ -87,7 +82,7 @@ static void check_state(sigaut_t* sigaut_ctx, sigaut_state_t expected) {
 
     if (sigaut_ctx->state != expected) {
         reset_signer_authorization(sigaut_ctx);
-        THROW(ERR_PROT_INVALID);
+        THROW(ERR_UI_PROT_INVALID);
     }
 }
 
@@ -200,12 +195,12 @@ unsigned int do_authorize_signer(volatile unsigned int rx,
                      sizeof(N_current_signer_status.signer.hash),
                      MEMMOVE_ZERO_OFFSET,
                      sizeof(N_current_signer_status.signer.hash),
-                     THROW(ERR_INTERNAL));
+                     THROW(ERR_UI_INTERNAL));
 
         if (APDU_TOTAL_DATA_SIZE_OUT <
             sizeof(N_current_signer_status.signer.hash) +
                 sizeof(N_current_signer_status.signer.iteration))
-            THROW(ERR_INTERNAL);
+            THROW(ERR_UI_INTERNAL);
 
         VAR_BIGENDIAN_TO(APDU_DATA_PTR +
                              sizeof(N_current_signer_status.signer.hash),
@@ -221,7 +216,7 @@ unsigned int do_authorize_signer(volatile unsigned int rx,
         // Should receive a signer hash followed by a signer iteration
         if (APDU_DATA_SIZE(rx) != (sizeof(sigaut_ctx->signer.hash) +
                                    sizeof(sigaut_ctx->signer.iteration)))
-            THROW(ERR_PROT_INVALID);
+            THROW(ERR_UI_PROT_INVALID);
 
         // Set the signer version
         SAFE_MEMMOVE(sigaut_ctx->signer.hash,
@@ -231,7 +226,7 @@ unsigned int do_authorize_signer(volatile unsigned int rx,
                      APDU_TOTAL_DATA_SIZE,
                      MEMMOVE_ZERO_OFFSET,
                      sizeof(sigaut_ctx->signer.hash),
-                     THROW(ERR_INTERNAL));
+                     THROW(ERR_UI_INTERNAL));
 
         BIGENDIAN_FROM(APDU_DATA_PTR + sizeof(sigaut_ctx->signer.hash),
                        sigaut_ctx->signer.iteration);
@@ -270,7 +265,7 @@ unsigned int do_authorize_signer(volatile unsigned int rx,
                                               0,
                                               CX_NONE,
                                               sigaut_ctx->auth_hash,
-                                              HASHSIZE,
+                                              HASH_LENGTH,
                                               APDU_DATA_PTR,
                                               APDU_DATA_SIZE(rx));
             // Cleanup
@@ -308,7 +303,7 @@ unsigned int do_authorize_signer(volatile unsigned int rx,
         return TX_FOR_DATA_SIZE(1);
     case OP_SIGAUT_GET_AUTH_AT:
         if (APDU_DATA_SIZE(rx) != 1)
-            THROW(ERR_PROT_INVALID);
+            THROW(ERR_UI_PROT_INVALID);
 
         auth_index = APDU_DATA_PTR[0];
         if (auth_index >= (uint8_t)TOTAL_AUTHORIZERS)
@@ -321,12 +316,12 @@ unsigned int do_authorize_signer(volatile unsigned int rx,
                      sizeof(authorizers_pubkeys[auth_index]),
                      MEMMOVE_ZERO_OFFSET,
                      sizeof(authorizers_pubkeys[auth_index]),
-                     THROW(ERR_INTERNAL));
+                     THROW(ERR_UI_INTERNAL));
 
         return TX_FOR_DATA_SIZE(sizeof(authorizers_pubkeys[auth_index]));
     default:
         reset_signer_authorization(sigaut_ctx);
-        THROW(ERR_PROT_INVALID);
+        THROW(ERR_UI_PROT_INVALID);
         break;
     }
 }
@@ -338,14 +333,11 @@ unsigned int do_authorize_signer(volatile unsigned int rx,
  * @arg[in] signer_hash     the signer hash
  */
 bool is_authorized_signer(unsigned char* signer_hash) {
+#ifdef DEBUG_BUILD
+    return true;
+#else
     return !memcmp(N_current_signer_status.signer.hash,
                    signer_hash,
                    sizeof(N_current_signer_status.signer.hash));
-}
-
-/*
- * Get the current authorized signer information
- */
-sigaut_signer_t* get_authorized_signer_info() {
-    return &N_current_signer_status.signer;
+#endif
 }

@@ -21,7 +21,7 @@
 # SOFTWARE.
 
 from .case import TestCase, TestCaseError
-from ledger.hsm2dongle import HSM2Dongle
+from ledger.hsm2dongle import HSM2Dongle, HSM2DongleCommError
 import time
 import output
 
@@ -32,6 +32,8 @@ class ReconnectDongle(TestCase):
         return "reconnectDongle"
 
     def __init__(self, spec):
+        self.exit_signer = spec["exitSigner"]
+
         super().__init__(spec)
 
     def wait_for_reconnection(self):
@@ -50,7 +52,17 @@ class ReconnectDongle(TestCase):
                 pin = run_args[TestCase.RUN_ARGS_PIN_KEY].encode()
 
             # Device is expected to be connected and in APP mode at the begining
-            self.assert_dongle_mode(dongle, HSM2Dongle.MODE.APP)
+            self.assert_dongle_mode(dongle, HSM2Dongle.MODE.SIGNER)
+
+            if self.exit_signer:
+                # Exit the signer
+                # This should raise a communication error due to USB
+                # disconnection. Treat as successful
+                try:
+                    dongle.exit_app()
+                except HSM2DongleCommError:
+                    pass
+
             dongle.disconnect()
 
             # Unlock device (can be performed automatically or manually by user)
@@ -81,6 +93,6 @@ class ReconnectDongle(TestCase):
                 dongle.connect()
 
             # Device is expected to be connected and in APP mode at the end of this test
-            self.assert_dongle_mode(dongle, HSM2Dongle.MODE.APP)
+            self.assert_dongle_mode(dongle, HSM2Dongle.MODE.SIGNER)
         except RuntimeError as e:
             raise TestCaseError(str(e))

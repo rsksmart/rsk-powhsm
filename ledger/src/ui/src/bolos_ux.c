@@ -46,10 +46,11 @@
 #include "string.h"
 
 #include "bolos_ux_common.h"
-#include "bolos_ux_handlers.h"
+#include "ux_handlers.h"
 #include "defs.h"
-#include "err.h"
+#include "ui_err.h"
 #include "bootloader.h"
+#include "ui_heartbeat.h"
 #include "memutil.h"
 
 #ifdef OS_IO_SEPROXYHAL
@@ -227,6 +228,9 @@ void io_seproxyhal_display(const bagl_element_t *element) {
 
 void bolos_ux_main(void) {
     G_bolos_ux_context.exit_code = BOLOS_UX_CONTINUE;
+
+    bootloader_init();
+    ui_heartbeat_init(&G_bolos_ux_context.ui_heartbeat);
 
     switch (G_bolos_ux_context.state) {
     default:

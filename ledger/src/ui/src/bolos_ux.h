@@ -48,6 +48,7 @@
 #include "signer_authorization.h"
 #include "pin.h"
 #include "onboard.h"
+#include "ui_heartbeat.h"
 
 #ifdef HAVE_BOLOS_UX
 
@@ -142,6 +143,7 @@ typedef struct bolos_ux_context {
             att_t attestation;
             sigaut_t sigaut;
             onboard_t onboard;
+            ui_heartbeat_t ui_heartbeat;
         };
     };
 

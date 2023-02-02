@@ -48,9 +48,6 @@ typedef struct cx_ecfp_public_key_s {
     unsigned char W[65];
 } cx_ecfp_public_key_t;
 
-#define PUBKEYUNCOMPRESSEDSIZE 65
-#define PUBKEYCOMPRESSEDSIZE 33
-
 void os_ecdsa_initialize();
 
 void os_perso_derive_node_bip32(cx_curve_t curve,

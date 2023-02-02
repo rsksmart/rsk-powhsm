@@ -53,7 +53,7 @@ typedef char cx_md_t;
 typedef uint8_t cx_curve_t;
 
 typedef struct cx_hash_s {
-    unsigned char hash[HASHSIZE];
+    unsigned char hash[HASH_LENGTH];
     int size_in_bytes;
 } cx_hash_t;
 
@@ -107,6 +107,9 @@ unsigned int os_endorsement_key2_derive_sign_data(unsigned char *src,
 
 unsigned int os_endorsement_get_code_hash(unsigned char *buffer);
 
+unsigned int os_endorsement_get_public_key(unsigned char index,
+                                           unsigned char *buffer);
+
 // Mock bolos ux calls
 unsigned int bolos_ux_mnemonic_from_data(unsigned char *in,
                                          unsigned int inLength,
@@ -134,5 +137,8 @@ int cx_ecdsa_verify(cx_ecfp_public_key_t *key,
                     unsigned int hash_len,
                     unsigned char *sig,
                     unsigned int sig_len);
+
+unsigned short io_exchange(unsigned char channel_and_flags,
+                           unsigned short tx_len);
 
 #endif // __MOCK_H

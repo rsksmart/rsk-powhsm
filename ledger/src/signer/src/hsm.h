@@ -25,10 +25,14 @@
 #ifndef __HSM_H
 #define __HSM_H
 
+#include <stdbool.h>
+
 void hsm_init();
 
 unsigned int hsm_process_apdu(volatile unsigned int rx);
 
 unsigned int hsm_process_exception(unsigned short code, unsigned int tx);
+
+bool hsm_exit_requested();
 
 #endif // __HSM_H

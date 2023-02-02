@@ -73,11 +73,15 @@ unsigned int get_heartbeat(volatile unsigned int rx,
     COMPILE_TIME_ASSERT(LAST_SIGNED_TX_BYTES <=
                         sizeof(N_bc_state.last_auth_signed_btc_tx_hash));
 
+    COMPILE_TIME_ASSERT(MAX_HEARTBEAT_MESSAGE_SIZE <= APDU_TOTAL_DATA_SIZE_OUT);
+
     switch (APDU_OP()) {
     case OP_HBT_UD_VALUE:
         // Should receive a user-defined value
-        if (APDU_DATA_SIZE(rx) != UD_VALUE_SIZE)
+        if (APDU_DATA_SIZE(rx) != UD_VALUE_SIZE) {
+            reset_heartbeat(heartbeat_ctx);
             THROW(ERR_HBT_PROT_INVALID);
+        }
 
         // Initialize message
         explicit_bzero(heartbeat_ctx->msg, sizeof(heartbeat_ctx->msg));
@@ -157,6 +161,7 @@ unsigned int get_heartbeat(volatile unsigned int rx,
         return TX_FOR_DATA_SIZE(os_endorsement_get_public_key(
             ENDORSEMENT_SCHEME_INDEX, APDU_DATA_PTR));
     default:
+        reset_heartbeat(heartbeat_ctx);
         THROW(ERR_HBT_PROT_INVALID);
         break;
     }

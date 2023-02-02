@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "targets": [
+    "attestation"
+  ],
+  "elements": [
+    {
+      "name": "attestation",
+      "message": "ff044e11fa744fcb5c5a22f71558982272f4fe7ca38219c32c4c790f98f7981b1bc63f84b966ffa0188a8ea74b2831cbf258673bce3e4f76dec3c57e2d790aa437e8",
+      "signature": "304402205d2084fd806f2f1f043225289cd543f48a87d41d5fc446e44f83971efe584c6c0220769573a7e8348ccc1c9ef68b6b4ec9562f305869fb87f211116a71417e45441d",
+      "signed_by": "device"
+    },
+    {
+      "name": "device",
+      "message": "0210b48081be20280434a28e4185e735964a36b5cd8817cbdde534f2839f04c5f998927a36f08343726de175327fa5272e3929b9c357f36f2128c92e14af359ce0e00734d2c93f4c07",
+      "signature": "30440220181d61b12165b0dd0548cb574577d9f9419a894da56e5b1323375c3b9435622a0220290a29b2a06bbd481b0d0587abadddee39c002ed7f269ac11b23917e7c5c615e",
+      "signed_by": "root"
+    }
+  ]
+}

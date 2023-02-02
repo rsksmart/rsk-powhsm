@@ -22,11 +22,18 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __MOCK_BOLOS_UX_COMMON_H
-#define __MOCK_BOLOS_UX_COMMON_H
+#ifndef __UI_ERR_H
+#define __UI_ERR_H
 
-#include "mock.h"
-#include "test_bolos_ux_handlers.h"
-#include "bolos_ux.h"
+// Generic error codes for the UI
+typedef enum {
+    ERR_UI_PROT_INVALID = 0x6A01,
+    ERR_UI_INVALID_CLA = 0x6E22,
+    ERR_UI_INTERNAL = 0x6A99,
+    ERR_UI_INVALID_PIN = 0x69A0,
+    ERR_UI_DEVICE_ONBOARDED = 0x69A1,
 
-#endif // __MOCK_BOLOS_UX_COMMON_H
+    EX_BOOTLOADER_RSK_END = 0x90FF,
+} err_code_ui_t;
+
+#endif // __UI_ERR_H

@@ -42,7 +42,7 @@ unsigned int auth_sign_handle_path(volatile unsigned int rx) {
         THROW(ERR_AUTH_INVALID_STATE);
 
     if ((rx != DATA + PATH_LEN + INPUT_INDEX_LEN) &&
-        (rx != DATA + PATH_LEN + HASH_LEN))
+        (rx != DATA + PATH_LEN + HASH_LENGTH))
         THROW(ERR_AUTH_INVALID_DATA_SIZE); // Wrong buffer size,
                                            // has to be either 28
                                            // (DATA+PATH_LEN+INPUT_INDEX_LEN) or
@@ -86,7 +86,7 @@ unsigned int auth_sign_handle_path(volatile unsigned int rx) {
         // go directly to signing
         auth.auth_required = false;
 
-        if (rx != DATA + PATH_LEN + HASH_LEN)
+        if (rx != DATA + PATH_LEN + HASH_LENGTH)
             THROW(ERR_AUTH_INVALID_DATA_SIZE_UNAUTH_SIGN);
 
         // Read hash to sign

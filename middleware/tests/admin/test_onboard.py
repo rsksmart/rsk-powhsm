@@ -306,7 +306,7 @@ class TestOnboard(TestCase):
 
     def test_onboard_invalid_mode(self, get_hsm, *_):
         get_hsm.return_value = self.dongle
-        self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.APP)
+        self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.SIGNER)
         self.dongle.is_onboarded = Mock(return_value=False)
 
         with self.assertRaises(AdminError) as e:

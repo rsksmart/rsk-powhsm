@@ -34,7 +34,6 @@ typedef enum {
 void bootloader_init();
 unsigned int bootloader_process_apdu(volatile unsigned int rx,
                                      bootloader_mode_t mode);
-unsigned int bootloader_process_exception(unsigned short ex, unsigned int tx);
 void bootloader_main(bootloader_mode_t mode);
 
 #endif // __BOOTLOADER_H

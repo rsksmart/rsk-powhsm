@@ -29,7 +29,7 @@
 
 #include "hsmsim_ecdsa.h"
 #include "hsmsim_exceptions.h"
-#include "defs.h"
+#include "constants.h"
 
 #include "hsmsim_random.h"
 
@@ -89,7 +89,7 @@ int cx_ecdsa_sign(cx_ecfp_private_key_t *key,
                   unsigned char *sig) {
 
     secp256k1_ecdsa_signature sp_sig;
-    size_t sig_serialized_size = MAX_SIGNATURE_LEN;
+    size_t sig_serialized_size = MAX_SIGNATURE_LENGTH;
 
     // Sign and serialize as DER
     secp256k1_ecdsa_sign(sp_ctx, &sp_sig, hash, key->K, NULL, NULL);
@@ -123,9 +123,9 @@ size_t hsmsim_helper_tweak_sign(const unsigned char *key,
                                 const unsigned char *tweak,
                                 const unsigned char *hash,
                                 unsigned char *sig) {
-    unsigned char tweaked_key[KEY_LEN];
+    unsigned char tweaked_key[PRIVATE_KEY_LENGTH];
     secp256k1_ecdsa_signature sp_sig;
-    size_t sig_serialized_size = MAX_SIGNATURE_LEN;
+    size_t sig_serialized_size = MAX_SIGNATURE_LENGTH;
 
     // Tweak private key
     memmove(tweaked_key, key, sizeof(tweaked_key));

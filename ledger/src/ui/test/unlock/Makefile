@@ -21,8 +21,9 @@
 # SOFTWARE.
 
 SRCDIR = ../../src
+COMMONDIR = ../../../common/src
 MOCKDIR = ../mock
-CFLAGS = -I $(SRCDIR) -I $(MOCKDIR)
+CFLAGS = -I $(SRCDIR) -I $(MOCKDIR) -I $(COMMONDIR)
 
 PROG = test.out
 OBJS = mock.o unlock.o test_unlock.o

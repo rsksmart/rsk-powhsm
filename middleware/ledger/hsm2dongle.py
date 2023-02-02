@@ -28,7 +28,7 @@ import hid
 from .signature import HSM2DongleSignature
 from .version import HSM2FirmwareVersion
 from .parameters import HSM2FirmwareParameters
-from .hsm2dongle_cmds import HSM2SignerHeartbeat
+from .hsm2dongle_cmds import HSM2SignerHeartbeat, HSM2UIHeartbeat
 from .block_utils import (
     rlp_mm_payload_size,
     remove_mm_fields_if_present,
@@ -155,7 +155,8 @@ class _Offset(IntEnum):
 # Device modes
 class _Mode(IntEnum):
     BOOTLOADER = 0x02
-    APP = 0x03
+    SIGNER = 0x03
+    UI_HEARTBEAT = 0x04
     UNKNOWN = 0xFF
 
 
@@ -359,6 +360,10 @@ class HSM2DongleCommError(HSM2DongleBaseError):
             type(exc) == BaseException
             and len(exc.args) == 1
             and exc.args[0] == "Error while writing"
+        ) or (
+            type(exc) == OSError
+            and len(exc.args) == 1
+            and exc.args[0] == "read error"
         ) or isinstance(exc, HSM2DongleCommError):
             return True
         return False
@@ -441,7 +446,8 @@ class HSM2Dongle:
                 msg = "Error sending command: %s" % str(e)
                 self.logger.error(msg)
             else:
-                msg = "Unknown error sending command: %s" % str(e)
+                msg = "Unknown error sending command: %s (of type %s)" % \
+                      (str(e), type(e).__name__)
                 self.logger.critical(msg)
 
             raise HSM2DongleError(msg)
@@ -595,6 +601,11 @@ class HSM2Dongle:
             self.CMD.EXIT_MENU if autoexec else self.CMD.EXIT_MENU_NO_AUTOEXEC,
             bytes([0x00, 0x00]),
         )
+
+    # exit the current app
+    # could either be the UI bootloader, UI heartbeat or Signer
+    def exit_app(self):
+        self._send_command(self.CMD.EXIT_MENU)
 
     # get the public key for a bip32 path
     # key_id: BIP32Path
@@ -1066,6 +1077,9 @@ class HSM2Dongle:
 
     def get_signer_heartbeat(self, ud_value):
         return HSM2SignerHeartbeat(self).run(ud_value)
+
+    def get_ui_heartbeat(self, ud_value):
+        return HSM2UIHeartbeat(self).run(ud_value)
 
     def authorize_signer(self, signer_authorization):
         # Send signer version

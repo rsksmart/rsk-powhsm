@@ -56,7 +56,7 @@ def do_unlock(options, exit=True, no_exec=False, label=True):
     info(f"Mode: {mode.name.capitalize()}")
 
     # Onboard check
-    if mode in [HSM2Dongle.MODE.BOOTLOADER, HSM2Dongle.MODE.APP]:
+    if mode in [HSM2Dongle.MODE.BOOTLOADER, HSM2Dongle.MODE.SIGNER]:
         info("Is device onboarded? ... ", options.verbose)
         is_onboarded = hsm.is_onboarded()
         info(f"Onboarded: {bls(is_onboarded)}")
@@ -67,8 +67,8 @@ def do_unlock(options, exit=True, no_exec=False, label=True):
     if mode == HSM2Dongle.MODE.UNKNOWN:
         raise AdminError("Device mode unknown. Already unlocked? Otherwise disconnect "
                          "and re-connect the ledger and try again")
-    if mode == HSM2Dongle.MODE.APP:
-        raise AdminError("Device already unlocked and in app mode")
+    if mode == HSM2Dongle.MODE.SIGNER or mode == HSM2Dongle.MODE.UI_HEARTBEAT:
+        raise AdminError("Device already unlocked")
 
     # Echo check
     info("Sending echo... ", options.verbose)

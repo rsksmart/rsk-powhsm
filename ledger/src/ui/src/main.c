@@ -49,7 +49,6 @@
 #include "bolos_ux_common.h"
 
 unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
-void bolos_ux_main(void);
 
 void app_exit(void) {
     BEGIN_TRY_L(exit) {

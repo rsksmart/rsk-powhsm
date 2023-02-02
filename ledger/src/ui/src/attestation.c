@@ -27,7 +27,7 @@
 #include "cx.h"
 #include "attestation.h"
 #include "defs.h"
-#include "err.h"
+#include "ui_err.h"
 #include "memutil.h"
 #include "ints.h"
 #include "runtime.h"
@@ -56,7 +56,7 @@ const char key_derivation_path[PUBKEY_PATH_LENGTH] = PUBKEY_PATH;
 static void check_state(att_t* att_ctx, att_state_t expected) {
     if (att_ctx->state != expected) {
         reset_attestation(att_ctx);
-        THROW(ERR_PROT_INVALID);
+        THROW(ERR_UI_PROT_INVALID);
     }
 }
 
@@ -72,7 +72,7 @@ static void check_state(att_t* att_ctx, att_state_t expected) {
  */
 static void check_apdu_buffer_holds(size_t size) {
     if (APDU_TOTAL_DATA_SIZE_OUT < size) {
-        THROW(ERR_INTERNAL);
+        THROW(ERR_UI_INTERNAL);
     }
 }
 
@@ -97,10 +97,10 @@ static size_t compress_pubkey_into(cx_ecfp_public_key_t* pub_key,
                  pub_key->W,
                  sizeof(pub_key->W),
                  MEMMOVE_ZERO_OFFSET,
-                 PUBKEYCOMPRESSEDSIZE,
-                 THROW(ERR_INTERNAL));
+                 PUBKEY_CMP_LENGTH,
+                 THROW(ERR_UI_INTERNAL));
     dst[dst_offset] = pub_key->W[pub_key->W_len - 1] & 0x01 ? 0x03 : 0x02;
-    return PUBKEYCOMPRESSEDSIZE;
+    return PUBKEY_CMP_LENGTH;
 }
 
 /*
@@ -140,7 +140,7 @@ unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx) {
 
         // Should receive a user-defined value
         if (APDU_DATA_SIZE(rx) != UD_VALUE_SIZE)
-            THROW(ERR_PROT_INVALID);
+            THROW(ERR_UI_PROT_INVALID);
 
         sigaut_signer_t* current_signer_info = get_authorized_signer_info();
 
@@ -156,7 +156,7 @@ unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx) {
                      sizeof(att_msg_prefix),
                      MEMMOVE_ZERO_OFFSET,
                      sizeof(att_msg_prefix),
-                     THROW(ERR_INTERNAL));
+                     THROW(ERR_UI_INTERNAL));
         att_ctx->msg_offset += sizeof(att_msg_prefix);
         SAFE_MEMMOVE(att_ctx->msg,
                      sizeof(att_ctx->msg),
@@ -165,7 +165,7 @@ unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx) {
                      APDU_TOTAL_DATA_SIZE,
                      MEMMOVE_ZERO_OFFSET,
                      UD_VALUE_SIZE,
-                     THROW(ERR_INTERNAL));
+                     THROW(ERR_UI_INTERNAL));
         att_ctx->msg_offset += UD_VALUE_SIZE;
 
         // Derive, compress and copy the public key into the message space
@@ -178,7 +178,7 @@ unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx) {
                              sizeof(key_derivation_path),
                              MEMMOVE_ZERO_OFFSET,
                              sizeof(key_derivation_path),
-                             THROW(ERR_INTERNAL));
+                             THROW(ERR_UI_INTERNAL));
                 // Derive private key
                 os_perso_derive_node_bip32(CX_CURVE_256K1,
                                            (unsigned int*)att_ctx->path,
@@ -187,7 +187,7 @@ unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx) {
                                            NULL);
                 cx_ecdsa_init_private_key(CX_CURVE_256K1,
                                           att_ctx->priv_key_data,
-                                          KEYLEN,
+                                          PRIVATE_KEY_LENGTH,
                                           &att_ctx->priv_key);
                 // Cleanup private key data
                 explicit_bzero(att_ctx->priv_key_data,
@@ -212,7 +212,7 @@ unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx) {
                                sizeof(att_ctx->priv_key_data));
                 explicit_bzero(&att_ctx->priv_key, sizeof(att_ctx->priv_key));
                 explicit_bzero(&att_ctx->pub_key, sizeof(att_ctx->pub_key));
-                THROW(ERR_INTERNAL);
+                THROW(ERR_UI_INTERNAL);
             }
             FINALLY {
             }
@@ -227,13 +227,13 @@ unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx) {
                      sizeof(current_signer_info->hash),
                      MEMMOVE_ZERO_OFFSET,
                      sizeof(current_signer_info->hash),
-                     THROW(ERR_INTERNAL));
+                     THROW(ERR_UI_INTERNAL));
         att_ctx->msg_offset += sizeof(current_signer_info->hash);
 
         // Make sure iteration fits
         if (att_ctx->msg_offset + sizeof(current_signer_info->iteration) >
             sizeof(att_ctx->msg))
-            THROW(ERR_INTERNAL);
+            THROW(ERR_UI_INTERNAL);
 
         VAR_BIGENDIAN_TO(att_ctx->msg + att_ctx->msg_offset,
                          current_signer_info->iteration,
@@ -249,7 +249,7 @@ unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx) {
 
         // Should receive a page index
         if (APDU_DATA_SIZE(rx) != 1)
-            THROW(ERR_PROT_INVALID);
+            THROW(ERR_UI_PROT_INVALID);
 
         // Maximum page size is APDU data part size minus one
         // byte (first byte of the response), which is used to indicate
@@ -257,7 +257,7 @@ unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx) {
 
         // Check page index within range (page index is zero based)
         if (APDU_DATA_PTR[0] >= PAGECOUNT(att_ctx->msg_offset)) {
-            THROW(ERR_PROT_INVALID);
+            THROW(ERR_UI_PROT_INVALID);
         }
 
         // Copy the page into the APDU buffer (no need to check for limits since
@@ -271,7 +271,7 @@ unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx) {
                      sizeof(att_ctx->msg),
                      APDU_DATA_PTR[0] * PAGESIZE,
                      message_size,
-                     THROW(ERR_INTERNAL));
+                     THROW(ERR_UI_INTERNAL));
         APDU_DATA_PTR[0] =
             APDU_DATA_PTR[0] < (PAGECOUNT(att_ctx->msg_offset) - 1);
 
@@ -288,12 +288,12 @@ unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx) {
             att_ctx->msg, att_ctx->msg_offset, APDU_DATA_PTR));
     case OP_ATT_APP_HASH:
         // This can be asked for at any time
-        check_apdu_buffer_holds(HASHSIZE);
+        check_apdu_buffer_holds(HASH_LENGTH);
         return TX_FOR_DATA_SIZE(os_endorsement_get_code_hash(APDU_DATA_PTR));
     default:
         // Reset SM
         att_ctx->state = att_state_wait_ud_value;
-        THROW(ERR_PROT_INVALID);
+        THROW(ERR_UI_PROT_INVALID);
         break;
     }
 }

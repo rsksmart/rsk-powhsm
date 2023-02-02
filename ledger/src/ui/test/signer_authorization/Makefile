@@ -34,7 +34,7 @@ CFLAGS += -DPARAM_INITIAL_SIGNER_HASH=\"$(PARAM_INITIAL_SIGNER_HASH)\"
 CFLAGS += -DPARAM_INITIAL_SIGNER_ITERATION=1
 
 PROG = test.out
-OBJS = mock.o signer_authorization.o test_signer_authorization.o
+OBJS = mock.o signer_authorization_status.o signer_authorization.o test_signer_authorization.o
 
 all: $(PROG)
 
@@ -42,6 +42,9 @@ $(PROG): $(OBJS)
 	$(CC) -o $@ $^
 
 test_signer_authorization.o: test_signer_authorization.c
+	$(CC) $(CFLAGS) -c -o $@ $^
+
+signer_authorization_status.o: $(SRCDIR)/signer_authorization_status.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
 signer_authorization.o: $(SRCDIR)/signer_authorization.c

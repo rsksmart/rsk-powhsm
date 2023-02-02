@@ -24,6 +24,7 @@
 
 #include "os.h"
 #include "hsm.h"
+#include "err.h"
 
 void hsm_ledger_main_loop() {
     volatile unsigned int rx = 0;
@@ -35,7 +36,7 @@ void hsm_ledger_main_loop() {
     // sure the io_event is called with a
     // switch event, before the apdu is replied to the bootloader. This avoid
     // APDU injection faults.
-    for (;;) {
+    while (!hsm_exit_requested()) {
         BEGIN_TRY {
             TRY {
                 // ensure no race in catch_other if io_exchange throws

@@ -60,12 +60,12 @@ static void hash_public_key(const char* path,
             // Derive and init private key
             os_perso_derive_node_bip32(CX_CURVE_256K1,
                                        att_ctx->path,
-                                       RSK_PATH_LEN,
+                                       DERIVATION_PATH_PARTS,
                                        att_ctx->priv_key_data,
                                        NULL);
             cx_ecdsa_init_private_key(CX_CURVE_256K1,
                                       att_ctx->priv_key_data,
-                                      KEY_LEN,
+                                      PRIVATE_KEY_LENGTH,
                                       &att_ctx->priv_key);
             // Cleanup private key data
             explicit_bzero(att_ctx->priv_key_data,

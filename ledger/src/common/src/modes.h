@@ -22,18 +22,16 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __ERR_H
-#define __ERR_H
+#ifndef __MODES_H
+#define __MODES_H
 
-// Generic error codes for the UI
+/**
+ * Mode definitions for Signer and UI mode commands
+ */
 typedef enum {
-    ERR_PROT_INVALID = 0x6A01,
-    ERR_INVALID_CLA = 0x6E22,
-    ERR_INTERNAL = 0x6A99,
-    ERR_INVALID_PIN = 0x69A0,
-    ERR_DEVICE_ONBOARDED = 0x69A1,
+    APP_MODE_BOOTLOADER = 0x02,
+    APP_MODE_SIGNER = 0x03,
+    APP_MODE_UI_HEARTBEAT = 0x04,
+} app_mode_t;
 
-    EX_BOOTLOADER_RSK_END = 0x90FF,
-} err_code_ui_t;
-
-#endif // __ERR_H
+#endif // __MODES_H

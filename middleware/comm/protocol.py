@@ -58,7 +58,7 @@ class HSM2Protocol:
     ERROR_CODE_INVALID_BROTHERS = -205
 
     # Heartbeat error codes
-    ERROR_CODE_INVALID_SIGNER_UD_VALUE = -301
+    ERROR_CODE_INVALID_HEARTBEAT_UD_VALUE = -301
 
     # Generic error codes
     ERROR_CODE_FORMAT_ERROR = -901
@@ -81,12 +81,14 @@ class HSM2Protocol:
     UPDATE_ANCESTOR_BLOCK_COMMAND = "updateAncestorBlock"
     GET_BLOCKCHAIN_PARAMETERS = "blockchainParameters"
     SIGNER_HEARTBEAT = "signerHeartbeat"
+    UI_HEARTBEAT = "uiHeartbeat"
 
     # Minimum number of blocks to update the ancestor block
     MINIMUM_UPDATE_ANCESTOR_BLOCKS = 1
 
-    # Signer heartbeat user-defined value size
-    SIGNER_UD_VALUE_SIZE = 16  # bytes
+    # Signer and UI heartbeat user-defined value sizes
+    SIGNER_HBT_UD_VALUE_SIZE = 16  # bytes
+    UI_HBT_UD_VALUE_SIZE = 32  # bytes
 
     def __init__(self):
         self.logger = logging.getLogger(LOGGER_NAME)
@@ -400,18 +402,37 @@ class HSM2Protocol:
         if (
             "udValue" not in request
             or type(request["udValue"]) != str
-            or not(is_hex_string_of_length(request["udValue"], self.SIGNER_UD_VALUE_SIZE))
+            or not(is_hex_string_of_length(request["udValue"],
+                                           self.SIGNER_HBT_UD_VALUE_SIZE))
         ):
             self.logger.info(
                 "User defined value field not present or not a "
-                f"{self.SIGNER_UD_VALUE_SIZE}-byte hex string"
+                f"{self.SIGNER_HBT_UD_VALUE_SIZE}-byte hex string"
             )
-            return self.ERROR_CODE_INVALID_SIGNER_UD_VALUE
+            return self.ERROR_CODE_INVALID_HEARTBEAT_UD_VALUE
 
         return self.ERROR_CODE_OK
 
     def _signer_heartbeat(self, request):
         self._not_implemented(self.SIGNER_HEARTBEAT)
+
+    def _validate_ui_heartbeat(self, request):
+        # Validate UD value presence, type and length
+        if (
+            "udValue" not in request
+            or type(request["udValue"]) != str
+            or not(is_hex_string_of_length(request["udValue"], self.UI_HBT_UD_VALUE_SIZE))
+        ):
+            self.logger.info(
+                "User defined value field not present or not a "
+                f"{self.UI_HBT_UD_VALUE_SIZE}-byte hex string"
+            )
+            return self.ERROR_CODE_INVALID_HEARTBEAT_UD_VALUE
+
+        return self.ERROR_CODE_OK
+
+    def _ui_heartbeat(self, request):
+        self._not_implemented(self.UI_HEARTBEAT)
 
     def _not_implemented(self, funcname):
         self.logger.warning("%s not implemented", funcname)
@@ -429,6 +450,7 @@ class HSM2Protocol:
             self.UPDATE_ANCESTOR_BLOCK_COMMAND: self._update_ancestor_block,
             self.GET_BLOCKCHAIN_PARAMETERS: self._get_blockchain_parameters,
             self.SIGNER_HEARTBEAT: self._signer_heartbeat,
+            self.UI_HEARTBEAT: self._ui_heartbeat,
         }
 
         # Command input validations
@@ -442,5 +464,6 @@ class HSM2Protocol:
             self.UPDATE_ANCESTOR_BLOCK_COMMAND: self._validate_update_ancestor_block,
             self.GET_BLOCKCHAIN_PARAMETERS: lambda r: 0,
             self.SIGNER_HEARTBEAT: self._validate_signer_heartbeat,
+            self.UI_HEARTBEAT: self._validate_ui_heartbeat,
         }
         self._known_commands = self._mappings.keys()

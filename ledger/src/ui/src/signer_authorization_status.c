@@ -22,29 +22,16 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __INSTRUCTIONS_H
-#define __INSTRUCTIONS_H
+#include "os.h"
+#include "signer_authorization_status.h"
+#include "runtime.h"
+
+// Current signer status
+NON_VOLATILE sigaut_signer_status_t N_current_signer_status_var;
 
 /*
- * All APDU instructions
+ * Get the current authorized signer information
  */
-
-typedef enum {
-    RSK_PIN_CMD = 0x41,
-    RSK_SEED_CMD = 0x44,
-    RSK_ECHO_CMD = 0x02,
-    RSK_IS_ONBOARD = 0x06,
-    RSK_WIPE = 0x7,
-    RSK_NEWPIN = 0x8,
-    RSK_END_CMD = 0xff,
-    RSK_END_CMD_NOSIG = 0xfa,
-    RSK_UNLOCK_CMD = 0xfe,
-    RSK_RETRIES = 0x45,
-    RSK_MODE_CMD = 0x43,
-    RSK_META_CMD_UIOP = 0x66,
-
-    INS_ATTESTATION = 0x50,
-    INS_SIGNER_AUTHORIZATION = 0x51,
-} apdu_instruction_t;
-
-#endif // __INSTRUCTIONS_H
+sigaut_signer_t* get_authorized_signer_info() {
+    return &N_current_signer_status.signer;
+}

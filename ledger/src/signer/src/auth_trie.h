@@ -48,10 +48,10 @@ typedef struct {
     uint8_t num_linked;
     uint8_t offset;
     union {
-        uint8_t value_hash[HASH_LEN];
-        uint8_t child_hash[HASH_LEN];
+        uint8_t value_hash[HASH_LENGTH];
+        uint8_t child_hash[HASH_LENGTH];
     };
-    uint8_t node_hash[HASH_LEN];
+    uint8_t node_hash[HASH_LENGTH];
 } trie_auth_ctx_t;
 
 /*

@@ -61,7 +61,7 @@ class TestPubkeys(TestCase):
             path_name = list(PATHS.keys())[list(PATHS.values()).index(path)]
             return self.public_keys[path_name]
 
-        self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.APP)
+        self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.SIGNER)
         self.dongle.get_public_key = Mock(side_effect=get_pubkey_mock)
         self.dongle.is_onboarded = Mock(return_value=True)
         get_hsm.return_value = self.dongle
@@ -98,7 +98,7 @@ class TestPubkeys(TestCase):
             path_name = list(PATHS.keys())[list(PATHS.values()).index(path)]
             return self.public_keys[path_name]
 
-        self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.APP)
+        self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.SIGNER)
         self.dongle.get_public_key = Mock(side_effect=get_pubkey_mock)
         self.dongle.is_onboarded = Mock(return_value=True)
         get_hsm.return_value = self.dongle
@@ -134,7 +134,7 @@ class TestPubkeys(TestCase):
 
     def test_pubkeys_unlock_error(self, unlock_mock, get_hsm, *_):
         unlock_mock.side_effect = Exception("unlock-error")
-        self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.APP)
+        self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.SIGNER)
         self.dongle.is_onboarded = Mock(return_value=True)
         get_hsm.return_value = self.dongle
 
@@ -145,7 +145,7 @@ class TestPubkeys(TestCase):
         self.assertEqual('Failed to unlock device: unlock-error', str(e.exception))
 
     def test_pubkeys_invalid_pubkey(self, unlock_mock, get_hsm, *_):
-        self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.APP)
+        self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.SIGNER)
         self.dongle.get_public_key = Mock(return_value=self.invalid_public_key)
         self.dongle.is_onboarded = Mock(return_value=True)
         get_hsm.return_value = self.dongle

@@ -44,10 +44,10 @@ typedef struct att_s {
     sha256_ctx_t hash_ctx; // Attestation public keys hashing context
     uint8_t msg[MAX_ATT_MESSAGE_SIZE]; // Attestation message
 
-    unsigned int path[RSK_PATH_LEN];
+    unsigned int path[DERIVATION_PATH_PARTS];
     cx_ecfp_public_key_t pub_key;
     cx_ecfp_private_key_t priv_key;
-    unsigned char priv_key_data[KEY_LEN];
+    unsigned char priv_key_data[PRIVATE_KEY_LENGTH];
 } att_t;
 
 typedef union {

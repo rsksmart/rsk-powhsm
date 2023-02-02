@@ -31,9 +31,9 @@
 #include "assert_utils.h"
 #include "apdu_utils.h"
 #include "defs.h"
-#include "err.h"
+#include "ui_err.h"
 #include "mock.h"
-#include "instructions.h"
+#include "ui_instructions.h"
 #include "pin.h"
 
 #define IS_VALID true
@@ -188,10 +188,10 @@ void test_set_pin_invalid() {
     BEGIN_TRY {
         TRY {
             set_pin();
-            // set_pin should throw ERR_INVALID_PIN
+            // set_pin should throw ERR_UI_INVALID_PIN
             ASSERT_FAIL();
         }
-        CATCH(ERR_INVALID_PIN) {
+        CATCH(ERR_UI_INVALID_PIN) {
             assert(!G_device_unlocked);
             return;
         }
