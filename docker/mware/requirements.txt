@@ -60,8 +60,8 @@ eth-typing==2.2.1 \
 eth-utils==1.8.4 \
     --hash=sha256:8358318685e7a7666b148b07df3c4d409435b424dce18501e79920aa52bcaba7 \
     --hash=sha256:f398c649859cda5ef7c4ee2753468038d93be7d864de7631c06c3e73a7060649
-future==0.18.2 \
-    --hash=sha256:b1bead90b70cf6ec3f0710ae53a525360fa360d306a86583adc6bf83a4db537d
+future==0.18.3 \
+    --hash=sha256:34a17436ed1e96697a86f9de3d15a3b0be01d8bc8de9c1dffd59fb8234ed5307
 hidapi==0.9.0.post2 \
     --hash=sha256:03b9118749f6102a96af175b2b77832c0d6f8957acb46ced5aa7afcf358052bc \
     --hash=sha256:3b31b396b6e95b635db4db8e9649cdb0aa2c205dd4cd8aaf3ee9807dddb1ebb8 \
