@@ -1,0 +1,34 @@
+#! /usr/bin/env bash
+
+#
+# Run static analysis on ledger signer
+#
+
+if [[ $1 == "exec" ]]; then
+    pushd $(dirname $0) > /dev/null
+    HSM_ROOT=$(pwd)
+    popd > /dev/null
+
+    SRC_DIR=$HSM_ROOT/ledger/src/signer
+    echo Running static analysis on $SRC_DIR...
+
+    CHECKPOINT=e108960a242ad7bd45c21aff9c7ed9c516789e9cffacdd895502727d8f460d2c
+    TARGET_DIFFICULTY=0x6e
+    NETWORK=regtest
+
+    BUILD_CMD="make CHECKPOINT=$CHECKPOINT TARGET_DIFFICULTY=$TARGET_DIFFICULTY NETWORK=$NETWORK"
+
+    cd $SRC_DIR
+    make clean
+    scan-build --use-cc=/usr/bin/clang --exclude /opt --show-description --status-bugs -o $SRC_DIR/static-analysis $BUILD_CMD
+else
+    # Script directory
+    pushd $(dirname $0) > /dev/null
+    REPO_ROOT=$(pwd)
+    popd > /dev/null
+
+    SCRIPT=$(basename $0)
+
+    $REPO_ROOT/docker/ledger/do-notty /hsm2 "./$SCRIPT exec"
+fi
+

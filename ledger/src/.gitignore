@@ -3,10 +3,6 @@ debug/
 dep/
 obj/
 
-# Ignore test output
-signer/test/**/*.o
-signer/test/**/test.out
-
 # TCPSigner
 tcpsigner/tcpsigner
 tcpsigner/objs
