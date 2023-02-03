@@ -1,21 +1,31 @@
 # Changelog
 
-## [3.0.0] - 04/06/2022
+## [4.0.0] - 03/02/2023
 
 ### Features/enhancements
 
-- Considering uncles difficulty in "advanceBlockchain" operation
-- Implemented N of M signer upgrade authorization scheme
-- Authorized signing operation parsers rewritten from scratch
-- Added new "blockchainParameters" command
-- Added unit tests to middleware admin tooling
-- Fuzzing improvements
-- General best practices related improvements and fixes
-- Removed old/unused code
+- New Signer and UI heartbeat operations
+- Factored out UI into independent and unit tested modules
+- Removed all human interactivity from the UI
+- Preventing re-onboarding
+- Removed deprecated derivations paths
+- Moving partial advance blockchain state to an independent RAM area
+- TCPSigner: added command-line customisation of block difficulty cap and network upgrade
+  activation block numbers
+- Added support for building and running the TCPSigner bundle on arm64
+- Added a binary build for signapp as part of the distribution build
+- Unified APDU and error definitions within the Signer and UI
+- Renamed upgrade scripts
+- Documented ledger apps' deployment flags
+- Added C static code analysis script for the Signer and UI codebases
+- Added CodeQL workflow for Python codebase
 
 ### Fixes
 
-- Fixed failing middleware docker image build
+- Changed signapp command-line parameter for backwards compatibility
+- Removed unused sample generator
+- Bumped altgraph, certifi, future, macholib, Pillow and protobuf to address findings
+- Updated GH actions to use node16 versions
 
 ## [3.0.1] - 11/08/2022
 
@@ -49,3 +59,20 @@
 - Persistence issue with blockchain state initialization flag
 - Fixed attestation documentation broken links
 - Fixed CHANGELOG 3.0.0 version and release date
+
+## [3.0.0] - 04/06/2022
+
+### Features/enhancements
+
+- Considering uncles difficulty in "advanceBlockchain" operation
+- Implemented N of M signer upgrade authorization scheme
+- Authorized signing operation parsers rewritten from scratch
+- Added new "blockchainParameters" command
+- Added unit tests to middleware admin tooling
+- Fuzzing improvements
+- General best practices related improvements and fixes
+- Removed old/unused code
+
+### Fixes
+
+- Fixed failing middleware docker image build
