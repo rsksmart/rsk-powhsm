@@ -144,7 +144,7 @@ uint8_t trie_consume(uint8_t *buf, const uint8_t len) {
             processed = svarint_consume(buf + i, len - i);
             SAFE_MEMMOVE(ctx->raw,
                          sizeof(ctx->raw),
-                         MEMMOVE_ZERO_OFFSET,
+                         ctx->raw_size,
                          buf,
                          len,
                          i,

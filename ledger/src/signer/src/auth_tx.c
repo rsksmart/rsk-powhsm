@@ -157,7 +157,7 @@ unsigned int auth_sign_handle_btctx(volatile unsigned int rx) {
                                              APDU_DATA_SIZE(rx) - apdu_offset);
 
     if (btctx_result() < 0) {
-        LOG("[E] Error parsing BTC tx: %u\n", btctx_result());
+        LOG("[E] Error parsing BTC tx: %d\n", btctx_result());
         // To comply with the legacy implementation
         THROW(ERR_AUTH_TX_HASH_MISMATCH);
     }
