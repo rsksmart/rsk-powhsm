@@ -1,10 +1,14 @@
 # Changelog
 
-## [3.0.3] - 05/01/2023
+## [3.0.3] - 08/02/2023
 
 ### Features/enhancements
 
 - Moving partial advance blockchain state to an independent RAM area
+
+### Fixes
+
+- Fixed varint handling on btc tx parser and rsk trie parser
 
 ## [3.0.2] - 29/09/2022
 
