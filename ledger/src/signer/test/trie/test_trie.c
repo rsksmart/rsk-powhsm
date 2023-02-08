@@ -451,9 +451,16 @@ int main() {
     test_raw_complete("4e2670060290077e20feb9ffb4ed5abdcb42dc4e034fe2496cca6b38"
                       "fd479dcd598cfa151b00038811111111111111112222222222222222"
                       "33333333333333334444444444444444fdd705");
-    test_raw_complete(
-        "4caaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbccccccccccccccccdddddddddddddddd1111"
-        "111111111111222222222222222233333333333333334444444444444444fdd705");
+    test_raw_complete("70fffd2101"
+                      "88aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                      "aaaaaaaaaaaaaaaa9912ad32877a15a35716ddfa2d1fc51942b3f6ed"
+                      "f747a58c39a2aebd185b9618f1000203");
+    test_raw_complete("70ff28001122334412ad32877a15a35716ddfa2d1fc51942b3f6edf"
+                      "747a58c39a2aebd185b9618f1000203");
+    test_raw_complete("4f2870060290077e20feb9ffb4ed5abdcb42dc4e034fe2496cca6b3"
+                      "8fd479dcd598cfa151b00038811222670060012ad32877a15a35716"
+                      "ddfa2d1fc51942b3f6edf747a58c39a2aebd185b9618f1000203fdd"
+                      "705");
 
     test_flag_detection();
 

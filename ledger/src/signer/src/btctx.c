@@ -90,7 +90,7 @@ uint8_t btctx_consume(uint8_t *buf, const uint8_t len) {
             processed = svarint_consume(buf + i, len - i);
             SAFE_MEMMOVE(ctx->raw,
                          sizeof(ctx->raw),
-                         MEMMOVE_ZERO_OFFSET,
+                         ctx->raw_size,
                          buf,
                          len,
                          i,
@@ -103,6 +103,8 @@ uint8_t btctx_consume(uint8_t *buf, const uint8_t len) {
             i += processed - 1;
 
             switch (svarint_result()) {
+            case SVARINT_ERR_NONE:
+                break;
             case SVARINT_ST_DONE:
                 switch (ctx->state) {
                 case BTCTX_ST_VIN_COUNT:
