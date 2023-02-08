@@ -483,6 +483,7 @@ int main() {
 
     test_vin_vout_counts("resources/tx-001.hex", 1, 3);
     test_vin_vout_counts("resources/tx-003.hex", 252, 2);
+    test_vin_vout_counts("resources/tx-004.hex", 3, 5);
 
     test_vin_prevtx(
         "resources/tx-001.hex",
@@ -511,6 +512,13 @@ int main() {
         "baefc195e5ece59fc7512b30cdfe1a1151fbf90deaedaa02cfe48d05eb0d4404",
         200,
         0x44332211);
+
+    test_vin_prevtx(
+        "resources/tx-004.hex",
+        2,
+        "b0a268b4b78a91d74daea0d01577b5b1d29b4d7d524fe578c7e053466fd89787",
+        2,
+        0xffffffff);
 
     test_vin_vout_script(
         "resources/tx-001.hex",
@@ -560,6 +568,7 @@ int main() {
     test_raw_complete("resources/tx-001.hex");
     test_raw_complete("resources/tx-002.hex");
     test_raw_complete("resources/tx-003.hex");
+    test_raw_complete("resources/tx-004.hex");
 
     test_error("01000000ff1122334401");
     test_error("01000000010c25db7dc67a51c2aa406514373c83a87b25cb313f530fbfa5"
