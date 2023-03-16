@@ -24,6 +24,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "srlp.h"
 
@@ -66,6 +67,7 @@ static const rlp_callbacks_t* rlp_callbacks;
 void rlp_start(const rlp_callbacks_t* cbs) {
     rlp_callbacks = cbs;
     rlp_ctx_ptr = 0;
+    explicit_bzero(rlp_ctx, sizeof(rlp_ctx));
     rlp_ctx[rlp_ctx_ptr].state = RLP_BOTTOM;
 }
 

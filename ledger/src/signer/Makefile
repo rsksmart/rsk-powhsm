@@ -44,7 +44,7 @@ include $(BOLOS_SDK)/Makefile.defines
 
 # Main app configuration
 APPNAME = "RSK Sign"
-APPVERSION = 3
+APPVERSION = 4
 # No flags
 APPFLAGS = 0x00
 PROG = "app"
