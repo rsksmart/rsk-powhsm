@@ -69,15 +69,11 @@ typedef struct {
 extern mem_t mem;
 extern sess_per_mem_t sess_per_mem;
 
-#define rlp_ctx (mem.rlp_ctx)
-#define tx_ctx (mem.tx_ctx)
-#define mp_ctx (mem.mp_ctx)
 #define block (mem.block)
 #define aux_bc_st (mem.aux_bc_st)
 #define bc_st_updating (sess_per_mem.bc_st_updating)
 #define auth (mem.auth)
 #define attestation (mem.att)
 #define heartbeat (mem.heartbeat)
-#define ReceiptHash (mem.ReceiptHash_ctx)
 
 #endif // __MEM_H

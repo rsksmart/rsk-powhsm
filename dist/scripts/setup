@@ -114,7 +114,7 @@ function installSigner() {
             --fileName $FIRMWARE_DIR/signer.hex \
             --icon "$ICON" \
             --appName "RSK Sign" \
-            --appVersion "3" \
+            --appVersion "4" \
             --path "" \
             --signature "$SIG" \
             --rootPrivateKey $ROOTKEY > /dev/null 2> /dev/null
@@ -128,7 +128,7 @@ function installUI() {
             --fileName $FIRMWARE_DIR/ui.hex \
             --icon "$ICON" \
             --appName "UX" \
-            --appVersion "3" \
+            --appVersion "4" \
             --path "" \
             --signature "$SIG" \
             --rootPrivateKey $ROOTKEY > /dev/null 2> /dev/null
