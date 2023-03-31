@@ -102,37 +102,73 @@ class TestTCPServer(TestCase):
         self.assertEqual(self.protocol.initialize_device.call_args, [call()])
 
 
+@patch("socketserver.TCPServer")
+@patch("comm.server._RequestHandler")
 class TestTCPServerRequestHandler(TestCase):
-    @patch("socketserver.TCPServer")
-    @patch("comm.server._RequestHandler")
-    def setUp(self, RequestHandlerMock, TCPServerMock):
+    def prepare(self, RequestHandlerMock, TCPServerMock):
         self.protocol = Mock()
         self.server = TCPServer("a-host", 1234, self.protocol)
         TCPServerMock.return_value = Mock()
         self.server.run()
-        self.handler = TCPServerMock.call_args[0][1]
-        self.handler_instance = Mock()
-        self.handler_instance.server = TCPServerMock.return_value
-        self.handler_instance.client_address = ("a-client-address", )
-        self.handler_instance.rfile = "an-rfile"
-        self.handler_instance.wfile = "an-wfile"
-        self.request_handler = Mock()
-        self.RequestHandlerMock = RequestHandlerMock
-        RequestHandlerMock.return_value = self.request_handler
-        self.handler.handle(self.handler_instance)
+        self.handler_klass = TCPServerMock.call_args[0][1]
+        self.request = Mock()  # Required by socketserver.StreamRequestHandler
+        self.client_address = [Mock()]  # Required by socketserver.StreamRequestHandler
 
-    def test_handles_ok(self):
+    def handle(self, RequestHandlerMock, TCPServerMock):
+        self.handler = self.handler_klass(self.request,
+                                          self.client_address,
+                                          TCPServerMock.return_value)
+
+    def test_handles_ok(self, RequestHandlerMock, TCPServerMock):
+        self.prepare(RequestHandlerMock, TCPServerMock)
+        self.handle(RequestHandlerMock, TCPServerMock)
+
         self.assertEqual(
-            self.RequestHandlerMock.call_args_list,
+            RequestHandlerMock.call_args_list,
             [call(self.protocol, self.server.logger)],
         )
         self.assertEqual(
-            self.request_handler.handle.call_args_list,
-            [call("a-client-address", "an-rfile", "an-wfile")],
+            RequestHandlerMock.return_value.handle.call_args_list,
+            [call(self.client_address[0], self.handler.rfile, self.handler.wfile)],
         )
 
-    def test_handler_correct_subclass(self):
-        self.assertTrue(issubclass(self.handler, socketserver.StreamRequestHandler))
+    def test_handler_correct_subclass(self, RequestHandlerMock, TCPServerMock):
+        self.prepare(RequestHandlerMock, TCPServerMock)
+        self.handle(RequestHandlerMock, TCPServerMock)
+
+        self.assertIsInstance(self.handler, socketserver.StreamRequestHandler)
+
+    def test_handle_request_handler_error_shutsdown(
+            self, RequestHandlerMock, TCPServerMock):
+        self.prepare(RequestHandlerMock, TCPServerMock)
+        RequestHandlerMock.return_value.handle.side_effect = RequestHandlerError()
+        self.handle(RequestHandlerMock, TCPServerMock)
+
+        self.assertTrue(self.handler.server.shutdown.called)
+
+    def test_handle_request_handler_shutdown_shutsdown(
+            self, RequestHandlerMock, TCPServerMock):
+        self.prepare(RequestHandlerMock, TCPServerMock)
+        RequestHandlerMock.return_value.handle.side_effect = RequestHandlerShutdown()
+        self.handle(RequestHandlerMock, TCPServerMock)
+
+        self.assertTrue(self.handler.server.shutdown.called)
+
+    def test_handle_request_handler_connection_error_doesnotshutdown(
+            self, RequestHandlerMock, TCPServerMock):
+        self.prepare(RequestHandlerMock, TCPServerMock)
+        RequestHandlerMock.return_value.handle.side_effect = ConnectionError()
+        self.handle(RequestHandlerMock, TCPServerMock)
+
+        self.assertFalse(self.handler.server.shutdown.called)
+
+    def test_handle_request_handler_other_error_doesnotshutdown(
+            self, RequestHandlerMock, TCPServerMock):
+        self.prepare(RequestHandlerMock, TCPServerMock)
+        RequestHandlerMock.return_value.handle.side_effect = Exception()
+        self.handle(RequestHandlerMock, TCPServerMock)
+
+        self.assertFalse(self.handler.server.shutdown.called)
 
 
 class TestRequestHandler(TestCase):

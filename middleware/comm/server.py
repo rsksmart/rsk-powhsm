@@ -105,10 +105,14 @@ class _TCPServerRequestHandler(socketserver.StreamRequestHandler):
             # A shutdown has been requested, log and shutdown
             self.server.logger.info("Shutting down: %s", format(e))
             self.shutdown()
+        except ConnectionError as e:
+            # A connection issue should log as an error
+            # cause it is not common or expected
+            self.server.logger.error("Connection error while serving request: %s",
+                                     format(e))
         except Exception as e:
-            # Any unknown exception should also trigger a shutdown
+            # Any unknown exception should log as critical
             self.server.logger.critical("UNKNOWN error serving request: %s", format(e))
-            self.shutdown()
 
     def shutdown(self):
         def tgt():
