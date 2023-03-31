@@ -1,6 +1,6 @@
 # Changelog
 
-## [3.0.3] - 08/02/2023
+## [3.0.3] - 31/03/2023
 
 ### Features/enhancements
 
@@ -9,6 +9,7 @@
 ### Fixes
 
 - Fixed varint handling on btc tx parser and rsk trie parser
+- Preventing manager shutdown upon unknown request errors
 
 ## [3.0.2] - 29/09/2022
 
@@ -66,3 +67,4 @@
 ### Fixes
 
 - Fixed failing middleware docker image build
+
