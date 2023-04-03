@@ -1,6 +1,6 @@
 # Changelog
 
-## [4.0.0] - 08/02/2023
+## [4.0.0] - 04/04/2023
 
 ### Features/enhancements
 
@@ -27,6 +27,7 @@
 - Bumped altgraph, certifi, future, macholib, Pillow and protobuf to address findings
 - Updated GH actions to use node16 versions
 - Fixed varint handling on btc tx parser and rsk trie parser
+- Preventing manager shutdown upon unknown request errors
 
 ## [3.0.1] - 11/08/2022
 
