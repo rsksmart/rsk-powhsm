@@ -28,6 +28,9 @@
 - Updated GH actions to use node16 versions
 - Fixed varint handling on btc tx parser and rsk trie parser
 - Preventing manager shutdown upon unknown request errors
+- Zeroing out sRLP context when initialising the parser
+- Removed unused signer memory #defines
+- Fixed varint handling on btc tx parser and rsk trie parser
 
 ## [3.0.1] - 11/08/2022
 
