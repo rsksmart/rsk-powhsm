@@ -1,6 +1,6 @@
-FROM debian:buster-slim
+FROM debian:bullseye-slim
 
 WORKDIR /hsm2
 
 RUN apt-get update && \
-    apt-get install -y apt-utils binutils=2.31.1-16 vim
+    apt-get install -y apt-utils binutils=2.35.2-2 vim
