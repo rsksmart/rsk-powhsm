@@ -18,8 +18,9 @@ RUN apt-get install -y clang-10=1:10.0.0-4ubuntu1 && \
     apt-get install -y gcc-multilib=4:9.3.0-1ubuntu2 g++-multilib=4:9.3.0-1ubuntu2 && \
     ln -s /usr/bin/clang-10 /usr/bin/clang
 
-RUN curl -L -o nanos-1314.tar.gz https://github.com/LedgerHQ/nanos-secure-sdk/archive/nanos-1314.tar.gz && \
-    tar xzf nanos-1314.tar.gz && \
+RUN curl -L -o nanos-1314.tar.gz https://github.com/rsksmart/rsk-powhsm-nanos-secure-sdk/archive/nanos-1314-powhsm.tar.gz && \
+    mkdir nanos-secure-sdk-nanos-1314 && \
+    tar xzf nanos-1314.tar.gz -C nanos-secure-sdk-nanos-1314 --strip-components=1 && \
     rm -f nanos-1314.tar.gz
 
 RUN apt install -y python2 && \
@@ -37,21 +38,6 @@ RUN mkdir /opt/hashapp && \
         https://raw.githubusercontent.com/LedgerHQ/blue-loader-python/0.1.31/ledgerblue/hexParser.py && \
     curl -L -o /opt/hashapp/hashApp.py \
         https://raw.githubusercontent.com/LedgerHQ/blue-loader-python/0.1.31/ledgerblue/hashApp.py
-
-# Patched version of os.h with APDU_BUFFER reduced from 255 to 80 bytes
-COPY os.h.patch nanos-secure-sdk-nanos-1314/include/os.h.patch
-RUN patch nanos-secure-sdk-nanos-1314/include/os.h nanos-secure-sdk-nanos-1314/include/os.h.patch
-RUN rm -f nanos-secure-sdk-nanos-1314/include/os.h.patch
-
-# Patched version of usbd_conf.h to prevent compiler warnings
-COPY usbd_conf.h.patch nanos-secure-sdk-nanos-1314/lib_stusb/usbd_conf.h.patch
-RUN patch nanos-secure-sdk-nanos-1314/lib_stusb/usbd_conf.h nanos-secure-sdk-nanos-1314/lib_stusb/usbd_conf.h.patch
-RUN rm -f nanos-secure-sdk-nanos-1314/lib_stusb/usbd_conf.h.patch
-
-# Patched version of os_io_seproxyhal.h to prevent compiler warnings
-COPY os_io_seproxyhal.h.patch nanos-secure-sdk-nanos-1314/include/os_io_seproxyhal.h.patch
-RUN patch nanos-secure-sdk-nanos-1314/include/os_io_seproxyhal.h nanos-secure-sdk-nanos-1314/include/os_io_seproxyhal.h.patch
-RUN rm -f nanos-secure-sdk-nanos-1314/include/os_io_seproxyhal.h.patch
 
 ENV BOLOS_SDK=/opt/nanos-secure-sdk-nanos-1314
 ENV CLANGPATH=/usr/bin/
