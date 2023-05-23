@@ -88,7 +88,7 @@ void bc_init_state() {
 // -----------------------------------------------------------------------
 
 // Non-volatile blockchain validation state
-const bc_state_t N_bc_state_var;
+NON_VOLATILE bc_state_t N_bc_state_var;
 
 /*
  * Dump hash corresponding to hash_codes[hash_ix] to APDU.

@@ -39,6 +39,7 @@
 
 #include "bc.h"
 #include "bc_diff.h"
+#include "runtime.h"
 
 typedef struct {
     uint8_t best_block[HASH_SIZE];
@@ -56,7 +57,7 @@ typedef struct {
     } updating;
 } bc_state_t;
 
-extern const bc_state_t N_bc_state_var;
+extern NON_VOLATILE bc_state_t N_bc_state_var;
 #define N_bc_state (*(bc_state_t*)PIC(&N_bc_state_var))
 
 #ifndef PARAM_INITIAL_BLOCK_HASH
