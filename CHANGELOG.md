@@ -1,6 +1,6 @@
 # Changelog
 
-## [4.0.0] - 04/04/2023
+## [4.0.0] - 24/05/2023
 
 ### Features/enhancements
 
@@ -19,18 +19,20 @@
 - Documented ledger apps' deployment flags
 - Added C static code analysis script for the Signer and UI codebases
 - Added CodeQL workflow for Python codebase
+- Using Nanos SDK fork instead of local patches for Docker image build
 
 ### Fixes
 
 - Changed signapp command-line parameter for backwards compatibility
 - Removed unused sample generator
-- Bumped altgraph, certifi, future, macholib, Pillow and protobuf to address findings
+- Bumped altgraph, certifi, future, macholib, Pillow, protobuf and requests to address findings
 - Updated GH actions to use node16 versions
 - Fixed varint handling on btc tx parser and rsk trie parser
 - Preventing manager shutdown upon unknown request errors
 - Zeroing out sRLP context when initialising the parser
 - Removed unused signer memory #defines
 - Fixed varint handling on btc tx parser and rsk trie parser
+- Fixed failing middleware docker image build
 
 ## [3.0.1] - 11/08/2022
 
