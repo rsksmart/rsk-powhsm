@@ -10,6 +10,7 @@
 
 - Fixed varint handling on btc tx parser and rsk trie parser
 - Preventing manager shutdown upon unknown request errors
+- Fixed failing middleware docker image build
 
 ## [3.0.2] - 29/09/2022
 
