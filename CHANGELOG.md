@@ -1,6 +1,6 @@
 # Changelog
 
-## [4.0.0] - 24/05/2023
+## [4.0.0] - 30/05/2023
 
 ### Features/enhancements
 
@@ -20,6 +20,7 @@
 - Added C static code analysis script for the Signer and UI codebases
 - Added CodeQL workflow for Python codebase
 - Using Nanos SDK fork instead of local patches for Docker image build
+- Reduce USB max endpoints
 
 ### Fixes
 
