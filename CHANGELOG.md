@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.6] - 30/05/2023
+
+### Features/enhancements
+
+- Using Nanos SDK fork instead of local patches for Docker image build
+- Reduce USB max endpoints
+
 ## [2.3.5] - 27/06/2022
 
 ### Fixes
