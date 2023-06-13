@@ -18,7 +18,7 @@ RUN apt-get install -y clang-10=1:10.0.0-4ubuntu1 && \
     apt-get install -y gcc-multilib=4:9.3.0-1ubuntu2 g++-multilib=4:9.3.0-1ubuntu2 && \
     ln -s /usr/bin/clang-10 /usr/bin/clang
 
-RUN curl -L -o nanos-1314.tar.gz https://github.com/rsksmart/rsk-powhsm-nanos-secure-sdk/archive/nanos-1314-powhsm.tar.gz && \
+RUN curl -L -o nanos-1314.tar.gz https://github.com/rsksmart/rsk-powhsm-nanos-secure-sdk/archive/nanos-1314-powhsm-v2.tar.gz && \
     mkdir nanos-secure-sdk-nanos-1314 && \
     tar xzf nanos-1314.tar.gz -C nanos-secure-sdk-nanos-1314 --strip-components=1 && \
     rm -f nanos-1314.tar.gz
