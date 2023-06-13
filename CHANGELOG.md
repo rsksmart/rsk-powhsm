@@ -1,5 +1,11 @@
 # Changelog
 
+## [4.0.1] - 12/06/2023
+
+### Features/enhancements
+
+- Using Nanos SDK fork version 2
+
 ## [4.0.0] - 30/05/2023
 
 ### Features/enhancements
