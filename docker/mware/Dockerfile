@@ -16,6 +16,10 @@ RUN apt-get install -y \
     libffi-dev=3.3-6 #\
     libjpeg-dev=1:2.0.6-4
 
+COPY requirements-pre.txt /hsm2/requirements-pre.txt
+RUN pip install -r requirements-pre.txt --require-hashes
+RUN rm -f requirements-pre.txt
+
 COPY requirements.txt /hsm2/requirements.txt
 RUN pip install -r requirements.txt --require-hashes
 RUN rm -f requirements.txt
