@@ -30,7 +30,7 @@
 // Version and patchlevel
 #define VERSION_MAJOR 0x02
 #define VERSION_MINOR 0x03
-#define VERSION_PATCH 0x07
+#define VERSION_PATCH 0x08
 
 // Instructions
 #define INS_SIGN 0x02
