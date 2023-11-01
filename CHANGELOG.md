@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.3.8] - 01/11/2023
+
+### Fixes
+
+- Fixed failing middleware docker image build
+
 ## [2.3.7] - 03/08/2023
 
 ### Fixes

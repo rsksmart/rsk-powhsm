@@ -36,8 +36,8 @@ from comm.bitcoin import get_unsigned_tx, get_tx_hash
 
 class HSM2ProtocolLedger(HSM2Protocol):
     # Current manager supported versions for HSM UI and HSM SIGNER (<=)
-    UI_VERSION = HSM2FirmwareVersion(2, 3, 7)
-    APP_VERSION = HSM2FirmwareVersion(2, 3, 7)
+    UI_VERSION = HSM2FirmwareVersion(2, 3, 8)
+    APP_VERSION = HSM2FirmwareVersion(2, 3, 8)
 
     # Amount of time to wait to make sure the app is opened
     OPEN_APP_WAIT = 1  # second
