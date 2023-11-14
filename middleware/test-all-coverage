@@ -1,0 +1,29 @@
+#! /usr/bin/env bash
+
+#
+# Run python coverage tool and generate reports
+#
+
+if [[ $1 == "exec" ]]; then
+    pushd $(dirname $0) > /dev/null
+
+    rm -rf coverage
+    coverage erase
+    coverage run -m unittest discover
+    coverage html -d coverage
+    coverage report --format=total > coverage/total
+    echo "Wrote total to coverage/total"
+    coverage erase
+
+    popd > /dev/null
+else
+    # Script directory
+    pushd $(dirname $0) > /dev/null
+    MIDDLEWARE_ROOT=$(pwd)
+    popd > /dev/null
+
+    SCRIPT=$(basename $0)
+
+    $MIDDLEWARE_ROOT/../docker/mware/do-notty-nousb /hsm2/middleware "./$SCRIPT exec"
+fi
+
