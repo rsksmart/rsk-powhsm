@@ -13,3 +13,7 @@ tcpsigner/**/*.json
 # Icons hex
 signer/icon.hex
 ui/icon.hex
+
+# Code coverage artifacts
+*.gcda
+*.gcno

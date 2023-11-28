@@ -1,0 +1,40 @@
+#!/bin/bash
+
+if [[ $1 == "exec" ]]; then
+    BASEDIR=$(realpath $(dirname $0))
+    SRCDIR=$(realpath $BASEDIR/../src)
+    REPOROOT=$(realpath $BASEDIR/../..)
+
+    # Remove any existing coverage data
+    rm -rf $BASEDIR/coverage.info $BASEDIR/output
+    find $REPOROOT/ledger -name "*.gcno" -o -name "*.gcda" | xargs rm -f
+
+    # Run firmware unit tests with coverage generation
+    COVERAGE=y $REPOROOT/ledger/src/signer/test/run-all.sh
+    COVERAGE=y $REPOROOT/ledger/src/ui/test/run-all.sh
+
+    # Run tcpsigner test suite
+    pushd $REPOROOT/ledger/src/tcpsigner > /dev/null
+    COVERAGE=y make clean all
+    ./tcpsigner --checkpoint 0xbdcb3c17c7aee714cec8ad900341bfd987b452280220dcbd6e7191f67ea4209b --difficulty 0x32 --network regtest > /dev/null &
+    popd > /dev/null
+
+    pushd $REPOROOT/ledger/test > /dev/null
+    python run.py
+    err_code=$?
+    popd > /dev/null
+
+    lcov --capture --directory $SRCDIR --list-full-path --output-file $BASEDIR/coverage.info
+    genhtml $BASEDIR/coverage.info --output $BASEDIR/output -p $SRCDIR
+    mv $BASEDIR/coverage.info $BASEDIR/output
+else
+    # Script directory
+    REPOROOT=$(realpath $(dirname $0)/../..)
+    SCRIPT=$(realpath $0 --relative-to=$REPOROOT)
+
+    # Generate coverage report
+    $REPOROOT/docker/mware/do-notty-nousb /hsm2 "./$SCRIPT exec"
+    err_code=$?
+fi
+
+exit $err_code

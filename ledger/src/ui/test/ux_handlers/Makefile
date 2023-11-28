@@ -25,24 +25,26 @@ COMMONDIR = ../../../common/src
 MOCKDIR = ../mock
 CFLAGS = -I./mock -I$(MOCKDIR) -I$(SRCDIR) -I$(COMMONDIR) -g
 
+include ../../../../coverage/coverage.mk
+
 PROG = test.out
 OBJS = ux_handlers.o test_ux_handlers.o
 
 all: $(PROG)
 
 $(PROG): $(OBJS)
-	$(CC) -o $@ $^ -g
+	$(CC) $(COVFLAGS) -o $@ $^ -g
 
 test_ux_handlers.o: test_ux_handlers.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
 ux_handlers.o: $(SRCDIR)/ux_handlers.c
-	$(CC) $(CFLAGS) -c -o $@ $^
+	$(CC) $(CFLAGS) $(COVFLAGS) -c -o $@ $^
 
 .PHONY: clean test
 
 clean:
-	rm -f $(PROG) ./*.o
+	rm -f $(PROG) *.o $(COVFILES)
 
 test: all
 	./$(PROG)

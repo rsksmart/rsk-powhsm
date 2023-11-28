@@ -35,6 +35,7 @@
 #include <unistd.h>
 #include <setjmp.h>
 #include <argp.h>
+#include <signal.h>
 
 #include "os.h"
 #include "tcp.h"
@@ -248,8 +249,22 @@ static struct argp argp = {
     "",
     "TCPSigner -- an x86 implementation of the HSM signer"};
 
+static void finalise() {
+    printf("Caught termination signal. Bye.\n");
+    exit(0);
+}
+
+static void set_signal_handlers() {
+    signal(SIGINT, finalise);
+    signal(SIGTERM, finalise);
+    signal(SIGHUP, finalise);
+    signal(SIGABRT, finalise);
+}
+
 // Main function
 void main(int argc, char **argv) {
+    set_signal_handlers();
+
     // Arguments with default values
     struct arguments arguments = {
         "127.0.0.1", // Bind address

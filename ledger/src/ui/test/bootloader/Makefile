@@ -25,19 +25,21 @@ COMMONDIR = ../../../common/src
 MOCKDIR = ../mock
 CFLAGS = -I./mock -I$(COMMONDIR) -I$(MOCKDIR) -I$(SRCDIR)
 
+include ../../../../coverage/coverage.mk
+
 PROG = test.out
 OBJS = mock.o bootloader.o test_bootloader.o
 
 all: $(PROG)
 
 $(PROG): $(OBJS)
-	$(CC) -o $@ $^ -g
+	$(CC) $(COVFLAGS) -o $@ $^ -g
 
 test_bootloader.o: test_bootloader.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
 bootloader.o: $(SRCDIR)/bootloader.c
-	$(CC) $(CFLAGS) -c -o $@ $^
+	$(CC) $(CFLAGS) $(COVFLAGS) -c -o $@ $^
 
 mock.o: $(MOCKDIR)/mock.c
 	$(CC) $(CFLAGS) -c -o $@ $^
@@ -45,7 +47,7 @@ mock.o: $(MOCKDIR)/mock.c
 .PHONY: clean test
 
 clean:
-	rm -f $(PROG) ./*.o
+	rm -f $(PROG) *.o $(COVFILES)
 
 test: all
 	./$(PROG)

@@ -26,22 +26,24 @@ TCPSIGNERSRCDIR = ../../../tcpsigner
 COMMONPATH = ../../../common/src
 CFLAGS = -I $(SRCDIR) -I $(TCPSIGNERSRCDIR) -I $(COMMONPATH) -I $(TESTCOMMONDIR)
 
+include ../../../../coverage/coverage.mk
+
 PROG = test.out
 OBJS = test_fwk.o btctx.o svarint.o hex_reader.o os.o test_btctx.o
 
 all: $(PROG)
 
 $(PROG): $(OBJS)
-	$(CC) -o $@ $^
+	$(CC) $(COVFLAGS) -o $@ $^
 
 test_fwk.o: $(TESTCOMMONDIR)/test_fwk.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
 btctx.o: $(SRCDIR)/btctx.c
-	$(CC) $(CFLAGS) -c -o $@ $^
+	$(CC) $(CFLAGS) $(COVFLAGS) -c -o $@ $^
 
 svarint.o: $(SRCDIR)/svarint.c
-	$(CC) $(CFLAGS) -c -o $@ $^
+	$(CC) $(CFLAGS) $(COVFLAGS) -c -o $@ $^
 
 hex_reader.o: $(TCPSIGNERSRCDIR)/hex_reader.c
 	$(CC) $(CFLAGS) -c -o $@ $^
@@ -57,7 +59,7 @@ $(TCPSIGNERSRCDIR)/hex_reader.c: $(TCPSIGNERSRCDIR)/hex_reader.h
 
 .PHONY: clean test
 clean:
-	rm -f $(PROG) ./*.o
+	rm -f $(PROG) *.o $(COVFILES)
 
 test: all
 	./$(PROG)

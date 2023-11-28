@@ -26,19 +26,21 @@ MOCKDIR = ../mock
 CFLAGS = -I$(SRCDIR) -I$(MOCKDIR) -I./ -I$(COMMONDIR)
 CFLAGS += -DHSM_SIMULATOR
 
+include ../../../../coverage/coverage.mk
+
 PROG = test.out
 OBJS = mock.o onboard.o test_onboard.o
 
 all: $(PROG)
 
 $(PROG): $(OBJS)
-	$(CC) -o $@ $^
+	$(CC) $(COVFLAGS) -o $@ $^
 
 test_onboard.o: test_onboard.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
 onboard.o: $(SRCDIR)/onboard.c
-	$(CC) $(CFLAGS) -c -o $@ $^
+	$(CC) $(CFLAGS) $(COVFLAGS) -c -o $@ $^
 
 mock.o: $(MOCKDIR)/mock.c
 	$(CC) $(CFLAGS) -c -o $@ $^
@@ -46,7 +48,7 @@ mock.o: $(MOCKDIR)/mock.c
 .PHONY: clean test
 
 clean:
-	rm -f $(PROG) ./*.o
+	rm -f $(PROG) *.o $(COVFILES)
 
 test: all
 	./$(PROG)

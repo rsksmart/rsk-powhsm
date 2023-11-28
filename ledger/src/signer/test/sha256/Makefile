@@ -24,19 +24,21 @@ TESTCOMMONDIR = ../common
 SRCDIR = ../../src
 CFLAGS = -I $(SRCDIR) -I $(TESTCOMMONDIR)
 
+include ../../../../coverage/coverage.mk
+
 PROG = test.out
 OBJS = test_fwk.o sha256.o test_sha256.o
 
 all: $(PROG)
 
 $(PROG): $(OBJS)
-	$(CC) -o $@ $^
+	$(CC) $(COVFLAGS) -o $@ $^
 
 test_fwk.o: $(TESTCOMMONDIR)/test_fwk.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
 sha256.o: $(SRCDIR)/sha256.c
-	$(CC) $(CFLAGS) -c -o $@ $^
+	$(CC) $(CFLAGS) $(COVFLAGS) -c -o $@ $^
 
 test_sha256.o: test_sha256.c test_fwk.o sha256.o
 
@@ -44,7 +46,7 @@ $(SRCDIR)/sha256.c: $(SRCDIR)/sha256.h
 
 .PHONY: clean test
 clean:
-	rm -f $(PROG) ./*.o
+	rm -f $(PROG) *.o $(COVFILES)
 
 test: all
 	./$(PROG)

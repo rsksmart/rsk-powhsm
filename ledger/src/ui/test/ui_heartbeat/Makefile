@@ -25,19 +25,21 @@ COMMONDIR = ../../../common/src
 MOCKDIR = ../mock
 CFLAGS = -I$(COMMONDIR) -I$(MOCKDIR) -I$(SRCDIR)
 
+include ../../../../coverage/coverage.mk
+
 PROG = test.out
 OBJS = mock.o ui_heartbeat.o test_ui_heartbeat.o
 
 all: $(PROG)
 
 $(PROG): $(OBJS)
-	$(CC) -o $@ $^
+	$(CC) $(COVFLAGS) -o $@ $^
 
 test_ui_heartbeat.o: test_ui_heartbeat.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
 ui_heartbeat.o: $(SRCDIR)/ui_heartbeat.c
-	$(CC) $(CFLAGS) -c -o $@ $^
+	$(CC) $(CFLAGS) $(COVFLAGS) -c -o $@ $^
 
 mock.o: $(MOCKDIR)/mock.c
 	$(CC) $(CFLAGS) -c -o $@ $^
@@ -45,7 +47,7 @@ mock.o: $(MOCKDIR)/mock.c
 .PHONY: clean test
 
 clean:
-	rm -f $(PROG) ./*.o
+	rm -f $(PROG) *.o $(COVFILES)
 
 test: all
 	./$(PROG)

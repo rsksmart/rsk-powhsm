@@ -24,19 +24,21 @@ TESTCOMMONDIR = ../common
 SRCDIR = ../../src
 CFLAGS = -I $(SRCDIR) -I $(TESTCOMMONDIR) -Imocks/ -DMAX_RLP_CTX_DEPTH=10
 
+include ../../../../coverage/coverage.mk
+
 PROG = test.out
 OBJS = test_fwk.o srlp.o test_srlp.o
 
 all: $(PROG)
 
 $(PROG): $(OBJS)
-	$(CC) -o $@ $^
+	$(CC) $(COVFLAGS) -o $@ $^
 
 test_fwk.o: $(TESTCOMMONDIR)/test_fwk.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
 srlp.o: $(SRCDIR)/srlp.c
-	$(CC) $(CFLAGS) -c -o $@ $^
+	$(CC) $(CFLAGS) $(COVFLAGS) -c -o $@ $^
 
 test_srlp.o: test_srlp.c test_fwk.o srlp.o
 
@@ -44,7 +46,7 @@ $(SRCDIR)/srlp.c: $(SRCDIR)/srlp.h
 
 .PHONY: clean test
 clean:
-	rm -f $(PROG) ./*.o
+	rm -f $(PROG) *.o $(COVFILES)
 
 test: all
 	./$(PROG)

@@ -1,0 +1,34 @@
+name: "Code coverage"
+
+on:
+  push:
+
+jobs:
+  coverage:
+    name: Run tests and generate coverage reports
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v3
+
+      - name: Build the middleware docker image
+        run: docker/mware/build
+
+      - name: Run middleware coverage script
+        run: middleware/test-all-coverage
+
+      - name: "Upload middleware coverage report"
+        uses: actions/upload-artifact@v3
+        with:
+          name: middleware_coverage_report
+          path: middleware/coverage
+
+      - name: Run firmware coverage script
+        run: ledger/coverage/gen-coverage
+
+      - name: "Upload firmware coverage report"
+        uses: actions/upload-artifact@v3
+        with:
+          name: firmware_coverage_report
+          path: ledger/coverage/output

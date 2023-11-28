@@ -24,19 +24,21 @@ TESTCOMMONDIR = ../common
 SRCDIR = ../../src
 CFLAGS = -I $(SRCDIR) -I $(TESTCOMMONDIR)
 
+include ../../../../coverage/coverage.mk
+
 PROG = test.out
 OBJS = test_fwk.o svarint.o test_svarint.o
 
 all: $(PROG)
 
 $(PROG): $(OBJS)
-	$(CC) -o $@ $^
+	$(CC) $(COVFLAGS) -o $@ $^
 
 test_fwk.o: $(TESTCOMMONDIR)/test_fwk.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
 svarint.o: $(SRCDIR)/svarint.c
-	$(CC) $(CFLAGS) -c -o $@ $^
+	$(CC) $(CFLAGS) $(COVFLAGS) -c -o $@ $^
 
 test_svarint.o: test_svarint.c test_fwk.o svarint.o
 
@@ -44,7 +46,7 @@ $(SRCDIR)/svarint.c: $(SRCDIR)/svarint.h
 
 .PHONY: clean test
 clean:
-	rm -f $(PROG) ./*.o
+	rm -f $(PROG) *.o $(COVFILES)
 
 test: all
 	./$(PROG)

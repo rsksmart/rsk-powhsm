@@ -27,6 +27,8 @@ MOCKDIR = ../mock
 CFLAGS = -I$(MOCKDIR) -I$(COMMONDIR) -I$(SRCDIR) -I$(SIGNERDIRS)
 CFLAGS += -DHSM_SIMULATOR
 
+include ../../../../coverage/coverage.mk
+
 PARAM_INITIAL_SIGNER_HASH="\x09\x09\x66\x04\x52\xeb\x7a\x3a\x44\xb6\xca\x07$\
 \xed\x0b\x9c\xcf\xdd\xb9\xa6\x99\x9e\xb4\xad\xc3\x99\x50\x91\x71\xd2\x68\xe7$\
 \x3e"
@@ -39,16 +41,16 @@ OBJS = mock.o signer_authorization_status.o signer_authorization.o test_signer_a
 all: $(PROG)
 
 $(PROG): $(OBJS)
-	$(CC) -o $@ $^
+	$(CC) $(COVFLAGS) -o $@ $^
 
 test_signer_authorization.o: test_signer_authorization.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
 signer_authorization_status.o: $(SRCDIR)/signer_authorization_status.c
-	$(CC) $(CFLAGS) -c -o $@ $^
+	$(CC) $(CFLAGS) $(COVFLAGS) -c -o $@ $^
 
 signer_authorization.o: $(SRCDIR)/signer_authorization.c
-	$(CC) $(CFLAGS) -c -o $@ $^
+	$(CC) $(CFLAGS) $(COVFLAGS) -c -o $@ $^
 
 mock.o: $(MOCKDIR)/mock.c
 	$(CC) $(CFLAGS) -c -o $@ $^
@@ -56,7 +58,7 @@ mock.o: $(MOCKDIR)/mock.c
 .PHONY: clean test
 
 clean:
-	rm -f $(PROG) ./*.o
+	rm -f $(PROG) *.o $(COVFILES)
 
 test: all
 	./$(PROG)
