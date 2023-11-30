@@ -31,7 +31,7 @@
 // The wallet is a 3 of 5 multisig
 
 // Name: Bernardo Codesido
-// Role: Head of Security
+// Role: Head of Security at IOVlabs
 // Address: 0x922d80bd157dbf5f9be37c653a468ef36acc377e
 #define APK_MEMBER1                             \
     "\x04\x2d\x13\xf9\x69\xdd\xa8\xdb\xfd\x1b"  \
@@ -43,7 +43,7 @@
     "\x02\x63\x82\x97\x70"
 
 // Name: Tim Paymans
-// Role: Chief of Product
+// Role: Chief of Product at IOVlabs
 // Address: 0xf7ac04052ddcaa351e23c7d29659a15c2bc6648f
 #define APK_MEMBER2                             \
     "\x04\x1b\x08\xba\xd6\xca\xfc\x11\xaf\x01"  \
@@ -55,7 +55,7 @@
     "\x5d\x6c\x3b\x38\x6e"
 
 // Name: Jose Dahlquist
-// Role: Engineering Director
+// Role: Engineering Director at IOVlabs
 // Address: 0xa420af120ec6515870b65e811fa7ce147d491402
 #define APK_MEMBER3                             \
     "\x04\x3d\x92\xa6\x1c\x48\x8b\x72\xba\xb9"  \
@@ -67,7 +67,7 @@
     "\x92\xf4\xe3\x94\x9e"
 
 // Name: Henrik Jondell
-// Role: Chief of Technology
+// Role: Chief of Technology at IOVlabs
 // Address: 0xf1d5f8b99a9884ed80e033af596b1a6298c34b4b
 #define APK_MEMBER4                             \
     "\x04\x22\x4e\xd7\x3e\xa9\xba\x1e\xbd\x07"  \
@@ -79,7 +79,7 @@
     "\xac\x24\xe6\xe7\xf3"
 
 // Name: Daniel Fogg
-// Role: CEO
+// Role: CEO at IOVlabs
 // Address: 0x22e83204d1d86f3f02ed44dfa4e0c61cb40321e1
 #define APK_MEMBER5                             \
     "\x04\x83\x97\xb7\xd9\x85\xb5\x32\x82\x26"  \
