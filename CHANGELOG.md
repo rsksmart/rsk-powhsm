@@ -1,5 +1,17 @@
 # Changelog
 
+## [4.0.2] - 01/12/2023
+
+### Features/enhancements
+
+- New signer upgrades wallet (Alpha)
+- Periodic unit and integration tests workflow run (every 24hs)
+
+### Fixes
+
+- Fixed failing middleware docker image build
+- Bumped certifi, urllib3 to address dependabot findings
+
 ## [4.0.1] - 14/06/2023
 
 ### Features/enhancements
