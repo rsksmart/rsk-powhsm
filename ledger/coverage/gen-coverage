@@ -26,6 +26,7 @@ if [[ $1 == "exec" ]]; then
 
     lcov --capture --directory $SRCDIR --list-full-path --output-file $BASEDIR/coverage.info
     genhtml $BASEDIR/coverage.info --output $BASEDIR/output -p $SRCDIR
+    lcov --summary $BASEDIR/coverage.info | grep lines | sed -e "s/.\+lines.\+: \([[:digit:].]\+\).\+/\1/g" > $BASEDIR/output/total
     mv $BASEDIR/coverage.info $BASEDIR/output
 else
     # Script directory
