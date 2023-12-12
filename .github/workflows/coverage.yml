@@ -2,6 +2,7 @@ name: "Code coverage"
 
 on:
   push:
+    branches: [ "master" ]
 
 jobs:
   coverage:
