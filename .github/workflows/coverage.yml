@@ -23,7 +23,11 @@ jobs:
           aws-region: ${{ secrets.CODECOVERAGE_AWS_REGION }}
 
       - name: Run middleware coverage script
-        run: middleware/test-all-coverage
+        run: |
+          middleware/test-all-coverage
+          COVPCT=$(cat middleware/coverage/total)
+          COVCOL=$(utils/coverage-color.sh $COVPCT)
+          echo "{ \"schemaVersion\": 1, \"label\": \"Middleware coverage\", \"message\": \"$COVPCT%\", \"color\": \"$COVCOL\" }" > middleware/coverage/badge.json
 
       - name: "Upload middleware coverage report"
         run: |
