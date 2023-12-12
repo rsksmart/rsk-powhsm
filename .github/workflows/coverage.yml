@@ -38,7 +38,11 @@ jobs:
             --no-progress --follow-symlinks --delete --only-show-errors
 
       - name: Run firmware coverage script
-        run: ledger/coverage/gen-coverage
+        run: |
+          ledger/coverage/gen-coverage
+          COVPCT=$(cat ledger/coverage/output/total)
+          COVCOL=$(utils/coverage-color.sh $COVPCT)
+          echo "{ \"schemaVersion\": 1, \"label\": \"Firmware coverage\", \"message\": \"$COVPCT%\", \"color\": \"$COVCOL\" }" > ledger/coverage/output/badge.json
 
       - name: "Upload firmware coverage report"
         run: |
