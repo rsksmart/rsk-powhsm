@@ -15,32 +15,36 @@ jobs:
       - name: Build the middleware docker image
         run: docker/mware/build
 
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.CODECOVERAGE_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.CODECOVERAGE_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.CODECOVERAGE_AWS_REGION }}
+
       - name: Run middleware coverage script
         run: middleware/test-all-coverage
 
       - name: "Upload middleware coverage report"
-        uses: jakejarvis/s3-sync-action@7ed8b112447abb09f1da74f3466e4194fc7a6311
-        with:
-          args: --sse aws:kms --sse-kms-key-id ${{ secrets.CODECOVERAGE_KMS_KEY_ID }} --follow-symlinks --delete
-        env:
-          AWS_S3_BUCKET: ${{ secrets.CODECOVERAGE_S3_BUCKET }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.CODECOVERAGE_AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.CODECOVERAGE_AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: us-east-1
-          SOURCE_DIR: middleware/coverage
-          DEST_DIR: middleware_coverage_report
+        run: |
+          aws s3 sync \
+            middleware/coverage/ \
+            s3://${{ secrets.CODECOVERAGE_S3_BUCKET }}/middleware_coverage_report \
+            --sse aws:kms --sse-kms-key-id ${{ secrets.CODECOVERAGE_KMS_KEY_ID }} \
+            --no-progress --follow-symlinks --delete --only-show-errors
 
       - name: Run firmware coverage script
         run: ledger/coverage/gen-coverage
 
       - name: "Upload firmware coverage report"
-        uses: jakejarvis/s3-sync-action@7ed8b112447abb09f1da74f3466e4194fc7a6311
-        with:
-          args: --sse aws:kms --sse-kms-key-id ${{ secrets.CODECOVERAGE_KMS_KEY_ID }} --follow-symlinks --delete
-        env:
-          AWS_S3_BUCKET: ${{ secrets.CODECOVERAGE_S3_BUCKET }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.CODECOVERAGE_AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.CODECOVERAGE_AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: us-east-1
-          SOURCE_DIR: ledger/coverage/output
-          DEST_DIR: firmware_coverage_report
+        run: |
+          aws s3 sync \
+            ledger/coverage/output/ \
+            s3://${{ secrets.CODECOVERAGE_S3_BUCKET }}/firmware_coverage_report \
+            --sse aws:kms --sse-kms-key-id ${{ secrets.CODECOVERAGE_KMS_KEY_ID }} \
+            --no-progress --follow-symlinks --delete --only-show-errors
+
+      - name: Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.CODECOVERAGE_CLOUDFRONT_DIST_ID }} --paths "/*"
