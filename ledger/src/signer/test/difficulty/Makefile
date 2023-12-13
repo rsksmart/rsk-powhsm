@@ -25,6 +25,8 @@ SRCDIR = ../../src
 COMMONPATH = ../../../common/src
 TCPSIGNERPATH = ../../../tcpsigner
 
+include ../../../../coverage/coverage.mk
+
 CFLAGS = -I $(SRCDIR) -I $(COMMONPATH) -I $(TCPSIGNERPATH) -I $(TESTCOMMONDIR) -DFEDHM_EMULATOR -DDEBUG_DIFF
 
 PROG = test.out
@@ -33,19 +35,19 @@ OBJS = test_fwk.o bigdigits.o bc_diff.o os.o test_difficulty.o
 all: $(PROG)
 
 $(PROG): $(OBJS)
-	$(CC) -o $@ $^
+	$(CC) $(COVFLAGS) -o $@ $^
 
 test_fwk.o: $(TESTCOMMONDIR)/test_fwk.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
 bigdigits.o: $(SRCDIR)/bigdigits.c
-	$(CC) $(CFLAGS) -c -o $@ $^
+	$(CC) $(CFLAGS) $(COVFLAGS) -c -o $@ $^
 
 os.o: $(TCPSIGNERPATH)/os.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
 bc_diff.o: $(SRCDIR)/bc_diff.c
-	$(CC) $(CFLAGS) -c -o $@ $^
+	$(CC) $(CFLAGS) $(COVFLAGS) -c -o $@ $^
 
 test_difficulty.o: test_difficulty.c test_fwk.o bigdigits.o bc_diff.o os.o
 
@@ -54,7 +56,7 @@ $(SRCDIR)/bc_diff.c: $(SRCDIR)/bc_diff.h $(SRCDIR)/bigdigits.h $(SRCDIR)/bigdtyp
 
 .PHONY: clean test
 clean:
-	rm -f $(PROG) ./*.o
+	rm -f $(PROG) *.o $(COVFILES)
 
 test: all
 	./$(PROG)

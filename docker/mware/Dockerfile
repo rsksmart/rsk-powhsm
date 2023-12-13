@@ -5,7 +5,8 @@ WORKDIR /hsm2
 RUN apt-get update && \
     apt-get install -y apt-utils vim && \
     apt-get install -y build-essential=12.9 && \
-    apt-get install -y git
+    apt-get install -y git && \
+    apt-get install -y lcov
 
 # Python package prerequisites
 RUN apt-get install -y \

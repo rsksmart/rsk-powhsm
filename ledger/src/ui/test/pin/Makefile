@@ -25,19 +25,21 @@ COMMONDIR = ../../../common/src
 MOCKDIR = ../mock
 CFLAGS = -I $(SRCDIR) -I $(MOCKDIR) -I ./ -I$(COMMONDIR)
 
+include ../../../../coverage/coverage.mk
+
 PROG = test.out
 OBJS = mock.o pin.o test_pin.o
 
 all: $(PROG)
 
 $(PROG): $(OBJS)
-	$(CC) -o $@ $^
+	$(CC) $(COVFLAGS) -o $@ $^
 
 test_pin.o: test_pin.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
 pin.o: $(SRCDIR)/pin.c
-	$(CC) $(CFLAGS) -c -o $@ $^
+	$(CC) $(CFLAGS) $(COVFLAGS) -c -o $@ $^
 
 mock.o: $(MOCKDIR)/mock.c
 	$(CC) $(CFLAGS) -c -o $@ $^
@@ -45,7 +47,7 @@ mock.o: $(MOCKDIR)/mock.c
 .PHONY: clean test
 
 clean:
-	rm -f $(PROG) ./*.o
+	rm -f $(PROG) *.o $(COVFILES)
 
 test: all
 	./$(PROG)

@@ -24,6 +24,8 @@ SRCPATH = ../signer/src
 COMMONPATH = ../common/src
 VPATH = $(SRCPATH):$(COMMONPATH)
 
+include ../../coverage/coverage.mk
+
 CFLAGS += -g -O0 -I$(SRCPATH) -I$(COMMONPATH) -I. -I /usr/local/include -DHSM_SIMULATOR
 CFLAGS += -Werror
 
@@ -50,10 +52,10 @@ OBJS = $(SIGN_OBJS) $(SIM_OBJS)
 
 all: $(PROG)
 $(PROG): $(OBJS)
-	$(CC) -o $@ $(CFLAGS) $(OBJS) $(LDFLAGS)
+	$(CC) $(COVFLAGS) -o $@ $(CFLAGS) $(OBJS) $(LDFLAGS)
 
 $(OBJDIR)/%.o: %.c $(DEPDIR)/%.d | $(DEPDIR)
-	$(COMPILE.c) -o $@ $<
+	$(COMPILE.c) $(COVFLAGS) -o $@ $<
 
 $(DEPDIR): ; @mkdir -p $@
 DEPFILES := $(patsubst $(DEPDIR)/$(SRCPATH)/%.d, $(DEPDIR)/%.d, $(SRCS:%.c=$(DEPDIR)/%.d)) $(patsubst $(DEPDIR)/$(COMMONPATH)/%.d, $(DEPDIR)/%.d, $(SRCS:%.c=$(DEPDIR)/%.d))
@@ -64,4 +66,4 @@ include $(wildcard $(DEPFILES))
 
 .PHONY: clean
 clean:
-	rm -rf $(PROG) $(OBJDIR)
+	rm -rf $(PROG) $(OBJDIR) $(COVFILES)

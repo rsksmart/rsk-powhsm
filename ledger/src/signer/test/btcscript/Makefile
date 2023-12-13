@@ -25,19 +25,21 @@ SRCDIR = ../../src
 TCPSIGNERSRCDIR = ../../../tcpsigner
 CFLAGS = -I $(SRCDIR) -I $(TCPSIGNERSRCDIR) -I $(TESTCOMMONDIR)
 
+include ../../../../coverage/coverage.mk
+
 PROG = test.out
 OBJS = test_fwk.o btcscript.o hex_reader.o test_btcscript.o
 
 all: $(PROG)
 
 $(PROG): $(OBJS)
-	$(CC) -o $@ $^
+	$(CC) $(COVFLAGS) -o $@ $^
 
 test_fwk.o: $(TESTCOMMONDIR)/test_fwk.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
 btcscript.o: $(SRCDIR)/btcscript.c
-	$(CC) $(CFLAGS) -c -o $@ $^
+	$(CC) $(CFLAGS) $(COVFLAGS) -c -o $@ $^
 
 hex_reader.o: $(TCPSIGNERSRCDIR)/hex_reader.c
 	$(CC) $(CFLAGS) -c -o $@ $^
@@ -49,7 +51,7 @@ $(TCPSIGNERSRCDIR)/hex_reader.c: $(TCPSIGNERSRCDIR)/hex_reader.h
 
 .PHONY: clean test
 clean:
-	rm -f $(PROG) ./*.o
+	rm -f $(PROG) *.o $(COVFILES)
 
 test: all
 	./$(PROG)
