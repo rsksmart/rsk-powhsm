@@ -55,25 +55,6 @@ static uint32_t curr_block;
 // Expected OP for next message
 static uint8_t expected_state;
 
-/*
- * Store the given buffer in the block's work area.
- *
- * @arg[in] buf  buffer to store
- * @arg[in] size buffer size in bytes
- */
-static void wa_store(const uint8_t* buf, uint16_t size) {
-    SAFE_MEMMOVE(block.wa_buf,
-                 sizeof(block.wa_buf),
-                 block.wa_off,
-                 buf,
-                 size,
-                 MEMMOVE_ZERO_OFFSET,
-                 size,
-                 FAIL(BUFFER_OVERFLOW));
-
-    block.wa_off += size;
-}
-
 // -----------------------------------------------------------------------
 // Update ancestor validations
 // -----------------------------------------------------------------------
@@ -194,20 +175,20 @@ static void str_chunk(const uint8_t* chunk, const size_t size) {
     }
 
     if (block.field == F_PARENT_HASH) {
-        wa_store(chunk, size);
+        WA_STORE(chunk, size);
     }
 
     // Store receipt only for last block
     if (block.field == F_RECEIPT_ROOT && curr_block + 1 == expected_blocks) {
-        wa_store(chunk, size);
+        WA_STORE(chunk, size);
     }
 
     if (block.field == F_BLOCK_NUM) {
-        wa_store(chunk, size);
+        WA_STORE(chunk, size);
     }
 
     if (block.field == F_MM_HEADER) {
-        wa_store(chunk, size);
+        WA_STORE(chunk, size);
     }
 
     if (SHOULD_COMPUTE_BLOCK_HASH) {

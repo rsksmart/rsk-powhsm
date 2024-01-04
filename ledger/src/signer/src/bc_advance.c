@@ -83,25 +83,6 @@ static uint8_t expected_state;
 // -----------------------------------------------------------------------
 
 /*
- * Store the given buffer in the block's work area.
- *
- * @arg[in] buf  buffer to store
- * @arg[in] size buffer size in bytes
- */
-static void wa_store(const uint8_t* buf, uint16_t size) {
-    SAFE_MEMMOVE(block.wa_buf,
-                 sizeof(block.wa_buf),
-                 block.wa_off,
-                 buf,
-                 size,
-                 MEMMOVE_ZERO_OFFSET,
-                 size,
-                 FAIL(BUFFER_OVERFLOW));
-
-    block.wa_off += size;
-}
-
-/*
  * Process merkle proof chunk.
  *
  * @arg[in] chunk pointer to chunk to process
@@ -123,7 +104,7 @@ static void process_merkle_proof(const uint8_t* chunk, uint16_t size) {
         if (block.wa_off < HASH_SIZE) {
             uint8_t old_offset = offset;
             offset += HASH_SIZE - block.wa_off;
-            wa_store(chunk + old_offset, HASH_SIZE - block.wa_off);
+            WA_STORE(chunk + old_offset, HASH_SIZE - block.wa_off);
         }
         fold_left(&block.ctx, block.merkle_proof_left, block.wa_buf);
         block.wa_off = 0;
@@ -131,7 +112,7 @@ static void process_merkle_proof(const uint8_t* chunk, uint16_t size) {
 
     // Copy any remaining bytes in the chunk to the work area
     if (offset < size) {
-        wa_store(chunk + offset, size - offset);
+        WA_STORE(chunk + offset, size - offset);
     }
 }
 
@@ -573,23 +554,23 @@ static void str_chunk(const uint8_t* chunk, const size_t size) {
     }
 
     if (block.field == F_PARENT_HASH) {
-        wa_store(chunk, size);
+        WA_STORE(chunk, size);
     }
 
     if (block.field == F_BLOCK_DIFF) {
-        wa_store(chunk, size);
+        WA_STORE(chunk, size);
     }
 
     if (block.field == F_BLOCK_NUM) {
-        wa_store(chunk, size);
+        WA_STORE(chunk, size);
     }
 
     if (block.field == F_MM_HEADER) {
-        wa_store(chunk, size);
+        WA_STORE(chunk, size);
     }
 
     if (block.field == F_UMM_ROOT && HAS_FLAG(block.flags, HAS_UMM_ROOT)) {
-        wa_store(chunk, size);
+        WA_STORE(chunk, size);
     }
 
     if (block.field == F_MERKLE_PROOF && !BLOCK_ALREADY_VALID()) {
