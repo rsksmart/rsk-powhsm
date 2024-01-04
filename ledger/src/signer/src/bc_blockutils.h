@@ -73,4 +73,19 @@
 #define MM_HASH_LAST_FIELD \
     (block.network_upgrade >= NU_PAPYRUS ? F_UMM_ROOT : F_UMM_ROOT - 1)
 
+// Store the given buffer in the block's work area
+#define WA_STORE(buf, bufsize)               \
+    {                                        \
+        SAFE_MEMMOVE(block.wa_buf,           \
+                     sizeof(block.wa_buf),   \
+                     block.wa_off,           \
+                     (buf),                  \
+                     (bufsize),              \
+                     MEMMOVE_ZERO_OFFSET,    \
+                     (bufsize),              \
+                     FAIL(BUFFER_OVERFLOW)); \
+                                             \
+        block.wa_off += (bufsize);           \
+    }
+
 #endif // __BC_BLOCKUTILS_H
