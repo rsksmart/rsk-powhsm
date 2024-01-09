@@ -1,0 +1,35 @@
+name: "Static analysis"
+
+on:
+  push:
+    branches: [ "master" ]
+
+jobs:
+  static-analysis:
+    name: Run ledger static analysis
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v3
+
+      - name: Build the ledger docker image
+        run: docker/ledger/build
+
+      - name: Run static analysis
+        id: static-analysis
+        continue-on-error: true
+        run: |
+          ledger/static-analysis/gen-static-analysis
+      
+      - name: Upload static analysis reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: static-analysis-reports
+          path: ledger/static-analysis/output
+
+      - name: Report static analysis findings
+        if: steps.static-analysis.outcome != 'success'
+        run: |
+          echo "Static analysis reported findings. Check static-analysis-reports for a complete report." \
+            > $GITHUB_STEP_SUMMARY
