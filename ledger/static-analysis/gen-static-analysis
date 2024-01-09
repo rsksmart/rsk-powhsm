@@ -1,0 +1,58 @@
+#!/bin/bash
+
+if [[ $1 == "exec" ]]; then
+    BASEDIR=$(realpath $(dirname $0))
+    SRCDIR=$(realpath $BASEDIR/../src)
+    REPOROOT=$(realpath $BASEDIR/../..)
+    SIGNER_SRC_DIR=$REPOROOT/ledger/src/signer
+    UI_SRC_DIR=$REPOROOT/ledger/src/ui
+    SIGNER_OUTPUT=$BASEDIR/output/signer
+    UI_OUTPUT=$BASEDIR/output/ui
+
+    # Remove any existing static analysis data
+    rm -rf $SIGNER_OUTPUT $UI_OUTPUT
+
+    # Generate Signer static analysis report
+    echo Running static analysis on $SIGNER_SRC_DIR...
+    cd $SIGNER_SRC_DIR
+    CHECKPOINT=e108960a242ad7bd45c21aff9c7ed9c516789e9cffacdd895502727d8f460d2c
+    TARGET_DIFFICULTY=0x6e
+    NETWORK=regtest
+    BUILD_CMD="make CHECKPOINT=$CHECKPOINT TARGET_DIFFICULTY=$TARGET_DIFFICULTY NETWORK=$NETWORK"
+    make clean
+    scan-build \
+        --use-cc=/usr/bin/clang \
+        --exclude /opt \
+        --show-description \
+        --status-bugs \
+        -o $SIGNER_OUTPUT \
+        $BUILD_CMD
+    signer_err_code=$?
+
+    # Generate UI static analysis report
+    echo Running static analysis on $UI_SRC_DIR...
+    cd $UI_SRC_DIR
+    SIGNER_HASH=5f25813b2c5db0bb803bccb6b56707dd7c2ec60434e674c6dcc8da8e7121bad2
+    SIGNER_ITERATION=1
+    SIGNERS_FILE=testing
+    BUILD_CMD="make SIGNER_HASH=$SIGNER_HASH SIGNER_ITERATION=$SIGNER_ITERATION SIGNERS_FILE=$SIGNERS_FILE"
+    make clean
+    scan-build \
+        --use-cc=/usr/bin/clang \
+        --exclude /opt \
+        --show-description \
+        --status-bugs \
+        -o $UI_OUTPUT \
+        $BUILD_CMD
+    ui_err_code=$?
+
+    err_code=$((signer_err_code | ui_err_code))
+else
+   # Script directory
+    REPOROOT=$(realpath $(dirname $0)/../..)
+    SCRIPT=$(realpath $0 --relative-to=$REPOROOT)
+
+    $REPOROOT/docker/ledger/do-notty /hsm2 "./$SCRIPT exec"
+fi
+
+exit $err_code
