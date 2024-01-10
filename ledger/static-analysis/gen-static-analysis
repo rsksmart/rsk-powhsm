@@ -21,7 +21,7 @@ if [[ $1 == "exec" ]]; then
     BUILD_CMD="make CHECKPOINT=$CHECKPOINT TARGET_DIFFICULTY=$TARGET_DIFFICULTY NETWORK=$NETWORK"
     make clean
     scan-build \
-        --use-cc=/usr/bin/clang \
+        --use-cc=${CLANGPATH}clang \
         --exclude /opt \
         --show-description \
         --status-bugs \
@@ -38,7 +38,7 @@ if [[ $1 == "exec" ]]; then
     BUILD_CMD="make SIGNER_HASH=$SIGNER_HASH SIGNER_ITERATION=$SIGNER_ITERATION SIGNERS_FILE=$SIGNERS_FILE"
     make clean
     scan-build \
-        --use-cc=/usr/bin/clang \
+        --use-cc=${CLANGPATH}clang \
         --exclude /opt \
         --show-description \
         --status-bugs \
