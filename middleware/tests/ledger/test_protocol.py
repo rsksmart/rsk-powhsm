@@ -31,7 +31,8 @@ from ledger.hsm2dongle import (
     HSM2DongleErrorResult,
     HSM2DongleTimeoutError,
     HSM2DongleCommError,
-    HSM2FirmwareParameters
+    HSM2FirmwareParameters,
+    SighashComputationMode,
 )
 from ledger.version import HSM2FirmwareVersion
 
@@ -157,7 +158,7 @@ class TestHSM2ProtocolLedger(TestCase):
     @patch("ledger.protocol.get_tx_hash")
     @patch("ledger.protocol.get_unsigned_tx")
     @patch("comm.protocol.BIP32Path")
-    def test_sign_authorized_ok(self, BIP32PathMock, get_unsigned_tx_mock, _):
+    def test_sign_authorized_legacy_ok(self, BIP32PathMock, get_unsigned_tx_mock, _):
         BIP32PathMock.return_value = "the-key-id"
         signature = Mock(r="this-is-r", s="this-is-s")
         self.dongle.sign_authorized.return_value = (True, signature)
@@ -180,6 +181,7 @@ class TestHSM2ProtocolLedger(TestCase):
                     "receipt_merkle_proof": ["cc", "dd"]
                 },
                 "message": {
+                    "sighashComputationMode": "legacy",
                     "tx": "eeff",
                     "input": 12
                 },
@@ -194,6 +196,61 @@ class TestHSM2ProtocolLedger(TestCase):
                     receipt_merkle_proof=["cc", "dd"],
                     btc_tx="the-unsigned-tx",
                     input_index=12,
+                    sighash_computation_mode=SighashComputationMode.LEGACY,
+                    witness_script=None,
+                    outpoint_value=None,
+                )
+            ],
+            self.dongle.sign_authorized.call_args_list,
+        )
+        self.assertFalse(self.dongle.disconnect.called)
+
+    @patch("ledger.protocol.get_tx_hash")
+    @patch("ledger.protocol.get_unsigned_tx")
+    @patch("comm.protocol.BIP32Path")
+    def test_sign_authorized_segwit_ok(self, BIP32PathMock, get_unsigned_tx_mock, _):
+        BIP32PathMock.return_value = "the-key-id"
+        signature = Mock(r="this-is-r", s="this-is-s")
+        self.dongle.sign_authorized.return_value = (True, signature)
+        get_unsigned_tx_mock.return_value = "the-unsigned-tx"
+
+        self.assertEqual(
+            {
+                "errorcode": 0,
+                "signature": {
+                    "r": "this-is-r",
+                    "s": "this-is-s"
+                }
+            },
+            self.protocol.handle_request({
+                "version": 4,
+                "command": "sign",
+                "keyId": "m/44'/1'/2'/3/4",
+                "auth": {
+                    "receipt": "aa",
+                    "receipt_merkle_proof": ["cc", "dd"]
+                },
+                "message": {
+                    "sighashComputationMode": "segwit",
+                    "tx": "eeff",
+                    "input": 12,
+                    "witnessScript": "aabbccddeeff",
+                    "outpointValue": 123000456
+                },
+            }),
+        )
+
+        self.assertEqual(
+            [
+                call(
+                    key_id="the-key-id",
+                    rsk_tx_receipt="aa",
+                    receipt_merkle_proof=["cc", "dd"],
+                    btc_tx="the-unsigned-tx",
+                    input_index=12,
+                    sighash_computation_mode=SighashComputationMode.SEGWIT,
+                    witness_script="aabbccddeeff",
+                    outpoint_value=123000456,
                 )
             ],
             self.dongle.sign_authorized.call_args_list,
@@ -211,7 +268,7 @@ class TestHSM2ProtocolLedger(TestCase):
     @patch("ledger.protocol.get_tx_hash")
     @patch("ledger.protocol.get_unsigned_tx")
     @patch("comm.protocol.BIP32Path")
-    def test_sign_authorized_error(
+    def test_sign_authorized_legacy_error(
         self,
         _,
         dongle_error_code,
@@ -235,6 +292,7 @@ class TestHSM2ProtocolLedger(TestCase):
                     "receipt_merkle_proof": ["cc", "dd"]
                 },
                 "message": {
+                    "sighashComputationMode": "legacy",
                     "tx": "eeff",
                     "input": 12
                 },
@@ -249,6 +307,70 @@ class TestHSM2ProtocolLedger(TestCase):
                     receipt_merkle_proof=["cc", "dd"],
                     btc_tx="the-unsigned-tx",
                     input_index=12,
+                    sighash_computation_mode=SighashComputationMode.LEGACY,
+                    witness_script=None,
+                    outpoint_value=None,
+                )
+            ],
+            self.dongle.sign_authorized.call_args_list,
+        )
+        self.assertFalse(self.dongle.disconnect.called)
+
+    @parameterized.expand([
+        ("path", -1, -103),
+        ("btc_tx", -2, -102),
+        ("receipt", -3, -101),
+        ("merkle_proof", -4, -101),
+        ("unexpected", -10, -905),
+        ("unknown", -100, -906),
+    ])
+    @patch("ledger.protocol.get_tx_hash")
+    @patch("ledger.protocol.get_unsigned_tx")
+    @patch("comm.protocol.BIP32Path")
+    def test_sign_authorized_segwit_error(
+        self,
+        _,
+        dongle_error_code,
+        protocol_error_code,
+        BIP32PathMock,
+        get_unsigned_tx_mock,
+        __,
+    ):
+        BIP32PathMock.return_value = "the-key-id"
+        self.dongle.sign_authorized.return_value = (False, dongle_error_code)
+        get_unsigned_tx_mock.return_value = "the-unsigned-tx"
+
+        self.assertEqual(
+            {"errorcode": protocol_error_code},
+            self.protocol.handle_request({
+                "version": 4,
+                "command": "sign",
+                "keyId": "m/44'/1'/2'/3/4",
+                "auth": {
+                    "receipt": "aa",
+                    "receipt_merkle_proof": ["cc", "dd"]
+                },
+                "message": {
+                    "sighashComputationMode": "segwit",
+                    "tx": "eeff",
+                    "input": 12,
+                    "witnessScript": "aabbccddeeff",
+                    "outpointValue": 123000456
+                },
+            }),
+        )
+
+        self.assertEqual(
+            [
+                call(
+                    key_id="the-key-id",
+                    rsk_tx_receipt="aa",
+                    receipt_merkle_proof=["cc", "dd"],
+                    btc_tx="the-unsigned-tx",
+                    input_index=12,
+                    sighash_computation_mode=SighashComputationMode.SEGWIT,
+                    witness_script="aabbccddeeff",
+                    outpoint_value=123000456,
                 )
             ],
             self.dongle.sign_authorized.call_args_list,
@@ -258,7 +380,7 @@ class TestHSM2ProtocolLedger(TestCase):
     @patch("ledger.protocol.get_tx_hash")
     @patch("ledger.protocol.get_unsigned_tx")
     @patch("comm.protocol.BIP32Path")
-    def test_sign_authorized_timeout(self, BIP32PathMock, get_unsigned_tx_mock, _):
+    def test_sign_authorized_legacy_timeout(self, BIP32PathMock, get_unsigned_tx_mock, _):
         BIP32PathMock.return_value = "the-key-id"
         self.dongle.sign_authorized.side_effect = HSM2DongleTimeoutError()
         get_unsigned_tx_mock.return_value = "the-unsigned-tx"
@@ -274,6 +396,7 @@ class TestHSM2ProtocolLedger(TestCase):
                     "receipt_merkle_proof": ["cc", "dd"]
                 },
                 "message": {
+                    "sighashComputationMode": "legacy",
                     "tx": "eeff",
                     "input": 12
                 },
@@ -288,6 +411,9 @@ class TestHSM2ProtocolLedger(TestCase):
                     receipt_merkle_proof=["cc", "dd"],
                     btc_tx="the-unsigned-tx",
                     input_index=12,
+                    sighash_computation_mode=SighashComputationMode.LEGACY,
+                    witness_script=None,
+                    outpoint_value=None,
                 )
             ],
             self.dongle.sign_authorized.call_args_list,
@@ -297,8 +423,53 @@ class TestHSM2ProtocolLedger(TestCase):
     @patch("ledger.protocol.get_tx_hash")
     @patch("ledger.protocol.get_unsigned_tx")
     @patch("comm.protocol.BIP32Path")
-    def test_sign_authorized_commerror_reconnection(self, BIP32PathMock,
-                                                    get_unsigned_tx_mock, _):
+    def test_sign_authorized_segwit_timeout(self, BIP32PathMock, get_unsigned_tx_mock, _):
+        BIP32PathMock.return_value = "the-key-id"
+        self.dongle.sign_authorized.side_effect = HSM2DongleTimeoutError()
+        get_unsigned_tx_mock.return_value = "the-unsigned-tx"
+
+        self.assertEqual(
+            {"errorcode": -905},
+            self.protocol.handle_request({
+                "version": 4,
+                "command": "sign",
+                "keyId": "m/44'/1'/2'/3/4",
+                "auth": {
+                    "receipt": "aa",
+                    "receipt_merkle_proof": ["cc", "dd"]
+                },
+                "message": {
+                    "sighashComputationMode": "segwit",
+                    "tx": "eeff",
+                    "input": 12,
+                    "witnessScript": "aabbccddeeff",
+                    "outpointValue": 123000456
+                },
+            }),
+        )
+
+        self.assertEqual(
+            [
+                call(
+                    key_id="the-key-id",
+                    rsk_tx_receipt="aa",
+                    receipt_merkle_proof=["cc", "dd"],
+                    btc_tx="the-unsigned-tx",
+                    input_index=12,
+                    sighash_computation_mode=SighashComputationMode.SEGWIT,
+                    witness_script="aabbccddeeff",
+                    outpoint_value=123000456,
+                )
+            ],
+            self.dongle.sign_authorized.call_args_list,
+        )
+        self.assertFalse(self.dongle.disconnect.called)
+
+    @patch("ledger.protocol.get_tx_hash")
+    @patch("ledger.protocol.get_unsigned_tx")
+    @patch("comm.protocol.BIP32Path")
+    def test_sign_authorized_legacy_commerror_reconnection(self, BIP32PathMock,
+                                                           get_unsigned_tx_mock, _):
         BIP32PathMock.return_value = "the-key-id"
         self.dongle.sign_authorized.side_effect = HSM2DongleCommError()
         get_unsigned_tx_mock.return_value = "the-unsigned-tx"
@@ -314,6 +485,7 @@ class TestHSM2ProtocolLedger(TestCase):
                     "receipt_merkle_proof": ["cc", "dd"]
                 },
                 "message": {
+                    "sighashComputationMode": "legacy",
                     "tx": "eeff",
                     "input": 12
                 },
@@ -328,6 +500,9 @@ class TestHSM2ProtocolLedger(TestCase):
                     receipt_merkle_proof=["cc", "dd"],
                     btc_tx="the-unsigned-tx",
                     input_index=12,
+                    sighash_computation_mode=SighashComputationMode.LEGACY,
+                    witness_script=None,
+                    outpoint_value=None,
                 )
             ],
             self.dongle.sign_authorized.call_args_list,
@@ -356,6 +531,7 @@ class TestHSM2ProtocolLedger(TestCase):
                     "receipt_merkle_proof": ["cc", "dd"]
                 },
                 "message": {
+                    "sighashComputationMode": "legacy",
                     "tx": "eeff",
                     "input": 12
                 },
@@ -367,7 +543,87 @@ class TestHSM2ProtocolLedger(TestCase):
     @patch("ledger.protocol.get_tx_hash")
     @patch("ledger.protocol.get_unsigned_tx")
     @patch("comm.protocol.BIP32Path")
-    def test_sign_authorized_exception(self, BIP32PathMock, get_unsigned_tx_mock, _):
+    def test_sign_authorized_segwit_commerror_reconnection(self, BIP32PathMock,
+                                                           get_unsigned_tx_mock, _):
+        BIP32PathMock.return_value = "the-key-id"
+        self.dongle.sign_authorized.side_effect = HSM2DongleCommError()
+        get_unsigned_tx_mock.return_value = "the-unsigned-tx"
+
+        self.assertEqual(
+            {"errorcode": -905},
+            self.protocol.handle_request({
+                "version": 4,
+                "command": "sign",
+                "keyId": "m/44'/1'/2'/3/4",
+                "auth": {
+                    "receipt": "aa",
+                    "receipt_merkle_proof": ["cc", "dd"]
+                },
+                "message": {
+                    "sighashComputationMode": "segwit",
+                    "tx": "eeff",
+                    "input": 12,
+                    "witnessScript": "aabbccddeeff",
+                    "outpointValue": 123000456
+                },
+            }),
+        )
+
+        self.assertEqual(
+            [
+                call(
+                    key_id="the-key-id",
+                    rsk_tx_receipt="aa",
+                    receipt_merkle_proof=["cc", "dd"],
+                    btc_tx="the-unsigned-tx",
+                    input_index=12,
+                    sighash_computation_mode=SighashComputationMode.SEGWIT,
+                    witness_script="aabbccddeeff",
+                    outpoint_value=123000456,
+                )
+            ],
+            self.dongle.sign_authorized.call_args_list,
+        )
+        self.assertFalse(self.dongle.disconnect.called)
+
+        # Reconnection logic
+        self.dongle.sign_authorized.side_effect = None
+        signature = Mock(r="this-is-r", s="this-is-s")
+        self.dongle.sign_authorized.return_value = (True, signature)
+
+        self.assertEqual(
+            {
+                "errorcode": 0,
+                "signature": {
+                    "r": "this-is-r",
+                    "s": "this-is-s"
+                }
+            },
+            self.protocol.handle_request({
+                "version": 4,
+                "command": "sign",
+                "keyId": "m/44'/1'/2'/3/4",
+                "auth": {
+                    "receipt": "aa",
+                    "receipt_merkle_proof": ["cc", "dd"]
+                },
+                "message": {
+                    "sighashComputationMode": "segwit",
+                    "tx": "eeff",
+                    "input": 12,
+                    "witnessScript": "001122",
+                    "outpointValue": 567000111
+                },
+            }),
+        )
+
+        self._assert_reconnected()
+
+    @patch("ledger.protocol.get_tx_hash")
+    @patch("ledger.protocol.get_unsigned_tx")
+    @patch("comm.protocol.BIP32Path")
+    def test_sign_authorized_legacy_exception(self, BIP32PathMock,
+                                              get_unsigned_tx_mock, _):
         BIP32PathMock.return_value = "the-key-id"
         self.dongle.sign_authorized.side_effect = HSM2DongleError()
         get_unsigned_tx_mock.return_value = "the-unsigned-tx"
@@ -382,6 +638,7 @@ class TestHSM2ProtocolLedger(TestCase):
                     "receipt_merkle_proof": ["cc", "dd"]
                 },
                 "message": {
+                    "sighashComputationMode": "legacy",
                     "tx": "eeff",
                     "input": 12
                 },
@@ -395,6 +652,9 @@ class TestHSM2ProtocolLedger(TestCase):
                     receipt_merkle_proof=["cc", "dd"],
                     btc_tx="the-unsigned-tx",
                     input_index=12,
+                    sighash_computation_mode=SighashComputationMode.LEGACY,
+                    witness_script=None,
+                    outpoint_value=None,
                 )
             ],
             self.dongle.sign_authorized.call_args_list,
@@ -404,8 +664,52 @@ class TestHSM2ProtocolLedger(TestCase):
     @patch("ledger.protocol.get_tx_hash")
     @patch("ledger.protocol.get_unsigned_tx")
     @patch("comm.protocol.BIP32Path")
-    def test_sign_authorized_error_unsigning(self, BIP32PathMock, get_unsigned_tx_mock,
-                                             _):
+    def test_sign_authorized_segwit_exception(self, BIP32PathMock,
+                                              get_unsigned_tx_mock, _):
+        BIP32PathMock.return_value = "the-key-id"
+        self.dongle.sign_authorized.side_effect = HSM2DongleError()
+        get_unsigned_tx_mock.return_value = "the-unsigned-tx"
+
+        with self.assertRaises(HSM2ProtocolError):
+            self.protocol.handle_request({
+                "version": 4,
+                "command": "sign",
+                "keyId": "m/44'/1'/2'/3/4",
+                "auth": {
+                    "receipt": "aa",
+                    "receipt_merkle_proof": ["cc", "dd"]
+                },
+                "message": {
+                    "sighashComputationMode": "segwit",
+                    "tx": "eeff",
+                    "input": 12,
+                    "witnessScript": "aabbccddeeff",
+                    "outpointValue": 123000456
+                },
+            })
+
+        self.assertEqual(
+            [
+                call(
+                    key_id="the-key-id",
+                    rsk_tx_receipt="aa",
+                    receipt_merkle_proof=["cc", "dd"],
+                    btc_tx="the-unsigned-tx",
+                    input_index=12,
+                    sighash_computation_mode=SighashComputationMode.SEGWIT,
+                    witness_script="aabbccddeeff",
+                    outpoint_value=123000456,
+                )
+            ],
+            self.dongle.sign_authorized.call_args_list,
+        )
+        self.assertFalse(self.dongle.disconnect.called)
+
+    @patch("ledger.protocol.get_tx_hash")
+    @patch("ledger.protocol.get_unsigned_tx")
+    @patch("comm.protocol.BIP32Path")
+    def test_sign_authorized_legacy_error_unsigning(self, BIP32PathMock,
+                                                    get_unsigned_tx_mock, _):
         BIP32PathMock.return_value = "the-key-id"
         get_unsigned_tx_mock.side_effect = RuntimeError()
 
@@ -420,8 +724,40 @@ class TestHSM2ProtocolLedger(TestCase):
                     "receipt_merkle_proof": ["cc", "dd"]
                 },
                 "message": {
+                    "sighashComputationMode": "legacy",
                     "tx": "eeff",
                     "input": 12
+                },
+            }),
+        )
+
+        self.assertFalse(self.dongle.sign_authorized.called)
+        self.assertFalse(self.dongle.disconnect.called)
+
+    @patch("ledger.protocol.get_tx_hash")
+    @patch("ledger.protocol.get_unsigned_tx")
+    @patch("comm.protocol.BIP32Path")
+    def test_sign_authorized_segwit_error_unsigning(self, BIP32PathMock,
+                                                    get_unsigned_tx_mock, _):
+        BIP32PathMock.return_value = "the-key-id"
+        get_unsigned_tx_mock.side_effect = RuntimeError()
+
+        self.assertEqual(
+            {"errorcode": -102},
+            self.protocol.handle_request({
+                "version": 4,
+                "command": "sign",
+                "keyId": "m/44'/1'/2'/3/4",
+                "auth": {
+                    "receipt": "aa",
+                    "receipt_merkle_proof": ["cc", "dd"]
+                },
+                "message": {
+                    "sighashComputationMode": "segwit",
+                    "tx": "eeff",
+                    "input": 12,
+                    "witnessScript": "aabbccddeeff",
+                    "outpointValue": 123000456
                 },
             }),
         )
@@ -447,6 +783,7 @@ class TestHSM2ProtocolLedger(TestCase):
                     "receipt_merkle_proof": ["cc", "dd"]
                 },
                 "message": {
+                    "sighashComputationMode": "legacy",
                     "tx": "invalid",
                     "input": 12
                 },
@@ -474,6 +811,7 @@ class TestHSM2ProtocolLedger(TestCase):
                     "receipt_merkle_proof": ["cc", "dd"],
                 },
                 "message": {
+                    "sighashComputationMode": "legacy",
                     "tx": "eeff",
                     "input": 12
                 },

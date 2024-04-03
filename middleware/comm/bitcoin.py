@@ -108,6 +108,33 @@ def get_signature_hash_for_p2sh_input(raw_tx_hex, input_index):
     return sighash.hex()
 
 
+def get_signature_hash_for_p2sh_p2wsh_input(raw_tx_hex, input_index,
+                                            witness_script_hex, amount):
+    # Given a raw BTC transaction, an input index, a raw witness script and
+    # an amount, this method computes the sighash corresponding to the given
+    # input index for segwit v0
+
+    tx = _deserialize_tx(raw_tx_hex)
+
+    if input_index < 0 or input_index >= len(tx.vin):
+        raise ValueError(
+            "Asked for signature hash of input at index %d but only %d input(s) available"
+            % (input_index, len(tx.vin))
+        )
+
+    try:
+        witness_script = bitcoin.core.CScript(bytes.fromhex(witness_script_hex))
+    except Exception:
+        raise ValueError("Invalid witness script: %s" % witness_script_hex)
+
+    sighash = bitcoin.core.script.SignatureHash(
+        witness_script, tx, input_index, bitcoin.core.script.SIGHASH_ALL,
+        amount, bitcoin.core.script.SIGVERSION_WITNESS_V0
+    )
+
+    return sighash.hex()
+
+
 def get_block_hash_as_int(raw_block_header_hex):
     block_header = _deserialize_block_header(raw_block_header_hex)
     return int.from_bytes(block_header.GetHash(), byteorder="little", signed=False)
@@ -116,6 +143,10 @@ def get_block_hash_as_int(raw_block_header_hex):
 def get_merkle_root(raw_block_header_hex):
     block_header = _deserialize_block_header(raw_block_header_hex)
     return block_header.hashMerkleRoot.hex()
+
+
+def encode_varint(v):
+    return bitcoin.core.VarIntSerializer.serialize(v).hex()
 
 
 def _deserialize_block_header(raw_block_header_hex):

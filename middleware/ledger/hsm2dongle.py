@@ -21,7 +21,7 @@
 # SOFTWARE.
 
 import struct
-from enum import IntEnum, auto
+from enum import IntEnum, Enum, auto
 from ledgerblue.comm import getDongle
 from ledgerblue.commException import CommException
 import hid
@@ -35,6 +35,7 @@ from .block_utils import (
     get_coinbase_txn,
     get_block_hash,
 )
+from comm.bitcoin import encode_varint
 from comm.pow import coinbase_tx_get_hash
 import logging
 
@@ -199,6 +200,8 @@ class _SignError(IntEnum):
     RECEIPT_HASH_MISMATCH = auto()
     NODE_CHAINING_MISMATCH = auto()
     RECEIPT_ROOT_MISMATCH = auto()
+    INVALID_SIGHASH_COMPUTATION_MODE = auto()
+    INVALID_EXTRADATA_SIZE = auto()
 
 
 # Get public key command errors
@@ -331,6 +334,18 @@ class _Response:
 class _Onboarding(IntEnum):
     SEED_LENGTH = 32
     TIMEOUT = 10
+
+
+# Sighash computation modes
+class SighashComputationMode(Enum):
+    def __new__(cls, *args, **kwds):
+        obj = object.__new__(cls)
+        obj._value_ = args[0]
+        obj.netvalue = args[1]
+        return obj
+
+    LEGACY = "legacy", 0
+    SEGWIT = "segwit", 1
 
 
 class HSM2DongleBaseError(RuntimeError):
@@ -620,8 +635,12 @@ class HSM2Dongle:
     # btc_tx: hex string
     # receipt_merkle_proof: list
     # input_index: int
+    # sighash_computation_mode: a SighashComputationMode instance
+    # witness_script: hex string
+    # outpoint_value: int
     def sign_authorized(
-        self, key_id, rsk_tx_receipt, receipt_merkle_proof, btc_tx, input_index
+        self, key_id, rsk_tx_receipt, receipt_merkle_proof, btc_tx, input_index,
+        sighash_computation_mode, witness_script, outpoint_value
     ):
         # *** Signing protocol ***
         # The order in which things are required and then sent is:
@@ -667,25 +686,60 @@ class HSM2Dongle:
                 return (False, self.RESPONSE.SIGN.ERROR_PATH)
             return (False, self.RESPONSE.SIGN.ERROR_UNEXPECTED)
 
-        # Step 2. Send BTC transaction
+        # Step 2. Send BTC transaction and extra data
         # Prefix the BTC transaction with the total length of the payload encoded as a
         # 4 bytes little endian unsigned integer. The total length should include
-        # those 4 bytes.
+        # those 4 bytes plus 2 bytes for the length of the extradata and 1 byte for
+        # the sighash computation mode
         try:
-            LENGTH_PREFIX_IN_BYTES = 4
+            PAYLOADLENGTH_LENGTH = 4
+            SIGHASH_COMPUTATION_MODE_LENGTH = 1
+            EXTRADATALENGTH_LENGTH = 2
+            OUTPOINT_VALUE_LENGTH = 8
 
             btc_tx_bytes = bytes.fromhex(btc_tx)
-            length_prefix_bytes = (len(btc_tx_bytes) + LENGTH_PREFIX_IN_BYTES).to_bytes(
-                LENGTH_PREFIX_IN_BYTES, byteorder="little", signed=False
+
+            scm_bytes = sighash_computation_mode.netvalue.to_bytes(
+                SIGHASH_COMPUTATION_MODE_LENGTH,
+                byteorder='little', signed=False
             )
 
-            data = length_prefix_bytes + btc_tx_bytes
+            ed_bytes = b""
+
+            if sighash_computation_mode == SighashComputationMode.SEGWIT:
+                ov_bytes = outpoint_value.to_bytes(
+                    OUTPOINT_VALUE_LENGTH,
+                    byteorder='little', signed=False
+                )
+
+                ws_bytes = bytes.fromhex(witness_script)
+                ws_length_bytes = bytes.fromhex(encode_varint(len(ws_bytes)))
+
+                ed_bytes = ws_length_bytes + ws_bytes + ov_bytes
+
+            edl_bytes = len(ed_bytes).to_bytes(
+                EXTRADATALENGTH_LENGTH,
+                byteorder='little', signed=False
+            )
+
+            payload_length = \
+                PAYLOADLENGTH_LENGTH + \
+                SIGHASH_COMPUTATION_MODE_LENGTH + \
+                EXTRADATALENGTH_LENGTH + \
+                len(btc_tx_bytes)
+
+            payload_length_bytes = payload_length.to_bytes(
+                PAYLOADLENGTH_LENGTH, byteorder="little", signed=False
+            )
+
+            data = payload_length_bytes + scm_bytes + edl_bytes + btc_tx_bytes + ed_bytes
 
             response = self._send_data_in_chunks(
                 command=self.CMD.SIGN,
                 operation=self.OP.SIGN.BTC_TX,
                 next_operations=[self.OP.SIGN.TX_RECEIPT],
                 data=data,
+                expect_full_data=True,
                 initial_bytes=bytes_requested,
                 operation_name="sign",
                 data_description="BTC tx",
@@ -702,6 +756,8 @@ class HSM2Dongle:
                 self.ERR.SIGN.DATA_SIZE,
                 self.ERR.SIGN.TX_HASH_MISMATCH,
                 self.ERR.SIGN.TX_VERSION,
+                self.ERR.SIGN.INVALID_SIGHASH_COMPUTATION_MODE,
+                self.ERR.SIGN.INVALID_EXTRADATA_SIZE,
             ]:
                 return (False, self.RESPONSE.SIGN.ERROR_BTC_TX)
             return (False, self.RESPONSE.SIGN.ERROR_UNEXPECTED)
@@ -713,6 +769,7 @@ class HSM2Dongle:
                 operation=self.OP.SIGN.TX_RECEIPT,
                 next_operations=[self.OP.SIGN.MERKLE_PROOF],
                 data=bytes.fromhex(rsk_tx_receipt),
+                expect_full_data=True,
                 initial_bytes=bytes_requested,
                 operation_name="sign",
                 data_description="tx receipt",
@@ -760,6 +817,7 @@ class HSM2Dongle:
                 operation=self.OP.SIGN.MERKLE_PROOF,
                 next_operations=[self.OP.SIGN.SUCCESS],
                 data=merkle_proof_bytes,
+                expect_full_data=True,
                 initial_bytes=bytes_requested,
                 operation_name="sign",
                 data_description="receipts merkle proof",
@@ -1365,6 +1423,7 @@ class HSM2Dongle:
                 operation=op_chunk,
                 next_operations=next_operations,
                 data=bytes.fromhex(block),
+                expect_full_data=False,
                 initial_bytes=bytes_requested,
                 operation_name=operation_name,
                 data_description=header_name,
@@ -1393,6 +1452,7 @@ class HSM2Dongle:
         operation,
         next_operations,
         data,
+        expect_full_data,
         initial_bytes,
         operation_name,
         data_description,
@@ -1437,6 +1497,17 @@ class HSM2Dongle:
 
             # We finish when the device requests the next piece of data
             finished = response[self.OFF.OP] != operation
+
+            # Have we finished but not sent all data when required to do so?
+            if expect_full_data and finished and total_bytes_sent < len(data):
+                self.logger.error(
+                    "%s: expected to send all %d data bytes but sent %d and got %s",
+                    operation_name.capitalize(),
+                    len(data),
+                    total_bytes_sent,
+                    response.hex()
+                )
+                return (False, response)
 
             # How many bytes to send in the next message
             if not finished:

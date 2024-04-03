@@ -37,31 +37,69 @@ For this operation, depending on the `keyId` parameter, there's two possible for
 
 ##### Authorized format
 
-This format is only valid for the BTC and tBTC key ids (see corresponding section for details).
+This format is only valid for the BTC and tBTC key ids (see corresponding section for
+details). In addition, there are two different sub-formats that can be used for authorized
+signing: legacy and segwit. These are shown in the following subsections.
+
+###### Legacy BTC transactions
+
+This sub-format is to be used when signing legacy (i.e., non-segwit) Bitcoin transaction
+inputs.
 
 ```
 {
     "command": "sign",
     "keyId": "xxxxx", // (*)
     "message": {
-        tx: "hhhh", // (**)
-        input: i // (***)
+        "sighashComputationMode": "legacy",
+        "tx": "hhhh", // (**)
+        "input": i // (***)
     },
     "auth": {
-        receipt: "hhhh",
-        receipt_merkle_proof: [
+        "receipt": "hhhh",
+        "receipt_merkle_proof": [
             "hhhh", "hhhh", ..., "hhhh"
         ]
     },
     "version": 4
 }
+```
 
+###### Segwit BTC transactions
+
+This sub-format is to be used when signing segwit Bitcoin transaction inputs.
+
+```
+{
+    "command": "sign",
+    "keyId": "xxxxx", // (*)
+    "message": {
+        "sighashComputationMode": "segwit",
+        "tx": "hhhh", // (**)
+        "input": i,  // (***)
+        "witnessScript": "hhhh", // (x)
+        "outpointValue": i // (xx)
+    },
+    "auth": {
+        "receipt": "hhhh",
+        "receipt_merkle_proof": [
+            "hhhh", "hhhh", ..., "hhhh"
+        ]
+    },
+    "version": 4
+}
+```
+
+```
 // (*) the given string must be the
 // BIP44 path of the key to use for signing.
 // See valid BIP44 paths below (BTC and tBTC for this format).
 // (**) the fully serialized BTC transaction
 // that needs to be signed.
 // (***) the input index of the BTC transaction
+// that needs to be signed.
+// (x) the witness script for the input that needs to be signed.
+// (xx) the outpoint value (i.e., amount of the UTXO) for the input 
 // that needs to be signed.
 //
 // For the signing process to be successful, the computed receipts trie root
@@ -72,14 +110,15 @@ This format is only valid for the BTC and tBTC key ids (see corresponding sectio
 
 ##### Non-authorized format
 
-This format is only valid for the RSK, MST, tRSK and tMST key ids (see corresponding section for details).
+This format is only valid for the RSK, MST, tRSK and tMST key ids (see corresponding
+section for details).
 
 ```
 {
     "command": "sign",
     "keyId": "xxxxx", // (*)
     "message": {
-        hash: "hhhh", // (**)
+        "hash": "hhhh", // (**)
     },
     "version": 4
 }
@@ -290,7 +329,7 @@ This operation can return `0` and generic errors. See the error codes section fo
 ```
 {
     "command": "signerHeartbeat",
-    "udValue: "hhhh" (*),
+    "udValue": "hhhh" (*),
     "version": 4
 }
 
@@ -324,7 +363,7 @@ This operation can return `0`, `-301` and generic errors. See the error codes se
 ```
 {
     "command": "uiHeartbeat",
-    "udValue: "hhhh" (*),
+    "udValue": "hhhh" (*),
     "version": 4
 }
 

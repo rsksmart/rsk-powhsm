@@ -38,7 +38,7 @@ import logging
 logging.disable(logging.CRITICAL)
 
 
-class _TestHSM2DongleBase(TestCase):
+class TestHSM2DongleBase(TestCase):
     DONGLE_EXCHANGE_TIMEOUT = 10
 
     CHUNK_ERROR_MAPPINGS = [
@@ -82,6 +82,32 @@ class _TestHSM2DongleBase(TestCase):
     def buf(self, size):
         return bytes(map(lambda b: b % 256, range(size)))
 
+    def parse_exchange_spec(self, spec, stop=None, replace=None):
+        rqs = []
+        rps = []
+        rq = True
+        stopped = False
+        for line in spec:
+            delim = ">" if rq else "<"
+            delim_pos = line.find(delim)
+            if delim_pos == -1:
+                raise RuntimeError("Invalid spec prefix")
+            name = line[:delim_pos].strip()
+            if name == stop:
+                if replace is not None:
+                    (rqs if rq else rps).append(replace)
+                stopped = True
+                break
+            (rqs if rq else rps).append(
+                bytes.fromhex("80" + line[delim_pos+1:].replace(" ", ""))
+            )
+            rq = not rq
+
+        if stop is not None and not stopped:
+            raise RuntimeError(f"Invalid spec parsing: specified stop at '{stop}' "
+                               "but exchange not found")
+        return {"requests": rqs, "responses": rps}
+
     def spec_to_exchange(self, spec, trim=False):
         trim_length = spec[0][-1] if trim else 0
         block_size = len(spec[0]) - trim_length
@@ -109,12 +135,17 @@ class _TestHSM2DongleBase(TestCase):
         return exchanges
 
     def assert_exchange(self, payloads, timeouts=None):
+        def ensure_cla(bs):
+            if bs[0] != 0x80:
+                return bytes([0x80]) + bs
+            return bs
+
         if timeouts is None:
             timeouts = [None]*len(payloads)
         calls = list(
             map(
                 lambda z: call(
-                    bytes([0x80]) + bytes(z[0]),
+                    ensure_cla(bytes(z[0])),
                     timeout=(z[1] if z[1] is not None else self.DONGLE_EXCHANGE_TIMEOUT),
                 ),
                 zip(payloads, timeouts),
@@ -136,14 +167,38 @@ class _TestHSM2DongleBase(TestCase):
                 msg="%dth exchange failed" % (i + 1),
             )
 
+    def do_sign_auth(self, spec):
+        return self.hsm2dongle.sign_authorized(
+            key_id=spec["keyid"],
+            rsk_tx_receipt=spec["receipt"],
+            receipt_merkle_proof=spec["mp"],
+            btc_tx=spec["tx"],
+            input_index=spec["input"],
+            sighash_computation_mode=spec["mode"],
+            witness_script=spec["ws"],
+            outpoint_value=spec["ov"],
+        )
 
-class TestHSM2Dongle(_TestHSM2DongleBase):
+    def process_sign_auth_spec(self, spec, stop=None, replace=None):
+        pex = self.parse_exchange_spec(spec["exchanges"], stop=stop, replace=replace)
+        spec["requests"] = pex["requests"]
+        spec["responses"] = pex["responses"]
+        self.dongle.exchange.side_effect = spec["responses"]
+        return spec
+
+
+class TestHSM2Dongle(TestHSM2DongleBase):
     def test_dongle_error_codes(self):
         # Make sure enums are ok wrt signer definitions by testing a couple
         # of arbitrary values
-        self.assertEqual(27532, self.hsm2dongle.ERR.ADVANCE.RECEIPT_ROOT_INVALID.value)
-        self.assertEqual(27539, self.hsm2dongle.ERR.ADVANCE.MM_RLP_LEN_MISMATCH.value)
-        self.assertEqual(27553, self.hsm2dongle.ERR.ADVANCE.BROTHER_ORDER_INVALID.value)
+        self.assertEqual(0x6B8C, self.hsm2dongle.ERR.ADVANCE.RECEIPT_ROOT_INVALID.value)
+        self.assertEqual(0x6B93, self.hsm2dongle.ERR.ADVANCE.MM_RLP_LEN_MISMATCH.value)
+        self.assertEqual(0x6BA1, self.hsm2dongle.ERR.ADVANCE.BROTHER_ORDER_INVALID.value)
+        self.assertEqual(0x6A8F, self.hsm2dongle.ERR.SIGN.INVALID_PATH)
+        self.assertEqual(
+            0x6A97,
+            self.hsm2dongle.ERR.SIGN.INVALID_SIGHASH_COMPUTATION_MODE.value
+        )
 
     def test_connects_ok(self):
         self.assertEqual([call("a-debug-value")], self.getDongleMock.call_args_list)
@@ -335,703 +390,8 @@ class TestHSM2Dongle(_TestHSM2DongleBase):
             self.assertEqual("aabbccddee", self.hsm2dongle.get_public_key(key_id))
         self.assert_exchange([[0x04, 0x11, 0x22, 0x33, 0x44]])
 
-    @patch("ledger.hsm2dongle.HSM2DongleSignature")
-    def test_sign_authorized_ok(self, HSM2DongleSignatureMock):
-        HSM2DongleSignatureMock.return_value = "the-signature"
-        self.dongle.exchange.side_effect = [
-            bytes([0, 0, 0x02, 0x09]),  # Response to key id, request 9 bytes of BTC tx
-            bytes([0, 0, 0x02, 0x03
-                   ]),  # Response to first chunk of BTC tx, request additional 4 bytes
-            bytes([
-                0, 0, 0x04, 0x04
-            ]),  # Response to second chunk of BTC tx, request first 4 bytes of receipt
-            bytes([0, 0, 0x04, 0x06
-                   ]),  # Response to first chunk of receipt, request additional 6 bytes
-            bytes([0, 0, 0x08, 0x04
-                   ]),  # Response to second chunk of receipt, request first 4 bytes of MP
-            bytes([0, 0, 0x08,
-                   0x03]),  # Response to first chunk of MP, request additional 3 bytes
-            bytes([0, 0, 0x08,
-                   0x07]),  # Response to second chunk of MP, request additional 7 bytes
-            bytes([0, 0, 0x81, 0xAA, 0xBB, 0xCC,
-                   0xDD]),  # Response to second third of MP, sucess and signature
-        ]
-        key_id = Mock(**{"to_binary.return_value": bytes.fromhex("11223344")})
-        self.assertEqual(
-            (True, "the-signature"),
-            self.hsm2dongle.sign_authorized(
-                key_id=key_id,
-                rsk_tx_receipt="00112233445566778899",
-                receipt_merkle_proof=["334455", "6677", "aabbccddee"],
-                btc_tx="aabbccddeeff7788",
-                input_index=1234,
-            ),
-        )
 
-        self.assert_exchange([
-            [
-                0x02,
-                0x01,
-                0x11,
-                0x22,
-                0x33,
-                0x44,
-                0xD2,
-                0x04,
-                0x00,
-                0x00,
-            ],  # Path and input index
-            [
-                0x02,
-                0x02,
-                0x0C,
-                0x00,
-                0x00,
-                0x00,
-                0xAA,
-                0xBB,
-                0xCC,
-                0xDD,
-                0xEE,
-            ],  # Length of payload plus first chunk of BTC tx
-            [0x02, 0x02, 0xFF, 0x77, 0x88],  # Second chunk of BTC tx
-            [0x02, 0x04, 0x00, 0x11, 0x22, 0x33],  # First chunk of receipt
-            [
-                0x02,
-                0x04,
-                0x44,
-                0x55,
-                0x66,
-                0x77,
-                0x88,
-                0x99,
-            ],  # Second chunk of receipt
-            [0x02, 0x08, 0x03, 0x03, 0x33, 0x44],  # First chunk of MP
-            [0x02, 0x08, 0x55, 0x02, 0x66],  # Second chunk of MP
-            [
-                0x02,
-                0x08,
-                0x77,
-                0x05,
-                0xAA,
-                0xBB,
-                0xCC,
-                0xDD,
-                0xEE,
-            ],  # Third chunk of MP
-        ])
-        self.assertEqual(
-            [call(bytes([0xAA, 0xBB, 0xCC, 0xDD]))],
-            HSM2DongleSignatureMock.call_args_list,
-        )
-
-    @parameterized.expand([
-        ("data_size", 0x6A87, -4),
-        ("state", 0x6A89, -4),
-        ("node_version", 0x6A92, -4),
-        ("shared_prefix_too_big", 0x6A93, -4),
-        ("receipt_hash_mismatch", 0x6A94, -4),
-        ("node_chaining_mismatch", 0x6A95, -4),
-        ("receipt_root_mismatch", 0x6A96, -4),
-        ("unknown", 0x6AFF, -10),
-        ("unexpected", [0, 0, 0xFF], -10),
-    ])
-    def test_sign_authorized_mp_invalid(self, _, device_error, expected_response):
-        if type(device_error) == int:
-            last_exchange = CommException("msg", device_error)
-        else:
-            last_exchange = bytes(device_error)
-        self.dongle.exchange.side_effect = [
-            bytes([0, 0, 0x02, 0x09]),  # Response to key id, request 9 bytes of BTC tx
-            bytes([0, 0, 0x02, 0x03
-                   ]),  # Response to first chunk of BTC tx, request additional 4 bytes
-            bytes([
-                0, 0, 0x04, 0x04
-            ]),  # Response to second chunk of BTC tx, request first 4 bytes of receipt
-            bytes([0, 0, 0x04, 0x06
-                   ]),  # Response to first chunk of receipt, request additional 6 bytes
-            bytes([0, 0, 0x08, 0x04
-                   ]),  # Response to second chunk of receipt, request first 4 bytes of MP
-            bytes([0, 0, 0x08,
-                   0x03]),  # Response to first chunk of MP, request additional 3 bytes
-            last_exchange,  # Response to second chunk of MP, request additional 7 bytes
-        ]
-        key_id = Mock(**{"to_binary.return_value": bytes.fromhex("11223344")})
-        self.assertEqual(
-            (False, expected_response),
-            self.hsm2dongle.sign_authorized(
-                key_id=key_id,
-                rsk_tx_receipt="00112233445566778899",
-                receipt_merkle_proof=["334455", "6677", "aabbccddee"],
-                btc_tx="aabbccddeeff7788",
-                input_index=1234,
-            ),
-        )
-
-        self.assert_exchange([
-            [
-                0x02,
-                0x01,
-                0x11,
-                0x22,
-                0x33,
-                0x44,
-                0xD2,
-                0x04,
-                0x00,
-                0x00,
-            ],  # Path and input index
-            [
-                0x02,
-                0x02,
-                0x0C,
-                0x00,
-                0x00,
-                0x00,
-                0xAA,
-                0xBB,
-                0xCC,
-                0xDD,
-                0xEE,
-            ],  # Length of payload plus first chunk of BTC tx
-            [0x02, 0x02, 0xFF, 0x77, 0x88],  # Second chunk of BTC tx
-            [0x02, 0x04, 0x00, 0x11, 0x22, 0x33],  # First chunk of receipt
-            [
-                0x02,
-                0x04,
-                0x44,
-                0x55,
-                0x66,
-                0x77,
-                0x88,
-                0x99,
-            ],  # Second chunk of receipt
-            [0x02, 0x08, 0x03, 0x03, 0x33, 0x44],  # First chunk of MP
-            [0x02, 0x08, 0x55, 0x02, 0x66],  # Second chunk of MP
-        ])
-
-    @parameterized.expand([
-        ("too_many_nodes", ["aa"]*256),
-        ("node_too_big", ["aa"]*100 + ["bb"*256]),
-    ])
-    def test_sign_authorized_mp_too_big(self, _, receipt_merkle_proof):
-        self.dongle.exchange.side_effect = [
-            bytes([0, 0, 0x02, 0x09]),  # Response to key id, request 9 bytes of BTC tx
-            bytes([0, 0, 0x02, 0x03
-                   ]),  # Response to first chunk of BTC tx, request additional 4 bytes
-            bytes([
-                0, 0, 0x04, 0x04
-            ]),  # Response to second chunk of BTC tx, request first 4 bytes of receipt
-            bytes([0, 0, 0x04, 0x06
-                   ]),  # Response to first chunk of receipt, request additional 6 bytes
-            bytes([0, 0, 0x08, 0x04
-                   ]),  # Response to second chunk of receipt, request first 4 bytes of MP
-        ]
-        key_id = Mock(**{"to_binary.return_value": bytes.fromhex("11223344")})
-        self.assertEqual(
-            (False, -4),
-            self.hsm2dongle.sign_authorized(
-                key_id=key_id,
-                rsk_tx_receipt="00112233445566778899",
-                receipt_merkle_proof=receipt_merkle_proof,
-                btc_tx="aabbccddeeff7788",
-                input_index=1234,
-            ),
-        )
-
-        self.assert_exchange([
-            [
-                0x02,
-                0x01,
-                0x11,
-                0x22,
-                0x33,
-                0x44,
-                0xD2,
-                0x04,
-                0x00,
-                0x00,
-            ],  # Path and input index
-            [
-                0x02,
-                0x02,
-                0x0C,
-                0x00,
-                0x00,
-                0x00,
-                0xAA,
-                0xBB,
-                0xCC,
-                0xDD,
-                0xEE,
-            ],  # Length of payload plus first chunk of BTC tx
-            [0x02, 0x02, 0xFF, 0x77, 0x88],  # Second chunk of BTC tx
-            [0x02, 0x04, 0x00, 0x11, 0x22, 0x33],  # First chunk of receipt
-            [
-                0x02,
-                0x04,
-                0x44,
-                0x55,
-                0x66,
-                0x77,
-                0x88,
-                0x99,
-            ],  # Second chunk of receipt
-        ])
-
-    def test_sign_authorized_mp_unexpected_exc(self):
-        self.dongle.exchange.side_effect = [
-            bytes([0, 0, 0x02, 0x09]),  # Response to key id, request 9 bytes of BTC tx
-            bytes([0, 0, 0x02, 0x03
-                   ]),  # Response to first chunk of BTC tx, request additional 4 bytes
-            bytes([
-                0, 0, 0x04, 0x04
-            ]),  # Response to second chunk of BTC tx, request first 4 bytes of receipt
-            bytes([0, 0, 0x04, 0x06
-                   ]),  # Response to first chunk of receipt, request additional 6 bytes
-            bytes([0, 0, 0x08, 0x04
-                   ]),  # Response to second chunk of receipt, request first 4 bytes of MP
-            bytes([0, 0, 0x08,
-                   0x03]),  # Response to first chunk of MP, request additional 3 bytes
-            CommException(
-                "msg",
-                0xFFFF),  # Response to second chunk of MP, request additional 7 bytes
-        ]
-        key_id = Mock(**{"to_binary.return_value": bytes.fromhex("11223344")})
-        with self.assertRaises(HSM2DongleError):
-            self.hsm2dongle.sign_authorized(
-                key_id=key_id,
-                rsk_tx_receipt="00112233445566778899",
-                receipt_merkle_proof=["334455", "6677", "aabbccddee"],
-                btc_tx="aabbccddeeff7788",
-                input_index=1234,
-            )
-
-        self.assert_exchange([
-            [
-                0x02,
-                0x01,
-                0x11,
-                0x22,
-                0x33,
-                0x44,
-                0xD2,
-                0x04,
-                0x00,
-                0x00,
-            ],  # Path and input index
-            [
-                0x02,
-                0x02,
-                0x0C,
-                0x00,
-                0x00,
-                0x00,
-                0xAA,
-                0xBB,
-                0xCC,
-                0xDD,
-                0xEE,
-            ],  # Length of payload plus first chunk of BTC tx
-            [0x02, 0x02, 0xFF, 0x77, 0x88],  # Second chunk of BTC tx
-            [0x02, 0x04, 0x00, 0x11, 0x22, 0x33],  # First chunk of receipt
-            [
-                0x02,
-                0x04,
-                0x44,
-                0x55,
-                0x66,
-                0x77,
-                0x88,
-                0x99,
-            ],  # Second chunk of receipt
-            [0x02, 0x08, 0x03, 0x03, 0x33, 0x44],  # First chunk of MP
-            [0x02, 0x08, 0x55, 0x02, 0x66],  # Second chunk of MP
-        ])
-
-    def test_sign_authorized_mp_invalid_format(self):
-        self.dongle.exchange.side_effect = [
-            bytes([0, 0, 0x02, 0x09]),  # Response to key id, request 9 bytes of BTC tx
-            bytes([0, 0, 0x02, 0x03
-                   ]),  # Response to first chunk of BTC tx, request additional 4 bytes
-            bytes([
-                0, 0, 0x04, 0x04
-            ]),  # Response to second chunk of BTC tx, request first 4 bytes of receipt
-            bytes([0, 0, 0x04, 0x06
-                   ]),  # Response to first chunk of receipt, request additional 6 bytes
-            bytes([0, 0, 0x08, 0x04
-                   ]),  # Response to second chunk of receipt, request first 4 bytes of MP
-        ]
-        key_id = Mock(**{"to_binary.return_value": bytes.fromhex("11223344")})
-        self.assertEqual(
-            (False, -4),
-            self.hsm2dongle.sign_authorized(
-                key_id=key_id,
-                rsk_tx_receipt="00112233445566778899",
-                receipt_merkle_proof=["334455", "6677", "not-a-hex"],
-                btc_tx="aabbccddeeff7788",
-                input_index=1234,
-            ),
-        )
-
-        self.assert_exchange([
-            [
-                0x02,
-                0x01,
-                0x11,
-                0x22,
-                0x33,
-                0x44,
-                0xD2,
-                0x04,
-                0x00,
-                0x00,
-            ],  # Path and input index
-            [
-                0x02,
-                0x02,
-                0x0C,
-                0x00,
-                0x00,
-                0x00,
-                0xAA,
-                0xBB,
-                0xCC,
-                0xDD,
-                0xEE,
-            ],  # Length of payload plus first chunk of BTC tx
-            [0x02, 0x02, 0xFF, 0x77, 0x88],  # Second chunk of BTC tx
-            [0x02, 0x04, 0x00, 0x11, 0x22, 0x33],  # First chunk of receipt
-            [
-                0x02,
-                0x04,
-                0x44,
-                0x55,
-                0x66,
-                0x77,
-                0x88,
-                0x99,
-            ],  # Second chunk of receipt
-        ])
-
-    @parameterized.expand([
-        ("data_size", 0x6A87, -3),
-        ("state", 0x6A89, -3),
-        ("rlp", 0x6A8A, -3),
-        ("rlp_int", 0x6A8B, -3),
-        ("rlp_depth", 0x6A8C, -3),
-        ("unknown", 0x6AFF, -10),
-        ("unexpected", [0, 0, 0xFF], -10),
-    ])
-    def test_sign_authorized_receipt_invalid(self, _, device_error, expected_response):
-        if type(device_error) == int:
-            last_exchange = CommException("msg", device_error)
-        else:
-            last_exchange = bytes(device_error)
-        self.dongle.exchange.side_effect = [
-            bytes([0, 0, 0x02, 0x09]),  # Response to key id, request 9 bytes of BTC tx
-            bytes([0, 0, 0x02, 0x03
-                   ]),  # Response to first chunk of BTC tx, request additional 4 bytes
-            bytes([
-                0, 0, 0x04, 0x04
-            ]),  # Response to second chunk of BTC tx, request first 4 bytes of receipt
-            bytes([0, 0, 0x04, 0x06
-                   ]),  # Response to first chunk of receipt, request additional 6 bytes
-            last_exchange,  # Response to second chunk of receipt, specific error
-        ]
-        key_id = Mock(**{"to_binary.return_value": bytes.fromhex("11223344")})
-        self.assertEqual(
-            (False, expected_response),
-            self.hsm2dongle.sign_authorized(
-                key_id=key_id,
-                rsk_tx_receipt="00112233445566778899",
-                receipt_merkle_proof=["334455", "6677", "aabbccddee"],
-                btc_tx="aabbccddeeff7788",
-                input_index=1234,
-            ),
-        )
-
-        self.assert_exchange([
-            [
-                0x02,
-                0x01,
-                0x11,
-                0x22,
-                0x33,
-                0x44,
-                0xD2,
-                0x04,
-                0x00,
-                0x00,
-            ],  # Path and input index
-            [
-                0x02,
-                0x02,
-                0x0C,
-                0x00,
-                0x00,
-                0x00,
-                0xAA,
-                0xBB,
-                0xCC,
-                0xDD,
-                0xEE,
-            ],  # Length of payload plus first chunk of BTC tx
-            [0x02, 0x02, 0xFF, 0x77, 0x88],  # Second chunk of BTC tx
-            [0x02, 0x04, 0x00, 0x11, 0x22, 0x33],  # First chunk of receipt
-            [
-                0x02,
-                0x04,
-                0x44,
-                0x55,
-                0x66,
-                0x77,
-                0x88,
-                0x99,
-            ],  # Second chunk of receipt
-        ])
-
-    def test_sign_authorized_receipt_unexpected_error_exc(self):
-        self.dongle.exchange.side_effect = [
-            bytes([0, 0, 0x02, 0x09]),  # Response to key id, request 9 bytes of BTC tx
-            bytes([0, 0, 0x02, 0x03
-                   ]),  # Response to first chunk of BTC tx, request additional 4 bytes
-            bytes([
-                0, 0, 0x04, 0x04
-            ]),  # Response to second chunk of BTC tx, request first 4 bytes of receipt
-            bytes([0, 0, 0x04, 0x06
-                   ]),  # Response to first chunk of receipt, request additional 6 bytes
-            CommException(
-                "", 0xFFFF),  # Response to second chunk of receipt, unexpected exception
-        ]
-        key_id = Mock(**{"to_binary.return_value": bytes.fromhex("11223344")})
-        with self.assertRaises(HSM2DongleError):
-            self.hsm2dongle.sign_authorized(
-                key_id=key_id,
-                rsk_tx_receipt="00112233445566778899",
-                receipt_merkle_proof=["334455", "6677", "aabbccddee"],
-                btc_tx="aabbccddeeff7788",
-                input_index=1234,
-            )
-
-        self.assert_exchange([
-            [
-                0x02,
-                0x01,
-                0x11,
-                0x22,
-                0x33,
-                0x44,
-                0xD2,
-                0x04,
-                0x00,
-                0x00,
-            ],  # Path and input index
-            [
-                0x02,
-                0x02,
-                0x0C,
-                0x00,
-                0x00,
-                0x00,
-                0xAA,
-                0xBB,
-                0xCC,
-                0xDD,
-                0xEE,
-            ],  # Length of payload plus first chunk of BTC tx
-            [0x02, 0x02, 0xFF, 0x77, 0x88],  # Second chunk of BTC tx
-            [0x02, 0x04, 0x00, 0x11, 0x22, 0x33],  # First chunk of receipt
-            [
-                0x02,
-                0x04,
-                0x44,
-                0x55,
-                0x66,
-                0x77,
-                0x88,
-                0x99,
-            ],  # Second chunk of receipt
-        ])
-
-    @parameterized.expand([
-        ("input", 0x6A88, -2),
-        ("tx_hash_mismatch", 0x6A8D, -2),
-        ("tx_version", 0x6A8E, -2),
-        ("unknown", 0x6AFF, -10),
-        ("unexpected", [0, 0, 0xFF], -10),
-    ])
-    def test_sign_authorized_btctx_invalid(self, _, device_error, expected_response):
-        if type(device_error) == int:
-            last_exchange = CommException("msg", device_error)
-        else:
-            last_exchange = bytes(device_error)
-        self.dongle.exchange.side_effect = [
-            bytes([0, 0, 0x02, 0x09]),  # Response to key id, request 9 bytes of BTC tx
-            bytes([0, 0, 0x02, 0x03
-                   ]),  # Response to first chunk of BTC tx, request additional 4 bytes
-            last_exchange,  # Response to second chunk of BTC tx, specific error
-        ]
-        key_id = Mock(**{"to_binary.return_value": bytes.fromhex("11223344")})
-        self.assertEqual(
-            (False, expected_response),
-            self.hsm2dongle.sign_authorized(
-                key_id=key_id,
-                rsk_tx_receipt="00112233445566778899",
-                receipt_merkle_proof=["334455", "6677", "aabbccddee"],
-                btc_tx="aabbccddeeff7788",
-                input_index=1234,
-            ),
-        )
-
-        self.assert_exchange([
-            [
-                0x02,
-                0x01,
-                0x11,
-                0x22,
-                0x33,
-                0x44,
-                0xD2,
-                0x04,
-                0x00,
-                0x00,
-            ],  # Path and input index
-            [
-                0x02,
-                0x02,
-                0x0C,
-                0x00,
-                0x00,
-                0x00,
-                0xAA,
-                0xBB,
-                0xCC,
-                0xDD,
-                0xEE,
-            ],  # Length of payload plus first chunk of BTC tx
-            [0x02, 0x02, 0xFF, 0x77, 0x88],  # Second chunk of BTC tx
-        ])
-
-    def test_sign_authorized_btctx_unexpected_error_exc(self):
-        self.dongle.exchange.reset_mock()
-        self.dongle.exchange.side_effect = [
-            bytes([0, 0, 0x02,
-                   0x09]),  # Response to key id, request 9 bytes of BTC tx
-            bytes([
-                0, 0, 0x02, 0x03
-            ]),  # Response to first chunk of BTC tx, request additional 4 bytes
-            CommException("", 0xFF),  # Response to second chunk of BTC tx, exception
-        ]
-        key_id = Mock(**{"to_binary.return_value": bytes.fromhex("11223344")})
-        with self.assertRaises(HSM2DongleError):
-            self.hsm2dongle.sign_authorized(
-                key_id=key_id,
-                rsk_tx_receipt="00112233445566778899",
-                receipt_merkle_proof=["334455", "6677", "aabbccddee"],
-                btc_tx="aabbccddeeff7788",
-                input_index=1234,
-            )
-
-        self.assert_exchange([
-            [
-                0x02,
-                0x01,
-                0x11,
-                0x22,
-                0x33,
-                0x44,
-                0xD2,
-                0x04,
-                0x00,
-                0x00,
-            ],  # Path and input index
-            [
-                0x02,
-                0x02,
-                0x0C,
-                0x00,
-                0x00,
-                0x00,
-                0xAA,
-                0xBB,
-                0xCC,
-                0xDD,
-                0xEE,
-            ],  # Length of payload plus first chunk of BTC tx
-            [0x02, 0x02, 0xFF, 0x77, 0x88],  # Second chunk of BTC tx
-        ])
-
-    @parameterized.expand([
-        ("data_size", 0x6A87, -1),
-        ("data_size_auth", 0x6A90, -1),
-        ("data_size_noauth", 0x6A91, -1),
-        ("unknown", 0x6AFF, -10),
-        ("unexpected", [0, 0, 0xFF], -10),
-    ])
-    def test_sign_authorized_path_invalid(self, _, device_error, expected_response):
-        if type(device_error) == int:
-            last_exchange = CommException("msg", device_error)
-        else:
-            last_exchange = bytes(device_error)
-        self.dongle.exchange.side_effect = [last_exchange
-                                            ]  # Response to key id, specific error
-        key_id = Mock(**{"to_binary.return_value": bytes.fromhex("11223344")})
-        self.assertEqual(
-            (False, expected_response),
-            self.hsm2dongle.sign_authorized(
-                key_id=key_id,
-                rsk_tx_receipt="00112233445566778899",
-                receipt_merkle_proof=["334455", "6677", "aabbccddee"],
-                btc_tx="aabbccddeeff7788",
-                input_index=1234,
-            ),
-        )
-
-        self.assert_exchange([
-            [
-                0x02,
-                0x01,
-                0x11,
-                0x22,
-                0x33,
-                0x44,
-                0xD2,
-                0x04,
-                0x00,
-                0x00,
-            ],  # Path and input index
-        ])
-
-    def test_sign_authorized_path_unexpected_error_exc(self):
-        self.dongle.exchange.side_effect = [
-            CommException("", 0xFFFF),  # Response to key id, exception
-        ]
-        key_id = Mock(**{"to_binary.return_value": bytes.fromhex("11223344")})
-        with self.assertRaises(HSM2DongleError):
-            self.hsm2dongle.sign_authorized(
-                key_id=key_id,
-                rsk_tx_receipt="00112233445566778899",
-                receipt_merkle_proof=["334455", "6677", "aabbccddee"],
-                btc_tx="aabbccddeeff7788",
-                input_index=1234,
-            )
-
-        self.assert_exchange([
-            [
-                0x02,
-                0x01,
-                0x11,
-                0x22,
-                0x33,
-                0x44,
-                0xD2,
-                0x04,
-                0x00,
-                0x00,
-            ],  # Path and input index
-        ])
-
+class TestHSM2DongleSignUnauthorized(TestHSM2DongleBase):
     @patch("ledger.hsm2dongle.HSM2DongleSignature")
     def test_sign_unauthorized_ok(self, HSM2DongleSignatureMock):
         HSM2DongleSignatureMock.return_value = "the-signature"
@@ -1145,6 +505,8 @@ class TestHSM2Dongle(_TestHSM2DongleBase):
 
         self.assertFalse(self.dongle.exchange.called)
 
+
+class TestHSM2DongleBlockchainState(TestHSM2DongleBase):
     def test_get_blockchain_state_ok(self):
         self.dongle.exchange.side_effect = [
             bytes([0, 0, 0x01, 0x01]) +
@@ -1329,7 +691,7 @@ class TestHSM2Dongle(_TestHSM2DongleBase):
         ])
 
 
-class TestHSM2DongleAdvanceBlockchain(_TestHSM2DongleBase):
+class TestHSM2DongleAdvanceBlockchain(TestHSM2DongleBase):
     def setup_mocks(self,
                     mmplsize_mock,
                     get_cb_txn_mock,
@@ -1427,7 +789,7 @@ class TestHSM2DongleAdvanceBlockchain(_TestHSM2DongleBase):
             [0x10, 0x09] + list(brothers_spec[2][0][0][60*2:60*3]),  # Blk #3 bro #1 chunk
         ])
 
-    @parameterized.expand(_TestHSM2DongleBase.CHUNK_ERROR_MAPPINGS)
+    @parameterized.expand(TestHSM2DongleBase.CHUNK_ERROR_MAPPINGS)
     @patch("ledger.hsm2dongle.get_block_hash")
     @patch("ledger.hsm2dongle.coinbase_tx_get_hash")
     @patch("ledger.hsm2dongle.get_coinbase_txn")
@@ -1642,7 +1004,7 @@ class TestHSM2DongleAdvanceBlockchain(_TestHSM2DongleBase):
         ])
 
 
-class TestHSM2DongleUpdateAncestor(_TestHSM2DongleBase):
+class TestHSM2DongleUpdateAncestor(TestHSM2DongleBase):
     @patch("ledger.hsm2dongle.remove_mm_fields_if_present")
     @patch("ledger.hsm2dongle.rlp_mm_payload_size")
     def test_update_ancestor_ok(self, mmplsize_mock, rmvflds_mock):

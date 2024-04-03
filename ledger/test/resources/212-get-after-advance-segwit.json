@@ -1,0 +1,10 @@
+{
+    "name": "Get blockchain state after advance for segwit",
+    "operation": "getState",
+    "expected": {
+        "best_block": "b4d586b2c2f51d6dcb6e7870df329e780d8e4b85517b91a822dc52c04d801f4b",
+        "newest_valid_block": "05cf1ca3197482828cfa5d1777350996593bdd62f73ce388a280a9e08b69dac9",
+        "ancestor_block": "b4d586b2c2f51d6dcb6e7870df329e780d8e4b85517b91a822dc52c04d801f4b",
+        "ancestor_receipts_root": "0ca39505332c19cb775a942f72c34d21fe139b0edbc50894da20f2c930889d14"
+    }
+}

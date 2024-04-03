@@ -24,7 +24,9 @@ from ledgerblue.comm import CommException
 from .case import TestCase, TestCaseError
 from .sign_helpers import assert_signature
 from comm.bip32 import BIP32Path
-from comm.bitcoin import get_signature_hash_for_p2sh_input
+from comm.bitcoin import \
+    get_signature_hash_for_p2sh_input, get_signature_hash_for_p2sh_p2wsh_input
+from ledger.hsm2dongle import SighashComputationMode
 from misc.tcpsigner_admin import TcpSignerAdmin
 
 
@@ -45,6 +47,15 @@ class SignAuthorized(TestCase):
         self.receipt = spec["receipt"]
         self.receipt_mp = spec["receiptMp"]
         self.fake_ancestor_receipts_root = spec.get("fake_ancestor_receipts_root", None)
+        self.sighash_computation_mode = SighashComputationMode(
+            spec.get("txType", "legacy")
+        )
+        self.witness_script = None
+        self.outpoint_value = None
+
+        if self.sighash_computation_mode == SighashComputationMode.SEGWIT:
+            self.witness_script = spec["witnessScript"]
+            self.outpoint_value = spec["outpointValue"]
 
         super().__init__(spec)
 
@@ -79,8 +90,17 @@ class SignAuthorized(TestCase):
 
                 # Sign
                 debug(f"Signing with {path}")
-                signature = dongle.sign_authorized(path, self.receipt, self.receipt_mp,
-                                                   self.btc_tx, self.btc_tx_input)
+
+                signature = dongle.sign_authorized(
+                    key_id=path,
+                    rsk_tx_receipt=self.receipt,
+                    receipt_merkle_proof=self.receipt_mp,
+                    btc_tx=self.btc_tx,
+                    input_index=self.btc_tx_input,
+                    sighash_computation_mode=self.sighash_computation_mode,
+                    witness_script=self.witness_script,
+                    outpoint_value=self.outpoint_value
+                )
                 debug(f"Dongle replied with {signature}")
                 if not signature[0]:
                     if dongle.last_comm_exception is not None:
@@ -103,8 +123,15 @@ class SignAuthorized(TestCase):
                                         "signing but got a successful signature")
 
                 # Validate the signature
-                sighash = get_signature_hash_for_p2sh_input(self.btc_tx,
-                                                            self.btc_tx_input)
+                if self.sighash_computation_mode == SighashComputationMode.SEGWIT:
+                    sighash = get_signature_hash_for_p2sh_p2wsh_input(
+                        self.btc_tx, self.btc_tx_input, self.witness_script,
+                        self.outpoint_value
+                    )
+                else:
+                    sighash = get_signature_hash_for_p2sh_input(
+                        self.btc_tx, self.btc_tx_input
+                    )
                 assert_signature(pubkey, sighash, signature[1])
 
             # Did we fake the ancestor receipts root? Reset it
