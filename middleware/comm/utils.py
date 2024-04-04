@@ -104,6 +104,23 @@ def normalize_hex_string(value):
     return value
 
 
+def has_nonempty_hex_field(mp, name):
+    return name in mp and \
+           type(mp[name]) == str and \
+           is_nonempty_hex_string(mp[name])
+
+
+def has_hex_field_of_length(mp, name, length):
+    return name in mp and \
+           type(mp[name]) == str and \
+           is_hex_string_of_length(mp[name], length)
+
+
+def has_field_of_type(mp, name, tp):
+    return name in mp and \
+           type(mp[name]) == tp
+
+
 # Utility functions to parse and use a list slice
 # from a string (in the python fashion [nn:mm])
 _SLICE_REGEXP = re.compile("^(-?\\d*):(-?\\d*)$", re.ASCII)

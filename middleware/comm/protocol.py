@@ -22,7 +22,10 @@
 
 import logging
 from .bip32 import BIP32Path
-from .utils import is_nonempty_hex_string, is_hex_string_of_length
+from .utils import \
+    is_nonempty_hex_string, is_hex_string_of_length, \
+    has_nonempty_hex_field, has_hex_field_of_length, \
+    has_field_of_type
 
 LOGGER_NAME = "protocol"
 
@@ -314,8 +317,13 @@ class HSM2Protocol:
         # Also, it must:
         # - Contain exactly a "hash" element of type string (1) that must be a 32-byte hex
         #   (what is "any" or "hash")
-        # - Contain exactly a "tx" element of type string that is a hex string and
-        #   an "input" element of type int (2)
+        # - Contain exactly a "tx" element of type string that must be a hex string;
+        #   an "input" element of type int; a "sighashComputationMode" element
+        #   of type string that contains exactly either "legacy" (2a) or "segwit" (2b);
+        #   and, if the latter contains "segwit", then additionally:
+        #     o A "witnessScript" element of type string that must be a hex string
+        #     o An "outpointValue" element of type int that must be greater than 0 and
+        #       at most 0xffffffffffffffff
         #   (what is "any" or "tx")
 
         # Validate message presence and components
@@ -329,21 +337,33 @@ class HSM2Protocol:
         if (
             what in ["any", "hash"]
             and len(message) == 1
-            and "hash" in message
-            and type(message["hash"]) == str
-            and is_hex_string_of_length(message["hash"], 32)
+            and has_hex_field_of_length(message, "hash", 32)
         ):
             return self.ERROR_CODE_OK
 
-        # (2)?
+        # (2a)
         if (
             what in ["any", "tx"]
-            and len(message) == 2
-            and "tx" in message
-            and "input" in message
-            and type(message["tx"]) == str
-            and is_nonempty_hex_string(message["tx"])
-            and type(message["input"]) == int
+            and len(message) == 3
+            and has_nonempty_hex_field(message, "tx")
+            and has_field_of_type(message, "input", int)
+            and has_field_of_type(message, "sighashComputationMode", str)
+            and message["sighashComputationMode"] == "legacy"
+        ):
+            return self.ERROR_CODE_OK
+
+        # (2b)
+        if (
+            what in ["any", "tx"]
+            and len(message) == 5
+            and has_nonempty_hex_field(message, "tx")
+            and has_field_of_type(message, "input", int)
+            and has_field_of_type(message, "sighashComputationMode", str)
+            and message["sighashComputationMode"] == "segwit"
+            and has_nonempty_hex_field(message, "witnessScript")
+            and has_field_of_type(message, "outpointValue", int)
+            and message["outpointValue"] > 0
+            and message["outpointValue"] <= 0xffffffffffffffff
         ):
             return self.ERROR_CODE_OK
 

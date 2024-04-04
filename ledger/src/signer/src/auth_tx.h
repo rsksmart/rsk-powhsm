@@ -32,16 +32,45 @@
 #include "btcscript.h"
 
 #define BTCTX_LENGTH_SIZE 4
+#define SIGHASH_COMP_MODE_SIZE 1
+#define EXTRADATA_SIZE 2
 #define SIGHASH_ALL_SIZE 4
 #define SIGHASH_ALL_BYTES \
     { 0x01, 0x00, 0x00, 0x00 }
 
+enum {
+    SIGHASH_COMPUTE_MODE_LEGACY,
+    SIGHASH_COMPUTE_MODE_SEGWIT,
+};
+
 typedef struct {
     uint32_t remaining_bytes;
+    bool finalise;
     btctx_ctx_t ctx;
     btcscript_ctx_t script_ctx;
     SHA256_CTX tx_hash_ctx;
     SHA256_CTX sig_hash_ctx;
+
+    uint8_t sighash_computation_mode;
+
+    // Specifically for segwit
+    // sighash computation mode
+    bool segwit_processing_extradata;
+    uint16_t segwit_extradata_size;
+    union {
+        SHA256_CTX prevouts_hash_ctx;
+        SHA256_CTX outputs_hash_ctx;
+        uint8_t lock_time[BTCTX_LOCKTIME_SIZE];
+    };
+    SHA256_CTX sequence_hash_ctx;
+    union {
+        uint8_t aux_hash[BTCTX_HASH_SIZE];
+        uint8_t outputs_hash[BTCTX_HASH_SIZE];
+    };
+    uint8_t aux_offset;
+    uint8_t ip_prevout[BTCTX_HASH_SIZE + BTCTX_INPUT_INDEX_SIZE];
+    uint8_t ip_seqno[BTCTX_INPUT_SEQNO_SIZE];
+
     uint8_t redeemscript_found;
 } btctx_auth_ctx_t;
 

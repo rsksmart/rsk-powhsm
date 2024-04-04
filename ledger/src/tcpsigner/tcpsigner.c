@@ -51,6 +51,7 @@
 #include "bc_advance.h"
 #include "bc_state.h"
 #include "bc_diff.h"
+#include "defs.h"
 
 #include "hex_reader.h"
 
@@ -315,6 +316,12 @@ void main(int argc, char **argv) {
 
     // Output welcome message & parameters
     info("TCPSigner starting.\n");
+
+    // Output signer version
+    info("Signer version: %u.%u.%u\n",
+         VERSION_MAJOR,
+         VERSION_MINOR,
+         VERSION_PATCH);
 
     info("Signer parameters:\n");
     info_hex("Checkpoint:", arguments.checkpoint, sizeof(arguments.checkpoint));

@@ -2,8 +2,8 @@
     "name": "Get blockchain state after update",
     "operation": "getState",
     "expected": {
-        "best_block": "c38ac27d1f9021e358b0e633536bd381bf586f244d83417116c1d2040fa879fc",
-        "newest_valid_block": "df875149b0cf41c6d97bfdac376c044db6477ad071df61cc847d89a6bcdcc4f9",
+        "best_block": "b4d586b2c2f51d6dcb6e7870df329e780d8e4b85517b91a822dc52c04d801f4b",
+        "newest_valid_block": "05cf1ca3197482828cfa5d1777350996593bdd62f73ce388a280a9e08b69dac9",
         "ancestor_block": "a91f702314c77a8965b53d1dc8a44301a0bf915023de4258e80a47415a787349",
         "ancestor_receipts_root": "21f82fa21d141a345338733fa871efb61cecd716f9f6c46341d9990ea678f7cd",
         "updating.in_progress": true,

@@ -27,6 +27,7 @@
 #include "auth.h"
 #include "svarint.h"
 #include "mem.h"
+#include "memutil.h"
 
 #include "dbg.h"
 
@@ -122,6 +123,106 @@ static void btctx_cb(const btctx_cb_event_t event) {
     }
 }
 
+static void btctx_cb_segwit(const btctx_cb_event_t event) {
+    // Update txhash
+    sha256_update(&auth.tx.tx_hash_ctx, auth.tx.ctx.raw, auth.tx.ctx.raw_size);
+
+    if (event == BTCTX_EV_VERSION) {
+        sha256_update(
+            &auth.tx.sig_hash_ctx, auth.tx.ctx.raw, auth.tx.ctx.raw_size);
+    }
+
+    if (event == BTCTX_EV_VIN_COUNT) {
+        sha256_init(&auth.tx.prevouts_hash_ctx);
+        sha256_init(&auth.tx.sequence_hash_ctx);
+        auth.tx.aux_offset = 0;
+    }
+
+    if (event == BTCTX_EV_VIN_TXH_DATA || event == BTCTX_EV_VIN_TXIX) {
+        sha256_update(
+            &auth.tx.prevouts_hash_ctx, auth.tx.ctx.raw, auth.tx.ctx.raw_size);
+
+        if (auth.tx.ctx.inout_current == auth.input_index_to_sign) {
+            SAFE_MEMMOVE(auth.tx.ip_prevout,
+                         sizeof(auth.tx.ip_prevout),
+                         auth.tx.aux_offset,
+                         auth.tx.ctx.raw,
+                         sizeof(auth.tx.ctx.raw),
+                         MEMMOVE_ZERO_OFFSET,
+                         auth.tx.ctx.raw_size,
+                         THROW(ERR_AUTH_INVALID_DATA_SIZE));
+            auth.tx.aux_offset += auth.tx.ctx.raw_size;
+        }
+    }
+
+    if (event == BTCTX_EV_VIN_SEQNO) {
+        sha256_update(
+            &auth.tx.sequence_hash_ctx, auth.tx.ctx.raw, auth.tx.ctx.raw_size);
+
+        if (auth.tx.ctx.inout_current == auth.input_index_to_sign) {
+            SAFE_MEMMOVE(auth.tx.ip_seqno,
+                         sizeof(auth.tx.ip_seqno),
+                         MEMMOVE_ZERO_OFFSET,
+                         auth.tx.ctx.raw,
+                         sizeof(auth.tx.ctx.raw),
+                         MEMMOVE_ZERO_OFFSET,
+                         auth.tx.ctx.raw_size,
+                         THROW(ERR_AUTH_INVALID_DATA_SIZE));
+        }
+    }
+
+    if (event == BTCTX_EV_VOUT_COUNT) {
+        sha256_final(&auth.tx.prevouts_hash_ctx, auth.tx.aux_hash);
+        sha256_init(&auth.tx.prevouts_hash_ctx);
+        sha256_update(&auth.tx.prevouts_hash_ctx,
+                      auth.tx.aux_hash,
+                      sizeof(auth.tx.aux_hash));
+        sha256_final(&auth.tx.prevouts_hash_ctx, auth.tx.aux_hash);
+        sha256_update(
+            &auth.tx.sig_hash_ctx, auth.tx.aux_hash, sizeof(auth.tx.aux_hash));
+
+        sha256_final(&auth.tx.sequence_hash_ctx, auth.tx.aux_hash);
+        sha256_init(&auth.tx.sequence_hash_ctx);
+        sha256_update(&auth.tx.sequence_hash_ctx,
+                      auth.tx.aux_hash,
+                      sizeof(auth.tx.aux_hash));
+        sha256_final(&auth.tx.sequence_hash_ctx, auth.tx.aux_hash);
+        sha256_update(
+            &auth.tx.sig_hash_ctx, auth.tx.aux_hash, sizeof(auth.tx.aux_hash));
+
+        // Previously saved outpoint of input to sign
+        sha256_update(&auth.tx.sig_hash_ctx,
+                      auth.tx.ip_prevout,
+                      sizeof(auth.tx.ip_prevout));
+
+        sha256_init(&auth.tx.outputs_hash_ctx);
+    }
+
+    if (event == BTCTX_EV_VOUT_VALUE || event == BTCTX_EV_VOUT_SLENGTH ||
+        event == BTCTX_EV_VOUT_SCRIPT_DATA) {
+        sha256_update(
+            &auth.tx.outputs_hash_ctx, auth.tx.ctx.raw, auth.tx.ctx.raw_size);
+    }
+
+    if (event == BTCTX_EV_LOCKTIME) {
+        sha256_final(&auth.tx.outputs_hash_ctx, auth.tx.outputs_hash);
+        sha256_init(&auth.tx.outputs_hash_ctx);
+        sha256_update(&auth.tx.outputs_hash_ctx,
+                      auth.tx.outputs_hash,
+                      sizeof(auth.tx.outputs_hash));
+        sha256_final(&auth.tx.outputs_hash_ctx, auth.tx.outputs_hash);
+
+        SAFE_MEMMOVE(auth.tx.lock_time,
+                     sizeof(auth.tx.lock_time),
+                     MEMMOVE_ZERO_OFFSET,
+                     auth.tx.ctx.raw,
+                     sizeof(auth.tx.ctx.raw),
+                     MEMMOVE_ZERO_OFFSET,
+                     auth.tx.ctx.raw_size,
+                     THROW(ERR_AUTH_INVALID_DATA_SIZE));
+    }
+}
+
 /*
  * Implement the BTC tx parsing and calculations portion
  * of the signing authorization protocol.
@@ -137,48 +238,106 @@ unsigned int auth_sign_handle_btctx(volatile unsigned int rx) {
         THROW(ERR_AUTH_INVALID_STATE);
     }
 
-    // Read little endian TX length
-    // (part of the legacy protocol, includes this length)
-    if (auth.tx.remaining_bytes == 0) {
-        for (uint8_t i = 0; i < BTCTX_LENGTH_SIZE; i++) {
-            auth.tx.remaining_bytes += APDU_DATA_PTR[i] << (8 * i);
+    if (!auth.tx.segwit_processing_extradata) {
+        // Read little endian TX length
+        // (part of the legacy protocol, includes this length)
+        if (auth.tx.remaining_bytes == 0) {
+            for (uint8_t i = 0; i < BTCTX_LENGTH_SIZE; i++) {
+                auth.tx.remaining_bytes += APDU_DATA_PTR[i] << (8 * i);
+            }
+            // BTC tx length includes the length of the length
+            // and the length of the sighash computation mode and
+            // extradata length
+            auth.tx.remaining_bytes -=
+                BTCTX_LENGTH_SIZE + SIGHASH_COMP_MODE_SIZE + EXTRADATA_SIZE;
+            // Init both hash operations
+            sha256_init(&auth.tx.tx_hash_ctx);
+            sha256_init(&auth.tx.sig_hash_ctx);
+            apdu_offset = BTCTX_LENGTH_SIZE;
+            // Following three bytes indicate the sighash computation
+            // mode (1 byte) and extradata size (2 bytes LE, for segwit)
+            auth.tx.sighash_computation_mode = APDU_DATA_PTR[apdu_offset++];
+            auth.tx.segwit_processing_extradata = false;
+            auth.tx.segwit_extradata_size = 0;
+            auth.tx.segwit_extradata_size += APDU_DATA_PTR[apdu_offset++];
+            auth.tx.segwit_extradata_size += APDU_DATA_PTR[apdu_offset++] << 8;
+            // Validate computation mode and init tx parsing context
+            switch (auth.tx.sighash_computation_mode) {
+            case SIGHASH_COMPUTE_MODE_LEGACY:
+                btctx_init(&auth.tx.ctx, &btctx_cb);
+                break;
+            case SIGHASH_COMPUTE_MODE_SEGWIT:
+                btctx_init(&auth.tx.ctx, &btctx_cb_segwit);
+                if (!auth.tx.segwit_extradata_size) {
+                    LOG("[E] Invalid extradata size for segwit");
+                    THROW(ERR_AUTH_INVALID_EXTRADATA_SIZE);
+                }
+                break;
+            default:
+                LOG("[E] Invalid sighash computation mode\n");
+                THROW(ERR_AUTH_INVALID_SIGHASH_COMPUTATION_MODE);
+            }
         }
-        // BTC tx length includes the length of the length
-        auth.tx.remaining_bytes -= BTCTX_LENGTH_SIZE;
-        // Init tx parsing context
-        btctx_init(&auth.tx.ctx, &btctx_cb);
-        // Init both hash operations
-        sha256_init(&auth.tx.tx_hash_ctx);
-        sha256_init(&auth.tx.sig_hash_ctx);
-        apdu_offset = BTCTX_LENGTH_SIZE;
-    }
 
-    auth.tx.remaining_bytes -= btctx_consume(APDU_DATA_PTR + apdu_offset,
-                                             APDU_DATA_SIZE(rx) - apdu_offset);
+        auth.tx.remaining_bytes -= btctx_consume(
+            APDU_DATA_PTR + apdu_offset, APDU_DATA_SIZE(rx) - apdu_offset);
 
-    if (btctx_result() < 0) {
-        LOG("[E] Error parsing BTC tx: %d\n", btctx_result());
-        // To comply with the legacy implementation
-        THROW(ERR_AUTH_TX_HASH_MISMATCH);
-    }
-
-    if (btctx_result() == BTCTX_ST_DONE) {
-        if (auth.tx.remaining_bytes > 0) {
-            LOG("[E] Error parsing BTC tx: more bytes reported "
-                "than actual tx bytes\n");
+        if (btctx_result() < 0) {
+            LOG("[E] Error parsing BTC tx: %d\n", btctx_result());
             // To comply with the legacy implementation
-            THROW(ERR_AUTH_INVALID_DATA_SIZE);
+            THROW(ERR_AUTH_TX_HASH_MISMATCH);
         }
 
-        // Finalize TX hash computation
-        sha256_final(&auth.tx.tx_hash_ctx, auth.tx_hash);
-        sha256_init(&auth.tx.tx_hash_ctx);
-        sha256_update(&auth.tx.tx_hash_ctx, auth.tx_hash, 32);
-        sha256_final(&auth.tx.tx_hash_ctx, auth.tx_hash);
-        for (int j = 0; j < 16; j++) {
-            uint8_t aux = auth.tx_hash[j];
-            auth.tx_hash[j] = auth.tx_hash[31 - j];
-            auth.tx_hash[31 - j] = aux;
+        if (btctx_result() == BTCTX_ST_DONE) {
+            if (auth.tx.remaining_bytes > 0) {
+                LOG("[E] Error parsing BTC tx: more bytes reported "
+                    "than actual tx bytes\n");
+                // To comply with the legacy implementation
+                THROW(ERR_AUTH_INVALID_DATA_SIZE);
+            }
+
+            // Finalize TX hash computation
+            sha256_final(&auth.tx.tx_hash_ctx, auth.tx_hash);
+            sha256_init(&auth.tx.tx_hash_ctx);
+            sha256_update(&auth.tx.tx_hash_ctx, auth.tx_hash, 32);
+            sha256_final(&auth.tx.tx_hash_ctx, auth.tx_hash);
+            for (int j = 0; j < 16; j++) {
+                uint8_t aux = auth.tx_hash[j];
+                auth.tx_hash[j] = auth.tx_hash[31 - j];
+                auth.tx_hash[31 - j] = aux;
+            }
+
+            // Segwit?
+            if (auth.tx.sighash_computation_mode ==
+                SIGHASH_COMPUTE_MODE_SEGWIT) {
+                auth.tx.segwit_processing_extradata = true;
+                auth.tx.remaining_bytes =
+                    (uint32_t)auth.tx.segwit_extradata_size;
+            } else {
+                auth.tx.finalise = true;
+            }
+        }
+    } else {
+        // Hash extradata
+        sha256_update(&auth.tx.sig_hash_ctx, APDU_DATA_PTR, APDU_DATA_SIZE(rx));
+        auth.tx.remaining_bytes -= APDU_DATA_SIZE(rx);
+        if (auth.tx.remaining_bytes == 0) {
+            auth.tx.finalise = true;
+        }
+    }
+
+    if (auth.tx.finalise) {
+        if (auth.tx.sighash_computation_mode == SIGHASH_COMPUTE_MODE_SEGWIT) {
+            // Remaining tx items to hash for segwit
+            sha256_update(&auth.tx.sig_hash_ctx,
+                          auth.tx.ip_seqno,
+                          sizeof(auth.tx.ip_seqno));
+            sha256_update(&auth.tx.sig_hash_ctx,
+                          auth.tx.outputs_hash,
+                          sizeof(auth.tx.outputs_hash));
+            sha256_update(&auth.tx.sig_hash_ctx,
+                          auth.tx.lock_time,
+                          sizeof(auth.tx.lock_time));
         }
 
         // Add SIGHASH_ALL hash type at the end
@@ -204,7 +363,6 @@ unsigned int auth_sign_handle_btctx(volatile unsigned int rx) {
     }
 
     if (auth.tx.remaining_bytes == 0) {
-
         LOG("[E] Error parsing BTC tx: no more bytes should "
             "remain but haven't finished parsing\n");
         // To comply with the legacy implementation

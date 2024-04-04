@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from ..test_hsm2dongle import _TestHSM2DongleBase
+from ..test_hsm2dongle import TestHSM2DongleBase
 from ledger.hsm2dongle import HSM2DongleBaseError
 from ledger.signature import HSM2DongleSignature
 from ledgerblue.commException import CommException
@@ -30,7 +30,7 @@ import logging
 logging.disable(logging.CRITICAL)
 
 
-class TestHSM2SignerHeartbeat(_TestHSM2DongleBase):
+class TestHSM2SignerHeartbeat(TestHSM2DongleBase):
     SIG = "3046022100e4c30ef37a1228a2faf2a88c8fb52a1dfe006a222d0961" \
           "c43792018481d0d5e2022100b206abd9c8a46336f9684a84083613fb" \
           "e4d31c34f7c023e5716545a00a709318"
