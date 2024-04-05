@@ -1086,7 +1086,7 @@ class TestHSM2Protocol(TestCase):
                 "version": 4,
                 "command": "advanceBlockchain",
                 "blocks": ["ok", "another-ok", "yet-another-ok"],
-                "brothers": [["b11", "b12"], ["b21", 123], ["b31", "b32", "b33"]],
+                "brothers": [["bb11", "bb12"], ["bb21", 123], ["bb31", "bb32", "bb33"]],
             }),
             {"errorcode": -205},
         )
@@ -1096,7 +1096,7 @@ class TestHSM2Protocol(TestCase):
                 "version": 4,
                 "command": "advanceBlockchain",
                 "blocks": ["ok", "another-ok", "yet-another-ok"],
-                "brothers": [["b11", "b12"], ["b21"]],
+                "brothers": [["bb11", "bb12"], ["bb21"]],
             }),
             {"errorcode": -205},
         )
@@ -1106,7 +1106,27 @@ class TestHSM2Protocol(TestCase):
                 "version": 4,
                 "command": "advanceBlockchain",
                 "blocks": ["ok", "another-ok", "yet-another-ok"],
-                "brothers": [["b11", "b12"], ["b21"], ["b31", "b32", "b33"], []],
+                "brothers": [["bb11", "bb12"], ["bb21"], ["bb31", "bb32", "bb33"], []],
+            }),
+            {"errorcode": -205},
+        )
+
+        self.assertEqual(
+            self.protocol.handle_request({
+                "version": 4,
+                "command": "advanceBlockchain",
+                "blocks": ["ok"],
+                "brothers": [[""]],
+            }),
+            {"errorcode": -205},
+        )
+
+        self.assertEqual(
+            self.protocol.handle_request({
+                "version": 4,
+                "command": "advanceBlockchain",
+                "blocks": ["ok", "another-ok", "yet-another-ok"],
+                "brothers": [["bb11", "bb12"], ["bb21"], ["bb31", "bb32", "not-hex"]],
             }),
             {"errorcode": -205},
         )
@@ -1117,7 +1137,7 @@ class TestHSM2Protocol(TestCase):
                 "command": "advanceBlockchain",
                 "version": 4,
                 "blocks": ["fist-block", "second-block"],
-                "brothers": [["b11", "b12"], ["b21", "b22", "b23"]],
+                "brothers": [["bb11", "bb12"], ["bb21", "bb22", "bb23"]],
             })
 
     def test_reset_advance_blockchain_notimplemented(self):
