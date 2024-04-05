@@ -203,9 +203,10 @@ class HSM2Protocol:
                              "different in length to Blocks field")
             return self.ERROR_CODE_INVALID_BROTHERS
 
-        # Validate brother elements are lists of strings
+        # Validate brother elements are lists of nonempty hex strings
         if not all(type(item) == list for item in request["brothers"]) or \
-           not all(type(item) == str for brother_list in request["brothers"]
+           not all(type(item) == str and is_nonempty_hex_string(item)
+                   for brother_list in request["brothers"]
                    for item in brother_list):
             self.logger.info("Some of the brother list elements are not strings")
             return self.ERROR_CODE_INVALID_BROTHERS

@@ -1211,14 +1211,14 @@ class TestHSM2ProtocolLedger(TestCase):
                 "version": 4,
                 "command": "advanceBlockchain",
                 "blocks": ["aabbcc", "ddeeff"],
-                "brothers": [["b11"], ["b21", "b22"]],
+                "brothers": [["bb11"], ["bb21", "bb22"]],
             }),
         )
 
         self.assertEqual(
             [call(
                 ["aabbcc", "ddeeff"],
-                [["b11"], ["b21", "b22"]],
+                [["bb11"], ["bb21", "bb22"]],
             )],
             self.dongle.advance_blockchain.call_args_list,
         )
@@ -1233,14 +1233,14 @@ class TestHSM2ProtocolLedger(TestCase):
                 "version": 4,
                 "command": "advanceBlockchain",
                 "blocks": ["aabbcc", "ddeeff"],
-                "brothers": [["b11", "b12", "b13"], ["b21", "b22"]],
+                "brothers": [["bb11", "bb12", "bb13"], ["bb21", "bb22"]],
             }),
         )
 
         self.assertEqual(
             [call(
                 ["aabbcc", "ddeeff"],
-                [["b11", "b12", "b13"], ["b21", "b22"]],
+                [["bb11", "bb12", "bb13"], ["bb21", "bb22"]],
             )],
             self.dongle.advance_blockchain.call_args_list,
         )
@@ -1255,14 +1255,14 @@ class TestHSM2ProtocolLedger(TestCase):
                 "version": 4,
                 "command": "advanceBlockchain",
                 "blocks": ["aabbcc", "ddeeff"],
-                "brothers": [["b11", "b12", "b13"], ["b21", "b22"]],
+                "brothers": [["bb11", "bb12", "bb13"], ["bb21", "bb22"]],
             }),
         )
 
         self.assertEqual(
             [call(
                 ["aabbcc", "ddeeff"],
-                [["b11", "b12", "b13"], ["b21", "b22"]],
+                [["bb11", "bb12", "bb13"], ["bb21", "bb22"]],
             )],
             self.dongle.advance_blockchain.call_args_list,
         )
@@ -1277,7 +1277,7 @@ class TestHSM2ProtocolLedger(TestCase):
                 "version": 4,
                 "command": "advanceBlockchain",
                 "blocks": ["aabbcc", "ddeeff"],
-                "brothers": [["b11", "b12", "b13"], ["b21", "b22"]],
+                "brothers": [["bb11", "bb12", "bb13"], ["bb21", "bb22"]],
             }),
         )
 
@@ -1292,14 +1292,14 @@ class TestHSM2ProtocolLedger(TestCase):
                 "version": 4,
                 "command": "advanceBlockchain",
                 "blocks": ["aabbcc", "ddeeff"],
-                "brothers": [["b11", "b12", "b13"], ["b21", "b22"]],
+                "brothers": [["bb11", "bb12", "bb13"], ["bb21", "bb22"]],
             }),
         )
 
         self.assertEqual(
             [call(
                 ["aabbcc", "ddeeff"],
-                [["b11", "b12", "b13"], ["b21", "b22"]],
+                [["bb11", "bb12", "bb13"], ["bb21", "bb22"]],
             )],
             self.dongle.advance_blockchain.call_args_list,
         )
