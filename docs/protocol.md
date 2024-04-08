@@ -1,4 +1,4 @@
-# FedHM protocol definition v4.x
+# PowHSM protocol definition v5.x
 
 ## Definitions
 
@@ -21,7 +21,7 @@
 #### Response
 ```
 {
-    "version": 4,
+    "version": 5,
     "errorcode": i
 }
 ```
@@ -61,7 +61,7 @@ inputs.
             "hhhh", "hhhh", ..., "hhhh"
         ]
     },
-    "version": 4
+    "version": 5
 }
 ```
 
@@ -120,7 +120,7 @@ section for details).
     "message": {
         "hash": "hhhh", // (**)
     },
-    "version": 4
+    "version": 5
 }
 
 // (*) the given string must be the
@@ -150,7 +150,7 @@ This operation can return `0`, `-101`, `-102`, `-103`, and generic errors. See t
 {
     "command": "getPubKey",
     "keyId": "xxxxx", // (*)
-    "version": 4
+    "version": 5
 }
 
 // (*) the given string must be the
@@ -181,7 +181,7 @@ This operation can return `0`, `-103`, and generic errors. See the error codes s
     "brothers": [
         ["hhhh", ..., "hhhh"], ..., ["hhhh", ..., "hhhh"] // (**)
     ],
-    "version": 4
+    "version": 5
 }
 
 // (*) each element must be the binary serialization of a block header as
@@ -215,7 +215,7 @@ This operation can return `0`, `1`, `-201`, `-202`, `-204`, `-205`, and generic 
 ```
 {
     "command": "resetAdvanceBlockchain",
-    "version": 4
+    "version": 5
 }
 ```
 
@@ -235,7 +235,7 @@ This operation can return `0` and generic errors. See the error codes section fo
 ```
 {
     "command": "blockchainState",
-    "version": 4
+    "version": 5
 }
 ```
 
@@ -277,7 +277,7 @@ This operation can return `0` and generic errors. See the error codes section fo
     "blocks": [
         "hhhh", "hhhh", ..., "hhhh" // (*)
     ],
-    "version": 4
+    "version": 5
 }
 
 // (*) each element must be the binary serialization of a block header as
@@ -301,7 +301,7 @@ This operation can return `0`, `-201`, `-203`, `-204`, and generic errors. See t
 ```
 {
     "command": "blockchainParameters",
-    "version": 4
+    "version": 5
 }
 ```
 
@@ -330,7 +330,7 @@ This operation can return `0` and generic errors. See the error codes section fo
 {
     "command": "signerHeartbeat",
     "udValue": "hhhh" (*),
-    "version": 4
+    "version": 5
 }
 
 // (*) Value corresponds to the user-defined value, and must be 16 bytes in size.
@@ -364,7 +364,7 @@ This operation can return `0`, `-301` and generic errors. See the error codes se
 {
     "command": "uiHeartbeat",
     "udValue": "hhhh" (*),
-    "version": 4
+    "version": 5
 }
 
 // (*) Value corresponds to the user-defined value, and must be 32 bytes in size.
