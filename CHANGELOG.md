@@ -1,5 +1,20 @@
 # Changelog
 
+## [5.0.0] - 09/04/2024
+
+### Features/enhancements
+
+- Implemented authorised segwit transaction signing
+- Added firmware static analysis to CI
+- Middleware and Firmware code coverage
+- Unified wa_store function into unique WA_STORE macro
+- Updated bug bounty program handler, domains and program response time
+
+### Fixes
+
+- Brother validation on advance blockchain payload
+- Bumped pyinstaller, pycryptodome, pycryptodomex to address dependabot findings
+
 ## [4.0.2] - 01/12/2023
 
 ### Features/enhancements

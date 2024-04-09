@@ -65,14 +65,14 @@ class TestVerifyAttestation(TestCase):
             )
         self.pubkeys_hash = pubkeys_hash.digest()
 
-        self.ui_msg = b"HSM:UI:4.0" + \
+        self.ui_msg = b"HSM:UI:5.0" + \
             bytes.fromhex("aa"*32) + \
             bytes.fromhex("bb"*33) + \
             bytes.fromhex("cc"*32) + \
             bytes.fromhex("0123")
         self.ui_hash = bytes.fromhex("ee" * 32)
 
-        self.signer_msg = b"HSM:SIGNER:4.0" + \
+        self.signer_msg = b"HSM:SIGNER:5.0" + \
             bytes.fromhex(self.pubkeys_hash.hex())
         self.signer_hash = bytes.fromhex("ff" * 32)
 
