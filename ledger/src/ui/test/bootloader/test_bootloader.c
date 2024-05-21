@@ -34,7 +34,7 @@
 #include "modes.h"
 #include "ui_err.h"
 #include "bootloader_mock.h"
-#include "communication.h"
+#include "ui_comm.h"
 
 // Mock variables needed for bootloader module
 bolos_ux_context_t G_bolos_ux_context;
@@ -176,9 +176,9 @@ unsigned short io_exchange(unsigned char channel, unsigned short tx_len) {
     return 0;
 }
 
-unsigned int comm_process_exception(unsigned short ex,
-                                    unsigned int tx,
-                                    comm_reset_cb_t comm_reset_cb) {
+unsigned int ui_process_exception(unsigned short ex,
+                                  unsigned int tx,
+                                  comm_reset_cb_t comm_reset_cb) {
     return 0;
 }
 

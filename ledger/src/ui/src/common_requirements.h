@@ -22,15 +22,15 @@
  * IN THE SOFTWARE.
  */
 
-#include "signer_authorization_status.h"
-#include "runtime.h"
+#ifndef __COMMON_REQUIREMENTS_H
+#define __COMMON_REQUIREMENTS_H
 
-// Current signer status
-NON_VOLATILE sigaut_signer_status_t N_current_signer_status_var;
+#include <string.h>
 
-/*
- * Get the current authorized signer information
- */
-sigaut_signer_t* get_authorized_signer_info() {
-    return &N_current_signer_status.signer;
-}
+#include "os.h"
+
+#define communication_get_msg_buffer() (G_io_apdu_buffer)
+#define communication_get_msg_buffer_size() (sizeof(G_io_apdu_buffer))
+#define platform_memmove(...) os_memmove(__VA_ARGS__)
+
+#endif // __COMMON_REQUIREMENTS_H

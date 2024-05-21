@@ -27,7 +27,7 @@
 #include "bolos_ux.h"
 #include "ui_heartbeat.h"
 #include "signer_authorization.h"
-#include "communication.h"
+#include "ui_comm.h"
 #include "apdu_utils.h"
 #include "assert_utils.h"
 #include "ui_err.h"

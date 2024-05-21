@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __COMMUNICATION_H
-#define __COMMUNICATION_H
+#ifndef __UI_COMM_H
+#define __UI_COMM_H
 
 #include <stdbool.h>
 
@@ -79,8 +79,8 @@ unsigned int get_retries();
  * @arg[in] comm_reset_cb   callback to reset the state
  * @returns                 the resulting APDU buffer size
  */
-unsigned int comm_process_exception(unsigned short ex,
-                                    unsigned int tx,
-                                    comm_reset_cb_t comm_reset_cb);
+unsigned int ui_process_exception(unsigned short ex,
+                                  unsigned int tx,
+                                  comm_reset_cb_t comm_reset_cb);
 
-#endif // __COMMUNICATION_H
+#endif // __UI_COMM_H

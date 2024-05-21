@@ -24,12 +24,13 @@
 
 #include <string.h>
 
+#include "runtime.h"
 #include "ui_heartbeat.h"
 #include "apdu.h"
 #include "ui_instructions.h"
 #include "ints.h"
 #include "ui_err.h"
-#include "communication.h"
+#include "ui_comm.h"
 #include "memutil.h"
 #include "compiletime.h"
 #include "signer_authorization_status.h"
@@ -253,7 +254,7 @@ void ui_heartbeat_main(ui_heartbeat_t *ui_heartbeat_ctx) {
             }
             CATCH_OTHER(e) {
                 current_context = ui_heartbeat_ctx;
-                tx = comm_process_exception(e, tx, &reset_state);
+                tx = ui_process_exception(e, tx, &reset_state);
             }
             FINALLY {
             }
