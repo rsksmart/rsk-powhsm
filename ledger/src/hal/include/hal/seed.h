@@ -49,8 +49,10 @@ bool seed_available();
  *
  * @returns whether the derivation succeeded
  */
-bool seed_derive_pubkey(uint32_t* path, uint8_t path_length,
-                        uint8_t* pubkey_out, uint8_t* pubkey_out_length);
+bool seed_derive_pubkey(uint32_t* path,
+                        uint8_t path_length,
+                        uint8_t* pubkey_out,
+                        uint8_t* pubkey_out_length);
 
 /**
  * @brief Signs the given hash with the private key obtained
@@ -65,9 +67,10 @@ bool seed_derive_pubkey(uint32_t* path, uint8_t path_length,
  *
  * @returns whether the signing succeeded
  */
-bool seed_sign(uint32_t* path, uint8_t path_length,
+bool seed_sign(uint32_t* path,
+               uint8_t path_length,
                uint8_t* hash32,
-               uint8_t* sig_out, uint8_t* sig_out_length);
-
+               uint8_t* sig_out,
+               uint8_t* sig_out_length);
 
 #endif // __HAL_SEED_H

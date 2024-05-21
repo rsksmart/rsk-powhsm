@@ -34,32 +34,32 @@
  *
  * @param msg_buffer The buffer to use for communication
  * @param msg_buffer_size The size of the message buffer in bytes
- * 
+ *
  * @returns whether the initialisation succeeded
  */
 bool communication_init(unsigned char* msg_buffer, size_t msg_buffer_size);
 
 /**
  * @brief Get a pointer to the message buffer
- * 
+ *
  * @returns a pointer to the message buffer
  */
 unsigned char* communication_get_msg_buffer();
 
 /**
  * @brief Get the message buffer size
- * 
+ *
  * @returns the message buffer size
  */
 size_t communication_get_msg_buffer_size();
 
 /**
- * @brief Exchanges bytes with the host. This function blocks until the host sends a
- * message.
+ * @brief Exchanges bytes with the host. This function blocks until the host
+ * sends a message.
  *
- *  The message exchanges data with the host using the msg_buffer. If there are any bytes
- *  to transmit, they are transmitted first. After that the function blocks until a new
- *  message is received from the host.
+ *  The message exchanges data with the host using the msg_buffer. If there are
+ * any bytes to transmit, they are transmitted first. After that the function
+ * blocks until a new message is received from the host.
  *
  * @param tx The number of bytes sent to the host
  *

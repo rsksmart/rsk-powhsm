@@ -32,17 +32,18 @@
 // Index of the ledger endorsement scheme
 #define ENDORSEMENT_SCHEME_INDEX 2
 
-bool endorsement_sign(uint8_t* msg, size_t msg_size,
-                      uint8_t* signature_out, 
+bool endorsement_sign(uint8_t* msg,
+                      size_t msg_size,
+                      uint8_t* signature_out,
                       uint8_t* signature_out_length) {
 
     if (*signature_out_length < MAX_SIGNATURE_LENGTH) {
         return false;
     }
-    
-    *signature_out_length = os_endorsement_key2_derive_sign_data(
-        msg, msg_size, signature_out);
-    
+
+    *signature_out_length =
+        os_endorsement_key2_derive_sign_data(msg, msg_size, signature_out);
+
     return true;
 }
 
@@ -63,7 +64,7 @@ bool endorsement_get_public_key(uint8_t* public_key_out,
         return false;
     }
 
-    *public_key_out_length = os_endorsement_get_public_key(
-        ENDORSEMENT_SCHEME_INDEX, public_key_out);
+    *public_key_out_length =
+        os_endorsement_get_public_key(ENDORSEMENT_SCHEME_INDEX, public_key_out);
     return true;
 }

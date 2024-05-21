@@ -31,26 +31,27 @@
 
 /**
  * @brief Endorses the given message
- * 
+ *
  * @param msg The message to attest
  * @param msg_size The size of the message to attest
  * @param signature_out Where the signature should be output
  * @param signature_out_length [in/out] the length of the output buffer /
  *                          length of the produced signature
- * 
+ *
  * @returns whether endorsement succeeded
  */
-bool endorsement_sign(uint8_t* msg, size_t msg_size,
+bool endorsement_sign(uint8_t* msg,
+                      size_t msg_size,
                       uint8_t* signature_out,
                       uint8_t* signature_out_length);
 
 /**
  * @brief Grabs the hash of the currently running code
- * 
+ *
  * @param code_hash_out Where the code hash should be output
  * @param code_hash_out_length [in/out] the length of the output buffer /
  *                          length of the produced code hash
- * 
+ *
  * @returns whether code hash gathering succeeded
  */
 bool endorsement_get_code_hash(uint8_t* code_hash_out,
@@ -58,11 +59,11 @@ bool endorsement_get_code_hash(uint8_t* code_hash_out,
 
 /**
  * @brief Grabs the endorsement public key
- * 
+ *
  * @param public_key_out Where the public key should be output
  * @param public_key_out_length [in/out] the length of the output buffer /
  *                          length of the produced public key
- * 
+ *
  * @returns whether public key gathering succeeded
  */
 bool endorsement_get_public_key(uint8_t* public_key_out,

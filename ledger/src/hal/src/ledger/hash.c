@@ -32,12 +32,14 @@ bool hash_sha256_init(hash_sha256_ctx_t* ctx) {
     return true;
 }
 
-bool hash_sha256_update(hash_sha256_ctx_t* ctx, const uint8_t *data, size_t len) {
+bool hash_sha256_update(hash_sha256_ctx_t* ctx,
+                        const uint8_t* data,
+                        size_t len) {
     cx_hash((cx_hash_t*)(ctx), 0, (unsigned char*)data, len, NULL);
     return true;
 }
 
-bool hash_sha256_final(hash_sha256_ctx_t* ctx, uint8_t *out_hash) {
+bool hash_sha256_final(hash_sha256_ctx_t* ctx, uint8_t* out_hash) {
     cx_hash((cx_hash_t*)(ctx), CX_LAST, NULL, 0, out_hash);
     return true;
 }
@@ -48,17 +50,19 @@ bool hash_sha256_ms_init(hash_sha256_ms_ctx_t* ctx) {
     return true;
 }
 
-bool hash_sha256_ms_midstate(hash_sha256_ms_ctx_t* ctx, uint8_t *midstate) {
+bool hash_sha256_ms_midstate(hash_sha256_ms_ctx_t* ctx, uint8_t* midstate) {
     sha256_midstate(ctx, midstate);
     return true;
 }
 
-bool hash_sha256_ms_update(hash_sha256_ms_ctx_t* ctx, const uint8_t *data, size_t len) {
+bool hash_sha256_ms_update(hash_sha256_ms_ctx_t* ctx,
+                           const uint8_t* data,
+                           size_t len) {
     sha256_update(ctx, data, len);
     return true;
 }
 
-bool hash_sha256_ms_final(hash_sha256_ms_ctx_t* ctx, uint8_t *out_hash) {
+bool hash_sha256_ms_final(hash_sha256_ms_ctx_t* ctx, uint8_t* out_hash) {
     sha256_final(ctx, out_hash);
     return true;
 }
@@ -69,12 +73,14 @@ bool hash_keccak256_init(hash_keccak256_ctx_t* ctx) {
     return true;
 }
 
-bool hash_keccak256_update(hash_keccak256_ctx_t* ctx, const uint8_t *data, size_t len) {
+bool hash_keccak256_update(hash_keccak256_ctx_t* ctx,
+                           const uint8_t* data,
+                           size_t len) {
     cx_hash((cx_hash_t*)(ctx), 0, (unsigned char*)data, len, NULL);
     return true;
 }
 
-bool hash_keccak256_final(hash_keccak256_ctx_t* ctx, uint8_t *out_hash) {
+bool hash_keccak256_final(hash_keccak256_ctx_t* ctx, uint8_t* out_hash) {
     cx_hash((cx_hash_t*)(ctx), CX_LAST, NULL, 0, out_hash);
     return true;
 }

@@ -30,16 +30,16 @@
 
 /**
  * @brief Perform the platform-specific version of memmove
- * 
+ *
  * @param dst destination buffer
  * @param src source buffer
  * @param length number of bytes to copy
-*/
+ */
 void platform_memmove(void *dst, const void *src, unsigned int length);
 
 /**
  * @brief Request exiting/closing to the underlying platform
-*/
+ */
 void platform_request_exit();
 
 #endif // __HAL_PLATFORM_H

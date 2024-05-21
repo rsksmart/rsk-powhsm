@@ -34,7 +34,7 @@
 #include "srlp.h"
 
 /** Set a prefix for all logs */
-void LOG_SET_PREFIX(char* prefix);
+void LOG_SET_PREFIX(char *prefix);
 
 /** Works just like printf */
 void LOG(const char *format, ...);
@@ -55,7 +55,7 @@ void LOG_BIGD_HEX(const char *prefix,
 #define LOG_BIGD_HEX(...)
 
 #else
-    #error "HSM Platform undefined"
+#error "HSM Platform undefined"
 #endif
 
 #endif // __LOG_H

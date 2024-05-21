@@ -51,7 +51,7 @@ typedef SHA3_CTX hash_keccak256_ctx_t;
 typedef SHA256_CTX hash_sha256_ms_ctx_t;
 
 #else
-    #error "HSM Platform undefined"
+#error "HSM Platform undefined"
 #endif
 // END of platform-dependent code
 
@@ -59,41 +59,43 @@ typedef SHA256_CTX hash_sha256_ms_ctx_t;
 
 /**
  * @brief Initialize a sha256 hash context
- * 
+ *
  * @param[inout] ctx the context to initialize
- * 
+ *
  * @returns whether the initialisation succeeded
  */
 bool hash_sha256_init(hash_sha256_ctx_t* ctx);
 
 /**
  * @brief Update a sha256 hash context with given data
- * 
+ *
  * @param[inout] ctx the context to update
  * @param[in] data  pointer to message to hash
  * @param[in] len   length of message in bytes
  *
  * @returns whether the update succeeded
  */
-bool hash_sha256_update(hash_sha256_ctx_t* ctx, const uint8_t *data, size_t len);
+bool hash_sha256_update(hash_sha256_ctx_t* ctx,
+                        const uint8_t* data,
+                        size_t len);
 
 /**
  * @brief Compute the final sha256 hash for the given context
- * 
+ *
  * @param[inout] ctx the context to finalise
  * @param[out] out_hash The final hash obtained from the incremental hash
- * 
+ *
  * @returns whether the finalisation succeeded
  */
-bool hash_sha256_final(hash_sha256_ctx_t* ctx, uint8_t *out_hash);
+bool hash_sha256_final(hash_sha256_ctx_t* ctx, uint8_t* out_hash);
 
 // *** sha256 with midstate support ***
 
 /**
  * @brief Initialize a sha256 ms hash context
- * 
+ *
  * @param[inout] ctx the context to initialize
- * 
+ *
  * @returns whether the initialisation succeeded
  */
 bool hash_sha256_ms_init(hash_sha256_ms_ctx_t* ctx);
@@ -107,65 +109,69 @@ bool hash_sha256_ms_init(hash_sha256_ms_ctx_t* ctx);
  *   - midstate[8:16]: counter, as a big-endian uint64_t
  *   - midstate[16:48]: current hash, as 8 big-endian uint32_t integers
  *   - midstate[48:52]: ignore
- * 
+ *
  * @param[inout] ctx the context to set
  * @param[in] midstate  pointer to midstate buffer
  *
  * @returns whether the midstate succeeded
  */
-bool hash_sha256_ms_midstate(hash_sha256_ms_ctx_t* ctx, uint8_t *midstate);
+bool hash_sha256_ms_midstate(hash_sha256_ms_ctx_t* ctx, uint8_t* midstate);
 
 /**
  * @brief Update a sha256 ms hash context with given data
- * 
+ *
  * @param[inout] ctx the context to update
  * @param[in] data  pointer to message to hash
  * @param[in] len   length of message in bytes
  *
  * @returns whether the update succeeded
  */
-bool hash_sha256_ms_update(hash_sha256_ms_ctx_t* ctx, const uint8_t *data, size_t len);
+bool hash_sha256_ms_update(hash_sha256_ms_ctx_t* ctx,
+                           const uint8_t* data,
+                           size_t len);
 
 /**
  * @brief Compute the final sha256 ms hash for the given context
- * 
+ *
  * @param[inout] ctx the context to finalise
  * @param[out] out_hash The final hash obtained from the incremental hash
- * 
+ *
  * @returns whether the finalisation succeeded
  */
-bool hash_sha256_ms_final(hash_sha256_ms_ctx_t* ctx, uint8_t *out_hash);
+bool hash_sha256_ms_final(hash_sha256_ms_ctx_t* ctx, uint8_t* out_hash);
 
 // *** keccak256 ***
 
 /**
  * @brief Initialize a keccak256 hash context
- * 
+ *
  * @param[inout] ctx the context to initialize
- * 
+ *
  * @returns whether the initialisation succeeded
  */
 bool hash_keccak256_init(hash_keccak256_ctx_t* ctx);
 
 /**
  * @brief Update a keccak256 hash context with given data
- * 
+ *
  * @param[inout] ctx the context to update
  * @param[in] data  pointer to message to hash
  * @param[in] len   length of message in bytes
  *
  * @returns whether the update succeeded
  */
-bool hash_keccak256_update(hash_keccak256_ctx_t* ctx, const uint8_t *data, size_t len);
+bool hash_keccak256_update(hash_keccak256_ctx_t* ctx,
+                           const uint8_t* data,
+                           size_t len);
 
 /**
  * @brief Compute the final keccak256 hash for the given context
- * 
+ *
  * @param[inout] ctx the context to finalise
  * @param[out] out_hash The final hash obtained from the incremental hash
- * 
+ *
  * @returns whether the finalisation succeeded
  */
-bool hash_keccak256_final(hash_keccak256_ctx_t* ctx, uint8_t *out_hash);
+bool hash_keccak256_final(hash_keccak256_ctx_t* ctx, uint8_t* out_hash);
 
 #endif // __HAL_HASH_H

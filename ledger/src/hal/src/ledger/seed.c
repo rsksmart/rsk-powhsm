@@ -36,8 +36,10 @@ bool seed_available() {
     return os_perso_isonboarded() == 1;
 }
 
-bool seed_derive_pubkey(uint32_t* path, uint8_t path_length,
-                        uint8_t* pubkey_out, uint8_t* pubkey_out_length) {
+bool seed_derive_pubkey(uint32_t* path,
+                        uint8_t path_length,
+                        uint8_t* pubkey_out,
+                        uint8_t* pubkey_out_length) {
 
     volatile unsigned char private_key_data[PRIVATE_KEY_LENGTH];
     volatile cx_ecfp_private_key_t private_key;
@@ -49,25 +51,27 @@ bool seed_derive_pubkey(uint32_t* path, uint8_t path_length,
             os_perso_derive_node_bip32(CX_CURVE_256K1,
                                        path,
                                        path_length,
-                                       (unsigned char*) private_key_data,
+                                       (unsigned char*)private_key_data,
                                        NULL);
             cx_ecdsa_init_private_key(CX_CURVE_256K1,
-                                      (unsigned char*) private_key_data,
+                                      (unsigned char*)private_key_data,
                                       PRIVATE_KEY_LENGTH,
-                                      (cx_ecfp_private_key_t*) &private_key);
+                                      (cx_ecfp_private_key_t*)&private_key);
             // Cleanup private key data
             explicit_bzero((void*)private_key_data, sizeof(private_key_data));
             // Derive public key
             cx_ecfp_generate_pair(CX_CURVE_256K1,
-                                  (cx_ecfp_public_key_t*) &public_key,
-                                  (cx_ecfp_private_key_t*) &private_key,
+                                  (cx_ecfp_public_key_t*)&public_key,
+                                  (cx_ecfp_private_key_t*)&private_key,
                                   1);
             // Cleanup private key
             explicit_bzero((void*)&private_key, sizeof(private_key));
-            if (*pubkey_out_length < public_key.W_len) THROW(1);
+            if (*pubkey_out_length < public_key.W_len)
+                THROW(1);
             // Output the public key
             *pubkey_out_length = public_key.W_len;
-            os_memmove((void*) pubkey_out, (const void*) public_key.W, public_key.W_len);
+            os_memmove(
+                (void*)pubkey_out, (const void*)public_key.W, public_key.W_len);
             // Cleanup public key
             explicit_bzero((void*)&public_key, sizeof(public_key));
         }
@@ -86,9 +90,11 @@ bool seed_derive_pubkey(uint32_t* path, uint8_t path_length,
     return true;
 }
 
-bool seed_sign(uint32_t* path, uint8_t path_length,
+bool seed_sign(uint32_t* path,
+               uint8_t path_length,
                uint8_t* hash32,
-               uint8_t* sig_out, uint8_t* sig_out_length) {
+               uint8_t* sig_out,
+               uint8_t* sig_out_length) {
 
     volatile unsigned char private_key_data[PRIVATE_KEY_LENGTH];
     volatile cx_ecfp_private_key_t private_key;
@@ -112,12 +118,12 @@ bool seed_sign(uint32_t* path, uint8_t path_length,
                                       (cx_ecfp_private_key_t*)&private_key);
             // Cleanup private key data
             explicit_bzero((void*)private_key_data, sizeof(private_key_data));
-            *sig_out_length = (uint8_t) cx_ecdsa_sign((void*)&private_key,
-                                                      CX_RND_RFC6979 | CX_LAST,
-                                                      CX_SHA256,
-                                                      hash32,
-                                                      HASH_SIZE,
-                                                      sig_out);
+            *sig_out_length = (uint8_t)cx_ecdsa_sign((void*)&private_key,
+                                                     CX_RND_RFC6979 | CX_LAST,
+                                                     CX_SHA256,
+                                                     hash32,
+                                                     HASH_SIZE,
+                                                     sig_out);
             // Cleanup private key
             explicit_bzero((void*)&private_key, sizeof(private_key));
         }

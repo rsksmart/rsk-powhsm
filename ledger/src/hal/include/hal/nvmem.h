@@ -31,11 +31,11 @@
 
 /**
  * @brief Write to non volatile memory
- * 
+ *
  * @param dst The destination address in non volatile memory
  * @param src The source address to write from
  * @param length The amount of bytes to write
- * 
+ *
  * @returns whether the write succeeded
  */
 bool nvmem_write(void *dst, void *src, unsigned int length);
