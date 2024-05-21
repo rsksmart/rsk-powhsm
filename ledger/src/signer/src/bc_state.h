@@ -32,7 +32,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "os.h"
+#include "hal/platform.h"
 
 #include "bigdigits.h"
 #include "nvm.h"

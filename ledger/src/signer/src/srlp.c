@@ -26,11 +26,11 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "hal/platform.h"
+#include "hal/log.h"
+
 #include "srlp.h"
-
-#include "os.h"
-
-#include "dbg.h"
+#include "runtime.h"
 
 // This code tinkers with function pointers referenced from
 // const data structures, so we need to use the PIC macro.
@@ -180,6 +180,20 @@ void rlp_start(const rlp_callbacks_t* cbs) {
             rlp_frame_start = b + 1;                                    \
         }                                                               \
     }
+
+/** Print the given SRLP context (see srlp.h) */
+#ifdef DEBUG_SRLP
+static void LOG_SRLP_CTX(uint8_t v, rlp_ctx_t ctx[], uint8_t ptr) {
+    LOG("'0x%02x' ; <%u> ; ", v, ptr);
+    for (int i = ptr; i >= 0; --i) {
+        rlp_ctx_t cur = ctx[i];
+        LOG("{%d, %u, %u} ; ", cur.state, cur.size, cur.cursor);
+    }
+    LOG("{EOC}\n");
+}
+#else
+#define LOG_SRLP_CTX(...)
+#endif
 
 /*
  * Consume a chunk of bytes.

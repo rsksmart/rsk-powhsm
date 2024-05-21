@@ -55,9 +55,6 @@ typedef enum {
 // to include in the message
 #define LAST_SIGNED_TX_BYTES 8 // bytes
 
-// Index of the endorsement scheme
-#define ENDORSEMENT_SCHEME_INDEX 2
-
 // Maximum heartbeat message to sign size
 #define MAX_HEARTBEAT_MESSAGE_SIZE 80
 

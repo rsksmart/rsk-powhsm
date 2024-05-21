@@ -27,8 +27,9 @@
 
 #include <stdint.h>
 
+#include "hal/hash.h"
+
 #include "bigdigits.h"
-#include "sha256.h"
 
 #include "bc.h"
 #include "bc_hash.h"
@@ -73,8 +74,8 @@ typedef struct {
     };
 
     union {
-        sha256_ctx_t ctx;   // Global sha256 context
-        SHA256_CTX mid_ctx; // Sha256 supporting midstate
+        hash_sha256_ctx_t ctx;        // Global sha256 context
+        hash_sha256_ms_ctx_t mid_ctx; // Sha256 supporting midstate
     };
 
     union {

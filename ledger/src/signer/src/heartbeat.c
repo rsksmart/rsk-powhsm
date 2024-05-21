@@ -24,7 +24,10 @@
 
 #include <string.h>
 
-#include "os.h"
+#include "hal/endorsement.h"
+#include "hal/platform.h"
+#include "hal/exceptions.h"
+
 #include "heartbeat.h"
 #include "apdu.h"
 #include "defs.h"
@@ -74,6 +77,8 @@ unsigned int get_heartbeat(volatile unsigned int rx,
                         sizeof(N_bc_state.last_auth_signed_btc_tx_hash));
 
     COMPILE_TIME_ASSERT(MAX_HEARTBEAT_MESSAGE_SIZE <= APDU_TOTAL_DATA_SIZE_OUT);
+
+    uint8_t out_size;
 
     switch (APDU_OP()) {
     case OP_HBT_UD_VALUE:
@@ -138,8 +143,13 @@ unsigned int get_heartbeat(volatile unsigned int rx,
         check_state(heartbeat_ctx, STATE_HEARTBEAT_READY);
 
         // Sign message
-        int endorsement_size = os_endorsement_key2_derive_sign_data(
-            heartbeat_ctx->msg, heartbeat_ctx->msg_offset, APDU_DATA_PTR);
+        uint8_t endorsement_size = APDU_TOTAL_DATA_SIZE_OUT;
+        if (!endorsement_sign(heartbeat_ctx->msg,
+                              heartbeat_ctx->msg_offset,
+                              APDU_DATA_PTR,
+                              &endorsement_size)) {
+            THROW(ERR_HBT_INTERNAL);
+        }
 
         return TX_FOR_DATA_SIZE(endorsement_size);
     case OP_HBT_GET_MESSAGE:
@@ -156,13 +166,21 @@ unsigned int get_heartbeat(volatile unsigned int rx,
 
         return TX_FOR_DATA_SIZE(heartbeat_ctx->msg_offset);
     case OP_HBT_APP_HASH:
-        return TX_FOR_DATA_SIZE(os_endorsement_get_code_hash(APDU_DATA_PTR));
+        out_size = APDU_TOTAL_DATA_SIZE_OUT;
+        if (!endorsement_get_code_hash(APDU_DATA_PTR, &out_size)) {
+            THROW(ERR_HBT_INTERNAL);
+        }
+        return TX_FOR_DATA_SIZE(out_size);
     case OP_HBT_PUBKEY:
-        return TX_FOR_DATA_SIZE(os_endorsement_get_public_key(
-            ENDORSEMENT_SCHEME_INDEX, APDU_DATA_PTR));
+        out_size = APDU_TOTAL_DATA_SIZE_OUT;
+        if (!endorsement_get_public_key(APDU_DATA_PTR, &out_size)) {
+            THROW(ERR_HBT_INTERNAL);
+        }
+        return TX_FOR_DATA_SIZE(out_size);
     default:
         reset_heartbeat(heartbeat_ctx);
         THROW(ERR_HBT_PROT_INVALID);
         break;
     }
+    return 0;
 }

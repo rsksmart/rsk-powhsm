@@ -27,7 +27,8 @@
 
 #include <stdint.h>
 
-#include "sha256.h"
+#include "hal/hash.h"
+
 #include "btctx.h"
 #include "btcscript.h"
 
@@ -48,8 +49,8 @@ typedef struct {
     bool finalise;
     btctx_ctx_t ctx;
     btcscript_ctx_t script_ctx;
-    SHA256_CTX tx_hash_ctx;
-    SHA256_CTX sig_hash_ctx;
+    hash_sha256_ctx_t tx_hash_ctx;
+    hash_sha256_ctx_t sig_hash_ctx;
 
     uint8_t sighash_computation_mode;
 
@@ -58,11 +59,11 @@ typedef struct {
     bool segwit_processing_extradata;
     uint16_t segwit_extradata_size;
     union {
-        SHA256_CTX prevouts_hash_ctx;
-        SHA256_CTX outputs_hash_ctx;
+        hash_sha256_ctx_t prevouts_hash_ctx;
+        hash_sha256_ctx_t outputs_hash_ctx;
         uint8_t lock_time[BTCTX_LOCKTIME_SIZE];
     };
-    SHA256_CTX sequence_hash_ctx;
+    hash_sha256_ctx_t sequence_hash_ctx;
     union {
         uint8_t aux_hash[BTCTX_HASH_SIZE];
         uint8_t outputs_hash[BTCTX_HASH_SIZE];

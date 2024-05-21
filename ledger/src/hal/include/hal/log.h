@@ -22,30 +22,40 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __RUNTIME_H
-#define __RUNTIME_H
+#ifndef __LOG_H
+#define __LOG_H
 
-#if defined(HSM_PLATFORM_LEDGER)
+#if defined(HSM_PLATFORM_X86)
 
-// We can't include any HAL headers here because
-// the Ledger UI does not know anything about it
-#include "os.h"
+#include <stdio.h>
+#include <stdlib.h>
 
-#define NON_VOLATILE const
+#include "bigdigits.h"
+#include "srlp.h"
 
-#elif defined(HSM_PLATFORM_X86)
+/** Set a prefix for all logs */
+void LOG_SET_PREFIX(char* prefix);
 
-#include "hal/platform.h"
-#include "hal/exceptions.h"
+/** Works just like printf */
+void LOG(const char *format, ...);
 
-#include "ui_deps.h"
+/** Print buffer in hex format with prefix */
+void LOG_HEX(const char *prefix, void *buffer, size_t size);
 
-#define PIC(x) (x)
+/** Print big integer in hex format with optional prefix and suffix strings */
+void LOG_BIGD_HEX(const char *prefix,
+                  const DIGIT_T *a,
+                  size_t len,
+                  const char *suffix);
 
-#define NON_VOLATILE
+#elif defined(HSM_PLATFORM_LEDGER)
+
+#define LOG(...)
+#define LOG_HEX(...)
+#define LOG_BIGD_HEX(...)
 
 #else
-#error "HSM Platform undefined"
+    #error "HSM Platform undefined"
 #endif
 
-#endif // __RUNTIME_H
+#endif // __LOG_H

@@ -23,37 +23,27 @@
  */
 
 #include "os.h"
-#include "hsm.h"
-#include "err.h"
+#include "hal/communication.h"
 
-void hsm_ledger_main_loop() {
-    volatile unsigned int rx = 0;
-    volatile unsigned int tx = 0;
+static unsigned char* msg_buffer;
+static size_t msg_buffer_size;
 
-    // DESIGN NOTE: the bootloader ignores the way APDU are fetched. The only
-    // goal is to retrieve APDU.
-    // When APDU are to be fetched from multiple IOs, like NFC+USB+BLE, make
-    // sure the io_event is called with a
-    // switch event, before the apdu is replied to the bootloader. This avoid
-    // APDU injection faults.
-    while (!hsm_exit_requested()) {
-        BEGIN_TRY {
-            TRY {
-                // ensure no race in catch_other if io_exchange throws
-                // an error
-                rx = tx;
-                tx = 0;
-                rx = io_exchange(CHANNEL_APDU, rx);
+// HAL implementation
+bool communication_init(unsigned char* _msg_buffer, size_t _msg_buffer_size) {
+    // Setup the exchange buffer
+    msg_buffer = _msg_buffer;
+    msg_buffer_size = _msg_buffer_size;
+    return true;
+}
 
-                tx = hsm_process_apdu(rx);
-                THROW(0x9000);
-            }
-            CATCH_OTHER(e) {
-                tx = hsm_process_exception(e, tx);
-            }
-            FINALLY {
-            }
-        }
-        END_TRY;
-    }
+unsigned char* communication_get_msg_buffer() {
+    return msg_buffer;
+}
+
+size_t communication_get_msg_buffer_size() {
+    return msg_buffer_size;
+}
+
+unsigned short communication_io_exchange(unsigned short tx) {
+    return io_exchange(CHANNEL_APDU, tx);
 }

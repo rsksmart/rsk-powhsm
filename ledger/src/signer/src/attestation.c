@@ -24,7 +24,11 @@
 
 #include <string.h>
 
-#include "os.h"
+#include "hal/seed.h"
+#include "hal/endorsement.h"
+#include "hal/platform.h"
+#include "hal/exceptions.h"
+
 #include "attestation.h"
 #include "apdu.h"
 #include "defs.h"
@@ -43,58 +47,40 @@ const char att_msg_prefix[ATT_MSG_PREFIX_LENGTH] = ATT_MSG_PREFIX;
 static void hash_public_key(const char* path,
                             size_t path_size,
                             att_t* att_ctx) {
-    BEGIN_TRY {
-        TRY {
-            // Derive public key
+    // Derive public key
 
-            // Skip first byte of path when copying (path size byte)
-            SAFE_MEMMOVE(att_ctx->path,
-                         sizeof(att_ctx->path),
-                         MEMMOVE_ZERO_OFFSET,
-                         (unsigned int*)path,
-                         path_size,
-                         1,
-                         sizeof(att_ctx->path),
-                         THROW(ERR_ATT_INTERNAL));
+    // Skip first byte of path when copying (path size byte)
+    SAFE_MEMMOVE(att_ctx->path,
+                 sizeof(att_ctx->path),
+                 MEMMOVE_ZERO_OFFSET,
+                 (unsigned int*)path,
+                 path_size,
+                 1,
+                 sizeof(att_ctx->path),
+                 { goto hash_public_key_error; });
 
-            // Derive and init private key
-            os_perso_derive_node_bip32(CX_CURVE_256K1,
-                                       att_ctx->path,
-                                       DERIVATION_PATH_PARTS,
-                                       att_ctx->priv_key_data,
-                                       NULL);
-            cx_ecdsa_init_private_key(CX_CURVE_256K1,
-                                      att_ctx->priv_key_data,
-                                      PRIVATE_KEY_LENGTH,
-                                      &att_ctx->priv_key);
-            // Cleanup private key data
-            explicit_bzero(att_ctx->priv_key_data,
-                           sizeof(att_ctx->priv_key_data));
-            // Derive public key
-            cx_ecfp_generate_pair(
-                CX_CURVE_256K1, &att_ctx->pub_key, &att_ctx->priv_key, 1);
-            // Cleanup private key
-            explicit_bzero(&att_ctx->priv_key, sizeof(att_ctx->priv_key));
-
-            // Hash
-            SHA256_UPDATE(
-                &att_ctx->hash_ctx, att_ctx->pub_key.W, att_ctx->pub_key.W_len);
-
-            // Cleanup public key
-            explicit_bzero(&att_ctx->pub_key, sizeof(att_ctx->pub_key));
-        }
-        CATCH_OTHER(e) {
-            // Cleanup key data and fail
-            explicit_bzero(att_ctx->priv_key_data,
-                           sizeof(att_ctx->priv_key_data));
-            explicit_bzero(&att_ctx->priv_key, sizeof(att_ctx->priv_key));
-            explicit_bzero(&att_ctx->pub_key, sizeof(att_ctx->pub_key));
-            THROW(ERR_ATT_INTERNAL);
-        }
-        FINALLY {
-        }
+    att_ctx->pubkey_length = sizeof(att_ctx->pubkey);
+    if (!seed_derive_pubkey(att_ctx->path,
+                            sizeof(att_ctx->path) / sizeof(att_ctx->path[0]),
+                            att_ctx->pubkey,
+                            &att_ctx->pubkey_length)) {
+        goto hash_public_key_error;
     }
-    END_TRY;
+
+    // Hash
+    SHA256_UPDATE(&att_ctx->hash_ctx, att_ctx->pubkey, att_ctx->pubkey_length);
+
+    // Cleanup public key
+    explicit_bzero(&att_ctx->pubkey, sizeof(att_ctx->pubkey));
+    att_ctx->pubkey_length = 0;
+
+    return;
+
+hash_public_key_error:
+    // Cleanup public key
+    explicit_bzero(&att_ctx->pubkey, sizeof(att_ctx->pubkey));
+    att_ctx->pubkey_length = 0;
+    THROW(ERR_ATT_INTERNAL);
 }
 
 /*
@@ -139,15 +125,19 @@ static unsigned int generate_message_to_sign(att_t* att_ctx) {
  */
 unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx) {
     unsigned int message_size;
+    uint8_t code_hash_size;
 
     switch (APDU_OP()) {
     case OP_ATT_GET:
-        // Generate the message to sign
+        // Generate the message to attest
         message_size = generate_message_to_sign(att_ctx);
 
-        // Sign message
-        int endorsement_size = os_endorsement_key2_derive_sign_data(
-            att_ctx->msg, message_size, APDU_DATA_PTR);
+        // Attest message
+        uint8_t endorsement_size = APDU_TOTAL_DATA_SIZE_OUT;
+        if (!endorsement_sign(
+                att_ctx->msg, message_size, APDU_DATA_PTR, &endorsement_size)) {
+            THROW(ERR_ATT_INTERNAL);
+        }
 
         return TX_FOR_DATA_SIZE(endorsement_size);
     case OP_ATT_GET_MESSAGE:
@@ -165,9 +155,14 @@ unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx) {
 
         return TX_FOR_DATA_SIZE(message_size);
     case OP_ATT_APP_HASH:
-        return TX_FOR_DATA_SIZE(os_endorsement_get_code_hash(APDU_DATA_PTR));
+        code_hash_size = APDU_TOTAL_DATA_SIZE_OUT;
+        if (!endorsement_get_code_hash(APDU_DATA_PTR, &code_hash_size)) {
+            THROW(ERR_ATT_INTERNAL);
+        }
+        return TX_FOR_DATA_SIZE(code_hash_size);
     default:
         THROW(ERR_ATT_PROT_INVALID);
         break;
     }
+    return 0;
 }

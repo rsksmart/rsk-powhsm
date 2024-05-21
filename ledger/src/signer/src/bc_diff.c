@@ -25,7 +25,7 @@
 #include <string.h>
 
 #include "bc_diff.h"
-#include "dbg.h"
+#include "hal/log.h"
 #include "memutil.h"
 
 // Maximum difficulty for block difficulty capping (network dependent)
@@ -33,7 +33,7 @@
 static const DIGIT_T MAX_BLOCK_DIFFICULTY[BIGINT_LEN] = BCDIFF_MBD_TESTNET;
 #elif defined(REGTEST)
 static const DIGIT_T MAX_BLOCK_DIFFICULTY[BIGINT_LEN] = BCDIFF_MBD_REGTEST;
-#elif defined(HSM_SIMULATOR)
+#elif defined(HSM_PLATFORM_X86)
 DIGIT_T MAX_BLOCK_DIFFICULTY[BIGINT_LEN];
 #else
 static const DIGIT_T MAX_BLOCK_DIFFICULTY[BIGINT_LEN] = BCDIFF_MBD_MAINNET;

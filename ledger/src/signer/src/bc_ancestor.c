@@ -24,10 +24,8 @@
 
 #include <string.h>
 
-#include "os.h"
-
 #include "bc.h"
-#include "dbg.h"
+#include "hal/log.h"
 #include "defs.h"
 #include "ints.h"
 #include "mem.h"

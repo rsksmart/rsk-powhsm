@@ -25,6 +25,8 @@
 #ifndef __BC_ERR_H
 #define __BC_ERR_H
 
+#include "hal/exceptions.h"
+
 // Error codes returned by blockchain protocols
 typedef enum {
     UNKNOWN = 0,

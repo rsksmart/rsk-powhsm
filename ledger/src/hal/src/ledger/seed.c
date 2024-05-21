@@ -26,32 +26,22 @@
 
 #include "os.h"
 #include "cx.h"
+#include "hal/seed.h"
 
-#include "sign.h"
-#include "defs.h"
-#include "memutil.h"
+#define PRIVATE_KEY_LENGTH 32
+#define HASH_SIZE 32
+#define MAX_SIGNATURE_LENGTH 72
 
-/*
- * Derive the public key for a given path.
- * Store the public key into the given destination buffer.
- *
- * @arg[in] path derivation path
- * @arg[in] path_length length of the derivation path
- * @arg[in] dest destination buffer
- * @arg[in] dest destination buffer size
- * @ret     size of the public key derived,
- *          or DO_PUBKEY_ERROR in case of error
- */
-int do_pubkey(unsigned int* path,
-              unsigned char path_length,
-              unsigned char* dest,
-              size_t dest_size) {
+bool seed_available() {
+    return os_perso_isonboarded() == 1;
+}
+
+bool seed_derive_pubkey(uint32_t* path, uint8_t path_length,
+                        uint8_t* pubkey_out, uint8_t* pubkey_out_length) {
 
     volatile unsigned char private_key_data[PRIVATE_KEY_LENGTH];
     volatile cx_ecfp_private_key_t private_key;
     volatile cx_ecfp_public_key_t public_key;
-
-    volatile int pubkey_size;
 
     BEGIN_TRY {
         TRY {
@@ -59,31 +49,25 @@ int do_pubkey(unsigned int* path,
             os_perso_derive_node_bip32(CX_CURVE_256K1,
                                        path,
                                        path_length,
-                                       (unsigned char*)private_key_data,
+                                       (unsigned char*) private_key_data,
                                        NULL);
             cx_ecdsa_init_private_key(CX_CURVE_256K1,
-                                      (unsigned char*)private_key_data,
+                                      (unsigned char*) private_key_data,
                                       PRIVATE_KEY_LENGTH,
-                                      (cx_ecfp_private_key_t*)&private_key);
+                                      (cx_ecfp_private_key_t*) &private_key);
             // Cleanup private key data
             explicit_bzero((void*)private_key_data, sizeof(private_key_data));
             // Derive public key
             cx_ecfp_generate_pair(CX_CURVE_256K1,
-                                  (cx_ecfp_public_key_t*)&public_key,
-                                  (cx_ecfp_private_key_t*)&private_key,
+                                  (cx_ecfp_public_key_t*) &public_key,
+                                  (cx_ecfp_private_key_t*) &private_key,
                                   1);
             // Cleanup private key
             explicit_bzero((void*)&private_key, sizeof(private_key));
+            if (*pubkey_out_length < public_key.W_len) THROW(1);
             // Output the public key
-            pubkey_size = public_key.W_len;
-            SAFE_MEMMOVE(dest,
-                         dest_size,
-                         MEMMOVE_ZERO_OFFSET,
-                         (void*)public_key.W,
-                         public_key.W_len,
-                         MEMMOVE_ZERO_OFFSET,
-                         public_key.W_len,
-                         { pubkey_size = DO_PUBKEY_ERROR; })
+            *pubkey_out_length = public_key.W_len;
+            os_memmove((void*) pubkey_out, (const void*) public_key.W, public_key.W_len);
             // Cleanup public key
             explicit_bzero((void*)&public_key, sizeof(public_key));
         }
@@ -92,45 +76,26 @@ int do_pubkey(unsigned int* path,
             explicit_bzero((void*)private_key_data, sizeof(private_key_data));
             explicit_bzero((void*)&private_key, sizeof(private_key));
             explicit_bzero((void*)&public_key, sizeof(public_key));
-            // Signal error deriving public key
-            pubkey_size = DO_PUBKEY_ERROR;
+            return false;
         }
         FINALLY {
         }
     }
     END_TRY;
-    // Return public key size
-    return pubkey_size;
+
+    return true;
 }
 
-/*
- * Sign a message with a given path.
- * Store the signature into the given destination buffer.
- *
- * @arg[in] path derivation path
- * @arg[in] path_length length of the derivation path
- * @arg[in] message message buffer
- * @arg[in] message_size message size
- * @arg[in] dest destination buffer
- * @arg[in] dest destination buffer size
- * @ret     size of the signature produced,
- *          or DO_SIGN_ERROR in case of error
- */
-int do_sign(unsigned int* path,
-            unsigned char path_length,
-            unsigned char* message,
-            size_t message_size,
-            unsigned char* dest,
-            size_t dest_size) {
+bool seed_sign(uint32_t* path, uint8_t path_length,
+               uint8_t* hash32,
+               uint8_t* sig_out, uint8_t* sig_out_length) {
 
     volatile unsigned char private_key_data[PRIVATE_KEY_LENGTH];
     volatile cx_ecfp_private_key_t private_key;
 
-    volatile int sig_size;
-
     // Check the destination buffer won't be overflowed by the signature
-    if (dest_size < MAX_SIGNATURE_LENGTH) {
-        return DO_SIGN_ERROR;
+    if (*sig_out_length < MAX_SIGNATURE_LENGTH) {
+        return false;
     }
 
     BEGIN_TRY {
@@ -147,12 +112,12 @@ int do_sign(unsigned int* path,
                                       (cx_ecfp_private_key_t*)&private_key);
             // Cleanup private key data
             explicit_bzero((void*)private_key_data, sizeof(private_key_data));
-            sig_size = cx_ecdsa_sign((void*)&private_key,
-                                     CX_RND_RFC6979 | CX_LAST,
-                                     CX_SHA256,
-                                     message,
-                                     message_size,
-                                     dest);
+            *sig_out_length = (uint8_t) cx_ecdsa_sign((void*)&private_key,
+                                                      CX_RND_RFC6979 | CX_LAST,
+                                                      CX_SHA256,
+                                                      hash32,
+                                                      HASH_SIZE,
+                                                      sig_out);
             // Cleanup private key
             explicit_bzero((void*)&private_key, sizeof(private_key));
         }
@@ -160,13 +125,12 @@ int do_sign(unsigned int* path,
             // Cleanup key data and fail
             explicit_bzero((void*)private_key_data, sizeof(private_key_data));
             explicit_bzero((void*)&private_key, sizeof(private_key));
-            // Signal error signing
-            sig_size = DO_SIGN_ERROR;
+            return false;
         }
         FINALLY {
         }
     }
     END_TRY;
-    // Return signature size
-    return sig_size;
+
+    return true;
 }

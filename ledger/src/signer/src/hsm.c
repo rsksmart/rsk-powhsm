@@ -24,9 +24,12 @@
 
 #include <string.h>
 
+#include "hal/communication.h"
+#include "hal/seed.h"
+#include "hal/platform.h"
+#include "hal/exceptions.h"
+
 #include "hsm.h"
-#include "os.h"
-#include "os_io_seproxyhal.h"
 
 #include "defs.h"
 #include "instructions.h"
@@ -37,7 +40,6 @@
 
 #include "pathAuth.h"
 #include "auth.h"
-#include "sign.h"
 
 #include "bc_state.h"
 #include "bc_advance.h"
@@ -46,12 +48,12 @@
 #include "attestation.h"
 #include "heartbeat.h"
 
-#include "dbg.h"
+#include "hal/log.h"
 
 // Macro that throws an error unless
 // the device is onboarded
-#define REQUIRE_ONBOARDED()          \
-    if (os_perso_isonboarded() != 1) \
+#define REQUIRE_ONBOARDED() \
+    if (!seed_available())  \
         THROW(ERR_DEVICE_NOT_ONBOARDED);
 
 // Operation being currently executed
@@ -85,19 +87,13 @@ static void reset_if_starting(unsigned char cmd) {
 
 // Exit the application
 static void app_exit(void) {
-    BEGIN_TRY_L(exit) {
-        TRY_L(exit) {
-            os_sched_exit(-1);
-            _hsm_exit_requested = true;
-        }
-        FINALLY_L(exit) {
-        }
-    }
-    END_TRY_L(exit);
+    platform_request_exit();
+    _hsm_exit_requested = true;
 }
 
-unsigned int hsm_process_apdu(volatile unsigned int rx) {
+static unsigned int hsm_process_apdu(volatile unsigned int rx) {
     unsigned int tx = 0;
+    uint8_t pubkey_length;
 
     // No apdu received
     if (rx == 0) {
@@ -107,7 +103,8 @@ unsigned int hsm_process_apdu(volatile unsigned int rx) {
     // Zero out commonly read APDU buffer offsets,
     // to avoid reading uninitialized memory
     if (rx < MIN_APDU_BYTES) {
-        explicit_bzero(G_io_apdu_buffer + rx, MIN_APDU_BYTES - rx);
+        explicit_bzero(communication_get_msg_buffer() + rx,
+                       MIN_APDU_BYTES - rx);
     }
 
     // Invalid CLA
@@ -127,7 +124,7 @@ unsigned int hsm_process_apdu(volatile unsigned int rx) {
     case RSK_IS_ONBOARD:
         reset_if_starting(RSK_IS_ONBOARD);
         uint8_t output_index = CMDPOS;
-        SET_APDU_AT(output_index++, os_perso_isonboarded());
+        SET_APDU_AT(output_index++, seed_available() ? 1 : 0);
         SET_APDU_AT(output_index++, VERSION_MAJOR);
         SET_APDU_AT(output_index++, VERSION_MINOR);
         SET_APDU_AT(output_index++, VERSION_PATCH);
@@ -164,15 +161,16 @@ unsigned int hsm_process_apdu(volatile unsigned int rx) {
                      MEMMOVE_ZERO_OFFSET,
                      sizeof(auth.path),
                      THROW(ERR_INVALID_PATH));
-        tx = do_pubkey(auth.path,
-                       DERIVATION_PATH_PARTS,
-                       G_io_apdu_buffer,
-                       sizeof(G_io_apdu_buffer));
 
-        // Error deriving?
-        if (tx == DO_PUBKEY_ERROR) {
+        pubkey_length = communication_get_msg_buffer_size();
+        if (!seed_derive_pubkey(auth.path,
+                                sizeof(auth.path) / sizeof(auth.path[0]),
+                                communication_get_msg_buffer(),
+                                &pubkey_length)) {
             THROW(ERR_INTERNAL);
         }
+
+        tx = pubkey_length;
 
         break;
 
@@ -253,7 +251,8 @@ unsigned int hsm_process_apdu(volatile unsigned int rx) {
     return tx;
 }
 
-unsigned int hsm_process_exception(unsigned short code, unsigned int tx) {
+static unsigned int hsm_process_exception(unsigned short code,
+                                          unsigned int tx) {
     unsigned short sw = 0;
 
     // Always reset the full state when an error occurs
@@ -275,7 +274,7 @@ unsigned int hsm_process_exception(unsigned short code, unsigned int tx) {
 
     // Append resulting code to APDU
     // (check for a potential overflow first)
-    if (tx + 2 > sizeof(G_io_apdu_buffer)) {
+    if (tx + 2 > communication_get_msg_buffer_size()) {
         tx = 0;
         sw = 0x6983;
     }
@@ -283,6 +282,10 @@ unsigned int hsm_process_exception(unsigned short code, unsigned int tx) {
     SET_APDU_AT(tx++, sw);
 
     return tx;
+}
+
+static bool hsm_exit_requested() {
+    return _hsm_exit_requested;
 }
 
 void hsm_init() {
@@ -297,6 +300,34 @@ void hsm_init() {
     bc_init_state();
 }
 
-bool hsm_exit_requested() {
-    return _hsm_exit_requested;
+void hsm_main_loop() {
+    volatile unsigned int rx = 0;
+    volatile unsigned int tx = 0;
+
+    // DESIGN NOTE: the bootloader ignores the way APDU are fetched. The only
+    // goal is to retrieve APDU.
+    // When APDU are to be fetched from multiple IOs, like NFC+USB+BLE, make
+    // sure the io_event is called with a
+    // switch event, before the apdu is replied to the bootloader. This avoid
+    // APDU injection faults.
+    while (!hsm_exit_requested()) {
+        BEGIN_TRY {
+            TRY {
+                // ensure no race in catch_other if io_exchange throws
+                // an error
+                rx = tx;
+                tx = 0;
+                rx = communication_io_exchange(rx);
+
+                tx = hsm_process_apdu(rx);
+                THROW(0x9000);
+            }
+            CATCH_OTHER(e) {
+                tx = hsm_process_exception(e, tx);
+            }
+            FINALLY {
+            }
+        }
+        END_TRY;
+    }
 }

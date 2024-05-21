@@ -24,10 +24,8 @@
 
 #include <string.h>
 
-#include "os.h"
-
 #include "bc.h"
-#include "dbg.h"
+#include "hal/log.h"
 #include "defs.h"
 #include "ints.h"
 #include "mem.h"
@@ -55,14 +53,13 @@
 // 0x000001d5, 0, 0, 0, 0, 0, 0 };
 
 // Here we take it from an external definition (see Makefile for details)
-#ifdef PARAM_MIN_REQUIRED_DIFFICULTY
+#if defined(HSM_PLATFORM_LEDGER) && defined(PARAM_MIN_REQUIRED_DIFFICULTY)
 static const DIGIT_T MIN_REQUIRED_DIFFICULTY[BIGINT_LEN] =
     PARAM_MIN_REQUIRED_DIFFICULTY;
-#else
-#ifndef HSM_SIMULATOR
-#error "Minimum required difficulty not defined!"
-#endif
+#elif defined(HSM_PLATFORM_X86)
 DIGIT_T MIN_REQUIRED_DIFFICULTY[BIGINT_LEN];
+#else
+#error "Minimum required difficulty not defined!"
 #endif
 
 // -----------------------------------------------------------------------
@@ -192,15 +189,15 @@ static void compute_cb_txn_hash() {
     memset(block.wa_buf + CB_MIDSTATE_PREFIX + CB_MIDSTATE_DATA,
            0,
            CB_MIDSTATE_SUFFIX);
-    sha256_init(&block.mid_ctx);
-    sha256_midstate(&block.mid_ctx, block.wa_buf);
-    sha256_update(&block.mid_ctx,
-                  block.cb_txn + CB_MIDSTATE_DATA,
-                  block.cb_off - CB_MIDSTATE_DATA);
-    sha256_final(&block.mid_ctx, block.wa_buf);
-    sha256_init(&block.mid_ctx);
-    sha256_update(&block.mid_ctx, block.wa_buf, HASH_SIZE);
-    sha256_final(&block.mid_ctx, block.wa_buf);
+    hash_sha256_ms_init(&block.mid_ctx);
+    hash_sha256_ms_midstate(&block.mid_ctx, block.wa_buf);
+    hash_sha256_ms_update(&block.mid_ctx,
+                          block.cb_txn + CB_MIDSTATE_DATA,
+                          block.cb_off - CB_MIDSTATE_DATA);
+    hash_sha256_ms_final(&block.mid_ctx, block.wa_buf);
+    hash_sha256_ms_init(&block.mid_ctx);
+    hash_sha256_ms_update(&block.mid_ctx, block.wa_buf, HASH_SIZE);
+    hash_sha256_ms_final(&block.mid_ctx, block.wa_buf);
     REV_HASH(block.wa_buf);
 }
 

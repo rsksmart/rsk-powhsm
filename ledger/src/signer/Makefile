@@ -44,13 +44,13 @@ include $(BOLOS_SDK)/Makefile.defines
 
 # Main app configuration
 APPNAME = "RSK Sign"
-APPVERSION = 4
+APPVERSION = 5
 # No flags
 APPFLAGS = 0x00
 PROG = "app"
 
 # Build configuration
-APP_SOURCE_PATH += src ../common/src
+APP_SOURCE_PATH += src ../common/src ../hal/src/ledger
 SDK_SOURCE_PATH += lib_stusb lib_stusb_impl
 
 DEFINES += APPVERSION=\"$(APPVERSION)\"
@@ -65,6 +65,7 @@ DEFINES += HAVE_IO_USB HAVE_L4_USBLIB IO_USB_MAX_ENDPOINTS=3 IO_HID_EP_LENGTH=64
 CC := $(CLANGPATH)clang
 CFLAGS += -O0 -I$(GCC_INCLUDE)
 CFLAGS += -Werror
+CFLAGS += -DHSM_PLATFORM_LEDGER
 
 # Convert min required difficulty to what the compiler expects
 ifneq ($(TARGET_DIFFICULTY),)
@@ -128,3 +129,7 @@ delete:
 
 # Import generic rules from the SDK
 include $(BOLOS_SDK)/Makefile.rules
+
+# This is to prevent individual subdirectory inclusion by using the
+# SDK provided APP_SOURCE_PATH variable
+INCLUDES_PATH += ../hal/include

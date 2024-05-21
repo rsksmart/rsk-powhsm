@@ -27,8 +27,9 @@
 
 #include <stdint.h>
 
+#include "hal/hash.h"
+
 #include "trie.h"
-#include "keccak256.h"
 #include "defs.h"
 
 #define AUTH_TRIE_STATE_NODE_LENGTH (0)
@@ -42,8 +43,8 @@ typedef struct {
     uint8_t state;
 
     trie_ctx_t ctx;
-    SHA3_CTX hash_ctx;
-    SHA3_CTX aux_hash_ctx;
+    hash_keccak256_ctx_t hash_ctx;
+    hash_keccak256_ctx_t aux_hash_ctx;
 
     uint8_t num_linked;
     uint8_t offset;

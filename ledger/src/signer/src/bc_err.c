@@ -24,7 +24,7 @@
 
 #include "bc_err.h"
 
-#ifdef HSM_SIMULATOR
+#ifdef HSM_PLATFORM_X86
 
 #include <stdio.h>
 
