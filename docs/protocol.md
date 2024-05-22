@@ -86,7 +86,7 @@ This sub-format is to be used when signing segwit Bitcoin transaction inputs.
             "hhhh", "hhhh", ..., "hhhh"
         ]
     },
-    "version": 4
+    "version": 5
 }
 ```
 
