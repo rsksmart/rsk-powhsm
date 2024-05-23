@@ -39,7 +39,7 @@
 
 #define BCDIFF_MBD_REGTEST {0x14, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}; // 20
 
-#ifdef HSM_SIMULATOR
+#ifdef HSM_PLATFORM_X86
 extern DIGIT_T MAX_BLOCK_DIFFICULTY[BIGINT_LEN];
 #endif
 

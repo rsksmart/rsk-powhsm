@@ -22,30 +22,20 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __RUNTIME_H
-#define __RUNTIME_H
-
-#if defined(HSM_PLATFORM_LEDGER)
-
-// We can't include any HAL headers here because
-// the Ledger UI does not know anything about it
-#include "os.h"
-
-#define NON_VOLATILE const
-
-#elif defined(HSM_PLATFORM_X86)
-
 #include "hal/platform.h"
 #include "hal/exceptions.h"
 
-#include "ui_deps.h"
+void platform_memmove(void *dst, const void *src, unsigned int length) {
+    os_memmove(dst, src, length);
+}
 
-#define PIC(x) (x)
-
-#define NON_VOLATILE
-
-#else
-#error "HSM Platform undefined"
-#endif
-
-#endif // __RUNTIME_H
+void platform_request_exit() {
+    BEGIN_TRY_L(exit) {
+        TRY_L(exit) {
+            os_sched_exit(-1);
+        }
+        FINALLY_L(exit) {
+        }
+    }
+    END_TRY_L(exit);
+}

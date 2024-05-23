@@ -71,7 +71,7 @@ typedef enum {
 #define SET_NETWORK_UPGRADE(bn, x) \
     { *(x) = NU_IRIS; }
 #define GET_NETWORK_IDENTIFIER() NETID_REGTEST
-#elif defined(HSM_SIMULATOR)
+#elif defined(HSM_PLATFORM_X86)
 #include "hsmsim_nu.h"
 #define SET_NETWORK_UPGRADE(bn, x) hsmsim_set_network_upgrade(bn, x)
 #define GET_NETWORK_IDENTIFIER() hsmsim_get_network_identifier()

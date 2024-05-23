@@ -27,8 +27,9 @@
 
 #include <stdint.h>
 
+#include "hal/hash.h"
+
 #include "srlp.h"
-#include "keccak256.h"
 
 #define RECEIPT_MAX_DEPTH (4)
 #define RECEIPT_MAX_BUFFER_SIZE (32)
@@ -43,7 +44,7 @@ typedef struct {
     uint8_t aux[RECEIPT_MAX_BUFFER_SIZE];
     uint8_t aux_offset;
 
-    SHA3_CTX hash_ctx;
+    hash_keccak256_ctx_t hash_ctx;
 } receipt_auth_ctx_t;
 
 /*

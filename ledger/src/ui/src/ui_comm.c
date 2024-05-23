@@ -22,9 +22,9 @@
  * IN THE SOFTWARE.
  */
 
-#include "os.h"
+#include "runtime.h"
 #include "apdu.h"
-#include "communication.h"
+#include "ui_comm.h"
 #include "modes.h"
 
 /**
@@ -88,13 +88,13 @@ unsigned int get_retries() {
  * @arg[in] comm_reset_cb   callback to reset the state
  * @returns                 the resulting APDU buffer size
  */
-unsigned int comm_process_exception(unsigned short ex,
-                                    unsigned int tx,
-                                    comm_reset_cb_t comm_reset_cb) {
+unsigned int ui_process_exception(unsigned short ex,
+                                  unsigned int tx,
+                                  comm_reset_cb_t comm_reset_cb) {
     unsigned short sw = 0;
 
     // Reset the state in case of an error
-    if (ex != APDU_OK || tx + 2 > sizeof(G_io_apdu_buffer)) {
+    if (ex != APDU_OK || tx + 2 > APDU_TOTAL_SIZE) {
         comm_reset_cb();
     }
 
@@ -110,7 +110,7 @@ unsigned int comm_process_exception(unsigned short ex,
 
     // Unexpected exception => report
     // (check for a potential overflow first)
-    if (tx + 2 > sizeof(G_io_apdu_buffer)) {
+    if (tx + 2 > APDU_TOTAL_SIZE) {
         tx = 0;
         sw = 0x6983;
     }

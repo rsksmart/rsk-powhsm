@@ -28,7 +28,7 @@
 #include "runtime.h"
 #include "defs.h"
 #include "err.h"
-#include "dbg.h"
+#include "hal/log.h"
 #include "nvm.h"
 #include "memutil.h"
 
@@ -42,13 +42,12 @@
 // -----------------------------------------------------------------------
 
 // Here we take it from an external definition (see Makefile for details)
-#ifdef PARAM_INITIAL_BLOCK_HASH
+#if defined(HSM_PLATFORM_LEDGER) && defined(PARAM_INITIAL_BLOCK_HASH)
 static const uint8_t INITIAL_BLOCK_HASH[] = PARAM_INITIAL_BLOCK_HASH;
-#else
-#ifndef HSM_SIMULATOR
-#error "Initial block hash not defined!"
-#endif
+#elif defined(HSM_PLATFORM_X86)
 uint8_t INITIAL_BLOCK_HASH[HASH_LENGTH];
+#else
+#error "Initial block hash not defined!"
 #endif
 
 /*
@@ -238,6 +237,7 @@ unsigned int bc_get_state(volatile unsigned int rx) {
     }
 
     FAIL(PROT_INVALID);
+    return 0;
 }
 
 /*

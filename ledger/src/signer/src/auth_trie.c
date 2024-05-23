@@ -24,14 +24,16 @@
 
 #include <string.h>
 
-#include "os.h"
+#include "hal/hash.h"
+#include "hal/platform.h"
+#include "hal/exceptions.h"
 
 #include "auth.h"
 #include "mem.h"
 #include "memutil.h"
 #include "bc_state.h"
 
-#include "dbg.h"
+#include "hal/log.h"
 
 #define REQUEST_MORE_IF_NEED()                      \
     {                                               \
@@ -57,7 +59,7 @@
 
 static void trie_cb(const trie_cb_event_t event) {
     // Update node hash
-    keccak_update(
+    hash_keccak256_update(
         &auth.trie.hash_ctx, auth.trie.ctx.raw, auth.trie.ctx.raw_size);
 
     switch (event) {
@@ -141,12 +143,12 @@ static void trie_cb(const trie_cb_event_t event) {
     case TRIE_EV_LEFT_NODE_EMBEDDED_START:
     case TRIE_EV_RIGHT_NODE_EMBEDDED_START:
         FAIL_IF_LEAF();
-        keccak_init(&auth.trie.aux_hash_ctx);
+        hash_keccak256_init(&auth.trie.aux_hash_ctx);
         break;
     case TRIE_EV_LEFT_NODE_EMBEDDED_DATA:
     case TRIE_EV_RIGHT_NODE_EMBEDDED_DATA:
         FAIL_IF_LEAF();
-        keccak_update(
+        hash_keccak256_update(
             &auth.trie.aux_hash_ctx, auth.trie.ctx.raw, auth.trie.ctx.raw_size);
         break;
     case TRIE_EV_LEFT_NODE_END:
@@ -156,7 +158,7 @@ static void trie_cb(const trie_cb_event_t event) {
         FAIL_IF_LEAF();
         if (event == TRIE_EV_LEFT_NODE_EMBEDDED_END ||
             event == TRIE_EV_RIGHT_NODE_EMBEDDED_END)
-            keccak_final(&auth.trie.aux_hash_ctx, auth.trie.child_hash);
+            hash_keccak256_final(&auth.trie.aux_hash_ctx, auth.trie.child_hash);
         if (!memcmp(auth.trie.node_hash,
                     auth.trie.child_hash,
                     sizeof(auth.trie.node_hash)))
@@ -197,7 +199,7 @@ unsigned int auth_sign_handle_merkleproof(volatile unsigned int rx) {
                 THROW(ERR_AUTH_INVALID_DATA_SIZE);
             }
             trie_init(&auth.trie.ctx, &trie_cb, APDU_DATA_PTR[apdu_offset++]);
-            keccak_init(&auth.trie.hash_ctx);
+            hash_keccak256_init(&auth.trie.hash_ctx);
             auth.trie.state = AUTH_TRIE_STATE_NODE;
             auth.trie.num_linked = 0;
 
@@ -213,7 +215,7 @@ unsigned int auth_sign_handle_merkleproof(volatile unsigned int rx) {
                 // Reusing an existing error code due to legacy protocol
                 THROW(ERR_AUTH_RECEIPT_ROOT_MISMATCH);
             } else if (trie_result() == TRIE_ST_DONE) {
-                keccak_final(&auth.trie.hash_ctx, auth.trie.node_hash);
+                hash_keccak256_final(&auth.trie.hash_ctx, auth.trie.node_hash);
                 LOG("MP@%u ", auth.trie.current_node);
                 LOG_HEX(
                     "hash: ", auth.trie.node_hash, sizeof(auth.trie.node_hash));

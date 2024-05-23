@@ -26,9 +26,8 @@
 #define __MEMUTIL_H
 
 #include <stdint.h>
-#include <stdbool.h>
 
-#include "os.h"
+#include "common_requirements.h"
 
 #define MEMMOVE_ZERO_OFFSET 0
 
@@ -54,7 +53,7 @@ __attribute__((always_inline)) static inline int safe_memmove(
 
         return false;
     } else {
-        os_memmove(
+        platform_memmove(
             (unsigned char *)dst + dst_off, (unsigned char *)src + src_off, n);
         return true;
     }

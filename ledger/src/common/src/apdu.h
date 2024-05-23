@@ -29,6 +29,8 @@
 #ifndef __APDU_H
 #define __APDU_H
 
+#include "common_requirements.h"
+
 // CLA for the entire protocol
 #define CLA 0x80
 
@@ -40,25 +42,29 @@
 #define CLAPOS 0
 
 // APDU buffer getters
-#define APDU_CLA() (G_io_apdu_buffer[CLAPOS])
-#define APDU_CMD() (G_io_apdu_buffer[CMDPOS])
-#define APDU_OP() (G_io_apdu_buffer[OP])
-#define APDU_TXLEN() (G_io_apdu_buffer[TXLEN])
-#define APDU_AT(pos) (G_io_apdu_buffer[pos])
+#define APDU_CLA() (communication_get_msg_buffer()[CLAPOS])
+#define APDU_CMD() (communication_get_msg_buffer()[CMDPOS])
+#define APDU_OP() (communication_get_msg_buffer()[OP])
+#define APDU_TXLEN() (communication_get_msg_buffer()[TXLEN])
+#define APDU_AT(pos) (communication_get_msg_buffer()[pos])
 
 // APDU buffer setters
-#define SET_APDU_CLA() (G_io_apdu_buffer[CLAPOS] = CLA)
-#define SET_APDU_CMD(cmd) (G_io_apdu_buffer[CMDPOS] = (cmd))
-#define SET_APDU_OP(op) (G_io_apdu_buffer[OP] = (op))
-#define SET_APDU_TXLEN(len) (G_io_apdu_buffer[TXLEN] = (len))
-#define SET_APDU_AT(pos, value) (G_io_apdu_buffer[pos] = (value))
+#define SET_APDU_CLA() (communication_get_msg_buffer()[CLAPOS] = CLA)
+#define SET_APDU_CMD(cmd) (communication_get_msg_buffer()[CMDPOS] = (cmd))
+#define SET_APDU_OP(op) (communication_get_msg_buffer()[OP] = (op))
+#define SET_APDU_TXLEN(len) (communication_get_msg_buffer()[TXLEN] = (len))
+#define SET_APDU_AT(pos, value) (communication_get_msg_buffer()[pos] = (value))
 
 // Get pointer to payload within APDU buffer.
 // No args, so it can be treated like an array pointer.
-#define APDU_DATA_PTR (G_io_apdu_buffer + DATA)
+#define APDU_DATA_PTR (communication_get_msg_buffer() + DATA)
 
+// Total size of APDU
+#define APDU_TOTAL_SIZE (communication_get_msg_buffer_size())
+// Size of APDU elements
+#define APDU_ELEMENT_SIZE (sizeof(communication_get_msg_buffer()[0]))
 // Total size of APDU data part
-#define APDU_TOTAL_DATA_SIZE (sizeof(G_io_apdu_buffer) - DATA)
+#define APDU_TOTAL_DATA_SIZE (communication_get_msg_buffer_size() - DATA)
 // Total size of APDU data part for outputting
 // (need to leave space for result code)
 #define APDU_RESULT_CODE_SIZE 2

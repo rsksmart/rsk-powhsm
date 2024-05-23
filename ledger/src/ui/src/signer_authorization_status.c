@@ -22,7 +22,6 @@
  * IN THE SOFTWARE.
  */
 
-#include "os.h"
 #include "signer_authorization_status.h"
 #include "runtime.h"
 

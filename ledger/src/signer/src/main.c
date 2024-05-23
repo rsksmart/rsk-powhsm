@@ -43,7 +43,9 @@
 #include "os_io_seproxyhal.h"
 
 #include "hsm.h"
-#include "hsm-ledger.h"
+
+// HAL includes
+#include "hal/communication.h"
 
 unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
 
@@ -240,11 +242,17 @@ __attribute__((section(".boot"))) int main(int argc, char **argv) {
             // APDU buffer initialization
             os_memset(G_io_apdu_buffer, 0, sizeof(G_io_apdu_buffer));
 
+            // HAL modules initialization
+            communication_init(G_io_apdu_buffer, sizeof(G_io_apdu_buffer));
+
             // HSM context initialization
             hsm_init();
 
             // HSM main loop
-            hsm_ledger_main_loop();
+            hsm_main_loop();
+
+            // HAL modules finalisation
+            // Nothing for now
         }
         CATCH_OTHER(e) {
         }

@@ -24,14 +24,15 @@
 
 #include <string.h>
 
-#include "os.h"
+#include "hal/platform.h"
+#include "hal/exceptions.h"
+
 #include "auth.h"
 #include "err.h"
-#include "sign.h"
 #include "mem.h"
 #include "compiletime.h"
 
-#include "dbg.h"
+#include "hal/log.h"
 
 /*
  * Transition to the given state, performing corresponding
@@ -59,6 +60,7 @@ void auth_transition_to(uint8_t state) {
  */
 unsigned int auth_sign(volatile unsigned int rx) {
     unsigned int tx;
+    uint8_t sig_size;
 
     // Sanity check: tx hash size and
     // last auth signed tx hash size
@@ -95,12 +97,15 @@ unsigned int auth_sign(volatile unsigned int rx) {
     if (auth.state != STATE_AUTH_SIGN)
         THROW(ERR_AUTH_INVALID_STATE); // Invalid state
 
-    tx = do_sign(auth.path,
-                 DERIVATION_PATH_PARTS,
-                 auth.sig_hash,
-                 sizeof(auth.sig_hash),
-                 APDU_DATA_PTR,
-                 APDU_TOTAL_DATA_SIZE_OUT);
+    sig_size = APDU_TOTAL_DATA_SIZE_OUT;
+    if (!seed_sign(auth.path,
+                   sizeof(auth.path) / sizeof(auth.path[0]),
+                   auth.sig_hash,
+                   APDU_DATA_PTR,
+                   &sig_size)) {
+        THROW(ERR_INTERNAL);
+    }
+    tx = sig_size;
 
     // Save the BTC tx hash to NVM if this signature required authorization
     if (auth.auth_required) {
@@ -120,11 +125,6 @@ unsigned int auth_sign(volatile unsigned int rx) {
                     auth.tx_hash,
                     sizeof(auth.tx_hash));
         }
-    }
-
-    // Error signing?
-    if (tx == DO_SIGN_ERROR) {
-        THROW(ERR_INTERNAL);
     }
 
     SET_APDU_OP(P1_SUCCESS);

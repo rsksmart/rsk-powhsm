@@ -22,9 +22,10 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __HSM_LEDGER_H
-#define __HSM_LEDGER_H
+#ifndef __COMMON_REQUIREMENTS_H
+#define __COMMON_REQUIREMENTS_H
 
-void hsm_ledger_main_loop();
+#include "hal/communication.h"
+#include "hal/platform.h"
 
-#endif // __HSM_LEDGER_H
+#endif // __COMMON_REQUIREMENTS_H

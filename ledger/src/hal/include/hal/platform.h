@@ -22,30 +22,24 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __RUNTIME_H
-#define __RUNTIME_H
+#ifndef __HAL_PLATFORM_H
+#define __HAL_PLATFORM_H
 
-#if defined(HSM_PLATFORM_LEDGER)
+#include <stdint.h>
+#include <stdbool.h>
 
-// We can't include any HAL headers here because
-// the Ledger UI does not know anything about it
-#include "os.h"
+/**
+ * @brief Perform the platform-specific version of memmove
+ *
+ * @param dst destination buffer
+ * @param src source buffer
+ * @param length number of bytes to copy
+ */
+void platform_memmove(void *dst, const void *src, unsigned int length);
 
-#define NON_VOLATILE const
+/**
+ * @brief Request exiting/closing to the underlying platform
+ */
+void platform_request_exit();
 
-#elif defined(HSM_PLATFORM_X86)
-
-#include "hal/platform.h"
-#include "hal/exceptions.h"
-
-#include "ui_deps.h"
-
-#define PIC(x) (x)
-
-#define NON_VOLATILE
-
-#else
-#error "HSM Platform undefined"
-#endif
-
-#endif // __RUNTIME_H
+#endif // __HAL_PLATFORM_H

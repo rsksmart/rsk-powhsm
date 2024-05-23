@@ -28,6 +28,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "hal/seed.h"
+
 #include "auth_path.h"
 #include "auth_tx.h"
 #include "auth_receipt.h"

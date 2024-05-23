@@ -30,7 +30,7 @@
 #include "assert_utils.h"
 #include "defs.h"
 #include "mock.h"
-#include "communication.h"
+#include "ui_comm.h"
 
 static unsigned int G_retries;
 

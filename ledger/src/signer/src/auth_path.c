@@ -22,7 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#include "os.h"
+#include "hal/platform.h"
+#include "hal/exceptions.h"
 
 #include "auth.h"
 #include "pathAuth.h"
@@ -106,4 +107,5 @@ unsigned int auth_sign_handle_path(volatile unsigned int rx) {
     // If no path match, then bail out
     // signalling invalid path
     THROW(ERR_AUTH_INVALID_PATH);
+    return 0;
 }

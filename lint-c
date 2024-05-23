@@ -12,7 +12,7 @@ if [[ $1 == "exec" ]]; then
     fi
 
     SRC_DIR="ledger/src"
-    SEARCH_DIRS="$SRC_DIR/signer $SRC_DIR/ui $SRC_DIR/tcpsigner $SRC_DIR/common"
+    SEARCH_DIRS="$SRC_DIR/signer $SRC_DIR/ui $SRC_DIR/tcpsigner $SRC_DIR/common $SRC_DIR/hal"
 
     find $SEARCH_DIRS -name "*.[ch]" | \
     egrep -v "(bigdigits|bigdtypes|keccak256)\.[ch]$" | \

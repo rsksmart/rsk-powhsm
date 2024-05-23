@@ -24,7 +24,8 @@
 
 #include <string.h>
 
-#include "os.h"
+#include "hal/platform.h"
+#include "hal/exceptions.h"
 
 #include "auth.h"
 #include "auth_constants.h"
@@ -34,7 +35,7 @@
 #include "flags.h"
 #include "util.h"
 
-#include "dbg.h"
+#include "hal/log.h"
 
 // -----------------------------------------------------------------------
 // RLP parser callbacks
@@ -238,7 +239,7 @@ unsigned int auth_sign_handle_receipt(volatile unsigned int rx) {
 
     if (!HAS_FLAG(auth.receipt.flags, IS_INIT)) {
         rlp_start(&callbacks);
-        keccak_init(&auth.receipt.hash_ctx);
+        hash_keccak256_init(&auth.receipt.hash_ctx);
         SET_FLAG(auth.receipt.flags, IS_INIT);
     }
 
@@ -249,12 +250,13 @@ unsigned int auth_sign_handle_receipt(volatile unsigned int rx) {
     }
     auth.receipt.remaining_bytes -= APDU_DATA_SIZE(rx);
 
-    keccak_update(&auth.receipt.hash_ctx, APDU_DATA_PTR, APDU_DATA_SIZE(rx));
+    hash_keccak256_update(
+        &auth.receipt.hash_ctx, APDU_DATA_PTR, APDU_DATA_SIZE(rx));
 
     if (auth.receipt.remaining_bytes == 0) {
         if (HAS_FLAG(auth.receipt.flags, IS_MATCH)) {
             // Finalize the hash calculation
-            keccak_final(&auth.receipt.hash_ctx, auth.receipt_hash);
+            hash_keccak256_final(&auth.receipt.hash_ctx, auth.receipt_hash);
 
             // Log hash for debugging purposes
             LOG_HEX(

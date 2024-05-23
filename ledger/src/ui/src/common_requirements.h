@@ -22,30 +22,15 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __RUNTIME_H
-#define __RUNTIME_H
+#ifndef __COMMON_REQUIREMENTS_H
+#define __COMMON_REQUIREMENTS_H
 
-#if defined(HSM_PLATFORM_LEDGER)
+#include <string.h>
 
-// We can't include any HAL headers here because
-// the Ledger UI does not know anything about it
 #include "os.h"
 
-#define NON_VOLATILE const
+#define communication_get_msg_buffer() (G_io_apdu_buffer)
+#define communication_get_msg_buffer_size() (sizeof(G_io_apdu_buffer))
+#define platform_memmove(...) os_memmove(__VA_ARGS__)
 
-#elif defined(HSM_PLATFORM_X86)
-
-#include "hal/platform.h"
-#include "hal/exceptions.h"
-
-#include "ui_deps.h"
-
-#define PIC(x) (x)
-
-#define NON_VOLATILE
-
-#else
-#error "HSM Platform undefined"
-#endif
-
-#endif // __RUNTIME_H
+#endif // __COMMON_REQUIREMENTS_H

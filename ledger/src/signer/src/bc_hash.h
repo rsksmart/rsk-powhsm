@@ -37,22 +37,20 @@
 //  - Ledger (the real thing): use BOLOS_SDK, version 1.3
 // -----------------------------------------------------------------------
 
-#include "os.h"
+#include <string.h>
 
-typedef cx_sha256_t sha256_ctx_t;
-typedef cx_sha3_t keccak_ctx_t;
+#include "hal/hash.h"
 
-#define SHA256_INIT(ctx) cx_sha256_init(ctx)
-#define SHA256_UPDATE(ctx, data, len) \
-    cx_hash((cx_hash_t*)(ctx), 0, data, len, NULL)
-#define SHA256_FINAL(ctx, hash) \
-    cx_hash((cx_hash_t*)(ctx), CX_LAST, NULL, 0, hash)
+typedef hash_sha256_ctx_t sha256_ctx_t;
+typedef hash_keccak256_ctx_t keccak_ctx_t;
 
-#define KECCAK_INIT(ctx) cx_keccak_init(ctx, 256)
-#define KECCAK_UPDATE(ctx, data, len) \
-    cx_hash((cx_hash_t*)(ctx), 0, (uint8_t*)data, len, NULL)
-#define KECCAK_FINAL(ctx, hash) \
-    cx_hash((cx_hash_t*)(ctx), CX_LAST, NULL, 0, hash)
+#define SHA256_INIT(ctx) hash_sha256_init(ctx)
+#define SHA256_UPDATE(ctx, data, len) hash_sha256_update(ctx, data, len)
+#define SHA256_FINAL(ctx, hash) hash_sha256_final(ctx, hash)
+
+#define KECCAK_INIT(ctx) hash_keccak256_init(ctx)
+#define KECCAK_UPDATE(ctx, data, len) hash_keccak256_update(ctx, data, len)
+#define KECCAK_FINAL(ctx, hash) hash_keccak256_final(ctx, hash)
 
 // Convenience macros to deal with frequent hash ops
 #define HEQ(h0, h1) (memcmp(h0, h1, HASH_SIZE) == 0)

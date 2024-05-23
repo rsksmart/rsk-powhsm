@@ -30,7 +30,7 @@
 #include "ui_instructions.h"
 #include "defs.h"
 #include "ui_err.h"
-#include "communication.h"
+#include "ui_comm.h"
 #include "unlock.h"
 
 // Attestation context shorthand
@@ -206,7 +206,7 @@ void bootloader_main(bootloader_mode_t mode) {
                 break;
             }
             CATCH_OTHER(e) {
-                tx = comm_process_exception(e, tx, &reset_state);
+                tx = ui_process_exception(e, tx, &reset_state);
             }
             FINALLY {
             }

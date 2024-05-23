@@ -136,6 +136,7 @@ CFLAGS   += -fdata-sections -ffunction-sections -funsigned-char -fshort-enums
 CFLAGS   += -mno-unaligned-access
 CFLAGS   += -Wno-unused-parameter -Wno-duplicate-decl-specifier
 CFLAGS   += -Werror
+CFLAGS   += -DHSM_PLATFORM_LEDGER
 ifeq ($(DEBUG_BUILD),1)
 CFLAGS   += -DDEBUG_BUILD=${DEBUG_BUILD}
 endif
