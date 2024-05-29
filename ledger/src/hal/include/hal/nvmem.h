@@ -40,4 +40,26 @@
  */
 bool nvmem_write(void *dst, void *src, unsigned int length);
 
+// BEGINNING of platform-dependent code
+#if defined(HSM_PLATFORM_X86)
+
+typedef struct nvmmem_stats_s {
+    unsigned int write_count;
+} nvmmem_stats_t;
+
+/**
+ * @brief Resets the non volatile memory statistics
+ */
+void nvmem_stats_reset();
+
+/**
+ * @brief Returns the current non volatile memory statistics
+ *
+ * @returns the statistics
+ */
+nvmmem_stats_t nvmem_get_stats();
+
+#endif
+// END of platform-dependent code
+
 #endif // __HAL_NVMEM_H

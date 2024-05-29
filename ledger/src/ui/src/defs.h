@@ -25,8 +25,8 @@
 #ifndef __DEFS_H
 #define __DEFS_H
 
-#include "apdu.h"
 #include "constants.h"
+#include "apdu.h"
 
 // Version and patchlevel
 #define VERSION_MAJOR 0x05

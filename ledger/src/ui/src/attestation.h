@@ -81,7 +81,7 @@ typedef struct {
     unsigned int msg_offset;
 
     unsigned char path[PUBKEY_PATH_LENGTH];
-    unsigned char priv_key_data[SEED_LENGTH];
+    unsigned char priv_key_data[PRIVATE_KEY_LENGTH];
     cx_ecfp_private_key_t priv_key;
     cx_ecfp_public_key_t pub_key;
 } att_t;

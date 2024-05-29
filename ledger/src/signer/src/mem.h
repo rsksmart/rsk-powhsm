@@ -25,6 +25,7 @@
 #ifndef __MEM_H
 #define __MEM_H
 
+#include "hal/constants.h"
 #include "hal/seed.h"
 #include "hal/hash.h"
 
@@ -47,8 +48,8 @@ typedef struct att_s {
     hash_sha256_ctx_t hash_ctx; // Attestation public keys hashing context
     uint8_t msg[MAX_ATT_MESSAGE_SIZE]; // Attestation message
 
-    unsigned int path[DERIVATION_PATH_PARTS];
-    uint8_t pubkey[SEED_PUBLIC_KEY_SIZE];
+    uint32_t path[BIP32_PATH_NUMPARTS];
+    uint8_t pubkey[PUBKEY_UNCMP_LENGTH];
     uint8_t pubkey_length;
 } att_t;
 

@@ -24,38 +24,29 @@
 
 #include <string.h>
 
-#include "os_attestation.h"
-#include "hsmsim_attestation.h"
-#include "hsmsim_exceptions.h"
-#include "os_ecdsa.h"
+#include "hal/constants.h"
+#include "hal/seed.h"
+#include "hal/endorsement.h"
+#include "hal/communication.h"
+#include "hal/exceptions.h"
+#include "hal/log.h"
+
+#include "ui_deps.h"
+#include "ui_err.h"
 #include "sha256.h"
 #include "hmac_sha256.h"
+
+#define UI_DEPS_PIN_RETRIES (3)
 
 unsigned int os_endorsement_key2_derive_sign_data(unsigned char *src,
                                                   unsigned int srcLength,
                                                   unsigned char *signature) {
-    uint8_t pubkey[PUBKEY_UNCMP_LENGTH];
-    uint8_t tweak[HMAC_SHA256_SIZE];
-    uint8_t hash[HASH_LENGTH];
-
-    sha256(src, srcLength, hash, sizeof(hash));
-
-    if (hsmsim_helper_getpubkey(
-            attestation_id.key, pubkey, sizeof(pubkey), false) !=
-        sizeof(pubkey)) {
-        THROW(HSMSIM_EXC_SECP_ERROR);
+    uint8_t signature_length = MAX_SIGNATURE_LENGTH;
+    if (!endorsement_sign(src, srcLength, signature, &signature_length)) {
+        LOG("UI error endorsing message\n");
+        THROW(ERR_UI_INTERNAL);
     }
-
-    if (hmac_sha256(attestation_id.code_hash,
-                    sizeof(attestation_id.code_hash),
-                    pubkey,
-                    sizeof(pubkey),
-                    tweak,
-                    sizeof(tweak)) != sizeof(tweak)) {
-        THROW(HSMSIM_EXC_HMAC_ERROR);
-    }
-
-    return hsmsim_helper_tweak_sign(attestation_id.key, tweak, hash, signature);
+    return signature_length;
 }
 
 unsigned int os_endorsement_get_code_hash(unsigned char *buffer) {
@@ -66,8 +57,16 @@ unsigned int os_endorsement_get_code_hash(unsigned char *buffer) {
 unsigned int os_endorsement_get_public_key(unsigned char index,
                                            unsigned char *buffer) {
     uint8_t tempbuf[PUBKEY_UNCMP_LENGTH];
-    size_t tempbuf_size = hsmsim_helper_getpubkey(
-        attestation_id.key, tempbuf, sizeof(tempbuf), false);
+    size_t tempbuf_size =
+        seed_derive_pubkey_format(attestation_id.key, tempbuf, false);
     memcpy(buffer, tempbuf, tempbuf_size);
     return tempbuf_size;
+}
+
+unsigned int os_global_pin_retries() {
+    return UI_DEPS_PIN_RETRIES;
+}
+
+unsigned short io_exchange(unsigned char channel_and_flags, unsigned short tx) {
+    return communication_io_exchange(tx);
 }

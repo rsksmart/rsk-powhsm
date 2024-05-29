@@ -25,10 +25,9 @@
 #ifndef __HAL_SEED_H
 #define __HAL_SEED_H
 
+#include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
-
-#define SEED_PUBLIC_KEY_SIZE 65
 
 /**
  * @brief Returns whether there's a generated seed
@@ -72,5 +71,52 @@ bool seed_sign(uint32_t* path,
                uint8_t* hash32,
                uint8_t* sig_out,
                uint8_t* sig_out_length);
+
+// BEGINNING of platform-dependent code
+#if defined(HSM_PLATFORM_X86)
+
+typedef struct seed_data_s {
+    bool is_onboarded;
+
+} seed_data_t;
+
+/**
+ * @brief Derive the public key corresponding to the given
+ *        private key and output it in either compressed
+ *        or uncompressed format
+ *
+ * @param key the private key
+ * @param dest the destination buffer for the derived public key
+ * @param compressed whether to output in compressed or uncompressed format
+ *
+ * @returns the size of the output public key in bytes
+ */
+uint8_t seed_derive_pubkey_format(const unsigned char* key,
+                                  unsigned char* dest,
+                                  bool compressed);
+
+/**
+ * @brief Mock the return value of the seed_available() function
+ *
+ * @param is_onboarded the mock value
+ */
+void seed_set_is_onboarded(bool is_onboarded);
+
+/**
+ * @brief Initializes the seed module
+ *
+ * @param key_file_path the path to the file that
+ *                      contains the private keys
+ * @param bip32_paths an array containing the bip32 path strings
+ * @param bip32_paths_count the number of bip32 paths
+ *
+ * @returns whether the initialisation succeeded
+ */
+bool seed_init(const char* key_file_path,
+               const char* bip32_paths[],
+               const size_t bip32_paths_count);
+
+#endif
+// END of platform-dependent code
 
 #endif // __HAL_SEED_H

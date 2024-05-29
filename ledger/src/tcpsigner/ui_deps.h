@@ -22,31 +22,22 @@
  * IN THE SOFTWARE.
  */
 
-#include <string.h>
+#ifndef __UI_DEPS_H
+#define __UI_DEPS_H
 
-#include "os.h"
-#include "hsmsim_admin.h"
+#define CHANNEL_APDU (123)
 
-void os_memmove(void *dst, const void *src, unsigned int length) {
-    memmove(dst, src, length);
-}
+unsigned int os_endorsement_key2_derive_sign_data(unsigned char *src,
+                                                  unsigned int srcLength,
+                                                  unsigned char *signature);
 
-unsigned int os_perso_isonboarded() {
-    return hsmsim_admin_get_is_onboarded();
-}
+unsigned int os_endorsement_get_code_hash(unsigned char *buffer);
 
-unsigned int os_global_pin_retries(void) {
-    return HSMSIM_RETRIES;
-}
+unsigned int os_endorsement_get_public_key(unsigned char index,
+                                           unsigned char *buffer);
 
-void nvm_write(void *dst_adr, void *src_adr, unsigned int src_len) {
-    if (src_adr == NULL) {
-        // Treat as memory reset
-        memset(dst_adr, 0, src_len);
-    } else {
-        // Treat as normal copy
-        memmove(dst_adr, src_adr, src_len);
-    }
-    // Log the write
-    hsmsim_admin_nvm_record_write();
-}
+unsigned int os_global_pin_retries();
+
+unsigned short io_exchange(unsigned char channel_and_flags, unsigned short tx);
+
+#endif // __UI_DEPS_H

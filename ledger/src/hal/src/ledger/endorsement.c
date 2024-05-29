@@ -23,11 +23,8 @@
  */
 
 #include "os.h"
+#include "hal/constants.h"
 #include "hal/endorsement.h"
-
-#define MAX_SIGNATURE_LENGTH 72
-#define MAX_CODE_HASH_LENGTH 32
-#define MAX_PUBLIC_KEY_LENGTH 65
 
 // Index of the ledger endorsement scheme
 #define ENDORSEMENT_SCHEME_INDEX 2
@@ -50,7 +47,7 @@ bool endorsement_sign(uint8_t* msg,
 bool endorsement_get_code_hash(uint8_t* code_hash_out,
                                uint8_t* code_hash_out_length) {
 
-    if (*code_hash_out_length < MAX_CODE_HASH_LENGTH) {
+    if (*code_hash_out_length < HASH_LENGTH) {
         return false;
     }
 
@@ -60,7 +57,7 @@ bool endorsement_get_code_hash(uint8_t* code_hash_out,
 
 bool endorsement_get_public_key(uint8_t* public_key_out,
                                 uint8_t* public_key_out_length) {
-    if (*public_key_out_length < MAX_PUBLIC_KEY_LENGTH) {
+    if (*public_key_out_length < PUBKEY_UNCMP_LENGTH) {
         return false;
     }
 

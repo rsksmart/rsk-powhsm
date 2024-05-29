@@ -26,11 +26,8 @@
 
 #include "os.h"
 #include "cx.h"
+#include "hal/constants.h"
 #include "hal/seed.h"
-
-#define PRIVATE_KEY_LENGTH 32
-#define HASH_SIZE 32
-#define MAX_SIGNATURE_LENGTH 72
 
 bool seed_available() {
     return os_perso_isonboarded() == 1;
@@ -66,8 +63,9 @@ bool seed_derive_pubkey(uint32_t* path,
                                   1);
             // Cleanup private key
             explicit_bzero((void*)&private_key, sizeof(private_key));
-            if (*pubkey_out_length < public_key.W_len)
+            if (*pubkey_out_length < public_key.W_len) {
                 THROW(1);
+            }
             // Output the public key
             *pubkey_out_length = public_key.W_len;
             os_memmove(
@@ -122,7 +120,7 @@ bool seed_sign(uint32_t* path,
                                                      CX_RND_RFC6979 | CX_LAST,
                                                      CX_SHA256,
                                                      hash32,
-                                                     HASH_SIZE,
+                                                     HASH_LENGTH,
                                                      sig_out);
             // Cleanup private key
             explicit_bzero((void*)&private_key, sizeof(private_key));

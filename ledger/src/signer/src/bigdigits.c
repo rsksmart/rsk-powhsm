@@ -47,6 +47,7 @@
 #define assert(x)
 
 #include "bigdigits.h"
+#include "hal/log.h"
 
 #define BITS_PER_HALF_DIGIT (BITS_PER_DIGIT / 2)
 #define LOHALF(x) ((DIGIT_T)((x) & MAX_HALF_DIGIT))
@@ -763,3 +764,31 @@ DIGIT_T spDivide(DIGIT_T *q, DIGIT_T *r, const DIGIT_T u[2], DIGIT_T v)
     *r = uu[0];
     return q2;
 }
+
+// Platform-dependent code
+#ifndef HSM_PLATFORM_LEDGER
+
+void LOG_BIGD_HEX(const char *prefix,
+                  const DIGIT_T *a,
+                  size_t len,
+                  const char *suffix) {
+    if (prefix)
+        LOG("%s", prefix);
+    /* Trim leading digits which are zero */
+    while (len--) {
+        if (a[len] != 0)
+            break;
+    }
+    len++;
+    if (0 == len)
+        len = 1;
+    /* print first digit without leading zeros */
+    LOG("0x%" PRIxBIGD, a[--len]);
+    while (len--) {
+        LOG("%08" PRIxBIGD, a[len]);
+    }
+    if (suffix)
+        LOG("%s", suffix);
+}
+
+#endif

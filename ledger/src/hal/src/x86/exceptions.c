@@ -22,28 +22,34 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __SIMULATOR_OS_H
-#define __SIMULATOR_OS_H
-
-#include "os_hash.h"
-#include "os_attestation.h"
-#include "os_ecdsa.h"
-#include "os_exceptions.h"
-#include "os_io.h"
-
-#include "hsmsim_explicit_bzero.h"
+/*****************************************************************************
+ *   Ledger Nano S - Secure firmware
+ *   (c) 2016, 2017 Ledger
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ ******************************************************************************/
 
 /**
- * Miscellaneous
+ * Modified try...catch exception implementation (taken from nanos-secure-sdk)
+ * (https://github.com/LedgerHQ/nanos-secure-sdk/blob/nanos-1314/include/os.h)
  */
-#define PIC(x) (x)
 
-void os_memmove(void *dst, const void *src, unsigned int length);
+#ifndef HSM_PLATFORM_X86
+#define HSM_PLATFORM_X86
+#endif
 
-unsigned int os_perso_isonboarded();
+#include "hal/exceptions.h"
 
-unsigned int os_global_pin_retries();
+static try_context_t G_try_last_open_context_var;
 
-void nvm_write(void *dst_adr, void *src_adr, unsigned int src_len);
-
-#endif // __SIMULATOR_OS_H
+try_context_t* G_try_last_open_context = &G_try_last_open_context_var;

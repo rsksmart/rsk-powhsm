@@ -21,3 +21,16 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
+
+#ifndef __SIMULATOR_JSON_H
+#define __SIMULATOR_JSON_H
+
+#include <stdlib.h>
+#include <stdbool.h>
+#include "cJSON.h"
+
+cJSON* read_json_file(const char* file_path);
+
+bool write_json_file(const char* file_path, cJSON* json);
+
+#endif // __SIMULATOR_JSON_H

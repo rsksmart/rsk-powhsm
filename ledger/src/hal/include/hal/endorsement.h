@@ -50,7 +50,7 @@ bool endorsement_sign(uint8_t* msg,
  *
  * @param code_hash_out Where the code hash should be output
  * @param code_hash_out_length [in/out] the length of the output buffer /
- *                          length of the produced code hash
+ *                             length of the produced code hash
  *
  * @returns whether code hash gathering succeeded
  */
@@ -62,11 +62,44 @@ bool endorsement_get_code_hash(uint8_t* code_hash_out,
  *
  * @param public_key_out Where the public key should be output
  * @param public_key_out_length [in/out] the length of the output buffer /
- *                          length of the produced public key
+ *                              length of the produced public key
  *
  * @returns whether public key gathering succeeded
  */
 bool endorsement_get_public_key(uint8_t* public_key_out,
                                 uint8_t* public_key_out_length);
+
+// BEGINNING of platform-dependent code
+#if defined(HSM_PLATFORM_X86)
+
+#include "hal/constants.h"
+
+// An attestation ID (in lack of a better name)
+// is simply a pair consisting of a secp256k1 private key
+// representing the device attestation private key and
+// a code hash representing the hash of the running
+// application that is attestating. Together, they can
+// be used to construct another secp256k1 private key
+// which is the attestation private key used to sign the
+// attestation messages.
+typedef struct {
+    unsigned char key[PRIVATE_KEY_LENGTH];
+    unsigned char code_hash[HASH_LENGTH];
+} attestation_id_t;
+
+extern attestation_id_t attestation_id;
+
+/**
+ * @brief Initializes the endorsement module
+ *
+ * @param att_file_path the path to the file that
+ *                      contains the attestation id
+ *
+ * @returns whether the initialisation succeeded
+ */
+bool endorsement_init(char* att_file_path);
+
+#endif
+// END of platform-dependent code
 
 #endif // __HAL_ENDORSEMENT_H
