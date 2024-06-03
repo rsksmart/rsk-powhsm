@@ -22,12 +22,31 @@
  * IN THE SOFTWARE.
  */
 
-#include "hsmsim_random.h"
+#include "hal/nvmem.h"
+#include "hal/log.h"
 
-#include <stddef.h>
-#include <unistd.h>
-#include <syscall.h>
+#include <stdbool.h>
+#include <string.h>
 
-void getrandom(void *buffer, size_t length, unsigned int flags) {
-    syscall(SYS_getrandom, buffer, length, 0);
+static nvmmem_stats_t nvmmem_stats;
+
+void nvmem_stats_reset() {
+    memset(&nvmmem_stats, 0, sizeof(nvmmem_stats));
+    LOG("NVM stats reset OK.\n");
+}
+
+nvmmem_stats_t nvmem_get_stats() {
+    return nvmmem_stats;
+}
+
+bool nvmem_write(void *dst, void *src, unsigned int length) {
+    if (src == NULL) {
+        // Treat as memory reset
+        memset(dst, 0, length);
+    } else {
+        // Treat as normal copy
+        memmove(dst, src, length);
+    }
+    // Log the write
+    nvmmem_stats.write_count++;
 }

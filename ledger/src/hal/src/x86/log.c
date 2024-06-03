@@ -22,15 +22,34 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __SIMULATOR_JSON_H
-#define __SIMULATOR_JSON_H
+#ifdef HSM_PLATFORM_X86
 
+#include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
-#include "cJSON.h"
+#include <stdarg.h>
 
-cJSON* read_json_file(char* file_path);
+#include "bigdigits.h"
 
-bool write_json_file(char* file_path, cJSON* json);
+void LOG(const char *format, ...) {
+    va_list args;
+    va_start(args, format);
 
-#endif // __SIMULATOR_JSON_H
+    vprintf(format, args);
+
+    va_end(args);
+}
+
+void LOG_HEX(const char *prefix, void *buffer, size_t size) {
+    printf("%s ", prefix);
+    if (size > 0) {
+        printf("0x");
+        for (unsigned int i = 0; i < size; i++) {
+            printf("%02x", ((unsigned char *)buffer)[i]);
+        }
+    } else {
+        printf("EMPTY");
+    }
+    printf("\n");
+}
+
+#endif

@@ -87,7 +87,7 @@ typedef struct {
     uint8_t expected_bytes;
     bool auth_required;
 
-    uint32_t path[DERIVATION_PATH_PARTS];
+    uint32_t path[BIP32_PATH_NUMPARTS];
     uint32_t input_index_to_sign;
 
     uint8_t tx_hash[HASH_LENGTH];

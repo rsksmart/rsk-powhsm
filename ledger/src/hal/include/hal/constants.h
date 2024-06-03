@@ -22,17 +22,16 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __SIMULATOR_HSMSIM_EXCEPTIONS_H
-#define __SIMULATOR_HSMSIM_EXCEPTIONS_H
+#ifndef __HAL_CONSTANTS_H
+#define __HAL_CONSTANTS_H
 
-#include <stdbool.h>
-#include "os_exceptions.h"
+// ECDSA related sizes
+#define HASH_LENGTH 32
+#define SEED_LENGTH 32
+#define PRIVATE_KEY_LENGTH 32
+#define PUBKEY_UNCMP_LENGTH 65
+#define PUBKEY_CMP_LENGTH 33
+#define MAX_SIGNATURE_LENGTH 72
+#define BIP32_PATH_NUMPARTS 5
 
-/* ----------------------------------------------------------------------- */
-/* -                 HSM SIMULATOR SPECIFIC EXCEPTIONS                   - */
-/* ----------------------------------------------------------------------- */
-#define HSMSIM_EXC_INVALID_PATH 0xbb01
-#define HSMSIM_EXC_SECP_ERROR 0xbb02
-#define HSMSIM_EXC_HMAC_ERROR 0xbb03
-
-#endif // __SIMULATOR_HSMSIM_EXCEPTIONS_H
+#endif // __HAL_CONSTANTS_H

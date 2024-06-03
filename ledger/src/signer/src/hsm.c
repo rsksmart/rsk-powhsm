@@ -138,7 +138,7 @@ static unsigned int hsm_process_apdu(volatile unsigned int rx) {
         reset_if_starting(INS_GET_PUBLIC_KEY);
 
         // Check the received data size
-        if (rx != DATA + sizeof(uint32_t) * DERIVATION_PATH_PARTS)
+        if (rx != DATA + sizeof(uint32_t) * BIP32_PATH_NUMPARTS)
             THROW(ERR_INVALID_DATA_SIZE); // Wrong buffer size
 
         // Check for path validity before returning the public key

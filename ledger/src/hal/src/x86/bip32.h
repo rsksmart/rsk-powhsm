@@ -21,3 +21,27 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
+
+#ifndef __HAL_BIP32_H
+#define __HAL_BIP32_H
+
+#include <stdint.h>
+#include <stdlib.h>
+
+#include "hal/constants.h"
+
+#define BIP32_PATH_PART_LENGTH (sizeof(uint32_t))
+#define BIP32_PATH_LENGTH (1 + BIP32_PATH_NUMPARTS * BIP32_PATH_PART_LENGTH)
+
+/**
+ * @brief Parse the given string representation of a bip32 path
+ *        into binary format
+ *
+ * @param path the bip32 path as string
+ * @param out the destination buffer for the parsed path
+ *
+ * @returns the size of the parsed path in bytes
+ */
+size_t bip32_parse_path(const char* path, uint8_t* out);
+
+#endif // __HAL_BIP32_H

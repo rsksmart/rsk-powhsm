@@ -28,7 +28,7 @@
 #include <stdio.h>
 
 // Read a JSON file into memory
-cJSON* read_json_file(char* file_path) {
+cJSON* read_json_file(const char* file_path) {
     FILE* key_file;
     char* buffer;
     long file_size;
@@ -63,7 +63,7 @@ cJSON* read_json_file(char* file_path) {
 }
 
 // Write JSON from memory to disk
-bool write_json_file(char* file_path, cJSON* json) {
+bool write_json_file(const char* file_path, cJSON* json) {
     FILE* key_file = fopen(file_path, "w");
     if (key_file == NULL)
         return false;

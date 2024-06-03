@@ -42,16 +42,19 @@
    Architecture-specific implementations also need to define
    __explicit_bzero_chk.  */
 
-#include "hsmsim_explicit_bzero.h"
+#include <string.h>
 
-#ifdef __HSMSIM_EXPLICIT_BZERO_H
+/* This is for compatibility with older versions of GLIBC */
+#if __GLIBC__ == 2 && __GLIBC_MINOR__ < 25
 
-/* Set LEN bytes of S to 0.  The compiler will not delete a call to
-   this function, even if S is dead after the call.  */
-void explicit_bzero(void *s, size_t len) {
-    memset(s, '\0', len);
-    /* Compiler barrier.  */
-    asm volatile("" ::: "memory");
-}
+#pragma message "Using ad-hoc explicit_bzero"
 
-#endif // __HSMSIM_EXPLICIT_BZERO_H
+#ifndef __HSM_CUSTOM_EXPLICIT_BZERO_H
+#define __HSM_CUSTOM_EXPLICIT_BZERO_H
+
+#include <stddef.h>
+void explicit_bzero(void *s, size_t len);
+
+#endif // __HSM_CUSTOM_EXPLICIT_BZERO_H
+
+#endif

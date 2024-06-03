@@ -157,4 +157,26 @@ DIGIT_T mpShortDiv(DIGIT_T q[], const DIGIT_T u[], DIGIT_T d, size_t ndigits);
 }
 #endif
 
+// Platform-dependent code
+#ifndef HSM_PLATFORM_LEDGER
+
+/**
+ * @brief Print big integer in hex format with optional prefix and suffix strings 
+ * 
+ * @param prefix the log prefix (the general log prefix will be prepended too)
+ * @param a the big integer to print as hexadecimal
+ * @param len the size of a in bigint digits
+ * @param suffix the log suffix
+ */
+void LOG_BIGD_HEX(const char *prefix,
+                  const DIGIT_T *a,
+                  size_t len,
+                  const char *suffix);
+
+#else
+
+#define LOG_BIGD_HEX(...)
+
+#endif // !HSM_PLATFORM_LEDGER
+
 #endif  // __BIGDIGITS_H

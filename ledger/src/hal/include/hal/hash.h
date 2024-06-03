@@ -29,7 +29,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define HASH_SIZE 32
+#include "hal/constants.h"
 
 // BEGINNING of platform-dependent code
 #if defined(HSM_PLATFORM_LEDGER)

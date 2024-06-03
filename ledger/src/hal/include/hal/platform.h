@@ -42,4 +42,13 @@ void platform_memmove(void *dst, const void *src, unsigned int length);
  */
 void platform_request_exit();
 
+/**
+ * X86 specific headers
+ */
+#if defined(HSM_PLATFORM_X86)
+
+#include "explicit_bzero.h"
+
+#endif // HSM_PLATFORM_X86
+
 #endif // __HAL_PLATFORM_H

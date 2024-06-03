@@ -25,7 +25,7 @@
 #ifndef __DEFS_H
 #define __DEFS_H
 
-#include "constants.h"
+#include "hal/constants.h"
 
 // Version and patchlevel
 #define VERSION_MAJOR 0x05

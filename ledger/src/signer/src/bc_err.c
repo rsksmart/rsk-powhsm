@@ -26,7 +26,7 @@
 
 #ifdef HSM_PLATFORM_X86
 
-#include <stdio.h>
+#include "hal/log.h"
 
 static struct err_entry {
     err_code_t errcode;
@@ -74,7 +74,7 @@ void show_error(err_code_t errcode) {
             break;
         }
     }
-    fprintf(stderr, "*** ERROR: %s\n", msg);
+    LOG("*** ERROR: %s\n", msg);
 }
 #else
 void show_error(err_code_t errcode) {

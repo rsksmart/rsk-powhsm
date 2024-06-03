@@ -22,12 +22,17 @@
 
 SRCPATH = ../signer/src
 COMMONPATH = ../common/src
-VPATH = $(SRCPATH):$(COMMONPATH)
+HALSRCPATH = ../hal/src/x86
+HALINCPATH = ../hal/include
+HALPATH = $(HALINCPATH):$(HALSRCPATH)
+VPATH = $(SRCPATH):$(COMMONPATH):$(HALPATH)
 
 include ../../coverage/coverage.mk
 
-CFLAGS += -g -O0 -I$(SRCPATH) -I$(COMMONPATH) -I. -I /usr/local/include -DHSM_SIMULATOR
-CFLAGS += -Werror
+CFLAGS += -g -O0 -iquote $(SRCPATH) -iquote $(COMMONPATH) -iquote .
+CFLAGS += -iquote $(HALINCPATH) -iquote $(HALSRCPATH) 
+CFLAGS += -I /usr/local/include -Werror
+CFLAGS += -DHSM_PLATFORM_X86
 
 LDFLAGS = -lsecp256k1
 
@@ -41,12 +46,15 @@ COMPILE.c = $(CC) $(DEPFLAGS) $(CFLAGS) -c
 
 SIGN_SRCS = $(filter-out %/main.c, $(wildcard $(SRCPATH)/*.c))
 COMMON_SRCS = $(wildcard $(COMMONPATH)/*.c)
-SIGN_OBJS = $(patsubst $(SRCPATH)/%.c, $(OBJDIR)/%.o, $(SIGN_SRCS)) $(patsubst $(COMMONPATH)/%.c, $(OBJDIR)/%.o, $(COMMON_SRCS))
+HAL_SRCS = $(wildcard $(HALSRCPATH)/*.c)
+SIGN_OBJS = $(patsubst $(SRCPATH)/%.c, $(OBJDIR)/%.o, $(SIGN_SRCS))
+SIGN_OBJS += $(patsubst $(COMMONPATH)/%.c, $(OBJDIR)/%.o, $(COMMON_SRCS))
+SIGN_OBJS += $(patsubst $(HALSRCPATH)/%.c, $(OBJDIR)/%.o, $(HAL_SRCS))
 
 SIM_SRCS = $(wildcard *.c)
 SIM_OBJS = $(patsubst %.c, $(OBJDIR)/%.o, $(SIM_SRCS))
 
-SRCS = $(SIGN_SRCS) $(COMMON_SRCS) $(SIM_SRCS)
+SRCS = $(SIGN_SRCS) $(COMMON_SRCS) $(HAL_SRCS) $(SIM_SRCS)
 OBJS = $(SIGN_OBJS) $(SIM_OBJS)
 
 
@@ -58,7 +66,8 @@ $(OBJDIR)/%.o: %.c $(DEPDIR)/%.d | $(DEPDIR)
 	$(COMPILE.c) $(COVFLAGS) -o $@ $<
 
 $(DEPDIR): ; @mkdir -p $@
-DEPFILES := $(patsubst $(DEPDIR)/$(SRCPATH)/%.d, $(DEPDIR)/%.d, $(SRCS:%.c=$(DEPDIR)/%.d)) $(patsubst $(DEPDIR)/$(COMMONPATH)/%.d, $(DEPDIR)/%.d, $(SRCS:%.c=$(DEPDIR)/%.d))
+
+DEPFILES := $(patsubst %.c, $(DEPDIR)/%.d, $(notdir $(SRCS)))
 
 $(DEPFILES):
 

@@ -37,14 +37,14 @@
  *
  * @returns whether the initialisation succeeded
  */
-bool communication_init(unsigned char* msg_buffer, size_t msg_buffer_size);
+bool communication_init(unsigned char *msg_buffer, size_t msg_buffer_size);
 
 /**
  * @brief Get a pointer to the message buffer
  *
  * @returns a pointer to the message buffer
  */
-unsigned char* communication_get_msg_buffer();
+unsigned char *communication_get_msg_buffer();
 
 /**
  * @brief Get the message buffer size
@@ -57,7 +57,7 @@ size_t communication_get_msg_buffer_size();
  * @brief Exchanges bytes with the host. This function blocks until the host
  * sends a message.
  *
- *  The message exchanges data with the host using the msg_buffer. If there are
+ * The message exchanges data with the host using the msg_buffer. If there are
  * any bytes to transmit, they are transmitted first. After that the function
  * blocks until a new message is received from the host.
  *
@@ -67,9 +67,57 @@ size_t communication_get_msg_buffer_size();
  */
 unsigned short communication_io_exchange(unsigned short tx);
 
+// BEGINNING of platform-dependent code
+#if defined(HSM_PLATFORM_X86)
+
+#include <stdio.h>
+
 /**
- * @brief Finalizes the communication module
+ * @brief For an external module processing
+ * APDU messages
+ *
+ * @param cb the external module processing callback
  */
-void communication_finalize(void);
+typedef unsigned short (*communication_external_module_process_t)(
+    unsigned short tx);
+void communication_set_external_module_process(
+    communication_external_module_process_t cb);
+
+/**
+ * @brief Starts a TCP server at the given host and port and sets it as the
+ * channel on which communication_io_exchange will perform the IO operations
+ * Either this or communication_set_input_file must be called before
+ * using communication_io_exchange.
+ *
+ * @param port the port on which to listen for connections
+ * @param host the interface to bind to
+ */
+void communication_set_and_start_server(int port, const char *host);
+
+/**
+ * @brief Sets the input file from which communication_io_exchange
+ * will read the input.
+ * Either this or communication_set_server must be called before
+ * using communication_io_exchange.
+ *
+ * @param _input_file the input file that is used for I/O
+ */
+void communication_set_input_file(FILE *_input_file);
+
+/**
+ * @brief Sets the replica file to which communication_io_exchange will
+ * write the input. Setting this is optional.
+ *
+ * @param _replica_file the file to which to replicate the inputs
+ */
+void communication_set_replica_file(FILE *_replica_file);
+
+/**
+ * @brief Perform an empty message write on the IO channel
+ */
+void communication_reply();
+
+#endif
+// END of platform-dependent code
 
 #endif // __HAL_COMMUNICATION_H

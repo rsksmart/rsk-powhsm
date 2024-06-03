@@ -30,29 +30,24 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "bigdigits.h"
-#include "srlp.h"
-
-/** Set a prefix for all logs */
-void LOG_SET_PREFIX(char *prefix);
-
-/** Works just like printf */
+/**
+ * @brief Works just like printf
+ */
 void LOG(const char *format, ...);
 
-/** Print buffer in hex format with prefix */
+/**
+ * @brief Print buffer in hex format with prefix
+ *
+ * @param prefix the log prefix (the general log prefix will be prepended too)
+ * @param buffer the buffer containing the bytes to output as hex chars
+ * @param size the size of buffer in bytes
+ */
 void LOG_HEX(const char *prefix, void *buffer, size_t size);
-
-/** Print big integer in hex format with optional prefix and suffix strings */
-void LOG_BIGD_HEX(const char *prefix,
-                  const DIGIT_T *a,
-                  size_t len,
-                  const char *suffix);
 
 #elif defined(HSM_PLATFORM_LEDGER)
 
 #define LOG(...)
 #define LOG_HEX(...)
-#define LOG_BIGD_HEX(...)
 
 #else
 #error "HSM Platform undefined"
