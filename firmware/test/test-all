@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+
+# Run against a physical dongle?
+WITH_DONGLE="no"
+RUN_ARGS=""
+MANUAL_UNLOCK=""
+if [[ "$1" == "help" ]]; then
+    echo "Usage: $0 [dongle] [pin] [manual]"
+    echo "Example (using tcpsigner):              $0"
+    echo "Example (using dongle - auto unlock):   $0 dongle 12345678"
+    echo "Example (using dongle - manual unlock): $0 dongle manual"
+    exit 1
+elif [[ "$1" == "dongle" ]]; then
+    if [ "$#" -lt 2 ]; then
+        echo -e "\e[1;31mInvalid usage for 'dongle' option. Issue '$0 help' for help.\e[0m"
+        exit 1
+    fi
+    WITH_DONGLE="yes"
+    if [[ "$2" == "manual" ]]; then
+        RUN_ARGS="-m"
+    else
+        RUN_ARGS="-P $2"
+    fi
+elif [[ "$1" != "" ]]; then
+    echo -e "\e[1;31mInvalid or unknown option '$1'. Issue '$0 help' for help.\e[0m"
+    exit 1
+fi
+
+# Script directory
+pushd $(dirname $0) > /dev/null
+TEST_ROOT=$(pwd)
+popd > /dev/null
+
+if [[ "$WITH_DONGLE" == "no" ]]; then
+    # Build and run tcp signer
+    $TEST_ROOT/../build/build-tcpsigner
+
+    $TEST_ROOT/../../docker/mware/do-notty-nousb /hsm2/firmware/src/tcpsigner ./tcpsigner --checkpoint 0xbdcb3c17c7aee714cec8ad900341bfd987b452280220dcbd6e7191f67ea4209b --difficulty 0x32 --network regtest > /dev/null &
+    sleep 1
+
+    # Run tests
+    docker exec -t -w /hsm2/firmware/test hsm-mware-notty python run.py
+    err_code=$?
+
+    # Kill (and remove) container
+    docker kill hsm-mware-notty > /dev/null
+else
+    # Run tests against a dongle
+    $TEST_ROOT/../../docker/mware/do /hsm2/firmware/test "python run.py -d ${RUN_ARGS}"
+    err_code=$?
+fi
+
+exit $err_code

@@ -23,15 +23,15 @@ Unless otherwise stated, only x86 platforms are supported for building this proj
 - Run tests:
 ```
 ~/repo> middleware/test-all # Middleware unit tests
-~/repo> ledger/test/test-all # Ledger signer application tests
-~/repo/ledger/src/signer/test/*> make test # Run ledger signer application unit tests
-~/repo/ledger/src/common/test/*> make test # Run ledger common libraries unit tests
+~/repo> firmware/test/test-all # Ledger signer application tests
+~/repo/firmware/src/ledger/signer/test/*> make test # Run ledger signer application unit tests
+~/repo/firmware/src/common/test/*> make test # Run ledger common libraries unit tests
 ```
 
 - Build firmware binaries:
 ```
-~/repo> ledger/build/build-signer <checkpoint> <difficulty> <network> # Build signer
-~/repo> ledger/build/build-ui <signer_hash> <signer_iteration> <signers_file> # Build UI
+~/repo> firmware/build/build-signer <checkpoint> <difficulty> <network> # Build signer
+~/repo> firmware/build/build-ui <signer_hash> <signer_iteration> <signers_file> # Build UI
 ```
 
 - Build middleware binaries:

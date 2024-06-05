@@ -40,15 +40,15 @@ jobs:
 
       - name: Run firmware coverage script
         run: |
-          ledger/coverage/gen-coverage
-          COVPCT=$(cat ledger/coverage/output/total)
+          firmware/coverage/gen-coverage
+          COVPCT=$(cat firmware/coverage/output/total)
           COVCOL=$(utils/coverage-color.sh $COVPCT)
-          echo "{ \"schemaVersion\": 1, \"label\": \"Firmware coverage\", \"message\": \"$COVPCT%\", \"color\": \"$COVCOL\" }" > ledger/coverage/output/badge.json
+          echo "{ \"schemaVersion\": 1, \"label\": \"Firmware coverage\", \"message\": \"$COVPCT%\", \"color\": \"$COVCOL\" }" > firmware/coverage/output/badge.json
 
       - name: "Upload firmware coverage report"
         run: |
           aws s3 sync \
-            ledger/coverage/output/ \
+            firmware/coverage/output/ \
             s3://${{ secrets.CODECOVERAGE_S3_BUCKET }}/powhsm_5.0.x/firmware_coverage_report \
             --sse aws:kms --sse-kms-key-id ${{ secrets.CODECOVERAGE_KMS_KEY_ID }} \
             --no-progress --follow-symlinks --delete --only-show-errors

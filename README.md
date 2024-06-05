@@ -48,7 +48,7 @@ Refer to the following documents for details on specifics:
 - [Blockchain bookkeeping documentation](./docs/blockchain-bookkeeping.md)
 - [Attestation documentation](./docs/attestation.md)
 - [Heartbeat documentation](./docs/heartbeat.md)
-- [Ledger apps](./ledger/README.md)
+- [Ledger apps](./firmware/README.md)
 - [Middleware](./middleware/README.md)
 - [Distribution](./dist/README.md)
 

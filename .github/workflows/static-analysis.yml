@@ -20,13 +20,13 @@ jobs:
         id: static-analysis
         continue-on-error: true
         run: |
-          ledger/static-analysis/gen-static-analysis
+          firmware/static-analysis/gen-static-analysis
       
       - name: Upload static analysis reports
         uses: actions/upload-artifact@v3
         with:
           name: static-analysis-reports
-          path: ledger/static-analysis/output
+          path: firmware/static-analysis/output
 
       - name: Report static analysis findings
         if: steps.static-analysis.outcome != 'success'
