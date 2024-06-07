@@ -65,32 +65,32 @@ computeHash() {
 }
 
 echo -e "\e[33mBuilding signer...\e[0m"
-$ROOT_DIR/ledger/build/build-signer $CHECKPOINT $DIFFICULTY $NETWORK > /dev/null
-cp $ROOT_DIR/ledger/src/signer/bin/app.hex $FIRMWARE_DIR/signer.hex
-cp $ROOT_DIR/ledger/src/signer/icon.hex $FIRMWARE_DIR/signer.icon.hex
+$ROOT_DIR/firmware/build/build-ledger-signer $CHECKPOINT $DIFFICULTY $NETWORK > /dev/null
+cp $ROOT_DIR/firmware/src/ledger/signer/bin/app.hex $FIRMWARE_DIR/signer.hex
+cp $ROOT_DIR/firmware/src/ledger/signer/icon.hex $FIRMWARE_DIR/signer.icon.hex
 HEX_NAME="Signer"
-HEX_PATH="ledger/src/signer/bin/app.hex"
+HEX_PATH="firmware/src/ledger/signer/bin/app.hex"
 computeHash
 SIGNER_HASH=$APP_HASH
 
 echo -e "\e[33mBuilding UI...\e[0m"
-$ROOT_DIR/ledger/build/build-ui $SIGNER_HASH $UI_ITERATION $UI_AUTHORIZERS > /dev/null
-cp $ROOT_DIR/ledger/src/ui/bin/token.hex $FIRMWARE_DIR/ui.hex
-cp $ROOT_DIR/ledger/src/ui/icon.hex $FIRMWARE_DIR/ui.icon.hex
+$ROOT_DIR/firmware/build/build-ledger-ui $SIGNER_HASH $UI_ITERATION $UI_AUTHORIZERS > /dev/null
+cp $ROOT_DIR/firmware/src/ledger/ui/bin/token.hex $FIRMWARE_DIR/ui.hex
+cp $ROOT_DIR/firmware/src/ledger/ui/icon.hex $FIRMWARE_DIR/ui.icon.hex
 HEX_NAME="UI"
-HEX_PATH="ledger/src/ui/bin/token.hex"
+HEX_PATH="firmware/src/ledger/ui/bin/token.hex"
 CA_FILE="rsk-ca.txt"
 computeHash
 
 echo -e "\e[33mSigning apps...\e[0m"
-$ROOT_DIR/docker/mware/do-notty-nousb /hsm2 "python middleware/signonetime.py -a ledger/src/ui/bin/token.hex,ledger/src/signer/bin/app.hex -p $CA_FILE" > /dev/null
-mv -f $ROOT_DIR/ledger/src/ui/bin/token.hex.sig $FIRMWARE_DIR/ui.hex.sig
-mv -f $ROOT_DIR/ledger/src/signer/bin/app.hex.sig $FIRMWARE_DIR/signer.hex.sig
+$ROOT_DIR/docker/mware/do-notty-nousb /hsm2 "python middleware/signonetime.py -a firmware/src/ledger/ui/bin/token.hex,firmware/src/ledger/signer/bin/app.hex -p $CA_FILE" > /dev/null
+mv -f $ROOT_DIR/firmware/src/ledger/ui/bin/token.hex.sig $FIRMWARE_DIR/ui.hex.sig
+mv -f $ROOT_DIR/firmware/src/ledger/signer/bin/app.hex.sig $FIRMWARE_DIR/signer.hex.sig
 mv -f $ROOT_DIR/$CA_FILE $SCRIPTS_DIR/$CA_FILE
 
 SIGNER_AUTH_FILE="signer_auth.json"
 echo -e "\e[33mCreating empty signer authorization for upgrades...\e[0m"
-$ROOT_DIR/docker/mware/do-notty-nousb /hsm2 "python middleware/signapp.py message -a ledger/src/signer/bin/app.hex -i $UI_ITERATION -o $SIGNER_AUTH_FILE" > /dev/null
+$ROOT_DIR/docker/mware/do-notty-nousb /hsm2 "python middleware/signapp.py message -a firmware/src/ledger/signer/bin/app.hex -i $UI_ITERATION -o $SIGNER_AUTH_FILE" > /dev/null
 mv -f $ROOT_DIR/$SIGNER_AUTH_FILE $FIRMWARE_DIR/$SIGNER_AUTH_FILE
 
 echo
