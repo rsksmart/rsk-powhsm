@@ -20,42 +20,15 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-TESTCOMMONDIR = ../common
-SRCDIR = ../../src
-TCPSIGNERSRCDIR = ../../../tcpsigner
-COMMONPATH = ../../../common/src
-CFLAGS = -I $(SRCDIR) -I $(TCPSIGNERSRCDIR) -I $(COMMONPATH) -I $(TESTCOMMONDIR)
-
-include ../../../../coverage/coverage.mk
+include ../common/common.mk
 
 PROG = test.out
-OBJS = test_fwk.o btctx.o svarint.o hex_reader.o os.o test_btctx.o
+OBJS = test_fwk.o btctx.o svarint.o hex_reader.o test_btctx.o platform.o log.o
 
 all: $(PROG)
 
 $(PROG): $(OBJS)
 	$(CC) $(COVFLAGS) -o $@ $^
-
-test_fwk.o: $(TESTCOMMONDIR)/test_fwk.c
-	$(CC) $(CFLAGS) -c -o $@ $^
-
-btctx.o: $(SRCDIR)/btctx.c
-	$(CC) $(CFLAGS) $(COVFLAGS) -c -o $@ $^
-
-svarint.o: $(SRCDIR)/svarint.c
-	$(CC) $(CFLAGS) $(COVFLAGS) -c -o $@ $^
-
-hex_reader.o: $(TCPSIGNERSRCDIR)/hex_reader.c
-	$(CC) $(CFLAGS) -c -o $@ $^
-
-os.o: $(TCPSIGNERSRCDIR)/os.c
-	$(CC) $(CFLAGS) -c -o $@ $^
-
-test_btctx.o: test_btctx.c test_fwk.o btctx.o svarint.o hex_reader.o os.o
-
-$(SRCDIR)/btctx.c: $(SRCDIR)/btctx.h
-$(SRCDIR)/svarint.c: $(SRCDIR)/svarint.h
-$(TCPSIGNERSRCDIR)/hex_reader.c: $(TCPSIGNERSRCDIR)/hex_reader.h
 
 .PHONY: clean test
 clean:

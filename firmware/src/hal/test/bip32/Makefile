@@ -20,10 +20,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-include ../common/common.mk
+include ../common.mk
+
+ifneq ($(DEBUG),)
+	CFLAGS += -DDEBUG_BIP32
+endif
 
 PROG = test.out
-OBJS = test_fwk.o bigdigits.o bc_diff.o test_difficulty.o platform.o log.o
+OBJS = bip32.o test_bip32.o log.o
 
 all: $(PROG)
 
@@ -32,7 +36,7 @@ $(PROG): $(OBJS)
 
 .PHONY: clean test
 clean:
-	rm -f $(PROG) *.o $(COVFILES)
+	rm -f $(PROG) ./*.o $(COVFILES)
 
 test: all
 	./$(PROG)

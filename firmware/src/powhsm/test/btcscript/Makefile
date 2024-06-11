@@ -20,12 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-TESTCOMMONDIR = ../common
-SRCDIR = ../../src
-TCPSIGNERSRCDIR = ../../../tcpsigner
-CFLAGS = -I $(SRCDIR) -I $(TCPSIGNERSRCDIR) -I $(TESTCOMMONDIR)
-
-include ../../../../coverage/coverage.mk
+include ../common/common.mk
 
 PROG = test.out
 OBJS = test_fwk.o btcscript.o hex_reader.o test_btcscript.o
@@ -34,20 +29,6 @@ all: $(PROG)
 
 $(PROG): $(OBJS)
 	$(CC) $(COVFLAGS) -o $@ $^
-
-test_fwk.o: $(TESTCOMMONDIR)/test_fwk.c
-	$(CC) $(CFLAGS) -c -o $@ $^
-
-btcscript.o: $(SRCDIR)/btcscript.c
-	$(CC) $(CFLAGS) $(COVFLAGS) -c -o $@ $^
-
-hex_reader.o: $(TCPSIGNERSRCDIR)/hex_reader.c
-	$(CC) $(CFLAGS) -c -o $@ $^
-
-test_btcscript.o: test_btcscript.c test_fwk.o btcscript.o hex_reader.o
-
-$(SRCDIR)/btcscript.c: $(SRCDIR)/btcscript.h
-$(TCPSIGNERSRCDIR)/hex_reader.c: $(TCPSIGNERSRCDIR)/hex_reader.h
 
 .PHONY: clean test
 clean:

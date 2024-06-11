@@ -20,17 +20,27 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-include ../common/common.mk
+include ../mock/common.mk
 
 PROG = test.out
-OBJS = test_fwk.o bigdigits.o bc_diff.o test_difficulty.o platform.o log.o
+OBJS = mock.o ui_comm.o test_ui_comm.o
 
 all: $(PROG)
 
 $(PROG): $(OBJS)
 	$(CC) $(COVFLAGS) -o $@ $^
 
+test_ui_comm.o: test_ui_comm.c
+	$(CC) $(CFLAGS) -c -o $@ $^
+
+ui_comm.o: $(SRCDIR)/ui_comm.c
+	$(CC) $(CFLAGS) $(COVFLAGS) -c -o $@ $^
+
+mock.o: $(MOCKDIR)/mock.c
+	$(CC) $(CFLAGS) -c -o $@ $^
+
 .PHONY: clean test
+
 clean:
 	rm -f $(PROG) *.o $(COVFILES)
 

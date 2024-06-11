@@ -20,14 +20,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-SRCDIR = ../../src
-SIGNERDIRS=$(SRCDIR)/signer_authorization_signers
-COMMONDIR = ../../../common/src
-MOCKDIR = ../mock
-CFLAGS = -I$(MOCKDIR) -I$(COMMONDIR) -I$(SRCDIR) -I$(SIGNERDIRS)
-CFLAGS += -DHSM_SIMULATOR
+include ../mock/common.mk
 
-include ../../../../coverage/coverage.mk
+SIGNERDIRS=$(SRCDIR)/signer_authorization_signers
+CFLAGS += -iquote $(SIGNERDIRS)
 
 PARAM_INITIAL_SIGNER_HASH="\x09\x09\x66\x04\x52\xeb\x7a\x3a\x44\xb6\xca\x07$\
 \xed\x0b\x9c\xcf\xdd\xb9\xa6\x99\x9e\xb4\xad\xc3\x99\x50\x91\x71\xd2\x68\xe7$\

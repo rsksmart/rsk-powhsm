@@ -23,15 +23,14 @@ jobs:
       - name: Firmware tests using TCPSigner
         run: firmware/test/test-all
 
-      - name: Firmware TCPSigner's unit tests
-        working-directory: 
-        run: firmware/src/tcpsigner/test/run-all.sh
+      - name: Firmware HAL's unit tests
+        run: firmware/src/hal/test/run-all.sh
 
       - name: Firmware common lib unit tests
         run: firmware/src/common/test/run-all.sh
 
-      - name: Ledger Signer's unit tests
-        run: firmware/src/ledger/signer/test/run-all.sh
+      - name: Firmware PowHSM's unit tests
+        run: firmware/src/powhsm/test/run-all.sh
 
       - name: Ledger UI's unit tests
         run: firmware/src/ledger/ui/test/run-all.sh

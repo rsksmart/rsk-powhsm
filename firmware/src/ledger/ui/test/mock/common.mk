@@ -20,19 +20,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-include ../common/common.mk
+SRCDIR = ../../src
+COMMONDIR = ../../../../common/src
+MOCKDIR = ../mock
+THISMOCKDIR = ./mock
+HALINCDIR = ../../../../hal/include
+HALSRCDIR = ../../../../hal/src/x86
+CFLAGS  = -iquote $(THISMOCKDIR) -iquote $(COMMONDIR) -iquote $(MOCKDIR)
+CFLAGS += -iquote $(SRCDIR) -iquote $(HALINCDIR) -iquote $(HALSRCDIR)
+CFLAGS += -DHSM_PLATFORM_X86
 
-PROG = test.out
-OBJS = test_fwk.o bigdigits.o bc_diff.o test_difficulty.o platform.o log.o
-
-all: $(PROG)
-
-$(PROG): $(OBJS)
-	$(CC) $(COVFLAGS) -o $@ $^
-
-.PHONY: clean test
-clean:
-	rm -f $(PROG) *.o $(COVFILES)
-
-test: all
-	./$(PROG)
+include ../../../../../coverage/coverage.mk

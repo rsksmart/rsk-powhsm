@@ -20,34 +20,19 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-SRCDIR = ../../src
-COMMONDIR = ../../../common/src
-MOCKDIR = ../mock
-CFLAGS = -I$(COMMONDIR) -I$(MOCKDIR) -I$(SRCDIR)
-
-include ../../../../coverage/coverage.mk
+include ../common.mk
 
 PROG = test.out
-OBJS = mock.o communication.o test_communication.o
+OBJS = sha256.o hmac_sha256.o test_hmac_sha256.o
 
 all: $(PROG)
 
 $(PROG): $(OBJS)
 	$(CC) $(COVFLAGS) -o $@ $^
 
-test_communication.o: test_communication.c
-	$(CC) $(CFLAGS) -c -o $@ $^
-
-communication.o: $(SRCDIR)/communication.c
-	$(CC) $(CFLAGS) $(COVFLAGS) -c -o $@ $^
-
-mock.o: $(MOCKDIR)/mock.c
-	$(CC) $(CFLAGS) -c -o $@ $^
-
 .PHONY: clean test
-
 clean:
-	rm -f $(PROG) *.o $(COVFILES)
+	rm -f $(PROG) ./*.o $(COVFILES)
 
 test: all
 	./$(PROG)

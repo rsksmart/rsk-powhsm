@@ -20,29 +20,20 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-TESTCOMMONDIR = ../common
-SRCDIR = ../../src
-CFLAGS = -I $(SRCDIR) -I $(TESTCOMMONDIR) -Imocks/ -DMAX_RLP_CTX_DEPTH=10
+include ../common/common.mk
 
-include ../../../../coverage/coverage.mk
+# For debugging purposes
+ifneq ($(DEBUG),)
+	CFLAGS += -DDEBUG_SRLP
+endif
 
 PROG = test.out
-OBJS = test_fwk.o srlp.o test_srlp.o
+OBJS = test_fwk.o srlp.o test_srlp.o log.o
 
 all: $(PROG)
 
 $(PROG): $(OBJS)
 	$(CC) $(COVFLAGS) -o $@ $^
-
-test_fwk.o: $(TESTCOMMONDIR)/test_fwk.c
-	$(CC) $(CFLAGS) -c -o $@ $^
-
-srlp.o: $(SRCDIR)/srlp.c
-	$(CC) $(CFLAGS) $(COVFLAGS) -c -o $@ $^
-
-test_srlp.o: test_srlp.c test_fwk.o srlp.o
-
-$(SRCDIR)/srlp.c: $(SRCDIR)/srlp.h
 
 .PHONY: clean test
 clean:

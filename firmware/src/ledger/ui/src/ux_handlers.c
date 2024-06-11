@@ -21,7 +21,7 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-#include <bolos_ux_common.h>
+#include "bolos_ux_common.h"
 #include "ux_handlers.h"
 #include "bootloader.h"
 #include "ui_heartbeat.h"

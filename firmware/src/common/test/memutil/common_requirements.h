@@ -22,4 +22,9 @@
  * IN THE SOFTWARE.
  */
 
-void os_memmove(void *dst, const void *src, unsigned int length);
+#ifndef __COMMON_REQUIREMENTS_H
+#define __COMMON_REQUIREMENTS_H
+
+void platform_memmove(void *dst, const void *src, unsigned int length);
+
+#endif // __COMMON_REQUIREMENTS_H

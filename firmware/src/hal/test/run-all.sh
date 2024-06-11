@@ -1,6 +1,6 @@
 #!/bin/bash
 BASEDIR=$(dirname $0)
-TESTDIRS="hmac_sha256"
+TESTDIRS="bip32 hmac_sha256"
 TESTDIRS=${1:-"$TESTDIRS"}
 
 for d in $TESTDIRS; do
