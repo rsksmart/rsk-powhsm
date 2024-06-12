@@ -20,8 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-SRCDIR = ../../src
-CFLAGS = -I $(SRCDIR) -I ./
+include ../common.mk
 
 PROG = test.out
 OBJS = test_memutil.o
@@ -29,14 +28,14 @@ OBJS = test_memutil.o
 all: $(PROG)
 
 $(PROG): $(OBJS)
-	$(CC) -o $@ $^
+	$(CC) $(COVFLAGS) -o $@ $^
 
-test_memutil.o: test_memutil.c $(SRCDIR)/memutil.h os.h
+test_memutil.o: test_memutil.c $(SRCDIR)/memutil.h
 
 .PHONY: clean test
 
 clean:
-	rm -f $(PROG) ./*.o
+	rm -f $(PROG) ./*.o $(COVFILES)
 
 test: all
 	./$(PROG)

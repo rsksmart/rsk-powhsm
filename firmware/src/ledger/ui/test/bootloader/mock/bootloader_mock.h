@@ -31,7 +31,7 @@
 #include <assert.h>
 #include <stdint.h>
 #include "attestation.h"
-#include "os_exceptions.h"
+#include "hal/exceptions.h"
 #include "apdu_utils.h"
 #include "mock.h"
 

@@ -1,19 +1,25 @@
-bin/
-debug/
-dep/
-obj/
+# Build artifacts
+**/bin
+**/debug
+**/dep
+**/obj
+**/objs
+**/static-analysis
+**/test/**/*.o
+**/test/**/*.out
+
+# UI glyphs
+ledger/ui/src/glyphs.c
+ledger/ui/src/glyphs.h
+
+# Icons hex
+ledger/signer/icon.hex
+ledger/ui/icon.hex
 
 # TCPSigner
 tcpsigner/tcpsigner
-tcpsigner/objs
-tcpsigner/test/**/*.o
-tcpsigner/test/**/test.out
 tcpsigner/**/*.json
 
-# Icons hex
-signer/icon.hex
-ui/icon.hex
-
 # Code coverage artifacts
-*.gcda
-*.gcno
+**/*.gcda
+**/*.gcno

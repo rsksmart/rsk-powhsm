@@ -40,7 +40,7 @@
  * @param path the bip32 path as string
  * @param out the destination buffer for the parsed path
  *
- * @returns the size of the parsed path in bytes
+ * @returns the size of the parsed path in bytes, or zero in case of error
  */
 size_t bip32_parse_path(const char* path, uint8_t* out);
 

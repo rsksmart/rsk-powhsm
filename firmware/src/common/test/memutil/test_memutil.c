@@ -46,11 +46,11 @@ unsigned char* expected_src;
 unsigned int expected_length;
 int copied;
 
-void os_memmove_reset_mock() {
+void platform_memmove_reset_mock() {
     copied = 0;
 }
 
-void os_memmove(void* dst, const void* src, unsigned int length) {
+void platform_memmove(void* dst, const void* src, unsigned int length) {
     assert(expected_dst == dst);
     assert(expected_src == src);
     assert(expected_length == length);
@@ -62,7 +62,7 @@ void test_ok() {
     char src[15];
     char dst[10];
 
-    os_memmove_reset_mock();
+    platform_memmove_reset_mock();
     TEST_MEMMOVE(
         dst, sizeof(dst), 0, src, sizeof(src), 0, 10, { assert(false); });
     TEST_MEMMOVE(
@@ -82,7 +82,7 @@ void test_negatives() {
     char dst[10];
     int failed = 0;
 
-    os_memmove_reset_mock();
+    platform_memmove_reset_mock();
     TEST_MEMMOVE(dst, sizeof(dst), 0, src, sizeof(src), 0, -1, { failed++; });
     TEST_MEMMOVE(dst, sizeof(dst), 0, src, sizeof(src), 0, -5, { failed++; });
     TEST_MEMMOVE(dst, sizeof(dst), -1, src, sizeof(src), 0, 2, { failed++; });
@@ -97,7 +97,7 @@ void test_src_outofbounds() {
     char dst[10];
     int failed = 0;
 
-    os_memmove_reset_mock();
+    platform_memmove_reset_mock();
     TEST_MEMMOVE(dst, sizeof(dst), 0, src, sizeof(src), 0, 6, { failed++; });
     TEST_MEMMOVE(dst, sizeof(dst), 0, src, sizeof(src), 0, 7, { failed++; });
     assert(failed == 2);
@@ -110,7 +110,7 @@ void test_src_outofbounds_offset() {
     char dst[10];
     int failed = 0;
 
-    os_memmove_reset_mock();
+    platform_memmove_reset_mock();
     TEST_MEMMOVE(dst, sizeof(dst), 0, src, sizeof(src), 6, 10, { failed++; });
     TEST_MEMMOVE(dst, sizeof(dst), 0, src, sizeof(src), 15, 4, { failed++; });
     assert(failed == 2);
@@ -123,7 +123,7 @@ void test_dst_outofbounds() {
     char dst[10];
     int failed = 0;
 
-    os_memmove_reset_mock();
+    platform_memmove_reset_mock();
     TEST_MEMMOVE(dst, sizeof(dst), 0, src, sizeof(src), 0, 11, { failed++; });
     TEST_MEMMOVE(dst, sizeof(dst), 0, src, sizeof(src), 0, 13, { failed++; });
     assert(failed == 2);
@@ -136,7 +136,7 @@ void test_dst_outofbounds_offset() {
     char dst[10];
     int failed = 0;
 
-    os_memmove_reset_mock();
+    platform_memmove_reset_mock();
     TEST_MEMMOVE(dst, sizeof(dst), 8, src, sizeof(src), 0, 3, { failed++; });
     TEST_MEMMOVE(dst, sizeof(dst), 10, src, sizeof(src), 0, 1, { failed++; });
     assert(failed == 2);
@@ -149,7 +149,7 @@ void test_overflow() {
     char dst[10];
     int failed = 0;
 
-    os_memmove_reset_mock();
+    platform_memmove_reset_mock();
     TEST_MEMMOVE(
         dst, sizeof(dst), 10, src, sizeof(src), 0, UINT_MAX - 5, { failed++; });
     TEST_MEMMOVE(

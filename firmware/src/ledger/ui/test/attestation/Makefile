@@ -20,13 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-SRCDIR = ../../src
-COMMONDIR = ../../../common/src
-MOCKDIR = ../mock
-CFLAGS = -I$(COMMONDIR) -I$(MOCKDIR) -I$(SRCDIR)
-CFLAGS += -DHSM_SIMULATOR
-
-include ../../../../coverage/coverage.mk
+include ../mock/common.mk
 
 PROG = test.out
 OBJS = mock.o attestation.o test_attestation.o

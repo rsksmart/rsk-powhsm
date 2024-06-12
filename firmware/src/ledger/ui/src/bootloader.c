@@ -22,7 +22,7 @@
  * IN THE SOFTWARE.
  */
 
-#include <bolos_ux_common.h>
+#include "bolos_ux_common.h"
 
 #include "apdu.h"
 #include "ux_handlers.h"

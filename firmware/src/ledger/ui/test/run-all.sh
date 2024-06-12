@@ -1,6 +1,6 @@
 #!/bin/bash
 BASEDIR=$(dirname $0)
-TESTDIRS="attestation signer_authorization communication onboard pin unlock bootloader ux_handlers ui_heartbeat"
+TESTDIRS="attestation bootloader onboard pin signer_authorization ui_comm ui_heartbeat unlock ux_handlers"
 TESTDIRS=${1:-"$TESTDIRS"}
 
 for d in $TESTDIRS; do

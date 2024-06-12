@@ -20,19 +20,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-include ../common/common.mk
+INCDIR = ../../include
+SRCDIR = ../../src/x86
+CFLAGS  = -iquote $(INCDIR) -iquote $(SRCDIR)
+CFLAGS += -DHSM_PLATFORM_X86
 
-PROG = test.out
-OBJS = test_fwk.o bigdigits.o bc_diff.o test_difficulty.o platform.o log.o
+include ../../../../coverage/coverage.mk
 
-all: $(PROG)
+CFLAGS += $(COVFLAGS)
 
-$(PROG): $(OBJS)
-	$(CC) $(COVFLAGS) -o $@ $^
-
-.PHONY: clean test
-clean:
-	rm -f $(PROG) *.o $(COVFILES)
-
-test: all
-	./$(PROG)
+VPATH += $(SRCDIR):$(INCDIR)

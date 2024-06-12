@@ -151,9 +151,9 @@ unsigned short io_exchange(unsigned char channel_and_flags,
     return M_apdu_size;
 }
 
-unsigned int comm_process_exception(unsigned short ex,
-                                    unsigned int tx,
-                                    comm_reset_cb_t comm_reset_cb) {
+unsigned int ui_process_exception(unsigned short ex,
+                                  unsigned int tx,
+                                  comm_reset_cb_t comm_reset_cb) {
     M_last_exception = ex;
     return tx;
 }

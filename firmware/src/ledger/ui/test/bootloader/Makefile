@@ -20,12 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-SRCDIR = ../../src
-COMMONDIR = ../../../common/src
-MOCKDIR = ../mock
-CFLAGS = -I./mock -I$(COMMONDIR) -I$(MOCKDIR) -I$(SRCDIR)
-
-include ../../../../coverage/coverage.mk
+include ../mock/common.mk
 
 PROG = test.out
 OBJS = mock.o bootloader.o test_bootloader.o

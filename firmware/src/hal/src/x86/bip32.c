@@ -83,6 +83,10 @@ size_t bip32_parse_path(const char* path, uint8_t* out) {
             number = true;
             start = ++pos;
             if (parts == EXPECTED_PARTS) {
+                if (pos < pathlen) {
+                    DEBUG_LOG("Path has too many parts: %s\n", path);
+                    return 0;
+                }
                 out[0] = (char)parts;
                 return 1 + parts * sizeof(uint32_t);
             }
@@ -92,20 +96,3 @@ size_t bip32_parse_path(const char* path, uint8_t* out) {
     DEBUG_LOG("Unexpected code path reached for path: %s\n", path);
     return 0;
 }
-
-// Testing: move somewhere else
-// #include <stdio.h>
-// int main() {
-//     char* bip32path = "m/44'/137'/1'/0/0";
-//     uint8_t path[100];
-//     size_t pathlen = bip32_parse_path(bip32path, path);
-//     printf("BIP32: %s\n", bip32path);
-//     printf("Len: %lu\n", pathlen);
-//     printf("Path: ");
-//     for (int i = 0; i < pathlen; i++) {
-//         printf("%02X", path[i]);
-//         if (i==0 || i%4 == 0) printf(" ");
-//     }
-//     printf("\n");
-//     return 0;
-// }

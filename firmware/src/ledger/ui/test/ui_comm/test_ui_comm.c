@@ -88,7 +88,7 @@ void test_process_exception_ok() {
     SET_APDU("\xaa\xbb\xcc", tx);
 
     assert(tx + 2 ==
-           comm_process_exception(APDU_OK, tx, process_exception_callback));
+           ui_process_exception(APDU_OK, tx, process_exception_callback));
 
     ASSERT_APDU("\xaa\xbb\xcc\x90\x00");
     assert(!M_process_exception_callback_called);
@@ -105,8 +105,8 @@ void test_process_exception_start_6_or_9() {
         unsigned int tx;
         SET_APDU("\xaa\xbb\xcc", tx);
 
-        assert(tx + 2 == comm_process_exception(
-                             error[i], tx, process_exception_callback));
+        assert(tx + 2 ==
+               ui_process_exception(error[i], tx, process_exception_callback));
 
         ASSERT_APDU(expected[i]);
         assert(M_process_exception_callback_called);
@@ -121,7 +121,7 @@ void test_process_exception_start_somethingelse() {
     SET_APDU("\xaa\xbb\xcc", tx);
 
     assert(tx + 2 ==
-           comm_process_exception(0x1234, tx, process_exception_callback));
+           ui_process_exception(0x1234, tx, process_exception_callback));
 
     ASSERT_APDU("\xaa\xbb\xcc\x6a\x34");
     assert(M_process_exception_callback_called);
@@ -138,7 +138,7 @@ void test_process_exception_apdu_too_large() {
     unsigned int tx;
     SET_APDU(apdu, tx);
 
-    assert(2 == comm_process_exception(0x9000, tx, process_exception_callback));
+    assert(2 == ui_process_exception(0x9000, tx, process_exception_callback));
 
     ASSERT_APDU("\x69\x83");
     assert(M_process_exception_callback_called);

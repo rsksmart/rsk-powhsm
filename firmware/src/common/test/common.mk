@@ -20,32 +20,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-SRCDIR = ../..
-SIGNERSRCDIR = ../../../signer/src
-CFLAGS = -I $(SRCDIR) -I $(SIGNERSRCDIR)
+SRCDIR = ../../src
+CFLAGS = -iquote $(SRCDIR) -iquote .
 
-PROG = test.out
-OBJS = sha256.o hmac_sha256.o test_hmac_sha256.o
+include ../../../../coverage/coverage.mk
 
-all: $(PROG)
-
-$(PROG): $(OBJS)
-	$(CC) -o $@ $^
-
-sha256.o: $(SIGNERSRCDIR)/sha256.c
-	$(CC) $(CFLAGS) -c -o $@ $^
-
-hmac_sha256.o: $(SRCDIR)/hmac_sha256.c
-	$(CC) $(CFLAGS) -c -o $@ $^
-
-test_sha256.o: test_sha256.c hmac_sha256.o sha256.o
-
-$(SRCDIR)/hmac_sha256.c: $(SRCDIR)/hmac_sha256.h
-$(SIGNERSRCDIR)/sha256.c: $(SIGNERSRCDIR)/sha256.h
-
-.PHONY: clean test
-clean:
-	rm -f $(PROG) ./*.o
-
-test: all
-	./$(PROG)
+CFLAGS += $(COVFLAGS)
