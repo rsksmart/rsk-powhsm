@@ -63,7 +63,7 @@ In order to update the `blockchain_state` of an *initialized* powHSM device, we 
 
 #### Context and preliminaries
 
-The following constants are assumed to be predefined (and hardcoded into the physical device's firmware):
+The following constants are assumed to be predefined (and hardcoded into the device's firmware):
 
 - `MINIMUM_CUMULATIVE_DIFFICULTY`: The minimum cumulative block difficulty to consider a block sufficiently confirmed.
 - `MAXIMUM_BLOCK_DIFFICULTY`: The maximum allowed difficulty for any given block.

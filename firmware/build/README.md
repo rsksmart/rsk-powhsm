@@ -1,8 +1,11 @@
-# Ledger app building
+# powHSM building
 
-The Docker image for ledger builds (see [the ledger readme](../README.md)) provides a environment suitable to build Ledger Nano S applications on 1.3.1 firmware. This way new developers don't have to struggle setting up the build toolchain, and all of them will have exactly the same toolchain (no different compiler versions and related nuisances). Overall, we have an infrastructure enabling repeatable and bytewise reproducible builds.
+## Building the Ledger Nano S apps
 
-### Building signer and UI
+The following instructions indicate how to build both the Signer and UI applications for
+Ledger Nano S. The Docker image for ledger builds (see [the ledger readme](../README.md)) provides an environment suitable to build Ledger Nano S applications on 1.3.1 firmware. This way new developers don't have to struggle setting up the build toolchain, and all of them will have exactly the same toolchain (no different compiler versions and related nuisances). Overall, we have an infrastructure enabling repeatable and bytewise reproducible builds. This image must be built beforehand.
+
+### Building the UI
 
 To build the UI, just issue:
 
@@ -17,6 +20,8 @@ There is also a *debug* version of the UI, which disables disallowing PINs with 
 ```bash
 ~/repo> firmware/build/build-ledger-ui-debug <signer_hash> <signer_iteration> <signers_file>
 ```
+
+### Building the Signer
 
 To build the signer, just issue:
 
@@ -34,11 +39,13 @@ For example, to build the signer with checkpoint `0x00f06dcff26ec8b4d373fbd53ee7
 
 Once the build is complete, you will get the hash of the build as output, and the actual build output will be in `<HSM_PROJECT_ROOT>/firmware/src/ledger/signer/bin/app.hex` (for the signer) and `<HSM_PROJECT_ROOT>/firmware/src/ledger/ui/bin/token.hex` (for the UI).
 
-#### Reproducible builds
+### Reproducible builds
 
 It is *very important* to mention that both the Signer and the UI builds are bitwise reproducible. That is, two independent builds of the same code will yield the exact same hex files (and thus, the same app hashes). This is of remarkable importance for the [attestation process](../../docs/attestation.md).
 
-### Building the TCPSigner
+## Building the TCPSigner
+
+The Docker image for the middleware (see [the middleware readme](../../middleware/README.md)) provides a suitable environment to build, run and test the TCPSigner. This image must be built beforehand. To then build the TCPSigner, just issue:
 
 ```bash
 ~/repo> firmware/build/build-tcpsigner

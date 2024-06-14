@@ -1,4 +1,4 @@
-# Ledger app deployment
+# powHSM Ledger Nano S app deployment
 
 The Docker image for middleware (see [the middleware readme](../../middleware/README.md)) provides an environment suitable to deploy Ledger Nano S applications on a Ledger Nano S device. This way new developers don't have to struggle setting up the deployment toolchain.
 

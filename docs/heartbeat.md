@@ -7,11 +7,11 @@ acknowledge the state of a running powHSM installation.
 
 ## Heartbeat and attestation
 
-Just like the attestation process, the heartbeat feature makes use of the Ledger Nano S
-endorsement mechanism to prove to the end user a given state of the device and its running
-applications. Nevertheless, and as opposed to the attestation process, the heartbeat
-feature itself does not include the chain of certification all the way up to the
-manufacturer (Ledger itself), but rather leverages the previously generated attestation
+Just like the attestation process, the heartbeat feature makes use of the Hardware
+Abstraction Layer's endorsement mechanism to prove to the end user a given state of the
+device and its running applications. Nevertheless, and as opposed to the attestation
+process, the heartbeat feature itself does not include the chain of certification all the
+way up to the manufacturer, but rather leverages the previously generated attestation
 process artifacts for this purpose. For more details about this and the attestation
 process, see [the attestation documentation](./attestation.md).
 

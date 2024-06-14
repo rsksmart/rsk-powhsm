@@ -1,6 +1,6 @@
 # powHSM distribution
 
-This document describes the artifacts provided to build a distributable version of the powHSM software. This distributable version includes both ledger apps and middleware binaries, as well as scripts for both setting up and onboarding a brand new Ledger Nano S; and also for upgrading an existing Ledger Nano S with powHSM to a newer Signer version.
+This document describes the artifacts provided to build a distributable version of the powHSM software for Ledger Nano S. This distributable version includes both Ledger apps and middleware binaries, as well as scripts for both setting up and onboarding a brand new Ledger Nano S; and also for upgrading an existing Ledger Nano S with powHSM to a newer Signer version.
 
 ## Prerequisites
 
@@ -14,7 +14,7 @@ To generate a full distribution into a fresh directory, issue:
 ~/repo> ./build-dist <destination path> <checkpoint> <minimum difficulty> <network> <ui_iteration> <ui_authorizers>
 ```
 
-where `<destination path>` is the target directory (which must not exist); `<checkpoint>`, `<minimum difficulty>` and `<network>` are the build parameters for the signer app; `<ui_iteration>` is the signer version iteration with which the UI must be built; and `<ui_authorizers>` is the basename of the authorizers header file. The script will build the ledger apps (signer and UI) as well as the required middleware. Then it will output all of the necessary distribution artifacts, including the aforementioned builds, to the destination path given.
+where `<destination path>` is the target directory (which must not exist); `<checkpoint>`, `<minimum difficulty>` and `<network>` are the build parameters for the signer app; `<ui_iteration>` is the signer version iteration with which the UI must be built; and `<ui_authorizers>` is the basename of the authorizers header file. The script will build the Ledger apps (signer and UI) as well as the required middleware. Then it will output all of the necessary distribution artifacts, including the aforementioned builds, to the destination path given.
 
 For example, to build a distribution with checkpoint `0x00f06dcff26ec8b4d373fbd53ee770e9348d9bd6a247ad4c86e82ceb3c2130ac`, minimum cumulative difficulty of `0x7c50933098`, `testnet` network, signer iteration `43` and authorizers header file `testing`, issue:
 
