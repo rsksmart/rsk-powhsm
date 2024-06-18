@@ -20,28 +20,20 @@ jobs:
       - name: Middleware tests
         run: middleware/test-all
 
-      - name: Ledger tests for TCPSigner
-        run: ledger/test/test-all
+      - name: Firmware tests using TCPSigner
+        run: firmware/test/test-all
 
-      - name: Ledger Signer's tests
-        run: ledger/src/signer/test/run-all.sh
+      - name: Firmware HAL's unit tests
+        run: firmware/src/hal/test/run-all.sh
 
-      - name: Ledger UI's tests
-        run: ledger/src/ui/test/run-all.sh
+      - name: Firmware common lib unit tests
+        run: firmware/src/common/test/run-all.sh
 
-      - name: Ledger common lib tests
-        working-directory: ledger/src/common/test/
-        run: |
-          for d in memutil ints; do
-            (cd "$d" && make clean test)
-          done
+      - name: Firmware PowHSM's unit tests
+        run: firmware/src/powhsm/test/run-all.sh
 
-      - name: Ledger TCPSigner's tests
-        working-directory: ledger/src/tcpsigner/test/
-        run: |
-          for d in hmac_sha256; do
-            (cd "$d" && make clean test)
-          done
+      - name: Ledger UI's unit tests
+        run: firmware/src/ledger/ui/test/run-all.sh
 
   run-integration-tests:
     name: Integration tests
@@ -59,7 +51,7 @@ jobs:
           docker/mware/build
           docker/packer/build
           middleware/build/manager-tcp
-          ledger/build/build-tcpsigner
+          firmware/build/build-tcpsigner
 
       - name: Checkout hsm-integration-test repo
         uses: actions/checkout@v3
@@ -74,7 +66,7 @@ jobs:
           mkdir hsm-integration-test/docker/manager/manager-tcp
           tar -xzf rsk-powhsm/middleware/bin/manager-tcp.tgz \
               -C hsm-integration-test/docker/manager/manager-tcp
-          cp rsk-powhsm/ledger/src/tcpsigner/tcpsigner \
+          cp rsk-powhsm/firmware/src/tcpsigner/tcpsigner \
               hsm-integration-test/docker/tcpsigner/
 
       - name: Run HSM integration tests

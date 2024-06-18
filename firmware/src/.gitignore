@@ -1,0 +1,25 @@
+# Build artifacts
+**/bin
+**/debug
+**/dep
+**/obj
+**/objs
+**/static-analysis
+**/test/**/*.o
+**/test/**/*.out
+
+# UI glyphs
+ledger/ui/src/glyphs.c
+ledger/ui/src/glyphs.h
+
+# Icons hex
+ledger/signer/icon.hex
+ledger/ui/icon.hex
+
+# TCPSigner
+tcpsigner/tcpsigner
+tcpsigner/**/*.json
+
+# Code coverage artifacts
+**/*.gcda
+**/*.gcno

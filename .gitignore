@@ -20,5 +20,5 @@
 .vscode/
 
 # Ignore fuzz artifacts
-ledger/fuzz/.coverage-build
-ledger/fuzz/output
+firmware/fuzz/.coverage-build
+firmware/fuzz/output

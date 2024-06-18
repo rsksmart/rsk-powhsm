@@ -1,0 +1,1 @@
+../../ledger/ui/src/signer_authorization_status.h

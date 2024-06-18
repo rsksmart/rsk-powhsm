@@ -1,0 +1,52 @@
+#!/bin/bash
+
+if [[ $1 == "exec" ]]; then
+    BASEDIR=$(realpath $(dirname $0))
+    SRCDIR=$(realpath $BASEDIR/../src)
+    REPOROOT=$(realpath $BASEDIR/../..)
+
+    # Remove any existing coverage data
+    rm -rf $BASEDIR/coverage.info $BASEDIR/output
+    find $REPOROOT/firmware -name "*.gcno" -o -name "*.gcda" | xargs rm -f
+
+    # Run unit tests with coverage generation
+    COVERAGE=y $REPOROOT/firmware/src/common/test/run-all.sh
+    COVERAGE=y $REPOROOT/firmware/src/powhsm/test/run-all.sh
+    COVERAGE=y $REPOROOT/firmware/src/ledger/ui/test/run-all.sh
+    COVERAGE=y $REPOROOT/firmware/src/tcpsigner/test/run-all.sh
+
+    # Run tcpsigner test suite
+    pushd $REPOROOT/firmware/src/tcpsigner > /dev/null
+    COVERAGE=y make clean all
+    ./tcpsigner --checkpoint 0xbdcb3c17c7aee714cec8ad900341bfd987b452280220dcbd6e7191f67ea4209b --difficulty 0x32 --network regtest > /dev/null &
+    TCPSIGNER_PID=$!
+    popd > /dev/null
+
+    pushd $REPOROOT/firmware/test > /dev/null
+    python run.py
+    err_code=$?
+    popd > /dev/null
+
+    kill $TCPSIGNER_PID
+
+    # Capture coverage data
+    lcov --capture --directory $SRCDIR --list-full-path --output-file $BASEDIR/coverage.info
+    # Remove unwanted coverage info (test files, tcpsigner, x86 HAL implementation)
+    lcov --remove $BASEDIR/coverage.info "*/test_*.c" --output-file $BASEDIR/coverage.info
+    lcov --remove $BASEDIR/coverage.info "*/tcpsigner/src/*" --output-file $BASEDIR/coverage.info
+    lcov --remove $BASEDIR/coverage.info "*/hal/src/x86/*" --output-file $BASEDIR/coverage.info
+    # Generate report and summary
+    genhtml $BASEDIR/coverage.info --output $BASEDIR/output -p $SRCDIR -t "powHSM firmware"
+    lcov --summary $BASEDIR/coverage.info | grep lines | sed -e "s/.\+lines.\+: \([[:digit:].]\+\).\+/\1/g" > $BASEDIR/output/total
+    mv $BASEDIR/coverage.info $BASEDIR/output
+else
+    # Script directory
+    REPOROOT=$(realpath $(dirname $0)/../..)
+    SCRIPT=$(realpath $0 --relative-to=$REPOROOT)
+
+    # Generate coverage report
+    $REPOROOT/docker/mware/do-notty-nousb /hsm2 "./$SCRIPT exec"
+    err_code=$?
+fi
+
+exit $err_code

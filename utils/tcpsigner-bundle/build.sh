@@ -8,8 +8,8 @@ mkdir -p $DESTDIR
 
 echo "Building TCPSigner..."
 
-$ROOTDIR/ledger/build/build-tcpsigner > /dev/null 2>&1
-cp $ROOTDIR/ledger/src/tcpsigner/tcpsigner $DESTDIR
+$ROOTDIR/firmware/build/build-tcpsigner > /dev/null 2>&1
+cp $ROOTDIR/firmware/src/tcpsigner/tcpsigner $DESTDIR
 
 echo "Building TCPManager..."
 

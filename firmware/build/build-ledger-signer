@@ -1,0 +1,34 @@
+#! /usr/bin/env bash
+
+if [[ $# -lt 3 ]]; then
+    echo "Usage: $0 <checkpoint> <minimum_difficulty> <network>"
+    exit 1
+fi
+
+if [[ "$3" == "regtest" ]]; then
+    NETWORK="REGTEST"
+elif [[ "$3" == "testnet" ]]; then
+    NETWORK="TESTNET"
+elif [[ "$3" == "mainnet" ]]; then
+    NETWORK=""
+else
+    echo "Invalid network '$3'"
+    exit 1
+fi
+
+pushd $(dirname $0) > /dev/null
+BUILD_ROOT=$(pwd)
+popd > /dev/null
+
+HSM_ROOT=$(realpath $BUILD_ROOT/../../)
+
+DOCKER_IMAGE=hsm:ledger
+source $BUILD_ROOT/../../docker/check-image
+
+HEX_PATH="/hsm2/firmware/src/ledger/signer/bin/app.hex"
+HASH_CMD="cd /opt && echo '*******************' && echo 'Build successful. Signer hash:' && python -m hashapp.hashApp --hex $HEX_PATH && echo '*******************'"
+BUILD_CMD="make clean && make CHECKPOINT=$1 TARGET_DIFFICULTY=$2 NETWORK=$NETWORK && $HASH_CMD"
+
+DOCKER_USER="$(id -u):$(id -g)"
+
+docker run -t --rm --user $DOCKER_USER -w /hsm2/firmware/src/ledger/signer -v ${HSM_ROOT}:/hsm2 ${DOCKER_IMAGE} /bin/bash -c "$BUILD_CMD"

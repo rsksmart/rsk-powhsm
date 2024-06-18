@@ -28,7 +28,7 @@ Unless otherwise stated, only x86 platforms are supported for building this proj
 
 ## Concepts overview
 
-powHSM is a solution designed specifically for the [RSK network](https://www.rsk.co/) powPeg. Its main role is to safekeep and prevent the unauthorized usage of each of the powPeg's members' private keys. powHSM is implemented as a pair of applications for the [Ledger Nano S](https://shop.ledger.com/products/ledger-nano-s), namely a UI and a Signer, and it strongly depends on the device's security features to implement the aforementioned safekeeping.
+powHSM is a solution designed specifically for the [RSK network](https://www.rsk.co/) powPeg. Its main role is to safekeep and prevent the unauthorized usage of each of the powPeg's members' private keys. powHSM is currently implemented as a pair of applications for the [Ledger Nano S](https://shop.ledger.com/products/ledger-nano-s), namely a UI and a Signer, and it strongly depends on the device's security features to implement the aforementioned safekeeping.
 
 Each powPeg member runs an individual physical device on which a transparent installation and onboarding process is carried. Amongst other things, this process safely generates the root key, that never leaves the device. There is an [attestation process](./docs/attestation.md) that serves the purpose of testifying and guaranteeing this key generation process, and ultimately the fact that the key is only ever known to the device.
 
@@ -48,7 +48,7 @@ Refer to the following documents for details on specifics:
 - [Blockchain bookkeeping documentation](./docs/blockchain-bookkeeping.md)
 - [Attestation documentation](./docs/attestation.md)
 - [Heartbeat documentation](./docs/heartbeat.md)
-- [Ledger apps](./ledger/README.md)
+- [Firmware](./firmware/README.md)
 - [Middleware](./middleware/README.md)
 - [Distribution](./dist/README.md)
 
