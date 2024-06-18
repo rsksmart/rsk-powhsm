@@ -2,23 +2,23 @@
 
 ## Abstract
 
-This document describes the mechanisms by which the UI component authorizes versions of
-the Signer component to run on a device. It is an improvement to the authorization scheme
-present up to version 2.3 in that it introduces an "N of M" signatures requirement for the
-authorization of any given Signer version, enhancing security and decentralization of the
-powHSM solution as a whole. It is also an improvement over the "downgrade prevention"
-mechanism (also present up to version 2.3), in that it removes the limit present in the
-feature up to then.
+This document describes the mechanisms by which the Ledger Nano S UI application
+authorizes versions of the Signer application to run on an onboarded device. It is an
+improvement to the authorization scheme present up to version 2.3 in that it introduces an
+"N of M" signatures requirement for the authorization of any given Signer version,
+enhancing security and decentralization of the powHSM solution as a whole. It is also an
+improvement over the "downgrade prevention" mechanism (also present up to version 2.3), in
+that it removes the limit present in the feature up to then.
 
 ## Motivation
 
 Up to version 2.3 of the UI, each new version of the Signer component is authorized using
 the Ledger Nano S's custom certificate authority (CCA for short), represented by a unique
 ECDSA pair. If lost or stolen, there would be a need to generate a new pair, reset the
-existing devices and update the RSK federation in order to issue new Signer versions.
+existing devices and update the RSK PowPeg in order to issue new Signer versions.
 Moreover, the downgrade prevention mechanism, which is based on a finite blacklist of
 previous signer versions, rolls over after 100 versions, which also implies the need to
-reset existing devices, the CCA and update the RSK federation in order to clear said list
+reset existing devices, the CCA and update the RSK PowPeg in order to clear said list
 and move past the 100 signer version mark. Even though at the time of writing the 100
 signer version mark is very far away, it would eventually become an issue.
 
@@ -36,7 +36,7 @@ has no real use beyond the device setup, a scenario where the user tampers with 
 process and uses a CCA of his choosing would have no real impact on the device's security.
 The UI and Signer are still protected from counterfeiting by the [attestation
 process](./attestation.md), which is the ultimate source of truth when it comes to
-determining RSK's federation members.
+determining RSK's PowPeg members.
 
 ## Implementation
 
@@ -92,7 +92,7 @@ of:
 
 ### Considerations
 
-It is important to mention that, when distributing UI and Signer for a new federation
+It is important to mention that, when distributing UI and Signer for a new PowPeg
 member, the UI should be built with the `authorized_signer_iteration` corresponding to the
 current Signer version, preventing the installation of older Signers using old
 authorization witnesses.

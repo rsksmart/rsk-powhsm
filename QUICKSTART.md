@@ -17,18 +17,19 @@ Whether new to the project or just wanting to quickly get an environment up and 
 
 Unless otherwise stated, only x86 platforms are supported for building this project and running the tools provided. The only exception is the [TCPSigner bundle](./utils/tcpsigner-bundle/README.md), which can be built and ran in x86 and arm64 platforms.
 
-
 ## Common tasks
 
 - Run tests:
 ```
 ~/repo> middleware/test-all # Middleware unit tests
-~/repo> firmware/test/test-all # Ledger signer application tests
-~/repo/firmware/src/ledger/signer/test/*> make test # Run ledger signer application unit tests
-~/repo/firmware/src/common/test/*> make test # Run ledger common libraries unit tests
+~/repo> firmware/test/test-all # Firmware tests
+~/repo> firmware/src/ledger/ui/test/run-all.sh # Ledger UI application unit tests
+~/repo> firmware/src/common/test/run-all.sh # Common code unit tests
+~/repo> firmware/src/powhsm/test/run-all.sh # powHSM logic unit tests
+~/repo> firmware/src/hal/test/run-all.sh # HAL unit tests
 ```
 
-- Build firmware binaries:
+- Build Ledger Nano S application binaries:
 ```
 ~/repo> firmware/build/build-signer <checkpoint> <difficulty> <network> # Build signer
 ~/repo> firmware/build/build-ui <signer_hash> <signer_iteration> <signers_file> # Build UI
@@ -42,4 +43,9 @@ Unless otherwise stated, only x86 platforms are supported for building this proj
 - Build a complete powHSM distribution:
 ```
 ~/repo> ./build-dist <destination path> <checkpoint> <minimum difficulty> <network> <ui_iteration> <ui_authorizers>
+```
+
+- Build the TCPSigner:
+```
+~/repo> firmware/build/build-tcpsigner
 ```

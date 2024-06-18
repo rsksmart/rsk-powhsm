@@ -6,7 +6,7 @@ is geared towards (AFL++)[https://github.com/aflplusplus].
 Most of the scripts here require a working `hsm:afl` Docker image which you
 can build using the `~/repo/docker/afl/build` script.
 
-# Building a fuzzable TCPSinger 
+## Building a fuzzable TCPSigner
 
 You can build the TCPSigner with the AFL++ compilers with the 
 `~/repo/firmware/build/build-tcpsigner-afl` script, which uses the 
@@ -22,16 +22,17 @@ The `fuzz` script takes three optional parameters:
 
 And runs a primary fuzzer, coverage and `cores - 1` secondary fuzzers.
 
-The script uses the `env` file to read some `tcpsinger` arguments. See the 
+The script uses the `env` file to read some `tcpsigner` arguments. See the
 `Modifying run parameters` title on this doc.
 
-# Coverage build
+## Coverage build
+
 The `coverage-build` parameter is an unfortunate technicality. Coverage needs
 a copy of the source files, and we must put it somewhere. The default is `./.coverage-build`.
 You can mostly ignore this folder. But whatever you specify as the coverage build folder
 **will get deleted** by the script, so be careful.
 
-# Generating testcases
+## Generating testcases
 
 You can run `./generate-testcases` to generate the testcases,
 make them unique and minimize them. This is recommended but takes
@@ -45,7 +46,7 @@ If you want to run only some steps of the process, you can run the
 helper scripts `extract-inputs-from-tests`, `unique-testcases` and 
 `min-testcases` one by one.
 
-# Creating new entries in the dictionary
+## Creating new entries in the dictionary
 
 The `./fuzz` script will read from the dictionary at `./dict/`. To easily add 
 entries to the dictionary, you can use the helper python script `hex_to_dict.py` like this:
@@ -54,6 +55,7 @@ entries to the dictionary, you can use the helper python script `hex_to_dict.py`
 python3 hex_to_dict.py <hex data, no 0x prefix> <name>
 ```
 
-# Modifying run parameters
+## Modifying run parameters
+
 The `~/repo/firmware/fuzz/env` file specifies the difficulty, network and checkpoint to be
 used both by the fuzzer and the coverage script.
