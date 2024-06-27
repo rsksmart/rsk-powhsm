@@ -423,8 +423,8 @@ class HSM2Protocol:
         if (
             "udValue" not in request
             or type(request["udValue"]) != str
-            or not(is_hex_string_of_length(request["udValue"],
-                                           self.SIGNER_HBT_UD_VALUE_SIZE))
+            or not is_hex_string_of_length(request["udValue"],
+                                           self.SIGNER_HBT_UD_VALUE_SIZE)
         ):
             self.logger.info(
                 "User defined value field not present or not a "
@@ -442,7 +442,7 @@ class HSM2Protocol:
         if (
             "udValue" not in request
             or type(request["udValue"]) != str
-            or not(is_hex_string_of_length(request["udValue"], self.UI_HBT_UD_VALUE_SIZE))
+            or not is_hex_string_of_length(request["udValue"], self.UI_HBT_UD_VALUE_SIZE)
         ):
             self.logger.info(
                 "User defined value field not present or not a "

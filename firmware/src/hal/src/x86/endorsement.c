@@ -55,7 +55,7 @@ static size_t tweak_sign(const unsigned char* key,
 
     // Tweak private key
     memmove(tweaked_key, key, sizeof(tweaked_key));
-    if (!secp256k1_ec_privkey_tweak_add(sp_ctx, tweaked_key, tweak))
+    if (!secp256k1_ec_seckey_tweak_add(sp_ctx, tweaked_key, tweak))
         return 0;
 
     // Sign and serialize as DER

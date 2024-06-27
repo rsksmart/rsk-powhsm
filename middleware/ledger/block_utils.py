@@ -21,7 +21,7 @@
 # SOFTWARE.
 
 import rlp
-import sha3
+from comm.utils import keccak_256
 
 
 # Compute the given block's top-level RLP encoding list payload length in bytes,
@@ -71,10 +71,10 @@ def remove_mm_fields_if_present(raw_block_hex, leave_btcblock=True, hex=True):
 # Given a raw block hex, compute its block hash
 # and return it as a hex string
 def get_block_hash(raw_block_hex):
-    return sha3.keccak_256(remove_mm_fields_if_present(
+    return keccak_256(remove_mm_fields_if_present(
         raw_block_hex,
         leave_btcblock=True,
-        hex=False)).digest().hex()
+        hex=False)).hex()
 
 
 # Given a raw block hex,
