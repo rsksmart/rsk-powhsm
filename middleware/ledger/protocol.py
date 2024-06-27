@@ -481,7 +481,7 @@ class HSM2ProtocolLedger(HSM2Protocol):
 
             heartbeat = self.hsm2dongle.get_signer_heartbeat(request["udValue"])
             # Treat any user-errors as a device (unexpected) error
-            if not(heartbeat[0]):
+            if not heartbeat[0]:
                 return (self.ERROR_CODE_DEVICE,)
             heartbeat = heartbeat[1]
 
@@ -512,8 +512,8 @@ class HSM2ProtocolLedger(HSM2Protocol):
 
             # Can only gather the UI heartbeat from either the Signer or
             # the UI heartbeat mode itself
-            if not(initial_mode in [self.hsm2dongle.MODE.SIGNER,
-                                    self.hsm2dongle.MODE.UI_HEARTBEAT]):
+            if initial_mode not in [self.hsm2dongle.MODE.SIGNER,
+                                    self.hsm2dongle.MODE.UI_HEARTBEAT]:
                 self.logger.error("Dongle not in Signer or UI heartbeat mode when"
                                   " trying to gather UI heartbeat")
                 return (self.ERROR_CODE_DEVICE,)
@@ -555,7 +555,7 @@ class HSM2ProtocolLedger(HSM2Protocol):
                     return (self.ERROR_CODE_DEVICE,)
 
             # Treat any user-errors as a device (unexpected) error
-            if not(heartbeat[0]):
+            if not heartbeat[0]:
                 return (self.ERROR_CODE_DEVICE,)
             heartbeat = heartbeat[1]
 

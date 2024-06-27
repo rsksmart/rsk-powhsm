@@ -20,13 +20,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import sha3
 import rlp
 from rsk_utils import rlp_decode_list_of_expected_length
 from comm.utils import bitwise_and_bytes
 from rsk_netparams import NetworkUpgrades
 import comm.pow as pow
 import comm.bitcoin
+from comm.utils import keccak_256
 import logging
 
 
@@ -171,7 +171,7 @@ class RskBlockHeader:
         # and the merged mining coinbase transaction.
         # The fields to leave out are exactly the last two, regardless
         # of whether a UMM hash is present or not.
-        self.__hash = sha3.keccak_256(rlp.encode(rlp_items[:-2])).digest().hex()
+        self.__hash = keccak_256(rlp.encode(rlp_items[:-2])).hex()
 
         # *** Compute the hash for merge mining and its comparison mask ***
         # *** IMPORTANT: this only applies if the merged mining fields are present ***
@@ -189,8 +189,8 @@ class RskBlockHeader:
             # The rest remains.
 
             # (1) Compute the hash leaving out merge mining fields.
-            self.__hash_for_merge_mining = sha3.keccak_256(rlp.encode(
-                rlp_items[:-3])).digest()
+            self.__hash_for_merge_mining = keccak_256(rlp.encode(
+                rlp_items[:-3]))
 
             # (2) Only the first 20 bytes of the original hash are to be taken
             # into account. Also, last 4 bytes must be the current block number
@@ -211,9 +211,9 @@ class RskBlockHeader:
             # and trim to 20 bytes
             if self.is_umm:
                 self.__hash_for_merge_mining = (
-                    sha3.keccak_256(
+                    keccak_256(
                         self.__hash_for_merge_mining[:self.__HASH_FOR_MM_PREFIX_SIZE] +
-                        bytes.fromhex(self.__umm_root)).digest()
+                        bytes.fromhex(self.__umm_root))
                     [:self.__HASH_FOR_MM_PREFIX_SIZE] +
                     self.__hash_for_merge_mining[self.__HASH_FOR_MM_PREFIX_SIZE:])
 

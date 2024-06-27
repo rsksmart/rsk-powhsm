@@ -33,6 +33,7 @@ class EnglishMnemonic(Mnemonic):
 
     def __init__(self):
         self.wordlist = _ENGLISH_WORDLIST
+        super().__init__()
 
 
 _ENGLISH_WORDLIST = [

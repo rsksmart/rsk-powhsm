@@ -32,7 +32,7 @@ import json
 import os
 import re
 import rlp
-import sha3
+from comm.utils import keccak_256
 
 
 @click.command()
@@ -50,7 +50,7 @@ def blockdump(split_dir):
             for j, block_rlp in enumerate(blocks):
                 block = rlp.decode(bytes.fromhex(block_rlp))
 
-                block_hash = sha3.keccak_256(rlp.encode(block[:-2])).digest().hex()
+                block_hash = keccak_256(rlp.encode(block[:-2])).hex()
                 print(f"Block #{j} hash = {block_hash}")
 
                 if j == len(blocks) - 1:

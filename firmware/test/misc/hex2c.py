@@ -38,9 +38,9 @@ if __name__ == "__main__":
 
     try:
         cbs = list(chunks(bytes.fromhex(sys.argv[1]), BYTES_PER_LINE))
-        lines = map(lambda l: "".join(map(lambda b: "\\x" + hex(b)[2:].rjust(2, "0"), l)),
-                    cbs)
-        lines = map(lambda l: f'"{l}"', lines)
+        lines = map(lambda line: "".join(map(lambda b: "\\x" + hex(b)[2:].rjust(2, "0"),
+                                             line)), cbs)
+        lines = map(lambda line: f'"{line}"', lines)
         print("\n".join(lines))
         # print("".join(cv))
     except Exception as e:

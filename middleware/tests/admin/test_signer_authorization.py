@@ -23,7 +23,7 @@
 from unittest import TestCase
 from unittest.mock import patch, call, mock_open
 from admin.signer_authorization import SignerAuthorization, SignerVersion
-import sha3
+from comm.utils import keccak_256
 import json
 
 import logging
@@ -262,9 +262,9 @@ class TestSignerVersion(TestCase):
         sv = SignerVersion("aa" + "BB"*30 + "cc", "0x2d")
 
         self.assertEqual(
-            sha3.keccak_256(b"\x19Ethereum Signed Message:\n95RSK_powHSM_"
-                            b"signer_aabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
-                            b"bbbbbbbbbbcc_iteration_45").digest(),
+            keccak_256(b"\x19Ethereum Signed Message:\n95RSK_powHSM_"
+                       b"signer_aabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                       b"bbbbbbbbbbcc_iteration_45"),
             sv.get_authorization_digest())
 
     def test_to_dict(self):

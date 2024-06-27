@@ -27,8 +27,8 @@ import rsk_block as rsk_block
 import rlp
 import sys
 import hashlib
-import sha3
 import json
+from comm.utils import keccak_256
 
 sys.path.append("../../../../middleware")
 
@@ -70,8 +70,7 @@ def mine(block_hex, np, mm_mp_nodes, brothers_difficulties):
         for brother_difficulty in brothers_difficulties:
             brother = new_block[:]
             # Change the uncles hash to make the block different
-            brother[1] = sha3.keccak_256(
-                bytes([brother_index])).digest()
+            brother[1] = keccak_256(bytes([brother_index]))
             # Specified difficulty
             brother[7] = to_bytes(brother_difficulty)
             brothers.append(

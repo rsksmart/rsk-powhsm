@@ -21,6 +21,7 @@
 # SOFTWARE.
 
 import re
+from Crypto.Hash import keccak
 
 
 def bitwise_and_bytes(bs1, bs2):
@@ -141,3 +142,8 @@ def slice_from_str(s):
     stop = None if gs[1] == "" else int(gs[1])
 
     return slice(start, stop, 1)
+
+
+# One round Keccak-256
+def keccak_256(bs):
+    return keccak.new(digest_bits=256).update(bs).digest()

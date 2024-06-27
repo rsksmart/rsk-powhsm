@@ -22,8 +22,7 @@
 
 import json
 import secp256k1 as ec
-import sha3
-from .utils import is_hex_string_of_length, hex_or_decimal_string_to_int
+from .utils import is_hex_string_of_length, hex_or_decimal_string_to_int, keccak_256
 from .ledger_utils import encode_eth_message
 
 
@@ -101,7 +100,7 @@ class SignerAuthorization:
 
 class SignerVersion:
     def __init__(self, hash, iteration):
-        if not(is_hex_string_of_length(hash, 32)):
+        if not is_hex_string_of_length(hash, 32):
             raise ValueError("Hash must be a 32-byte hex string")
 
         if type(iteration) == str:
@@ -129,7 +128,7 @@ class SignerVersion:
         return encode_eth_message(self.msg)
 
     def get_authorization_digest(self):
-        return sha3.keccak_256(self.get_authorization_msg()).digest()
+        return keccak_256(self.get_authorization_msg())
 
     def to_dict(self):
         return {
