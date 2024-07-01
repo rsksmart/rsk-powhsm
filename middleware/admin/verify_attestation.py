@@ -28,8 +28,8 @@ from .utils import is_nonempty_hex_string
 from .certificate import HSMCertificate
 
 
-UI_MESSAGE_HEADER = b"HSM:UI:5.0"
-SIGNER_MESSAGE_HEADER = b"HSM:SIGNER:5.0"
+UI_MESSAGE_HEADER = b"HSM:UI:5.1"
+SIGNER_MESSAGE_HEADER = b"HSM:SIGNER:5.1"
 UI_DERIVATION_PATH = "m/44'/0'/0'/0/0"
 UD_VALUE_LENGTH = 32
 PUBKEY_COMPRESSED_LENGTH = 33

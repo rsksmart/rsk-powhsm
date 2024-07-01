@@ -1,5 +1,19 @@
 # Changelog
 
+## [5.1.0] - 01/07/2024
+
+### Features/enhancements
+
+- Decoupled business and hardware layers in preparation for multiple platforms
+- Upgraded Python to version 3.12
+- Upgraded Python dependencies
+
+### Fixes
+
+- Removed unnecessary requirements file for middleware docker image
+- Fixed post-upgrade failing middleware docker image build
+- Incidentally bumped idna, pillow to address dependabot findings
+
 ## [5.0.0] - 09/04/2024
 
 ### Features/enhancements

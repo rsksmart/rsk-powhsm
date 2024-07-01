@@ -27,7 +27,7 @@ import hashlib
 
 
 class Heartbeat(TestCase):
-    EXPECTED_HEADER = "HSM:SIGNER:HB:5.0:"
+    EXPECTED_HEADER = "HSM:SIGNER:HB:5.1:"
     EHL = len(EXPECTED_HEADER)
 
     @classmethod
