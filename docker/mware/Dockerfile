@@ -11,7 +11,7 @@ RUN apt-get update && \
 # Python package prerequisites
 RUN apt-get install -y \
     libsecp256k1-dev=0.2.0-2 \
-    libudev-dev=252.22-1~deb12u1 \
+    libudev-dev=252.26-1~deb12u2 \
     libusb-1.0-0-dev=2:1.0.26-1 \
     libffi-dev=3.4.4-1 \
     libjpeg-dev=1:2.1.5-2
