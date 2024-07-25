@@ -91,7 +91,7 @@ static void app_exit(void) {
     _hsm_exit_requested = true;
 }
 
-static unsigned int hsm_process_apdu(volatile unsigned int rx) {
+static unsigned int hsm_process_command(volatile unsigned int rx) {
     unsigned int tx = 0;
     uint8_t pubkey_length;
 
@@ -284,10 +284,6 @@ static unsigned int hsm_process_exception(unsigned short code,
     return tx;
 }
 
-static bool hsm_exit_requested() {
-    return _hsm_exit_requested;
-}
-
 void hsm_init() {
     // Initialize current operation
     // (0 = no operation being executed)
@@ -300,34 +296,26 @@ void hsm_init() {
     bc_init_state();
 }
 
-void hsm_main_loop() {
-    volatile unsigned int rx = 0;
-    volatile unsigned int tx = 0;
+unsigned int hsm_process_apdu(unsigned int rx) {
+    unsigned int tx = 0;
 
-    // DESIGN NOTE: the bootloader ignores the way APDU are fetched. The only
-    // goal is to retrieve APDU.
-    // When APDU are to be fetched from multiple IOs, like NFC+USB+BLE, make
-    // sure the io_event is called with a
-    // switch event, before the apdu is replied to the bootloader. This avoid
-    // APDU injection faults.
-    while (!hsm_exit_requested()) {
-        BEGIN_TRY {
-            TRY {
-                // ensure no race in catch_other if io_exchange throws
-                // an error
-                rx = tx;
-                tx = 0;
-                rx = communication_io_exchange(rx);
-
-                tx = hsm_process_apdu(rx);
-                THROW(0x9000);
-            }
-            CATCH_OTHER(e) {
-                tx = hsm_process_exception(e, tx);
-            }
-            FINALLY {
-            }
+    BEGIN_TRY {
+        TRY {
+            tx = hsm_process_command(rx);
+            THROW(0x9000);
         }
-        END_TRY;
+        CATCH_OTHER(e) {
+            tx = hsm_process_exception(e, tx);
+        }
+        FINALLY {
+        }
     }
+    END_TRY;
+
+    return tx;
 }
+
+bool hsm_exit_requested() {
+    return _hsm_exit_requested;
+}
+

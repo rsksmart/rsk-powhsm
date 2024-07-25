@@ -42,6 +42,7 @@
 #include "hal/endorsement.h"
 #include "hal/log.h"
 
+#include "hsmsim_io.h"
 #include "hsmsim_nu.h"
 #include "hsmsim_admin.h"
 
@@ -278,6 +279,15 @@ static void set_signal_handlers() {
     signal(SIGABRT, finalise);
 }
 
+static void signer_main_loop() {
+    unsigned int rtx = 0;
+
+    while (!hsm_exit_requested()) {
+        rtx = hsmsim_io_exchange(rtx);
+        rtx = hsm_process_apdu(rtx);
+    }
+}
+
 // Main function
 void main(int argc, char **argv) {
     set_signal_handlers();
@@ -400,6 +410,9 @@ void main(int argc, char **argv) {
     // Initialize admin
     hsmsim_admin_init();
 
+    // Initialize I/O
+    hsmsim_io_init();
+
     // Initialize hsm
     hsm_init();
 
@@ -414,12 +427,12 @@ void main(int argc, char **argv) {
                 exit(1);
             }
 
-            communication_set_input_file(inputfd);
+            hsmsim_io_set_input_file(inputfd);
         } else {
             LOG("Starting TCP server on %s:%i\n",
                 arguments.bind,
                 arguments.port);
-            communication_set_and_start_server(arguments.port, arguments.bind);
+            hsmsim_io_set_and_start_server(arguments.port, arguments.bind);
         }
 
         FILE *replicafd;
@@ -430,11 +443,11 @@ void main(int argc, char **argv) {
                     arguments.replicafile);
                 exit(1);
             };
-            communication_set_replica_file(replicafd);
+            hsmsim_io_set_replica_file(replicafd);
         };
 
         // Set the admin module callback for the communication module
-        communication_set_external_module_process(&admin_process);
+        hsmsim_io_set_external_module_process(&admin_process);
 
         // Run the Signer main loop and the
         // UI heartbeat main loop in an alternate
@@ -442,16 +455,16 @@ void main(int argc, char **argv) {
         while (true) {
             LOG("Running signer main loop...\n");
             hsm_init();
-            hsm_main_loop();
+            signer_main_loop();
             // Send an empty reply so that the client
             // doesn't hang waiting
-            communication_reply();
+            hsmsim_io_reply();
 
             LOG("Running UI heartbeat main loop...\n");
             ui_heartbeat_init(&ui_heartbeat_ctx);
             ui_heartbeat_main(&ui_heartbeat_ctx);
             // Ditto
-            communication_reply();
+            hsmsim_io_reply();
         }
 
         if (replicafd != NULL) {

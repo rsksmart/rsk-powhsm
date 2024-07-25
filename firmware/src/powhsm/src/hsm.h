@@ -29,12 +29,8 @@
 
 void hsm_init();
 
-void hsm_main_loop();
+unsigned int hsm_process_apdu(unsigned int rx);
 
-// unsigned int hsm_process_apdu(volatile unsigned int rx);
-
-// unsigned int hsm_process_exception(unsigned short code, unsigned int tx);
-
-// bool hsm_exit_requested();
+bool hsm_exit_requested();
 
 #endif // __HSM_H

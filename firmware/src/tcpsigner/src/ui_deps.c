@@ -31,6 +31,7 @@
 #include "hal/exceptions.h"
 #include "hal/log.h"
 
+#include "hsmsim_io.h"
 #include "ui_deps.h"
 #include "ui_err.h"
 #include "sha256.h"
@@ -68,5 +69,5 @@ unsigned int os_global_pin_retries() {
 }
 
 unsigned short io_exchange(unsigned char channel_and_flags, unsigned short tx) {
-    return communication_io_exchange(tx);
+    return hsmsim_io_exchange(tx);
 }
