@@ -210,6 +210,34 @@ unsigned char io_event(unsigned char channel) {
     return 1;
 }
 
+static bool do_io_exchange(volatile unsigned int *rtx) {
+    BEGIN_TRY {
+        TRY {
+            *rtx = io_exchange(CHANNEL_APDU, *rtx);
+            return true;
+        }
+        CATCH_OTHER(e) {
+            *rtx = 0;
+            G_io_apdu_buffer[(*rtx)++] = 0x68;
+            G_io_apdu_buffer[(*rtx)++] = e & 0xFF;
+            return false;
+        }
+        FINALLY {
+        }
+    }
+    END_TRY;
+}
+
+static void main_loop() {
+    volatile unsigned int rtx = 0;
+
+    while (!hsm_exit_requested()) {
+        if (!do_io_exchange(&rtx))
+            continue;
+        rtx = hsm_process_apdu(rtx);
+    }
+}
+
 __attribute__((section(".boot"))) int main(int argc, char **argv) {
     __asm volatile("cpsie i");
 
@@ -248,8 +276,8 @@ __attribute__((section(".boot"))) int main(int argc, char **argv) {
             // HSM context initialization
             hsm_init();
 
-            // HSM main loop
-            hsm_main_loop();
+            // Main loop
+            main_loop();
 
             // HAL modules finalisation
             // Nothing for now
