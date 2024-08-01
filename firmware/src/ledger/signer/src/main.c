@@ -49,10 +49,8 @@
 
 unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
 
-static unsigned int current_text_pos; // parsing cursor in the text to display
-
 // UI currently displayed
-enum UI_STATE { UI_IDLE, UI_TEXT, UI_APPROVAL, UI_SCREENSAVER };
+enum UI_STATE { UI_IDLE, UI_SCREENSAVER };
 enum UI_STATE uiState;
 ux_state_t ux;
 
@@ -61,14 +59,6 @@ ux_state_t ux;
 static unsigned int G_idle_time_ms;
 
 static void ui_idle(void);
-static unsigned char display_text_part(void);
-
-#define MAX_CHARS_PER_LINE 19
-#define DEFAULT_FONT BAGL_FONT_OPEN_SANS_LIGHT_16px | BAGL_FONT_ALIGNMENT_LEFT
-#define TEXT_HEIGHT 15
-#define TEXT_SPACE 4
-
-static char lineBuffer[MAX_CHARS_PER_LINE + 1];
 
 // clang-format off
 static const bagl_element_t bagl_ui_idle_nanos[] = {
@@ -160,26 +150,6 @@ void io_seproxyhal_display(const bagl_element_t *element) {
     io_seproxyhal_display_default((bagl_element_t *)element);
 }
 
-// Pick the text elements to display
-static unsigned char display_text_part() {
-    unsigned int i;
-    WIDE char *text = (char *)G_io_apdu_buffer + 5;
-    if (text[current_text_pos] == '\0') {
-        return 0;
-    }
-    i = 0;
-    while ((text[current_text_pos] != 0) && (text[current_text_pos] != '\n') &&
-           (i < MAX_CHARS_PER_LINE)) {
-        lineBuffer[i++] = text[current_text_pos];
-        current_text_pos++;
-    }
-    if (text[current_text_pos] == '\n') {
-        current_text_pos++;
-    }
-    lineBuffer[i] = '\0';
-    return 1;
-}
-
 static void ui_idle(void) {
     uiState = UI_IDLE;
     UX_DISPLAY(bagl_ui_idle_nanos, NULL);
@@ -236,15 +206,7 @@ unsigned char io_event(unsigned char channel) {
         break;
 
     case SEPROXYHAL_TAG_DISPLAY_PROCESSED_EVENT:
-        if ((uiState == UI_TEXT) &&
-            (os_seph_features() &
-             SEPROXYHAL_TAG_SESSION_START_EVENT_FEATURE_SCREEN_BIG)) {
-            if (display_text_part()) {
-                UX_REDISPLAY();
-            }
-        } else {
-            UX_DISPLAYED_EVENT();
-        }
+        UX_DISPLAYED_EVENT();
         break;
     case SEPROXYHAL_TAG_TICKER_EVENT:
         UX_TICKER_EVENT(G_io_seproxyhal_spi_buffer, {
