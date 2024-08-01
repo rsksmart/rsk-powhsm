@@ -52,9 +52,13 @@ unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
 static unsigned int current_text_pos; // parsing cursor in the text to display
 
 // UI currently displayed
-enum UI_STATE { UI_IDLE, UI_TEXT, UI_APPROVAL };
+enum UI_STATE { UI_IDLE, UI_TEXT, UI_APPROVAL, UI_SCREENSAVER };
 enum UI_STATE uiState;
 ux_state_t ux;
+
+#define SCREEN_SAVER_TIMEOUT_MS 30000
+// Time spent in idle state. This timer is reset when a button is pressed.
+static unsigned int G_idle_time_ms;
 
 static void ui_idle(void);
 static unsigned char display_text_part(void);
@@ -91,6 +95,20 @@ static const bagl_element_t bagl_ui_idle_nanos[] = {
         NULL,
     }
 };
+
+static const bagl_element_t bagl_ui_screensaver_nanos[] = {
+    {
+        {BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000,
+         0x000000, 0, 0},
+        NULL,
+        0,
+        0,
+        0,
+        NULL,
+        NULL,
+        NULL,
+    },
+};
 // clang-format on
 
 static unsigned int bagl_ui_idle_nanos_button(
@@ -103,6 +121,12 @@ static unsigned int bagl_ui_idle_nanos_button(
         break;
     }
 
+    return 0;
+}
+
+static unsigned int bagl_ui_screensaver_nanos_button(
+    unsigned int button_mask, unsigned int button_mask_counter) {
+    // no-op - button presses are handled directly in the event loop
     return 0;
 }
 
@@ -161,6 +185,41 @@ static void ui_idle(void) {
     UX_DISPLAY(bagl_ui_idle_nanos, NULL);
 }
 
+static void ui_screensaver(void) {
+    uiState = UI_SCREENSAVER;
+    UX_DISPLAY(bagl_ui_screensaver_nanos, NULL);
+}
+
+static void handle_button_press(void) {
+    G_idle_time_ms = 0;
+}
+
+static void handle_ticker_event(void) {
+    unsigned int last_idle_time_ms = G_idle_time_ms;
+    G_idle_time_ms += 100;
+    // Handle overflow
+    if (G_idle_time_ms < last_idle_time_ms) {
+        G_idle_time_ms = last_idle_time_ms;
+    }
+}
+
+static void handle_ui_state(void) {
+    switch (uiState) {
+    case UI_IDLE:
+        if (G_idle_time_ms >= SCREEN_SAVER_TIMEOUT_MS) {
+            ui_screensaver();
+        }
+        break;
+    case UI_SCREENSAVER:
+        if (G_idle_time_ms < SCREEN_SAVER_TIMEOUT_MS) {
+            ui_idle();
+        }
+        break;
+    default:
+        break;
+    }
+}
+
 unsigned char io_event(unsigned char channel) {
     // nothing done with the event, throw an error on the transport layer if
     // needed
@@ -173,6 +232,7 @@ unsigned char io_event(unsigned char channel) {
 
     case SEPROXYHAL_TAG_BUTTON_PUSH_EVENT: // for Nano S
         UX_BUTTON_PUSH_EVENT(G_io_seproxyhal_spi_buffer);
+        handle_button_press();
         break;
 
     case SEPROXYHAL_TAG_DISPLAY_PROCESSED_EVENT:
@@ -191,8 +251,9 @@ unsigned char io_event(unsigned char channel) {
             // defaulty retrig very soon (will be overriden during
             // stepper_prepro)
             UX_CALLBACK_SET_INTERVAL(500);
-            UX_REDISPLAY();
+            handle_ui_state();
         });
+        handle_ticker_event();
         break;
 
     // unknown events are acknowledged
@@ -263,6 +324,7 @@ __attribute__((section(".boot"))) int main(int argc, char **argv) {
             USB_power(1);
 
             ui_idle();
+            G_idle_time_ms = 0;
 
             // next timer callback in 500 ms
             UX_CALLBACK_SET_INTERVAL(500);
