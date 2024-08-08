@@ -49,22 +49,16 @@
 
 unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
 
-static unsigned int current_text_pos; // parsing cursor in the text to display
-
 // UI currently displayed
-enum UI_STATE { UI_IDLE, UI_TEXT, UI_APPROVAL };
+enum UI_STATE { UI_IDLE, UI_SCREENSAVER };
 enum UI_STATE uiState;
 ux_state_t ux;
 
+#define SCREEN_SAVER_TIMEOUT_MS 30000
+// Time spent in idle state. This timer is reset when a button is pressed.
+static unsigned int G_idle_time_ms;
+
 static void ui_idle(void);
-static unsigned char display_text_part(void);
-
-#define MAX_CHARS_PER_LINE 19
-#define DEFAULT_FONT BAGL_FONT_OPEN_SANS_LIGHT_16px | BAGL_FONT_ALIGNMENT_LEFT
-#define TEXT_HEIGHT 15
-#define TEXT_SPACE 4
-
-static char lineBuffer[MAX_CHARS_PER_LINE + 1];
 
 // clang-format off
 static const bagl_element_t bagl_ui_idle_nanos[] = {
@@ -91,6 +85,20 @@ static const bagl_element_t bagl_ui_idle_nanos[] = {
         NULL,
     }
 };
+
+static const bagl_element_t bagl_ui_screensaver_nanos[] = {
+    {
+        {BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000,
+         0x000000, 0, 0},
+        NULL,
+        0,
+        0,
+        0,
+        NULL,
+        NULL,
+        NULL,
+    },
+};
 // clang-format on
 
 static unsigned int bagl_ui_idle_nanos_button(
@@ -103,6 +111,12 @@ static unsigned int bagl_ui_idle_nanos_button(
         break;
     }
 
+    return 0;
+}
+
+static unsigned int bagl_ui_screensaver_nanos_button(
+    unsigned int button_mask, unsigned int button_mask_counter) {
+    // no-op - button presses are handled directly in the event loop
     return 0;
 }
 
@@ -136,29 +150,44 @@ void io_seproxyhal_display(const bagl_element_t *element) {
     io_seproxyhal_display_default((bagl_element_t *)element);
 }
 
-// Pick the text elements to display
-static unsigned char display_text_part() {
-    unsigned int i;
-    WIDE char *text = (char *)G_io_apdu_buffer + 5;
-    if (text[current_text_pos] == '\0') {
-        return 0;
-    }
-    i = 0;
-    while ((text[current_text_pos] != 0) && (text[current_text_pos] != '\n') &&
-           (i < MAX_CHARS_PER_LINE)) {
-        lineBuffer[i++] = text[current_text_pos];
-        current_text_pos++;
-    }
-    if (text[current_text_pos] == '\n') {
-        current_text_pos++;
-    }
-    lineBuffer[i] = '\0';
-    return 1;
-}
-
 static void ui_idle(void) {
     uiState = UI_IDLE;
     UX_DISPLAY(bagl_ui_idle_nanos, NULL);
+}
+
+static void ui_screensaver(void) {
+    uiState = UI_SCREENSAVER;
+    UX_DISPLAY(bagl_ui_screensaver_nanos, NULL);
+}
+
+static void handle_button_press(void) {
+    G_idle_time_ms = 0;
+}
+
+static void handle_ticker_event(void) {
+    unsigned int last_idle_time_ms = G_idle_time_ms;
+    G_idle_time_ms += 100;
+    // Handle overflow
+    if (G_idle_time_ms < last_idle_time_ms) {
+        G_idle_time_ms = last_idle_time_ms;
+    }
+}
+
+static void handle_ui_state(void) {
+    switch (uiState) {
+    case UI_IDLE:
+        if (G_idle_time_ms >= SCREEN_SAVER_TIMEOUT_MS) {
+            ui_screensaver();
+        }
+        break;
+    case UI_SCREENSAVER:
+        if (G_idle_time_ms < SCREEN_SAVER_TIMEOUT_MS) {
+            ui_idle();
+        }
+        break;
+    default:
+        break;
+    }
 }
 
 unsigned char io_event(unsigned char channel) {
@@ -173,26 +202,20 @@ unsigned char io_event(unsigned char channel) {
 
     case SEPROXYHAL_TAG_BUTTON_PUSH_EVENT: // for Nano S
         UX_BUTTON_PUSH_EVENT(G_io_seproxyhal_spi_buffer);
+        handle_button_press();
         break;
 
     case SEPROXYHAL_TAG_DISPLAY_PROCESSED_EVENT:
-        if ((uiState == UI_TEXT) &&
-            (os_seph_features() &
-             SEPROXYHAL_TAG_SESSION_START_EVENT_FEATURE_SCREEN_BIG)) {
-            if (display_text_part()) {
-                UX_REDISPLAY();
-            }
-        } else {
-            UX_DISPLAYED_EVENT();
-        }
+        UX_DISPLAYED_EVENT();
         break;
     case SEPROXYHAL_TAG_TICKER_EVENT:
         UX_TICKER_EVENT(G_io_seproxyhal_spi_buffer, {
             // defaulty retrig very soon (will be overriden during
             // stepper_prepro)
             UX_CALLBACK_SET_INTERVAL(500);
-            UX_REDISPLAY();
+            handle_ui_state();
         });
+        handle_ticker_event();
         break;
 
     // unknown events are acknowledged
@@ -263,6 +286,7 @@ __attribute__((section(".boot"))) int main(int argc, char **argv) {
             USB_power(1);
 
             ui_idle();
+            G_idle_time_ms = 0;
 
             // next timer callback in 500 ms
             UX_CALLBACK_SET_INTERVAL(500);
