@@ -50,7 +50,7 @@ APPFLAGS = 0x00
 PROG = "app"
 
 # Build configuration
-APP_SOURCE_PATH += src ../../powhsm/src ../../common/src ../../hal/src/ledger
+APP_SOURCE_PATH += src ../../powhsm/src ../../common/src ../../hal/ledger/src
 SDK_SOURCE_PATH += lib_stusb lib_stusb_impl
 
 DEFINES += APPVERSION=\"$(APPVERSION)\"
