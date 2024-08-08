@@ -23,7 +23,7 @@
 SRCPATH = ./src
 POWHSMSRCPATH = ../powhsm/src
 COMMONPATH = ../common/src
-HALSRCPATH = ../hal/src/x86
+HALSRCPATH = ../hal/x86/src
 HALINCPATH = ../hal/include
 HALPATH = $(HALINCPATH):$(HALSRCPATH)
 VPATH = $(SRCPATH):$(POWHSMSRCPATH):$(COMMONPATH):$(HALPATH)

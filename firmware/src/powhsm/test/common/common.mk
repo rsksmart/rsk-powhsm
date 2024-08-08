@@ -1,7 +1,7 @@
 TESTCOMMONDIR = ../common
 SRCDIR = ../../src
 HALINCDIR = ../../../hal/include
-HALSRCDIR = ../../../hal/src/x86
+HALSRCDIR = ../../../hal/x86/src
 COMMONDIR = ../../../common/src
 CFLAGS  = -iquote $(SRCDIR) -iquote $(HALINCDIR) -iquote $(HALSRCDIR) 
 CFLAGS += -iquote $(TESTCOMMONDIR) -iquote $(COMMONDIR)
