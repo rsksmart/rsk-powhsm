@@ -55,6 +55,9 @@ enum UI_STATE uiState;
 ux_state_t ux;
 
 #define SCREEN_SAVER_TIMEOUT_MS 30000
+// The interval between two subsequent ticker events in milliseconds. This is
+// assumed to be 100ms according to the nanos-secure-sdk documentation.
+#define TICKER_INTERVAL_MS 100
 // Time spent in idle state. This timer is reset when a button is pressed.
 static unsigned int G_idle_time_ms;
 
@@ -164,7 +167,7 @@ static void handle_button_press(void) {
 
 static void handle_ticker_event(void) {
     unsigned int last_idle_time_ms = G_idle_time_ms;
-    G_idle_time_ms += 100;
+    G_idle_time_ms += TICKER_INTERVAL_MS;
     // Handle overflow
     if (G_idle_time_ms < last_idle_time_ms) {
         G_idle_time_ms = last_idle_time_ms;
