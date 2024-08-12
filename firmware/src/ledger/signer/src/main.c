@@ -58,8 +58,6 @@ ux_state_t ux;
 // Time spent in idle state. This timer is reset when a button is pressed.
 static unsigned int G_idle_time_ms;
 
-static void ui_idle(void);
-
 // clang-format off
 static const bagl_element_t bagl_ui_idle_nanos[] = {
     {
