@@ -50,7 +50,7 @@
 unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
 
 // UI currently displayed
-enum UI_STATE { UI_IDLE, UI_SCREENSAVER };
+enum UI_STATE { UI_INFO, UI_SCREENSAVER };
 enum UI_STATE uiState;
 ux_state_t ux;
 
@@ -62,7 +62,7 @@ ux_state_t ux;
 static unsigned int G_idle_time_ms;
 
 // clang-format off
-static const bagl_element_t bagl_ui_idle_nanos[] = {
+static const bagl_element_t bagl_ui_info_nanos[] = {
     {
         {BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000,
          0xFFFFFF, 0, 0},
@@ -102,7 +102,7 @@ static const bagl_element_t bagl_ui_screensaver_nanos[] = {
 };
 // clang-format on
 
-static unsigned int bagl_ui_idle_nanos_button(
+static unsigned int bagl_ui_info_nanos_button(
     unsigned int button_mask, unsigned int button_mask_counter) {
     switch (button_mask) {
     case BUTTON_EVT_RELEASED | BUTTON_LEFT:
@@ -151,9 +151,9 @@ void io_seproxyhal_display(const bagl_element_t *element) {
     io_seproxyhal_display_default((bagl_element_t *)element);
 }
 
-static void ui_idle(void) {
-    uiState = UI_IDLE;
-    UX_DISPLAY(bagl_ui_idle_nanos, NULL);
+static void ui_info(void) {
+    uiState = UI_INFO;
+    UX_DISPLAY(bagl_ui_info_nanos, NULL);
 }
 
 static void ui_screensaver(void) {
@@ -176,14 +176,14 @@ static void handle_ticker_event(void) {
 
 static void handle_ui_state(void) {
     switch (uiState) {
-    case UI_IDLE:
+    case UI_INFO:
         if (G_idle_time_ms >= SCREEN_SAVER_TIMEOUT_MS) {
             ui_screensaver();
         }
         break;
     case UI_SCREENSAVER:
         if (G_idle_time_ms < SCREEN_SAVER_TIMEOUT_MS) {
-            ui_idle();
+            ui_info();
         }
         break;
     default:
@@ -286,7 +286,7 @@ __attribute__((section(".boot"))) int main(int argc, char **argv) {
             USB_power(0);
             USB_power(1);
 
-            ui_idle();
+            ui_info();
             G_idle_time_ms = 0;
 
             // next timer callback in 500 ms
