@@ -22,43 +22,47 @@
  * IN THE SOFTWARE.
  */
 
-#include <stddef.h>
-#include "os_io_seproxyhal.h"
-#include "signer_ux.h"
+#ifndef __SIGNER_MOCK_H
+#define __SIGNER_MOCK_H
 
-// clang-format off
-static const bagl_element_t bagl_ui_info_nanos[] = {
-    {
-        {BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000,
-         0xFFFFFF, 0, 0},
-        NULL,
-        0,
-        0,
-        0,
-        NULL,
-        NULL,
-        NULL,
-    },
-    {
-        {BAGL_LABELINE, 0x02, 0, 12, 128, 11, 0, 0, 0, 0xFFFFFF, 0x000000,
-         BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
-        "Signer running...",
-        0,
-        0,
-        0,
-        NULL,
-        NULL,
-        NULL,
-    }
-};
-// clang-format on
+// Nano S SDK constants used by the signer ux components
+#define BAGL_FILL 1
+#define BAGL_RECTANGLE 3
+#define BAGL_LABELINE 7
+#define BAGL_FONT_OPEN_SANS_REGULAR_11px 10
+#define BAGL_FONT_ALIGNMENT_CENTER 0x8000
 
-static unsigned int bagl_ui_info_nanos_button(
-    unsigned int button_mask, unsigned int button_mask_counter) {
-    // no-op - button presses are handled directly in the event loop
-    return 0;
-}
+// Nano S SDK types used by the signer ux components
+typedef struct {
+    unsigned int type;
+    unsigned char userid;
+    short x;
+    short y;
+    unsigned short width;
+    unsigned short height;
+    unsigned char stroke;
+    unsigned char radius;
+    unsigned char fill;
+    unsigned int fgcolor;
+    unsigned int bgcolor;
+    unsigned short font_id;
+    unsigned char icon_id;
+} mock_signer_ux_component_t;
 
-void signer_ux_info(void) {
-    UX_DISPLAY(bagl_ui_info_nanos, NULL);
-}
+typedef struct {
+    mock_signer_ux_component_t component;
+    const char *text;
+    unsigned char touch_area_brim;
+    int overfgcolor;
+    int overbgcolor;
+    const void *tap;
+    const void *out;
+    const void *over;
+} mock_signer_ux_element_t;
+
+typedef mock_signer_ux_element_t bagl_element_t;
+
+// Nano S SDK functions and macros used by the signer ux components
+void UX_DISPLAY(const mock_signer_ux_element_t *elements_array, void *callback);
+
+#endif // __SIGNER_MOCK_H

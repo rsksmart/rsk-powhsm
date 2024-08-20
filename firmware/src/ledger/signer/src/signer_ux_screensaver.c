@@ -22,6 +22,7 @@
  * IN THE SOFTWARE.
  */
 
+#include <stddef.h>
 #include "os_io_seproxyhal.h"
 #include "signer_ux.h"
 

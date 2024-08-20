@@ -20,10 +20,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-PROG = test.out
-OBJS = signer_ux.o test_signer_ux.o
+include ../mock/common.mk
 
-include ../common.mk
+PROG = test.out
+OBJS = signer_ux.o signer_ux_info.o signer_ux_screensaver.o test_signer_ux.o
 
 all: $(PROG)
 
@@ -33,8 +33,8 @@ $(PROG): $(OBJS)
 test_signer_ux.o: test_signer_ux.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
-signer_ux.o: $(SRCDIR)/signer_ux.c
-	$(CC) $(CFLAGS) -c -o $@ $^
+%.o: $(SRCDIR)/%.c
+	$(CC) $(CFLAGS) $(COVFLAGS) -c -o $@ $^
 
 .PHONY: clean test
 

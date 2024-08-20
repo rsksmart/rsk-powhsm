@@ -24,57 +24,88 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <string.h>
+#include "mock.h"
 #include "signer_ux.h"
 
-static unsigned int G_mock_idle_time_ms;
 static unsigned int G_mock_screensaver_timeout_ms;
-enum mock_ui_state { MOCK_UI_INFO, MOCK_UI_SCREENSAVER, MOCK_UI_INVALID };
-enum mock_ui_state G_mock_ui_state;
+
+// The arguments passed to the last call to UX_DISPLAY
+static mock_signer_ux_element_t *G_elements_array_arg;
+static void *G_callback_arg;
+// Mock implementation of UX_DISPLAY
+void UX_DISPLAY(const mock_signer_ux_element_t *elements_array,
+                void *callback) {
+    G_elements_array_arg = (mock_signer_ux_element_t *)elements_array;
+    G_callback_arg = callback;
+}
 
 // Helper functions
-static unsigned int max(unsigned int a, unsigned int b) {
-    return a > b ? a : b;
+// These functions simply assert that the last call to UX_DISPLAY was made
+// with the expected arguments
+static void assert_ui_info() {
+    assert(G_elements_array_arg != NULL);
+    assert(G_callback_arg == NULL);
+    assert(G_elements_array_arg[0].component.type == BAGL_RECTANGLE);
+    assert(G_elements_array_arg[0].component.width == 128);
+    assert(G_elements_array_arg[0].component.height == 32);
+    assert(G_elements_array_arg[0].component.fgcolor == 0x000000);
+    assert(G_elements_array_arg[0].component.bgcolor == 0xFFFFFF);
+
+    assert(G_elements_array_arg[1].component.type == BAGL_LABELINE);
+    assert(G_elements_array_arg[1].component.width == 128);
+    assert(G_elements_array_arg[1].component.height == 11);
+    assert(G_elements_array_arg[1].component.fgcolor == 0xFFFFFF);
+    assert(G_elements_array_arg[1].component.bgcolor == 0x000000);
+    assert(0 == strcmp(G_elements_array_arg[1].text, "Signer running..."));
+
+    assert(G_callback_arg == NULL);
 }
 
-// Mock function calls
-void signer_ux_info(void) {
-    G_mock_ui_state = MOCK_UI_INFO;
-}
+static void assert_ui_screensaver() {
+    assert(G_elements_array_arg != NULL);
+    assert(G_callback_arg == NULL);
+    assert(G_elements_array_arg[0].component.type == BAGL_RECTANGLE);
+    assert(G_elements_array_arg[0].component.width == 128);
+    assert(G_elements_array_arg[0].component.height == 32);
+    assert(G_elements_array_arg[0].component.stroke == 0x000000);
+    assert(G_elements_array_arg[0].component.fgcolor == 0x000000);
+    assert(G_elements_array_arg[0].component.bgcolor == 0x000000);
+    assert(G_elements_array_arg[0].text == NULL);
 
-void signer_ux_screensaver(void) {
-    G_mock_ui_state = MOCK_UI_SCREENSAVER;
+    assert(G_callback_arg == NULL);
 }
 
 // Test cases
 void setup() {
-    G_mock_idle_time_ms = 0;
     G_mock_screensaver_timeout_ms = 30000;
-    G_mock_ui_state = MOCK_UI_INVALID;
+    G_elements_array_arg = NULL;
+    G_callback_arg = NULL;
     signer_ux_init(G_mock_screensaver_timeout_ms);
 }
 
 void test_init() {
     printf("Test init...\n");
     setup();
-    assert(MOCK_UI_INFO == G_mock_ui_state);
+    assert_ui_info();
 }
 
 void test_ui_info_ui_screensaver_transition() {
     printf("Test transition from UI_INFO to UI_SCREENSAVER...\n");
     setup();
     signer_ux_handle_ticker_event(G_mock_screensaver_timeout_ms - 1);
-    assert(MOCK_UI_INFO == G_mock_ui_state);
+    assert_ui_info();
     signer_ux_handle_ticker_event(1);
-    assert(MOCK_UI_SCREENSAVER == G_mock_ui_state);
+    assert_ui_screensaver();
 }
 
 void test_ui_screensaver_ui_info_transition() {
     printf("Test transition from UI_SCREENSAVER to UI_INFO...\n");
     setup();
     signer_ux_handle_ticker_event(G_mock_screensaver_timeout_ms);
-    assert(MOCK_UI_SCREENSAVER == G_mock_ui_state);
+    assert_ui_screensaver();
     signer_ux_handle_button_press();
-    assert(MOCK_UI_INFO == G_mock_ui_state);
+    assert_ui_info();
 }
 
 void test_multiple_button_presses() {
@@ -82,9 +113,9 @@ void test_multiple_button_presses() {
     setup();
     for (int i = 0; i < 100; ++i) {
         signer_ux_handle_ticker_event(G_mock_screensaver_timeout_ms - 1);
-        assert(MOCK_UI_INFO == G_mock_ui_state);
+        assert_ui_info();
         signer_ux_handle_button_press();
-        assert(MOCK_UI_INFO == G_mock_ui_state);
+        assert_ui_info();
     }
 }
 
@@ -93,13 +124,13 @@ void test_timer_overflow() {
     setup();
     unsigned int mock_tick_ms = 100;
     signer_ux_handle_ticker_event(__UINT32_MAX__ - 100);
-    assert(MOCK_UI_SCREENSAVER == G_mock_ui_state);
+    assert_ui_screensaver();
     for (int i = 0; i < 1000; i += mock_tick_ms) {
         signer_ux_handle_ticker_event(mock_tick_ms);
-        assert(MOCK_UI_SCREENSAVER == G_mock_ui_state);
+        assert_ui_screensaver();
     }
     signer_ux_handle_button_press();
-    assert(MOCK_UI_INFO == G_mock_ui_state);
+    assert_ui_info();
 }
 
 int main() {

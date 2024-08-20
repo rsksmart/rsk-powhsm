@@ -20,12 +20,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-INCDIR = ../../../include
 SRCDIR = ../../src
-CFLAGS  = -iquote $(INCDIR) -iquote $(SRCDIR)
+COMMONDIR = ../../../../common/src
+MOCKDIR = ../mock
+THISMOCKDIR = ./mock
+CFLAGS  = -iquote $(THISMOCKDIR) -iquote $(MOCKDIR)
+CFLAGS += -iquote $(SRCDIR)
 
 include ../../../../../coverage/coverage.mk
-
-CFLAGS += $(COVFLAGS)
-
-VPATH += $(SRCDIR):$(INCDIR)
