@@ -24,6 +24,7 @@ Unless otherwise stated, only x86 platforms are supported for building this proj
 ~/repo> middleware/test-all # Middleware unit tests
 ~/repo> firmware/test/test-all # Firmware tests
 ~/repo> firmware/src/ledger/ui/test/run-all.sh # Ledger UI application unit tests
+~/repo> firmware/src/ledger/signer/test/run-all.sh # Ledger Signer application unit tests
 ~/repo> firmware/src/common/test/run-all.sh # Common code unit tests
 ~/repo> firmware/src/powhsm/test/run-all.sh # powHSM logic unit tests
 ~/repo> firmware/src/hal/test/run-all.sh # HAL unit tests

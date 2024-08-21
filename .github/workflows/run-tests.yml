@@ -35,6 +35,9 @@ jobs:
       - name: Ledger UI's unit tests
         run: firmware/src/ledger/ui/test/run-all.sh
 
+      - name: Ledger Signer's unit tests
+        run: firmware/src/ledger/signer/test/run-all.sh
+
   run-integration-tests:
     name: Integration tests
     runs-on: ubuntu-20.04
