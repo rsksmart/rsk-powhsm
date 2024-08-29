@@ -42,8 +42,8 @@ class ReconnectDongle(TestCase):
     def assert_dongle_mode(self, dongle, expected_mode):
         curr_mode = dongle.get_current_mode()
         if curr_mode != expected_mode:
-            raise TestCaseError(f'Unexpected dongle mode: {curr_mode} '
-                                f'(expected {expected_mode})')
+            raise TestCaseError(f"Unexpected dongle mode: {curr_mode} "
+                                f"(expected {expected_mode})")
 
     def run(self, dongle, debug, run_args):
         try:
@@ -67,26 +67,35 @@ class ReconnectDongle(TestCase):
 
             # Unlock device (can be performed automatically or manually by user)
             if manual_unlock:
-                output.prompt_user('Please disconnect and re-connect the device, '
-                                   'unlock it and open the signer', wait_confirm=True)
+                if run_args[TestCase.RUN_ARGS_DEVICE_KIND_KEY] == "ledger":
+                    output.prompt_user("Please disconnect and re-connect the device, "
+                                       "unlock it and make sure the signer is running",
+                                       wait_confirm=True)
+                else:
+                    output.prompt_user("Please restart the powHSM and unlock it",
+                                       wait_confirm=True)
                 self.wait_for_reconnection()
                 dongle.connect()
             else:
-                output.prompt_user('Please disconnect and re-connect the device.',
-                                   wait_confirm=True)
+                if run_args[TestCase.RUN_ARGS_DEVICE_KIND_KEY] == "ledger":
+                    output.prompt_user("Please disconnect and re-connect the device.",
+                                       wait_confirm=True)
+                else:
+                    output.prompt_user("Please restart the powHSM",
+                                       wait_confirm=True)
                 self.wait_for_reconnection()
                 dongle.connect()
                 self.assert_dongle_mode(dongle, HSM2Dongle.MODE.BOOTLOADER)
                 if not dongle.echo():
                     raise TestCaseError("Echo error")
                 if not dongle.unlock(pin):
-                    raise TestCaseError('Failed to unlock device')
+                    raise TestCaseError("Failed to unlock device")
                 try:
                     dongle.exit_menu(autoexec=True)
                 except Exception:
                     # exit_menu() always throws due to USB disconnection. we don't care
                     pass
-                output.debug('Device unlocked')
+                output.debug("Device unlocked")
                 # Disconnect from bootloader, connect to app
                 dongle.disconnect()
                 self.wait_for_reconnection()

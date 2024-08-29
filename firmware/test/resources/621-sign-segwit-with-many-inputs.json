@@ -1,7 +1,7 @@
 {
     "name": "Sign with a segwit BTC tx with many inputs",
     "operation": "signAuthorized",
-    "runOn": "tcpsigner",
+    "runOn": "simulator",
     "expected": true,
     "fake_ancestor_receipts_root": "b550311160cd59f4d912fa7246a21332dda29ba54ff782a76d19fe26ed2ab533",
     "txType": "segwit",

@@ -1,7 +1,7 @@
 {
     "name": "Get blockchain state after reconnection",
     "operation": "getState",
-    "runOn": "dongle",
+    "runOn": "device",
     "expected": {
         "best_block": "b4d586b2c2f51d6dcb6e7870df329e780d8e4b85517b91a822dc52c04d801f4b",
         "newest_valid_block": "05cf1ca3197482828cfa5d1777350996593bdd62f73ce388a280a9e08b69dac9",

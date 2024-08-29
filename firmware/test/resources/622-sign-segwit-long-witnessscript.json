@@ -1,7 +1,7 @@
 {
     "name": "Sign with a segwit BTC tx with a long witness script",
     "operation": "signAuthorized",
-    "runOn": "tcpsigner",
+    "runOn": "simulator",
     "expected": true,
     "fake_ancestor_receipts_root": "8d87508bb18f696e2e41fef9abe7d25555899ff69e8310c706aaaa35ff7443bd",
     "txType": "segwit",

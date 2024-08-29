@@ -41,11 +41,12 @@ class OptionParser:
 
         parser.add_argument(
             "-d",
-            "--dongle",
-            dest="dongle",
-            action="store_true",
-            default=False,
-            help="Run with a physical dongle (defaults to no)",
+            "--device",
+            dest="device",
+            choices=["tcpsigner", "ledger", "sgx"],
+            default="tcpsigner",
+            help="Type of device to run with (one of \"tcpsigner\", \"ledger\" or "
+                 "\"sgx\", defaults to \"tcpsigner\")",
         )
         parser.add_argument(
             "-r",
@@ -70,8 +71,8 @@ class OptionParser:
             help=f"Listening port (default {self.default_port})",
         )
         parser.add_argument(
-            "-b",
-            "--bind",
+            "-s",
+            "--server",
             dest="host",
             default=self.default_host,
             help=f"IP to bind to (default '{self.default_host}')",

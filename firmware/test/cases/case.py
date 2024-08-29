@@ -29,11 +29,12 @@ class TestCase:
 
     RUN_ON_KEY = "runOn"
     RUN_ON_VALUE_BOTH = "both"
-    RUN_ON_VALUE_TCPSIGNER = "tcpsigner"
-    RUN_ON_VALUE_DONGLE = "dongle"
+    RUN_ON_VALUE_SIMULATOR = "simulator"
+    RUN_ON_VALUE_DEVICE = "device"
 
     RUN_ARGS_PIN_KEY = "pin"
     RUN_ARGS_MANUAL_KEY = "manual"
+    RUN_ARGS_DEVICE_KIND_KEY = "deviceKind"
 
     op_mapping = None
     PATHS = None
