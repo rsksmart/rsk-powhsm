@@ -23,7 +23,10 @@ jobs:
       - name: Firmware tests using TCPSigner
         run: firmware/test/test-all
 
-      - name: Firmware HAL's unit tests
+      - name: Firmware HAL's common unit tests
+        run: firmware/src/hal/common/test/run-all.sh
+
+      - name: Firmware HAL's x86 unit tests
         run: firmware/src/hal/x86/test/run-all.sh
 
       - name: Firmware common lib unit tests
