@@ -22,42 +22,45 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __INSTRUCTIONS_H
-#define __INSTRUCTIONS_H
+#include <stdio.h>
+#include <stdarg.h>
 
-/*
- * All APDU instructions
- */
+#include "log.h"
 
-typedef enum {
-    // Signing-related
-    INS_SIGN = 0x02,
-    INS_GET_PUBLIC_KEY = 0x04,
+static char* log_prefix = (char*)NULL;
 
-    // Misc
-    RSK_IS_ONBOARD = 0x06,
-    RSK_MODE_CMD = 0x43,
+void LOG(const char *format, ...) {
+    va_list args;
+    va_start(args, format);
 
-    // Advance blockchain and blockchain state
-    INS_ADVANCE = 0x10,
-    INS_ADVANCE_PARAMS = 0x11,
-    INS_GET_STATE = 0x20,
-    INS_RESET_STATE = 0x21,
-    INS_UPD_ANCESTOR = 0x30,
+    if (log_prefix) {
+        printf("%s", log_prefix);
+    }
+    vprintf(format, args);
 
-    // Attestation
-    INS_ATTESTATION = 0x50,
-    INS_HEARTBEAT = 0x60,
+    va_end(args);
+}
 
-    // Exit
-    INS_EXIT = 0xff,
+void LOG_HEX(const char *prefix, const void *buffer, const size_t size) {
+    if (log_prefix) {
+        printf("%s", log_prefix);
+    }
+    printf("%s ", prefix);
+    if (size > 0) {
+        printf("0x");
+        for (unsigned int i = 0; i < size; i++) {
+            printf("%02x", ((unsigned char *)buffer)[i]);
+        }
+    } else {
+        printf("EMPTY");
+    }
+    printf("\n");
+}
 
-    // SGX-only (don't hurt to have them all here)
-    SGX_ONBOARD = 0xA0,
-    SGX_IS_LOCKED = 0xA1,
-    SGX_RETRIES = 0xA2,
-    SGX_UNLOCK = 0xA3,
-    SGX_ECHO = 0xA4,
-} apdu_instruction_t;
+void log_set_prefix(const char* prefix) {
+    log_prefix = (char*)prefix;
+}
 
-#endif // __INSTRUCTIONS_H
+void log_clear_prefix() {
+    log_prefix = (char*)NULL;
+}

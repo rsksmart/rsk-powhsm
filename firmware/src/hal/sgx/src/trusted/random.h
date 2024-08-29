@@ -22,42 +22,20 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __INSTRUCTIONS_H
-#define __INSTRUCTIONS_H
+#ifndef __SGX_RANDOM_H
+#define __SGX_RANDOM_H
 
-/*
- * All APDU instructions
+#include <stddef.h>
+#include <stdbool.h>
+
+/**
+ * @brief Get length random bytes into buffer
+ *
+ * @param buffer the buffer to which to output the random bytes
+ * @param length the number of bytes to output
+ *
+ * @returns whether random generation was successful
  */
+bool random_getrandom(void *buffer, size_t length);
 
-typedef enum {
-    // Signing-related
-    INS_SIGN = 0x02,
-    INS_GET_PUBLIC_KEY = 0x04,
-
-    // Misc
-    RSK_IS_ONBOARD = 0x06,
-    RSK_MODE_CMD = 0x43,
-
-    // Advance blockchain and blockchain state
-    INS_ADVANCE = 0x10,
-    INS_ADVANCE_PARAMS = 0x11,
-    INS_GET_STATE = 0x20,
-    INS_RESET_STATE = 0x21,
-    INS_UPD_ANCESTOR = 0x30,
-
-    // Attestation
-    INS_ATTESTATION = 0x50,
-    INS_HEARTBEAT = 0x60,
-
-    // Exit
-    INS_EXIT = 0xff,
-
-    // SGX-only (don't hurt to have them all here)
-    SGX_ONBOARD = 0xA0,
-    SGX_IS_LOCKED = 0xA1,
-    SGX_RETRIES = 0xA2,
-    SGX_UNLOCK = 0xA3,
-    SGX_ECHO = 0xA4,
-} apdu_instruction_t;
-
-#endif // __INSTRUCTIONS_H
+#endif // __SGX_RANDOM_H

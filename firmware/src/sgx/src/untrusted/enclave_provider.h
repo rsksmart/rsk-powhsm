@@ -22,42 +22,31 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __INSTRUCTIONS_H
-#define __INSTRUCTIONS_H
+#ifndef __ENCLAVE_PROVIDER_H
+#define __ENCLAVE_PROVIDER_H
 
-/*
- * All APDU instructions
+#include <openenclave/host.h>
+
+/**
+ * @brief Initializes the enclave provider with the given enclave binary path
+ * 
+ * @returns Whether initialization succeeded
  */
+bool ep_init(char* enclave_path);
 
-typedef enum {
-    // Signing-related
-    INS_SIGN = 0x02,
-    INS_GET_PUBLIC_KEY = 0x04,
+/**
+ * @brief Returns a pointer to the HSM enclave. This function should always 
+ * return a valid pointer to the enclave, which can be used to perform 
+ * ecall operations.
+ * 
+ * @returns A valid pointer to the HSM enclave, or NULL if an error occurred
+ */
+oe_enclave_t* ep_get_enclave();
 
-    // Misc
-    RSK_IS_ONBOARD = 0x06,
-    RSK_MODE_CMD = 0x43,
+/**
+ * @brief Terminates the HSM enclave. After this function is called,
+ * all ecall operations will fail.
+ */
+void ep_finalize_enclave();
 
-    // Advance blockchain and blockchain state
-    INS_ADVANCE = 0x10,
-    INS_ADVANCE_PARAMS = 0x11,
-    INS_GET_STATE = 0x20,
-    INS_RESET_STATE = 0x21,
-    INS_UPD_ANCESTOR = 0x30,
-
-    // Attestation
-    INS_ATTESTATION = 0x50,
-    INS_HEARTBEAT = 0x60,
-
-    // Exit
-    INS_EXIT = 0xff,
-
-    // SGX-only (don't hurt to have them all here)
-    SGX_ONBOARD = 0xA0,
-    SGX_IS_LOCKED = 0xA1,
-    SGX_RETRIES = 0xA2,
-    SGX_UNLOCK = 0xA3,
-    SGX_ECHO = 0xA4,
-} apdu_instruction_t;
-
-#endif // __INSTRUCTIONS_H
+#endif // __ENCLAVE_PROVIDER_H

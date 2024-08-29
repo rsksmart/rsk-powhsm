@@ -22,42 +22,45 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __INSTRUCTIONS_H
-#define __INSTRUCTIONS_H
+#ifndef __IO_H
+#define __IO_H
 
-/*
- * All APDU instructions
+#include <stdbool.h>
+
+/**
+ * APDU buffer
  */
+#define APDU_BUFFER_SIZE 85
+extern unsigned char io_apdu_buffer[APDU_BUFFER_SIZE];
 
-typedef enum {
-    // Signing-related
-    INS_SIGN = 0x02,
-    INS_GET_PUBLIC_KEY = 0x04,
+/**
+ * @brief Initializes the I/O module. Starts a TCP server at the given host and 
+ * port.
+ * 
+ * @param port the port on which to listen for connections
+ * @param host the interface to bind to
+ * 
+ */
+bool io_init(int port, const char *host);
 
-    // Misc
-    RSK_IS_ONBOARD = 0x06,
-    RSK_MODE_CMD = 0x43,
+/**
+ * @brief Exchanges bytes with the host. This function blocks until the host
+ * sends a message.
+ *
+ * The message exchanges data with the host using the msg_buffer. If there are
+ * any bytes to transmit, they are transmitted first. After that the function
+ * blocks until a new message is received from the host.
+ *
+ * @param tx The number of bytes to send to the host
+ *
+ * @returns the number of bytes received from the host
+ */
+unsigned short io_exchange(unsigned short tx);
 
-    // Advance blockchain and blockchain state
-    INS_ADVANCE = 0x10,
-    INS_ADVANCE_PARAMS = 0x11,
-    INS_GET_STATE = 0x20,
-    INS_RESET_STATE = 0x21,
-    INS_UPD_ANCESTOR = 0x30,
+/**
+ * @brief Finalises the I/O module. Closes any outstanding connections and shuts
+ * the server down.
+ */
+void io_finalise();
 
-    // Attestation
-    INS_ATTESTATION = 0x50,
-    INS_HEARTBEAT = 0x60,
-
-    // Exit
-    INS_EXIT = 0xff,
-
-    // SGX-only (don't hurt to have them all here)
-    SGX_ONBOARD = 0xA0,
-    SGX_IS_LOCKED = 0xA1,
-    SGX_RETRIES = 0xA2,
-    SGX_UNLOCK = 0xA3,
-    SGX_ECHO = 0xA4,
-} apdu_instruction_t;
-
-#endif // __INSTRUCTIONS_H
+#endif // __IO_H

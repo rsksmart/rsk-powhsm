@@ -22,42 +22,47 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __INSTRUCTIONS_H
-#define __INSTRUCTIONS_H
+#ifndef __KEYVALUE_STORE_H
+#define __KEYVALUE_STORE_H
 
-/*
- * All APDU instructions
+/**
+ * @brief Tell whether a given key currently exists
+ * 
+ * @param key the key to check for
+ * 
+ * @returns whether the key exists
  */
+bool kvstore_exists(char* key);
 
-typedef enum {
-    // Signing-related
-    INS_SIGN = 0x02,
-    INS_GET_PUBLIC_KEY = 0x04,
+/**
+ * @brief Save the given data to the given key
+ * 
+ * @param key the key to save the data to
+ * @param data the buffer containing the data to write
+ * @param data_size the data size in bytes
+ * 
+ * @returns whether saving succeeded
+ */
+bool kvstore_save(char* key, uint8_t* data, size_t data_size);
 
-    // Misc
-    RSK_IS_ONBOARD = 0x06,
-    RSK_MODE_CMD = 0x43,
+/**
+ * @brief Read the given key into the given buffer
+ * 
+ * @param key the key to read from
+ * @param data_buf the buffer to read the data to
+ * @param buffer_size the buffer size in bytes
+ * 
+ * @returns the number of bytes read, or ZERO upon error
+ */
+size_t kvstore_get(char* key, uint8_t* data_buf, size_t buffer_size);
 
-    // Advance blockchain and blockchain state
-    INS_ADVANCE = 0x10,
-    INS_ADVANCE_PARAMS = 0x11,
-    INS_GET_STATE = 0x20,
-    INS_RESET_STATE = 0x21,
-    INS_UPD_ANCESTOR = 0x30,
+/**
+ * @brief Remove any data associated with the given key
+ * 
+ * @param key the key to remove
+ * 
+ * @returns whether key removal was successful
+ */
+bool kvstore_remove(char* key);
 
-    // Attestation
-    INS_ATTESTATION = 0x50,
-    INS_HEARTBEAT = 0x60,
-
-    // Exit
-    INS_EXIT = 0xff,
-
-    // SGX-only (don't hurt to have them all here)
-    SGX_ONBOARD = 0xA0,
-    SGX_IS_LOCKED = 0xA1,
-    SGX_RETRIES = 0xA2,
-    SGX_UNLOCK = 0xA3,
-    SGX_ECHO = 0xA4,
-} apdu_instruction_t;
-
-#endif // __INSTRUCTIONS_H
+#endif // __KEYVALUE_STORE_H
