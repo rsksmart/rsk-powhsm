@@ -22,43 +22,32 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __RUNTIME_H
-#define __RUNTIME_H
+#include "bigdigits_helper.h"
 
-#if defined(HSM_PLATFORM_LEDGER)
+void parse_bigint_be(const uint8_t* buf,
+                     uint16_t buf_size,
+                     DIGIT_T target[],
+                     uint16_t target_digits) {
 
-// We can't include any HAL headers here because
-// the Ledger UI does not know anything about it
-#include "os.h"
+    mpSetZero(target, target_digits);
+    int j = 0, k = 0;
+    DIGIT_T curr = 0;
+    for (int i = buf_size - 1; i >= 0; i--) {
+        curr = buf[i];
+        target[j] |= (curr << (k * 8));
+        if (++k == sizeof(DIGIT_T)) {
+            ++j;
+            k = 0;
+        }
+    }
+}
 
-#define NON_VOLATILE const
-
-#elif defined(HSM_PLATFORM_X86)
-
-#include "hal/platform.h"
-#include "hal/exceptions.h"
-
-#include "ui_deps.h"
-
-#define PIC(x) (x)
-
-#define NON_VOLATILE
-
-#define UNUSED(x) (void)(x)
-
-#elif defined(HSM_PLATFORM_SGX)
-
-#include "hal/platform.h"
-#include "hal/exceptions.h"
-
-#define PIC(x) (x)
-
-#define NON_VOLATILE
-
-#define UNUSED(x) (void)(x)
-
-#else
-#error "HSM Platform undefined"
-#endif
-
-#endif // __RUNTIME_H
+void dump_bigint_be(uint8_t* buf, const DIGIT_T n[], const size_t digits) {
+    int k = 0;
+    for (int i = digits - 1; i >= 0; i--) {
+        buf[k++] = (uint8_t)((n[i] & 0xff000000) >> 24);
+        buf[k++] = (uint8_t)((n[i] & 0x00ff0000) >> 16);
+        buf[k++] = (uint8_t)((n[i] & 0x0000ff00) >> 8);
+        buf[k++] = (uint8_t)((n[i] & 0x000000ff) >> 0);
+    }
+}

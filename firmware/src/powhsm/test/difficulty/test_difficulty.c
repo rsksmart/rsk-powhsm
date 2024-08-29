@@ -45,9 +45,9 @@ void test_conversions() {
     const uint8_t src_bytes[] = {0x02, 0x00, 0x00};
 
     DIGIT_T bi[BIGINT_LEN];
-    bigint(src_bytes, sizeof(src_bytes), bi, BIGINT_LEN);
+    parse_bigint_be(src_bytes, sizeof(src_bytes), bi, BIGINT_LEN);
     uint8_t dst_bytes[sizeof(bi)];
-    dump_bigint(dst_bytes, bi, BIGINT_LEN);
+    dump_bigint_be(dst_bytes, bi, BIGINT_LEN);
 
     int start = 0;
     for (; dst_bytes[start] == 0; start++)
@@ -85,7 +85,7 @@ void test_difficulty() {
     };
 
     DIGIT_T difficulty[BIGINT_LEN];
-    bigint(block_diff, sizeof(block_diff), difficulty, BIGINT_LEN);
+    parse_bigint_be(block_diff, sizeof(block_diff), difficulty, BIGINT_LEN);
 
     size_t size = sizeof(mm_hdr_hash) / sizeof(mm_hdr_hash[0]);
     for (int i = 0; i < size; i++) {

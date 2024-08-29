@@ -24,7 +24,7 @@
 
 #include "bc_err.h"
 
-#ifdef HSM_PLATFORM_X86
+#if defined(HSM_PLATFORM_X86) || defined(HSM_PLATFORM_SGX)
 
 #include "hal/log.h"
 
@@ -74,6 +74,7 @@ void show_error(err_code_t errcode) {
             break;
         }
     }
+    (void)(msg);
     LOG("*** ERROR: %s\n", msg);
 }
 #else

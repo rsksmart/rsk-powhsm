@@ -28,6 +28,7 @@
 #include <stdint.h>
 
 #include "bigdigits.h"
+#include "bigdigits_helper.h"
 #include "bc.h"
 
 // Block difficulty caps for each network
@@ -48,31 +49,6 @@ extern DIGIT_T MAX_BLOCK_DIFFICULTY[BIGINT_LEN];
 #define BCDIFF_ERR_CAPPING (3)
 
 /*
- * Initialize a big integer. This is kind of tricky because the way big
- * integers are modeled in memory. Here goes an example:
- *
- * For the number:
- *
- *    [1c, 24, a0, a1, a2, a3, b0, b1, b2, b3, c0, c1, c2, c3]
- *
- * (that is, 0x1c24a0a1a2a3b0b1b2b3c0c1c2c3), we must build the following
- * array of uin32_t numbers:
- *
- *   [0xc0c1c2c3, 0xb0b1b2b3, 0xa0a1a2a3, 0x00001c24]
- *
- * This function implements exactly the conversion exemplified above.
- *
- * @arg[in] buf         buffer holding big integer bytes in big-endian order
- * @arg[in] buf_size    buffer size in bytes
- * @arg[out] target     big integer to initialize
- * @arg[in] target_size number of 32-byte integers comprising the big integer
- */
-void bigint(const uint8_t* buf,
-            uint16_t buf_size,
-            DIGIT_T target[],
-            uint16_t target_size);
-
-/*
  * Store the given difficulty in the given big integer.
  *
  * @arg[in] diff_bytes bytes comprising difficulty
@@ -82,15 +58,6 @@ void bigint(const uint8_t* buf,
 void store_difficulty(uint8_t* diff_bytes,
                       uint8_t diff_size,
                       DIGIT_T difficulty[]);
-
-/*
- * Debug: dump a bigint to given buffer.
- *
- * @arg[in] buf  pointer to destination buffer
- * @arg[in] n    big integer to dump
- * @arg[in] size number of 32-byte integers comprising n
- */
-void dump_bigint(uint8_t* buf, const DIGIT_T n[], const size_t size);
 
 typedef enum { DIFF_MATCH = 1, DIFF_MISMATCH, DIFF_ZERO } diff_result;
 
