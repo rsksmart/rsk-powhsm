@@ -67,30 +67,9 @@ CFLAGS += -O0 -I$(GCC_INCLUDE)
 CFLAGS += -Werror
 CFLAGS += -DHSM_PLATFORM_LEDGER
 
-# Convert min required difficulty to what the compiler expects
-ifneq ($(TARGET_DIFFICULTY),)
-CONVERTED_MRD = $(shell python make-difficulty.py $(TARGET_DIFFICULTY))
-$(info Building with min required difficulty set to "$(CONVERTED_MRD)")
-CFLAGS += -DPARAM_MIN_REQUIRED_DIFFICULTY="$(CONVERTED_MRD)"
-endif
-
-# Convert checkpoint to what the compiler expects
-ifneq ($(CHECKPOINT),)
-CONVERTED_CHKP = $(shell python make-initial-block-hash.py $(CHECKPOINT))
-$(info Building with checkpoint set to "$(CONVERTED_CHKP)")
-CFLAGS += -DPARAM_INITIAL_BLOCK_HASH="$(CONVERTED_CHKP)"
-endif
-
-# Specify target network (i.e., REGTEST or TESTNET). Otherwise it defaults to MAINNET.
-ifeq ($(NETWORK),REGTEST)
-$(info Building for Regtest)
-CFLAGS += -DREGTEST
-endif
-
-ifeq ($(NETWORK),TESTNET)
-$(info Building for Testnet)
-CFLAGS += -DTESTNET
-endif
+UTIL_DIR = ../../util
+include $(UTIL_DIR)/signer.mk
+CFLAGS += $(SIGNER_FLAGS)
 
 AS := $(GCCPATH)arm-none-eabi-gcc
 AFLAGS +=
