@@ -22,11 +22,10 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __HAL_RANDOM_H
-#define __HAL_RANDOM_H
+#include "hal/access.h"
 
-#include <stddef.h>
-
-void random_getrandom(void *buffer, size_t length);
-
-#endif // __HAL_RANDOM_H
+bool access_is_locked() {
+    // This will only ever be used from within the signer,
+    // which means the device will always be unlocked
+    return false;
+}

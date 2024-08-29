@@ -1,6 +1,6 @@
 #!/bin/bash
 BASEDIR=$(dirname $0)
-TESTDIRS="btcscript btctx difficulty srlp svarint trie"
+TESTDIRS="sha256"
 TESTDIRS=${1:-"$TESTDIRS"}
 
 for d in $TESTDIRS; do

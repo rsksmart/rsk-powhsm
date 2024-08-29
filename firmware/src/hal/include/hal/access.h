@@ -22,68 +22,73 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __HAL_NVMEM_H
-#define __HAL_NVMEM_H
+#ifndef __HAL_ACCESS_H
+#define __HAL_ACCESS_H
 
-#include <stddef.h>
-#include <stdint.h>
 #include <stdbool.h>
 
 /**
- * @brief Write to non volatile memory
+ * @brief Returns whether the module is locked
  *
- * @param key The key of the destination in non volatile memory
- * @param dst The destination address in (non volatile) memory
- * @param src The source address to write from
- * @param length The amount of bytes to write
- *
- * @returns whether the write succeeded
+ * @returns whether the module is locked
  */
-bool nvmem_write(void *dst, void *src, unsigned int length);
+bool access_is_locked();
 
 // BEGINNING of platform-dependent code
-#if defined(HSM_PLATFORM_X86)
+#if defined(HSM_PLATFORM_SGX)
 
-typedef struct nvmmem_stats_s {
-    unsigned int write_count;
-} nvmmem_stats_t;
+#include <stdint.h>
 
-/**
- * @brief Resets the non volatile memory statistics
- */
-void nvmem_stats_reset();
+typedef void (*access_wiped_callback_t)();
 
 /**
- * @brief Returns the current non volatile memory statistics
+ * @brief Initializes the access module
  *
- * @returns the statistics
- */
-nvmmem_stats_t nvmem_get_stats();
-
-#elif defined(HSM_PLATFORM_SGX)
-
-/**
- * @brief Initializes the nvmem module
- */
-void nvmem_init();
-
-/**
- * @brief Registers a memory block as non volatile
+ * @param wiped_callback function to call when the module is wiped
  *
- * @param key a string key to uniquely identify the block
- * @param addr the base address of the block
- * @param size the size of the block in bytes
+ * @returns whether the initialisation succeeded
  */
-void nvmem_register_block(char* key, void* addr, size_t size);
+bool access_init(access_wiped_callback_t wiped_callback);
 
 /**
- * @brief Loads registered blocks into memory
+ * @brief Unlocks the access module
  *
- * @returns whether loading was successful
+ * @param password
+ * @param password_length
+ *
+ * @returns whether the unlock was successful
  */
-bool nvmem_load();
+bool access_unlock(char* password, uint8_t password_length);
+
+/**
+ * @brief Returns the number of unlocking retries available
+ */
+uint8_t access_get_retries();
+
+/**
+ * @brief Returns whether the module is in a wiped state
+ *
+ * @returns whether the module is in a wiped state
+ */
+bool access_is_wiped();
+
+/**
+ * @brief Wipes the module
+ */
+bool access_wipe();
+
+/**
+ * @brief Changes the password.
+ * The module needs to be in an unlocked or wiped state.
+ *
+ * @param password
+ * @param password_length
+ *
+ * @returns whether the password change was successful
+ */
+bool access_set_password(char* password, uint8_t password_length);
 
 #endif
 // END of platform-dependent code
 
-#endif // __HAL_NVMEM_H
+#endif // __HAL_ACCESS_H

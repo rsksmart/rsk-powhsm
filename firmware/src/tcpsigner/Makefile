@@ -63,7 +63,6 @@ SIM_OBJS = $(patsubst $(SRCPATH)/%.c, $(OBJDIR)/%.o, $(SIM_SRCS))
 SRCS = $(SIGN_SRCS) $(COMMON_SRCS) $(HAL_SRCS) $(SIM_SRCS)
 OBJS = $(SIGN_OBJS) $(SIM_OBJS)
 
-
 all: $(PROG)
 $(PROG): $(OBJS)
 	$(CC) $(COVFLAGS) -o $@ $(CFLAGS) $(OBJS) $(LDFLAGS)

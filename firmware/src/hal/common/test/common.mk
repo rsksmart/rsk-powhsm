@@ -20,15 +20,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-INCDIR = ../../../include
-X86SRCDIR = ../../src
-COMMONSRCDIR = ../../../../common/src
-SRCDIR = $(X86SRCDIR):$(COMMONSRCDIR)
-CFLAGS  = -iquote $(INCDIR) -iquote $(X86SRCDIR) -iquote $(COMMONSRCDIR)
-CFLAGS += -DHSM_PLATFORM_X86
+SRCDIR = ../../src
+CFLAGS = -iquote $(SRCDIR)
 
 include ../../../../../coverage/coverage.mk
 
 CFLAGS += $(COVFLAGS)
 
-VPATH += $(SRCDIR):$(INCDIR)
+VPATH += $(SRCDIR)

@@ -77,7 +77,6 @@ bool seed_sign(uint32_t* path,
 
 typedef struct seed_data_s {
     bool is_onboarded;
-
 } seed_data_t;
 
 /**
@@ -115,6 +114,33 @@ void seed_set_is_onboarded(bool is_onboarded);
 bool seed_init(const char* key_file_path,
                const char* bip32_paths[],
                const size_t bip32_paths_count);
+
+#elif defined(HSM_PLATFORM_SGX)
+
+/**
+ * @brief Initializes the seed module
+ *
+ * @returns whether the initialisation was successful
+ */
+bool seed_init();
+
+/**
+ * @brief Wipes the existing seed, if any
+ *
+ * @returns whether the wipe was successful
+ */
+bool seed_wipe();
+
+/**
+ * @brief Generates and persists a new random seed
+ *
+ * @param client_seed the client-provided seed
+ *                    (should be randomly generated)
+ * @param client_seed_size the size of the client-provided seed
+ *
+ * @returns whether the seed generation was successful
+ */
+bool seed_generate(uint8_t* client_seed, uint8_t client_seed_size);
 
 #endif
 // END of platform-dependent code

@@ -22,10 +22,7 @@
  * IN THE SOFTWARE.
  */
 
-#ifdef HSM_PLATFORM_X86
-
 #include <stdio.h>
-#include <stdlib.h>
 #include <stdarg.h>
 
 void LOG(const char *format, ...) {
@@ -37,7 +34,7 @@ void LOG(const char *format, ...) {
     va_end(args);
 }
 
-void LOG_HEX(const char *prefix, void *buffer, size_t size) {
+void LOG_HEX(const char *prefix, const void *buffer, const size_t size) {
     printf("%s ", prefix);
     if (size > 0) {
         printf("0x");
@@ -49,5 +46,3 @@ void LOG_HEX(const char *prefix, void *buffer, size_t size) {
     }
     printf("\n");
 }
-
-#endif

@@ -27,6 +27,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 #include "hal/constants.h"
 
@@ -43,5 +44,22 @@
  * @returns the size of the parsed path in bytes, or zero in case of error
  */
 size_t bip32_parse_path(const char* path, uint8_t* out);
+
+/**
+ * @brief Derive a private key from the given seed and bip32 path
+ *
+ * @param out the destination buffer for the derived key
+ * @param seed the seed to use for derivation
+ * @param seed_length the seed length in bytes
+ * @param path the bip32 path
+ * @param path_length the bip32 path length in derivation steps
+ *
+ * @returns whether derivation succeeded
+ */
+bool bip32_derive_private(uint8_t* out,
+                          const uint8_t* seed,
+                          const unsigned int seed_length,
+                          const uint32_t* path,
+                          const unsigned int path_length);
 
 #endif // __HAL_BIP32_H
