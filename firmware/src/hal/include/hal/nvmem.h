@@ -32,7 +32,8 @@
 /**
  * @brief Write to non volatile memory
  *
- * @param dst The destination address in non volatile memory
+ * @param key The key of the destination in non volatile memory
+ * @param dst The destination address in (non volatile) memory
  * @param src The source address to write from
  * @param length The amount of bytes to write
  *
@@ -58,6 +59,29 @@ void nvmem_stats_reset();
  * @returns the statistics
  */
 nvmmem_stats_t nvmem_get_stats();
+
+#elif defined(HSM_PLATFORM_SGX)
+
+/**
+ * @brief Initializes the nvmem module
+ */
+void nvmem_init();
+
+/**
+ * @brief Registers a memory block as non volatile
+ *
+ * @param key a string key to uniquely identify the block
+ * @param addr the base address of the block
+ * @param size the size of the block in bytes
+ */
+void nvmem_register_block(char* key, void* addr, size_t size);
+
+/**
+ * @brief Loads registered blocks into memory
+ *
+ * @returns whether loading was successful
+ */
+bool nvmem_load();
 
 #endif
 // END of platform-dependent code

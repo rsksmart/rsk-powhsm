@@ -27,12 +27,14 @@ ifneq ($(DEBUG),)
 endif
 
 PROG = test.out
-OBJS = bip32.o test_bip32.o log.o
+OBJS = bip32.o hmac_sha512.o endian.o bigdigits.o bigdigits_helper.o
+OBJS += test_bip32.o log.o
+
 
 all: $(PROG)
 
 $(PROG): $(OBJS)
-	$(CC) $(COVFLAGS) -o $@ $^
+	$(CC) $(COVFLAGS) -o $@ $^ -lsecp256k1
 
 .PHONY: clean test
 clean:

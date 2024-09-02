@@ -46,7 +46,7 @@
 
 #include "os.h" // This includes the exception engine
 
-#elif defined(HSM_PLATFORM_X86)
+#elif defined(HSM_PLATFORM_X86) || defined(HSM_PLATFORM_SGX)
 
 /**
  * Modified try...catch exception implementation (taken from nanos-secure-sdk)
@@ -214,6 +214,8 @@ void os_longjmp(jmp_buf b, unsigned int exception);
 
 #endif
 
-#endif // HSM_PLATFORM_X86
+#else
+#error "HSM Platform undefined"
+#endif // HSM_PLATFORM_XXXX
 
 #endif // __HAL_EXCEPTIONS_H

@@ -23,8 +23,6 @@
  */
 
 #include "hal/hash.h"
-#include "sha256.h"
-#include "keccak256.h"
 
 // *** sha256 ***
 bool hash_sha256_init(hash_sha256_ctx_t* ctx) {

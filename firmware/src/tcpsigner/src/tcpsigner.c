@@ -204,10 +204,10 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
             dest_size = sizeof(arguments->difficulty) /
                         sizeof(arguments->difficulty[0]);
         }
-        bigint(arguments->difficulty_b,
-               sizeof(arguments->difficulty_b),
-               dest,
-               dest_size);
+        parse_bigint_be(arguments->difficulty_b,
+                        sizeof(arguments->difficulty_b),
+                        dest,
+                        dest_size);
         break;
     case 'n':
         arguments->network = arg;
@@ -321,10 +321,11 @@ void main(int argc, char **argv) {
              arguments.difficulty_b +
                  (sizeof(arguments.difficulty_b) -
                   strlen(arguments.difficulty_s + 2 /* Skip 0x */) / 2));
-    bigint(arguments.difficulty_b,
-           sizeof(arguments.difficulty_b),
-           arguments.difficulty,
-           sizeof(arguments.difficulty) / sizeof(arguments.difficulty[0]));
+    parse_bigint_be(arguments.difficulty_b,
+                    sizeof(arguments.difficulty_b),
+                    arguments.difficulty,
+                    sizeof(arguments.difficulty) /
+                        sizeof(arguments.difficulty[0]));
     // Convert default network
     arguments.network_identifier =
         get_network_identifier_by_name(arguments.network);

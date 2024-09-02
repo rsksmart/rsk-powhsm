@@ -152,8 +152,7 @@ bool seed_init(const char* key_file_path,
             "random set of keys\n");
         // Init new random keys
         for (int i = 0; i < total_private_keys; i++) {
-            random_getrandom(
-                private_keys[i].key, sizeof(private_keys[i].key), 0);
+            random_getrandom(private_keys[i].key, sizeof(private_keys[i].key));
         }
 
         // Write keys to the file

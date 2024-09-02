@@ -50,17 +50,14 @@
 
 #include "hal/log.h"
 
-// Macro that throws an error unless
-// the device is onboarded
-#define REQUIRE_ONBOARDED() \
-    if (!seed_available())  \
-        THROW(ERR_DEVICE_NOT_ONBOARDED);
-
 // Operation being currently executed
 static unsigned char curr_cmd;
 
 // Whether exit has been requested
 static bool _hsm_exit_requested;
+
+// External processor
+static external_processor_t external_processor;
 
 /*
  * Reset shared memory state.
@@ -112,6 +109,14 @@ static unsigned int hsm_process_command(volatile unsigned int rx) {
         THROW(ERR_INVALID_CLA);
     }
 
+    if (external_processor) {
+        external_processor_result_t epr = external_processor(rx);
+        if (epr.handled) {
+            reset_if_starting(0);
+            return epr.tx;
+        }
+    }
+
     switch (APDU_CMD()) {
     // Reports the current mode (i.e., always reports signer mode)
     case RSK_MODE_CMD:
@@ -133,6 +138,7 @@ static unsigned int hsm_process_command(volatile unsigned int rx) {
 
     // Derives and returns the corresponding public key for the given path
     case INS_GET_PUBLIC_KEY:
+        REQUIRE_UNLOCKED();
         REQUIRE_ONBOARDED();
 
         reset_if_starting(INS_GET_PUBLIC_KEY);
@@ -175,6 +181,7 @@ static unsigned int hsm_process_command(volatile unsigned int rx) {
         break;
 
     case INS_SIGN:
+        REQUIRE_UNLOCKED();
         REQUIRE_ONBOARDED();
 
         reset_if_starting(INS_SIGN);
@@ -182,6 +189,7 @@ static unsigned int hsm_process_command(volatile unsigned int rx) {
         break;
 
     case INS_ATTESTATION:
+        REQUIRE_UNLOCKED();
         REQUIRE_ONBOARDED();
 
         reset_if_starting(INS_ATTESTATION);
@@ -189,6 +197,7 @@ static unsigned int hsm_process_command(volatile unsigned int rx) {
         break;
 
     case INS_HEARTBEAT:
+        REQUIRE_UNLOCKED();
         REQUIRE_ONBOARDED();
 
         reset_if_starting(INS_HEARTBEAT);
@@ -197,6 +206,7 @@ static unsigned int hsm_process_command(volatile unsigned int rx) {
 
     // Get blockchain state
     case INS_GET_STATE:
+        REQUIRE_UNLOCKED();
         REQUIRE_ONBOARDED();
 
         // Get blockchain state is considered part of the
@@ -207,6 +217,7 @@ static unsigned int hsm_process_command(volatile unsigned int rx) {
 
     // Reset blockchain state
     case INS_RESET_STATE:
+        REQUIRE_UNLOCKED();
         REQUIRE_ONBOARDED();
 
         reset_if_starting(INS_RESET_STATE);
@@ -215,6 +226,7 @@ static unsigned int hsm_process_command(volatile unsigned int rx) {
 
     // Advance blockchain
     case INS_ADVANCE:
+        REQUIRE_UNLOCKED();
         REQUIRE_ONBOARDED();
 
         reset_if_starting(INS_ADVANCE);
@@ -223,6 +235,7 @@ static unsigned int hsm_process_command(volatile unsigned int rx) {
 
     // Advance blockchain precompiled parameters
     case INS_ADVANCE_PARAMS:
+        REQUIRE_UNLOCKED();
         REQUIRE_ONBOARDED();
 
         reset_if_starting(INS_ADVANCE_PARAMS);
@@ -231,6 +244,7 @@ static unsigned int hsm_process_command(volatile unsigned int rx) {
 
     // Update ancestor
     case INS_UPD_ANCESTOR:
+        REQUIRE_UNLOCKED();
         REQUIRE_ONBOARDED();
 
         reset_if_starting(INS_UPD_ANCESTOR);
@@ -238,6 +252,8 @@ static unsigned int hsm_process_command(volatile unsigned int rx) {
         break;
 
     case INS_EXIT:
+        REQUIRE_UNLOCKED();
+        
         bc_backup_partial_state();
         app_exit();
         tx = TX_FOR_DATA_SIZE(0);
@@ -292,6 +308,9 @@ void hsm_init() {
     // No exit requested
     _hsm_exit_requested = false;
 
+    // No external processor
+    external_processor = NULL;
+
     // Blockchain state initialization
     bc_init_state();
 }
@@ -319,3 +338,6 @@ bool hsm_exit_requested() {
     return _hsm_exit_requested;
 }
 
+void hsm_set_external_processor(external_processor_t _external_processor) {
+    external_processor = _external_processor;
+}

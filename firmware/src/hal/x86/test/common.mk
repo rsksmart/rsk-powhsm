@@ -21,8 +21,10 @@
 # SOFTWARE.
 
 INCDIR = ../../../include
-SRCDIR = ../../src
-CFLAGS  = -iquote $(INCDIR) -iquote $(SRCDIR)
+X86SRCDIR = ../../src
+COMMONSRCDIR = ../../../../common/src
+SRCDIR = $(X86SRCDIR):$(COMMONSRCDIR)
+CFLAGS  = -iquote $(INCDIR) -iquote $(X86SRCDIR) -iquote $(COMMONSRCDIR)
 CFLAGS += -DHSM_PLATFORM_X86
 
 include ../../../../../coverage/coverage.mk

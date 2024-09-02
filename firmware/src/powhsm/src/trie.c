@@ -127,7 +127,7 @@ uint8_t trie_consume(uint8_t *buf, const uint8_t len) {
             ctx->raw_size = 1;
             --ctx->remaining_bytes;
             ctx->state = TRIE_ST_SHARED_PREFIX;
-            if (buf[i] >= 0 && buf[i] <= 31) {
+            if (/*buf[i] >= 0 &&*/ buf[i] <= 31) {
                 ctx->length = buf[i] + 1;
                 ctx->callback(TRIE_EV_SHARED_PREFIX_LENGTH);
                 SHARED_PREFIX_TO_BYTES();

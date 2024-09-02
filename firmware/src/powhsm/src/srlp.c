@@ -153,7 +153,7 @@ void rlp_start(const rlp_callbacks_t* cbs) {
             RLP_PUSH_CTX(RLP_STR, *b - 0x80);                                 \
             ((rlp_start_cb_t)PIC(rlp_callbacks->bytearray_start))(*b - 0x80); \
         } else if (*b <= 0xBF) {                                              \
-            if (*b - 0xB7 > sizeof(uint16_t)) {                               \
+            if (*b - 0xB7 > (int)sizeof(uint16_t)) {                          \
                 return RLP_TOO_LONG;                                          \
             }                                                                 \
             RLP_PUSH_CTX(RLP_STR_LEN, *b - 0xB7);                             \
@@ -161,7 +161,7 @@ void rlp_start(const rlp_callbacks_t* cbs) {
             RLP_PUSH_CTX(RLP_LIST, *b - 0xC0 + 1);                            \
             ((rlp_start_cb_t)PIC(rlp_callbacks->list_start))(*b - 0xC0);      \
         } else {                                                              \
-            if (*b - 0xF7 > sizeof(uint16_t)) {                               \
+            if (*b - 0xF7 > (int)sizeof(uint16_t)) {                          \
                 return RLP_TOO_LONG;                                          \
             }                                                                 \
             RLP_PUSH_CTX(RLP_LIST_LEN, *b - 0xF7);                            \

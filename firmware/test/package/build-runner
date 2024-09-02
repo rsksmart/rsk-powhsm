@@ -1,0 +1,25 @@
+#!/bin/bash
+
+if [[ $1 == "exec" ]]; then
+    # Directories
+    PACKAGE_DIR=$(dirname $0)
+    BIN_DIR=bin
+
+    # Remove existing build
+
+    # Build
+    echo "Building test runner..."
+
+    cd $PACKAGE_DIR
+    rm -rf $BIN_DIR
+    mkdir $BIN_DIR
+    pyinstaller --distpath $BIN_DIR --onefile ../run.py
+    rm -rf build run.spec
+
+    echo "Done."
+else
+    REPO_ROOT=$(dirname $0)/../../..
+    TESTS_DIR=$(realpath $(dirname $0)/.. --relative-to=$REPO_ROOT)
+
+    $REPO_ROOT/docker/mware/do-notty-nousb /hsm2/$TESTS_DIR "./package/$(basename $0) exec"
+fi

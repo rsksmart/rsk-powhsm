@@ -1,6 +1,6 @@
 #!/bin/bash
 BASEDIR=$(dirname $0)
-TESTDIRS="memutil ints"
+TESTDIRS="ints memutil"
 TESTDIRS=${1:-"$TESTDIRS"}
 
 for d in $TESTDIRS; do

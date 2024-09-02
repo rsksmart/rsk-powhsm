@@ -1,1 +1,1 @@
-../../common/src/communication.c
+../../x86/src/communication.c

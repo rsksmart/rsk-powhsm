@@ -99,6 +99,15 @@ extern attestation_id_t attestation_id;
  */
 bool endorsement_init(char* att_file_path);
 
+#elif defined(HSM_PLATFORM_SGX)
+
+/**
+ * @brief Initializes the endorsement module
+ *
+ * @returns whether the initialisation succeeded
+ */
+bool endorsement_init();
+
 #endif
 // END of platform-dependent code
 

@@ -24,7 +24,7 @@
 
 /**
  * Taken from https://github.com/h5p9sl/hmac_sha256 and
- * adapted for use with the TCPSigner by RSK Labs Ltd
+ * adapted for use with the powHSM HAL by RSK Labs Ltd
  */
 
 /*

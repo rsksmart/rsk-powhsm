@@ -20,19 +20,27 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-include ../common/common.mk
+from enum import IntEnum
+from ledger.hsm2dongle_tcp import HSM2DongleTCP
 
-PROG = test.out
-OBJS = test_fwk.o sha256.o test_sha256.o
 
-all: $(PROG)
+class SgxCommand(IntEnum):
+    SGX_UNLOCK = 0xA3,
+    SGX_ECHO = 0xA4,
 
-$(PROG): $(OBJS)
-	$(CC) $(COVFLAGS) -o $@ $^
 
-.PHONY: clean test
-clean:
-	rm -f $(PROG) *.o $(COVFILES)
+class HSM2DongleSGX(HSM2DongleTCP):
+    # Echo message
+    def echo(self):
+        message = bytes([0x41, 0x42, 0x43])
+        result = bytes(self._send_command(SgxCommand.SGX_ECHO, message))
+        # Result should be the command plus the message
+        expected_result = bytes([self.CLA, SgxCommand.SGX_ECHO]) + message
+        return result == expected_result
 
-test: all
-	./$(PROG)
+    # Unlock the device with the given pin
+    def unlock(self, pin):
+        response = self._send_command(SgxCommand.SGX_UNLOCK, bytes([0]) + pin)
+
+        # Nonzero indicates device unlocked
+        return response[2] != 0

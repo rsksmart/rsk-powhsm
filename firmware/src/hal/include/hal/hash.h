@@ -30,20 +30,19 @@
 #include <stdbool.h>
 
 #include "hal/constants.h"
+#include "sha256.h"
 
 // BEGINNING of platform-dependent code
 #if defined(HSM_PLATFORM_LEDGER)
 
 #include "os.h"
-#include "sha256.h"
 
 typedef cx_sha256_t hash_sha256_ctx_t;
 typedef cx_sha3_t hash_keccak256_ctx_t;
 typedef SHA256_CTX hash_sha256_ms_ctx_t;
 
-#elif defined(HSM_PLATFORM_X86)
+#elif defined(HSM_PLATFORM_X86) || defined(HSM_PLATFORM_SGX)
 
-#include "sha256.h"
 #include "keccak256.h"
 
 typedef SHA256_CTX hash_sha256_ctx_t;

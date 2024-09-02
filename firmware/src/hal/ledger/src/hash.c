@@ -23,7 +23,6 @@
  */
 
 #include "hal/hash.h"
-#include "sha256.h"
 #include "os.h"
 
 // *** sha256 ***
