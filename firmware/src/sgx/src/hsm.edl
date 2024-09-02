@@ -1,0 +1,30 @@
+// Copyright (c) Open Enclave SDK contributors.
+// Licensed under the MIT License.
+
+
+enclave {
+    from "openenclave/edl/syscall.edl" import *;
+    from "platform.edl" import *;
+
+    trusted {
+        public bool ecall_system_init(unsigned char *msg_buffer, size_t msg_buffer_size);
+
+        public unsigned int ecall_system_process_apdu(unsigned int rx);
+    };
+
+    untrusted {
+        bool ocall_kvstore_save(
+            [string, in] char *key,
+            [in, size=data_size] uint8_t *data,
+            size_t data_size);
+
+        bool ocall_kvstore_exists([string, in] char *key);
+
+        size_t ocall_kvstore_get(
+            [string, in] char *key,
+            [out, size=buffer_size] uint8_t *data_buf,
+            size_t buffer_size);
+
+        bool ocall_kvstore_remove([string, in] char *key);
+    };
+};

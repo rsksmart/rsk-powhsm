@@ -23,7 +23,7 @@
 include ../common/common.mk
 
 PROG = test.out
-OBJS = test_fwk.o bigdigits.o bc_diff.o test_difficulty.o platform.o log.o
+OBJS = test_fwk.o bigdigits.o bigdigits_helper.o bc_diff.o test_difficulty.o platform.o log.o
 
 all: $(PROG)
 

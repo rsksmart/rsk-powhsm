@@ -25,6 +25,7 @@ from options import OptionParser
 from cases import TestSuite, TestCase
 from ledger.hsm2dongle import HSM2Dongle
 from ledger.hsm2dongle_tcp import HSM2DongleTCP
+from sgx.hsm2dongle import HSM2DongleSGX
 import output
 
 import logging
@@ -47,20 +48,27 @@ if __name__ == "__main__":
 
     try:
         output.header("Setup")
-        run_args = {}
+        run_args = {
+            TestCase.RUN_ARGS_DEVICE_KIND_KEY: options.device
+        }
 
-        if options.dongle:
-            if not options.manual_unlock and options.pin is None:
+        if options.device in ["ledger", "sgx"]:
+            if not options.manual_unlock and \
+               options.pin is None:
                 raise RuntimeError("Auto unlock requires 'pin' argument")
-
-            dongle = HSM2Dongle(options.dongle_verbose)
-            run_on = TestCase.RUN_ON_VALUE_DONGLE
+            run_on = TestCase.RUN_ON_VALUE_DEVICE
             run_args[TestCase.RUN_ARGS_MANUAL_KEY] = options.manual_unlock
             run_args[TestCase.RUN_ARGS_PIN_KEY] = options.pin
+
+        if options.device == "ledger":
+            dongle = HSM2Dongle(options.dongle_verbose)
             output.info("Running against a USB device", nl=True)
+        elif options.device == "sgx":
+            dongle = HSM2DongleSGX(options.host, options.port, options.dongle_verbose)
+            output.info("Running against an SGX device", nl=True)
         else:
             dongle = HSM2DongleTCP(options.host, options.port, options.dongle_verbose)
-            run_on = TestCase.RUN_ON_VALUE_TCPSIGNER
+            run_on = TestCase.RUN_ON_VALUE_SIMULATOR
             output.info("Running against a TCP device", nl=True)
 
         output.info(f"Loading test cases from {options.tests_path}")

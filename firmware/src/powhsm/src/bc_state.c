@@ -42,7 +42,8 @@
 // -----------------------------------------------------------------------
 
 // Here we take it from an external definition (see Makefile for details)
-#if defined(HSM_PLATFORM_LEDGER) && defined(PARAM_INITIAL_BLOCK_HASH)
+#if (defined(HSM_PLATFORM_LEDGER) || defined(HSM_PLATFORM_SGX)) && \
+    defined(PARAM_INITIAL_BLOCK_HASH)
 static const uint8_t INITIAL_BLOCK_HASH[] = PARAM_INITIAL_BLOCK_HASH;
 #elif defined(HSM_PLATFORM_X86)
 uint8_t INITIAL_BLOCK_HASH[HASH_LENGTH];
@@ -166,7 +167,7 @@ uint8_t dump_hash(uint8_t hash_code) {
  */
 uint8_t dump_difficulty() {
     uint8_t buf[sizeof(bc_st_updating.total_difficulty)];
-    dump_bigint(buf, bc_st_updating.total_difficulty, BIGINT_LEN);
+    dump_bigint_be(buf, bc_st_updating.total_difficulty, BIGINT_LEN);
     unsigned int start = 0;
     for (; start < sizeof(buf) && buf[start] == 0; start++)
         continue;

@@ -24,21 +24,21 @@
 
 #include "hal/communication.h"
 
-static unsigned char* msg_buffer;
-static size_t msg_buffer_size;
+static unsigned char* G_msg_buffer;
+static size_t G_msg_buffer_size;
 
 // HAL implementation
-bool communication_init(unsigned char* _msg_buffer, size_t _msg_buffer_size) {
+bool communication_init(unsigned char* msg_buffer, size_t msg_buffer_size) {
     // Setup the exchange buffer
-    msg_buffer = _msg_buffer;
-    msg_buffer_size = _msg_buffer_size;
+    G_msg_buffer = msg_buffer;
+    G_msg_buffer_size = msg_buffer_size;
     return true;
 }
 
 unsigned char* communication_get_msg_buffer() {
-    return msg_buffer;
+    return G_msg_buffer;
 }
 
 size_t communication_get_msg_buffer_size() {
-    return msg_buffer_size;
+    return G_msg_buffer_size;
 }

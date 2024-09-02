@@ -24,7 +24,7 @@
 
 #include "bc_err.h"
 
-#ifdef HSM_PLATFORM_X86
+#if defined(HSM_PLATFORM_X86) || defined(HSM_PLATFORM_SGX)
 
 #include "hal/log.h"
 

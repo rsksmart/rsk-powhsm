@@ -27,6 +27,6 @@
 #include <unistd.h>
 #include <syscall.h>
 
-void random_getrandom(void *buffer, size_t length, unsigned int flags) {
+void random_getrandom(void *buffer, size_t length) {
     syscall(SYS_getrandom, buffer, length, 0);
 }

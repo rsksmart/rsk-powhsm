@@ -27,10 +27,36 @@
 
 #include <stdbool.h>
 
+#include "hal/access.h"
+#include "hal/seed.h"
+
+#include "err.h"
+
+typedef struct {
+    bool handled;
+    unsigned int tx;
+} external_processor_result_t;
+
+// Macro that throws an error unless
+// the device is onboarded
+#define REQUIRE_ONBOARDED() \
+    if (!seed_available())  \
+        THROW(ERR_DEVICE_NOT_ONBOARDED);
+
+// Macro that throws an error unless
+// the device is unlocked
+#define REQUIRE_UNLOCKED()  \
+    if (access_is_locked()) \
+        THROW(ERR_DEVICE_LOCKED);
+
+typedef external_processor_result_t (*external_processor_t)(unsigned int);
+
 void hsm_init();
 
 unsigned int hsm_process_apdu(unsigned int rx);
 
 bool hsm_exit_requested();
+
+void hsm_set_external_processor(external_processor_t external_processor);
 
 #endif // __HSM_H

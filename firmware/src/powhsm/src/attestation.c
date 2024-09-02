@@ -124,6 +124,8 @@ static unsigned int generate_message_to_sign(att_t* att_ctx) {
  * @ret             number of transmited bytes to the host
  */
 unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx) {
+    UNUSED(rx);
+
     unsigned int message_size;
     uint8_t code_hash_size;
 

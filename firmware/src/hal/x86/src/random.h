@@ -27,6 +27,6 @@
 
 #include <stddef.h>
 
-void random_getrandom(void *buffer, size_t length, unsigned int flags);
+void random_getrandom(void *buffer, size_t length);
 
 #endif // __HAL_RANDOM_H
