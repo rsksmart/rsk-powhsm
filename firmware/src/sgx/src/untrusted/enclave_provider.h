@@ -32,7 +32,7 @@
  * 
  * @returns Whether initialization succeeded
  */
-bool ep_init(char* enclave_path);
+bool epro_init(char* enclave_path);
 
 /**
  * @brief Returns a pointer to the HSM enclave. This function should always 
@@ -41,12 +41,12 @@ bool ep_init(char* enclave_path);
  * 
  * @returns A valid pointer to the HSM enclave, or NULL if an error occurred
  */
-oe_enclave_t* ep_get_enclave();
+oe_enclave_t* epro_get_enclave();
 
 /**
  * @brief Terminates the HSM enclave. After this function is called,
  * all ecall operations will fail.
  */
-void ep_finalize_enclave();
+void epro_finalize_enclave();
 
 #endif // __ENCLAVE_PROVIDER_H

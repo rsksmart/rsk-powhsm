@@ -129,13 +129,13 @@ int main(int argc, char **argv) {
     LOG("SGX powHSM starting...\n");
 
     LOG("Initialising enclave provider...\n");
-    if (!ep_init(arguments.enclave_path)) {
+    if (!epro_init(arguments.enclave_path)) {
         LOG("Error initialising enclave provider\n");
         goto main_error;
     }
 
     LOG("Initialising system...\n");
-    if (!ep_system_init(io_apdu_buffer, sizeof(io_apdu_buffer))) {
+    if (!eprx_system_init(io_apdu_buffer, sizeof(io_apdu_buffer))) {
         LOG("Error initialising system\n");
         goto main_error;
     }
@@ -157,7 +157,7 @@ int main(int argc, char **argv) {
         rx = io_exchange(tx);
 
         if (rx) {
-            tx = ep_system_process_apdu(rx);
+            tx = eprx_system_process_apdu(rx);
         }
     }
 

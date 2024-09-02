@@ -74,7 +74,6 @@ void show_error(err_code_t errcode) {
             break;
         }
     }
-    (void)(msg);
     LOG("*** ERROR: %s\n", msg);
 }
 #else

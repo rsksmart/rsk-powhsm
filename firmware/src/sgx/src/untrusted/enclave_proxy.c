@@ -22,8 +22,8 @@
  * ECALLS
  */
 
-bool ep_system_init(unsigned char *msg_buffer, size_t msg_buffer_size) {
-    oe_enclave_t *enclave = ep_get_enclave();
+bool eprx_system_init(unsigned char *msg_buffer, size_t msg_buffer_size) {
+    oe_enclave_t *enclave = epro_get_enclave();
     if (enclave == NULL) {
         LOG("Failed to retrieve the enclave. "
             "Unable to call system_init().\n");
@@ -37,8 +37,8 @@ bool ep_system_init(unsigned char *msg_buffer, size_t msg_buffer_size) {
     return result;
 }
 
-unsigned int ep_system_process_apdu(unsigned int rx) {
-    oe_enclave_t *enclave = ep_get_enclave();
+unsigned int eprx_system_process_apdu(unsigned int rx) {
+    oe_enclave_t *enclave = epro_get_enclave();
     if (enclave == NULL) {
         LOG("Failed to retrieve the enclave. "
             "Unable to call system_process_command().\n");

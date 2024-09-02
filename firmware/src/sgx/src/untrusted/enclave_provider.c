@@ -33,7 +33,7 @@
 static char* G_enclave_path = NULL;
 static oe_enclave_t* G_enclave = NULL;
 
-bool ep_init(char* enclave_path) {
+bool epro_init(char* enclave_path) {
     G_enclave_path = enclave_path;
     if (access(G_enclave_path, F_OK) != 0) {
         LOG("Invalid enclave path given: %s\n", G_enclave_path);
@@ -42,7 +42,7 @@ bool ep_init(char* enclave_path) {
     return true;
 }
 
-oe_enclave_t* ep_get_enclave() {
+oe_enclave_t* epro_get_enclave() {
     if (NULL == G_enclave) {
         oe_enclave_t *enclave = NULL;
         LOG("Creating HSM enclave...\n");
@@ -61,7 +61,7 @@ oe_enclave_t* ep_get_enclave() {
     return G_enclave;
 }
 
-void ep_finalize_enclave() {
+void epro_finalize_enclave() {
     if (NULL != G_enclave) {
         oe_terminate_enclave(G_enclave);
         LOG("HSM enclave terminated\n");

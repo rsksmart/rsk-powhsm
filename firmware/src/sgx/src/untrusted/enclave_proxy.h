@@ -6,11 +6,11 @@
 /**
  * @brief See system_init in system.h within the trusted sources
  */
-bool ep_system_init(unsigned char *msg_buffer, size_t msg_buffer_size);
+bool eprx_system_init(unsigned char *msg_buffer, size_t msg_buffer_size);
 
 /**
  * @brief See system_process_apdu in system.h within the trusted sources
  */
-unsigned int ep_system_process_apdu(unsigned int rx);
+unsigned int eprx_system_process_apdu(unsigned int rx);
 
 #endif // __HSM_PROXY
