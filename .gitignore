@@ -22,3 +22,6 @@
 # Ignore fuzz artifacts
 firmware/fuzz/.coverage-build
 firmware/fuzz/output
+
+# Ignore SGX data files
+**/kvstore-*.dat
