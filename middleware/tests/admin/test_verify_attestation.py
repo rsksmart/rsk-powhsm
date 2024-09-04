@@ -108,6 +108,7 @@ class TestVerifyAttestation(TestCase):
                 f"Authorized signer hash: {'cc'*32}",
                 "Authorized signer iteration: 291",
                 f"Installed UI hash: {'ee'*32}",
+                "Installed UI version: 5.1",
             ],
             fill="-",
         )
@@ -118,6 +119,7 @@ class TestVerifyAttestation(TestCase):
                 "",
                 f"Hash: {self.pubkeys_hash.hex()}",
                 f"Installed Signer hash: {'ff'*32}",
+                "Installed Signer version: 5.1",
             ],
             fill="-",
         )

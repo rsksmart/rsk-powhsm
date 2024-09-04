@@ -28,8 +28,8 @@ from .utils import is_nonempty_hex_string
 from .certificate import HSMCertificate
 
 
-UI_MESSAGE_HEADER = b"HSM:UI:5.1"
-SIGNER_MESSAGE_HEADER = b"HSM:SIGNER:5.1"
+UI_MESSAGE_HEADER = b"HSM:UI:5.X"
+SIGNER_MESSAGE_HEADER = b"HSM:SIGNER:5.X"
 UI_DERIVATION_PATH = "m/44'/0'/0'/0/0"
 UD_VALUE_LENGTH = 32
 PUBKEY_COMPRESSED_LENGTH = 33
@@ -43,6 +43,26 @@ SIGNER_ITERATION_LENGTH = 2
 DEFAULT_ROOT_AUTHORITY = "0490f5c9d15a0134bb019d2afd0bf297149738459706e7ac5be4abc350a1f8"\
                          "18057224fce12ec9a65de18ec34d6e8c24db927835ea1692b14c32e9836a75"\
                          "dad609"
+
+
+def validate_ui_message_header(ui_message):
+    minor_offset = len(UI_MESSAGE_HEADER) - 1
+    if ui_message[:minor_offset] != UI_MESSAGE_HEADER[:minor_offset]:
+        raise AdminError()
+    version_minor = ui_message[minor_offset]
+    # The minor version must be a single digit between 0 and 9
+    if version_minor < 48 or version_minor > 57:
+        raise AdminError()
+
+
+def validate_signer_message_header(signer_message):
+    minor_offset = len(SIGNER_MESSAGE_HEADER) - 1
+    if signer_message[:minor_offset] != SIGNER_MESSAGE_HEADER[:minor_offset]:
+        raise AdminError()
+    version_minor = signer_message[minor_offset]
+    # The minor version must be a single digit between 0 and 9
+    if version_minor < 48 or version_minor > 57:
+        raise AdminError()
 
 
 def do_verify_attestation(options):
@@ -122,7 +142,9 @@ def do_verify_attestation(options):
     ui_message = bytes.fromhex(ui_result[1])
     ui_hash = bytes.fromhex(ui_result[2])
     mh_len = len(UI_MESSAGE_HEADER)
-    if ui_message[:mh_len] != UI_MESSAGE_HEADER:
+    try:
+        validate_ui_message_header(ui_message)
+    except Exception:
         raise AdminError(
             f"Invalid UI attestation message header: {ui_message[:mh_len].hex()}")
 
@@ -138,6 +160,7 @@ def do_verify_attestation(options):
                                   mh_len + UD_VALUE_LENGTH + PUBKEY_COMPRESSED_LENGTH +
                                   SIGNER_HASH_LENGTH + SIGNER_ITERATION_LENGTH]
     signer_iteration = int.from_bytes(signer_iteration, byteorder='big', signed=False)
+    ui_version = ui_message[mh_len - 3:mh_len]
 
     head(
         [
@@ -147,6 +170,7 @@ def do_verify_attestation(options):
             f"Authorized signer hash: {signer_hash}",
             f"Authorized signer iteration: {signer_iteration}",
             f"Installed UI hash: {ui_hash.hex()}",
+            f"Installed UI version: {ui_version.decode()}",
         ],
         fill="-",
     )
@@ -163,7 +187,9 @@ def do_verify_attestation(options):
     signer_message = bytes.fromhex(signer_result[1])
     signer_hash = bytes.fromhex(signer_result[2])
     mh_len = len(SIGNER_MESSAGE_HEADER)
-    if signer_message[:mh_len] != SIGNER_MESSAGE_HEADER:
+    try:
+        validate_signer_message_header(signer_message)
+    except Exception:
         raise AdminError(
             f"Invalid Signer attestation message header: {signer_message[:mh_len].hex()}")
 
@@ -173,12 +199,14 @@ def do_verify_attestation(options):
             f"Signer attestation public keys hash mismatch: expected {pubkeys_hash.hex()}"
             f" but attestation reports {reported}"
         )
+    signer_version = signer_message[mh_len - 3:mh_len]
 
     head(
         ["Signer verified with public keys:"] + pubkeys_output + [
             "",
             f"Hash: {signer_message[mh_len:].hex()}",
             f"Installed Signer hash: {signer_hash.hex()}",
+            f"Installed Signer version: {signer_version.decode()}",
         ],
         fill="-",
     )
