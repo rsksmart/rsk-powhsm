@@ -74,6 +74,7 @@ typedef struct {
 static uint8_t unseal_data(const sealed_secret_t* sealed_secret,
                            uint8_t* dest,
                            size_t dest_length) {
+#ifndef SIM_BUILD
     if (sealed_secret->blob_size > MAX_BLOB_SIZE) {
         LOG("Sealed blob size is too large\n");
         goto unseal_data_error;
@@ -107,6 +108,25 @@ unseal_data_error:
     if (plaintext)
         oe_free(plaintext);
     return SEST_ERROR;
+#else
+    // *************************************************** //
+    // UNSAFE SIMULATOR-ONLY UNSEAL IMPLEMENTATION         //
+    // NOT FOR PRODUCTION USE                              //
+    if (sealed_secret->blob_size > MAX_BLOB_SIZE) {
+        LOG("Sealed blob size is too large\n");
+        return SEST_ERROR;
+    }
+
+    if (sealed_secret->blob_size > dest_length) {
+        LOG("Unsealed data is too large\n");
+        return SEST_ERROR;
+    }
+
+    platform_memmove(dest, sealed_secret->blob, sealed_secret->blob_size);
+
+    return sealed_secret->blob_size;
+    // *************************************************** //
+#endif
 }
 
 /**
@@ -119,6 +139,7 @@ unseal_data_error:
 static bool seal_data(uint8_t* data,
                       size_t data_length,
                       sealed_secret_t* sealed_secret) {
+#ifndef SIM_BUILD
     uint8_t* blob = NULL;
     size_t blob_size = 0;
     const oe_seal_setting_t settings[] = {OE_SEAL_SET_POLICY(SEAL_POLICY)};
@@ -142,6 +163,16 @@ static bool seal_data(uint8_t* data,
     sealed_secret->blob = blob;
     sealed_secret->blob_size = blob_size;
     return true;
+#else
+    // *************************************************** //
+    // UNSAFE SIMULATOR-ONLY SEAL IMPLEMENTATION           //
+    // NOT FOR PRODUCTION USE                              //
+    sealed_secret->blob = oe_malloc(data_length);
+    memcpy(sealed_secret->blob, data, data_length);
+    sealed_secret->blob_size = data_length;
+    return true;
+    // *************************************************** //
+#endif
 }
 
 // Public API

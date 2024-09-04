@@ -111,6 +111,10 @@ build-debug: CFLAGS_COMMON += -DDEBUG_BUILD
 build-debug: CONF_FILE = $(SGX_SRC_DIR)/$(ENCLAVE_NAME)-debug.conf
 build-debug: build
 
+build-sim: CFLAGS_COMMON += -DSIM_BUILD -DDEBUG_BUILD
+build-sim: CONF_FILE = $(SGX_SRC_DIR)/$(ENCLAVE_NAME)-sim.conf
+build-sim: build
+
 check-private-key:
 	@if [ ! -f private.pem ]; then \
 		echo "Private key not found! Please place your private key in a private.pem file."; \

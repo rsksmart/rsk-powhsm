@@ -29,6 +29,13 @@
 #include "enclave_provider.h"
 #include "log.h"
 
+// Simulation build
+#ifndef SIM_BUILD
+#define CREATE_ENCLAVE_FLAGS 0
+#else
+#define CREATE_ENCLAVE_FLAGS OE_ENCLAVE_FLAG_SIMULATE
+#endif
+
 // Global pointer to the enclave. This should be the only global pointer to the enclave
 static char* G_enclave_path = NULL;
 static oe_enclave_t* G_enclave = NULL;
@@ -48,7 +55,7 @@ oe_enclave_t* epro_get_enclave() {
         LOG("Creating HSM enclave...\n");
         oe_result_t result = oe_create_hsm_enclave(G_enclave_path,
                                                    OE_ENCLAVE_TYPE_AUTO,
-                                                   0, NULL, 0, &enclave);
+                                                   CREATE_ENCLAVE_FLAGS, NULL, 0, &enclave);
         if (OE_OK != result) {
             LOG("Failed to create enclave: oe_result=%u (%s)\n", result, oe_result_str(result));
             return NULL;
