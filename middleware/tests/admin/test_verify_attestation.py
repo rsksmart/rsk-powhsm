@@ -27,8 +27,8 @@ from admin.misc import AdminError
 from admin.pubkeys import PATHS
 from admin.verify_attestation import (
     do_verify_attestation,
-    validate_ui_message_header,
-    validate_signer_message_header
+    match_ui_message_header,
+    match_signer_message_header
 )
 import ecdsa
 import hashlib
@@ -285,7 +285,7 @@ class TestVerifyAttestation(TestCase):
         self.assertEqual(("Invalid Signer attestation: error validating 'signer'"),
                          str(e.exception))
 
-    def test_validate_ui_message_header_valid_header(self, _):
+    def test_match_ui_message_header_valid_header(self, _):
         valid_headers = [
             UI_HEADER,
             b"HSM:UI:5.0",
@@ -294,9 +294,9 @@ class TestVerifyAttestation(TestCase):
         ]
         for header in valid_headers:
             ui_message = header + self.ui_msg[len(UI_HEADER):]
-            self.assertTrue(validate_ui_message_header(ui_message))
+            self.assertTrue(match_ui_message_header(ui_message))
 
-    def test_validate_ui_message_header_invalid_header(self, _):
+    def test_match_ui_message_header_invalid_header(self, _):
         invalid_headers = [
             SIGNER_HEADER,
             b"HSM:UI:4.0",
@@ -304,9 +304,9 @@ class TestVerifyAttestation(TestCase):
         ]
         for header in invalid_headers:
             ui_message = header + self.ui_msg[len(UI_HEADER):]
-            self.assertFalse(validate_ui_message_header(ui_message))
+            self.assertFalse(match_ui_message_header(ui_message))
 
-    def test_validate_signer_message_header_valid_header(self, _):
+    def test_match_signer_message_header_valid_header(self, _):
         valid_headers = [
             SIGNER_HEADER,
             b"HSM:SIGNER:5.0",
@@ -315,9 +315,9 @@ class TestVerifyAttestation(TestCase):
         ]
         for header in valid_headers:
             signer_message = header + self.signer_msg[len(SIGNER_HEADER):]
-            self.assertTrue(validate_signer_message_header(signer_message))
+            self.assertTrue(match_signer_message_header(signer_message))
 
-    def test_validate_signer_message_header_invalid_header(self, _):
+    def test_match_signer_message_header_invalid_header(self, _):
         invalid_headers = [
             UI_HEADER,
             b"HSM:SIGNER:4.0",
@@ -325,4 +325,4 @@ class TestVerifyAttestation(TestCase):
         ]
         for header in invalid_headers:
             signer_message = header + self.signer_msg[len(SIGNER_HEADER):]
-            self.assertFalse(validate_signer_message_header(signer_message))
+            self.assertFalse(match_signer_message_header(signer_message))
