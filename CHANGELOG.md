@@ -1,5 +1,19 @@
 # Changelog
 
+## [5.2.0] - 09/09/2024
+
+### Features/enhancements
+
+- Added "screen saver" mode to signer app to extend display lifetime
+- Decoupled business and I/O (aka communication) layers in preparation for multiple platforms
+- Improved HAL directory structure to accomodate for testing different platform implementations
+
+### Fixes
+
+- Fixed middleware docker image build
+- Fixed verify_attestaion.py to allow distinct versions for UI and Signer
+- Incidentally bumped urllib3, certifi to address dependabot findings
+
 ## [5.1.0] - 01/07/2024
 
 ### Features/enhancements
