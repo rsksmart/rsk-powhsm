@@ -37,8 +37,8 @@ import logging
 logging.disable(logging.CRITICAL)
 
 EXPECTED_UI_DERIVATION_PATH = "m/44'/0'/0'/0/0"
-SIGNER_HEADER = b"HSM:SIGNER:5.1"
-UI_HEADER = b"HSM:UI:5.1"
+SIGNER_HEADER = b"HSM:SIGNER:5.2"
+UI_HEADER = b"HSM:UI:5.2"
 
 
 @patch("sys.stdout.write")
@@ -114,7 +114,7 @@ class TestVerifyAttestation(TestCase):
                 f"Authorized signer hash: {'cc'*32}",
                 "Authorized signer iteration: 291",
                 f"Installed UI hash: {'ee'*32}",
-                "Installed UI version: 5.1",
+                "Installed UI version: 5.2",
             ],
             fill="-",
         )
@@ -125,7 +125,7 @@ class TestVerifyAttestation(TestCase):
                 "",
                 f"Hash: {self.pubkeys_hash.hex()}",
                 f"Installed Signer hash: {'ff'*32}",
-                "Installed Signer version: 5.1",
+                "Installed Signer version: 5.2",
             ],
             fill="-",
         )
