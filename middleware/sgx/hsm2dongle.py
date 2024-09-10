@@ -25,8 +25,10 @@ from ledger.hsm2dongle_tcp import HSM2DongleTCP
 
 
 class SgxCommand(IntEnum):
+    SGX_RETRIES = 0xA2,
     SGX_UNLOCK = 0xA3,
     SGX_ECHO = 0xA4,
+    SGX_CHANGE_PASSWORD = 0xA5,
 
 
 class HSM2DongleSGX(HSM2DongleTCP):
@@ -44,3 +46,15 @@ class HSM2DongleSGX(HSM2DongleTCP):
 
         # Nonzero indicates device unlocked
         return response[2] != 0
+
+    # change pin
+    def new_pin(self, pin):
+        response = self._send_command(SgxCommand.SGX_CHANGE_PASSWORD, bytes([0]) + pin)
+
+        # One indicates pin changed
+        return response[2] == 1
+
+    # returns the number of pin retries available
+    def get_retries(self):
+        apdu_rcv = self._send_command(SgxCommand.SGX_RETRIES)
+        return apdu_rcv[2]
