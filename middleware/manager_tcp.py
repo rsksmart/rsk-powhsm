@@ -24,15 +24,24 @@ from ledger.hsm2dongle_tcp import HSM2DongleTCP
 from mgr.runner import ManagerRunner
 from user.options import UserOptionParser
 
+
+def configure_protocol_messages(protocol):
+    protocol.MESSAGES = {
+        "restart": "restart the TCPSigner",
+    }
+
+
 if __name__ == "__main__":
     user_options = UserOptionParser("Start the powHSM manager for TCPSigner",
                                     with_pin=False,
-                                    with_tcpsigner=True).parse()
+                                    with_tcpconn=True,
+                                    host_name="TCPSigner").parse()
 
     runner = ManagerRunner("powHSM manager for TCPSigner",
-                           lambda options: HSM2DongleTCP(options.tcpsigner_host,
-                                                         options.tcpsigner_port,
-                                                         options.dongle_debug),
-                           load_pin=lambda options: None)
+                           lambda options: HSM2DongleTCP(options.tcpconn_host,
+                                                         options.tcpconn_port,
+                                                         options.io_debug),
+                           load_pin=lambda options: None,
+                           configure_protocol=configure_protocol_messages)
 
     runner.run(user_options)

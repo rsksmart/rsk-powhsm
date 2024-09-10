@@ -17,7 +17,7 @@ help() {
 }
 
 stop() {
-   killall -q manager-tcp
+   killall -q manager_tcp
    killall -q tcpsigner
 
    exit
@@ -47,7 +47,7 @@ done
 sleep 2
   
 # Start the manager for the TCPSigner
-/bins/manager-tcp -b0.0.0.0 -p$PORT &
+/bins/manager_tcp -b0.0.0.0 -p$PORT &
   
 # Wait for any process to exit
 wait -n

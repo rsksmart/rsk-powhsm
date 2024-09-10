@@ -39,12 +39,18 @@ def load_pin(user_options):
     return pin
 
 
+def configure_protocol_messages(protocol):
+    protocol.MESSAGES = {
+        "restart": "disconnect and reconnect the ledger nano",
+    }
+
+
 if __name__ == "__main__":
-    user_options = UserOptionParser("Start the powHSM manager",
+    user_options = UserOptionParser("Start the powHSM manager for Ledger",
                                     with_pin=True).parse()
 
     runner = ManagerRunner("powHSM manager",
-                           lambda options: HSM2Dongle(options.dongle_debug),
-                           load_pin)
+                           lambda options: HSM2Dongle(options.io_debug),
+                           load_pin, configure_protocol_messages)
 
     runner.run(user_options)

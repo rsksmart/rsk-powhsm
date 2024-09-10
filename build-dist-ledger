@@ -48,10 +48,10 @@ rm -f $DEST_DIR/attestation.json $DEST_DIR/device_attestation.json
 
 echo
 echo -e "\e[33mBuilding middleware...\e[0m"
-$ROOT_DIR/middleware/build/dist
-cp $ROOT_DIR/middleware/bin/adm.tgz $BIN_DIR
+$ROOT_DIR/middleware/build/dist_ledger
+cp $ROOT_DIR/middleware/bin/adm_ledger.tgz $BIN_DIR
 cp $ROOT_DIR/middleware/bin/lbutils.tgz $BIN_DIR
-cp $ROOT_DIR/middleware/bin/manager.tgz $BIN_DIR
+cp $ROOT_DIR/middleware/bin/manager_ledger.tgz $BIN_DIR
 cp $ROOT_DIR/middleware/bin/signapp.tgz $BIN_DIR
 echo
 

@@ -2,7 +2,7 @@
 
 ## About
 
-This document describes the legacy protocol used in version 1 of the HSM. The purpose is to provide a reference for the usage of the legacy mode in the manager and TCP manager (with modifier `--version-one`).
+This document describes the legacy protocol used in version 1 of the HSM. The purpose is to provide a reference for the usage of the legacy mode in the Ledger manager and TCP manager (with modifier `--version-one`).
 
 ## Definitions
 

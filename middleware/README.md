@@ -40,36 +40,36 @@ Throughout the rest of the document, we will refer to a middleware development e
 
 ## Middleware breakdown
 
-### Manager
+### Ledger Manager
 
-The manager is the main middleware component. Its role is to provide a high-level abstraction layer over the low-level powHSM dongle USB interface. It does this by starting a TCP service in a certain interface and port and implementing the [protocol](../docs/protocol.md) on top by means of interactions with the connected powHSM dongle. The entrypoint to the powHSM manager is the `manager.py` script. In order to start it, issue:
+The Ledger manager is the main middleware component for the Ledger powHSM implementation. Its role is to provide a high-level abstraction layer over the low-level powHSM dongle USB interface. It does this by starting a TCP service in a certain interface and port and implementing the [protocol](../docs/protocol.md) on top by means of interactions with the connected powHSM dongle. The entrypoint to the powHSM manager is the `manager_ledger.py` script. In order to start it, issue:
 
 ```
-(mware)> python manager.py
+(mware)> python manager_ledger.py
 ```
 
 Hit CTRL-C at any time to stop it.
 
 ### TCP Manager
 
-This is an implementation of the Manager that connects to a dongle via a TCP/IP connection. Its main use is along the TCPSigner (an x86 implementation of the Signer component) for integration tests and the like. It's important to mention that Manager and TCP Manager share most of the code, and that the main difference lies in the dongle proxy used and available user options. The entrypoint to the TCP manager is the `manager-tcp.py` script. In order to start it, issue:
+This is an implementation of the Manager that connects to a dongle via a TCP/IP connection. Its main use is along the TCPSigner (an x86 implementation of the Signer component) for integration tests and the like. It's important to mention that Manager and TCP Manager share most of the code, and that the main difference lies in the dongle proxy used and available user options. The entrypoint to the TCP manager is the `manager_tcp.py` script. In order to start it, issue:
 
 ```
-(mware)> python manager-tcp.py
+(mware)> python manager_tcp.py
 ```
 
 Hit CTRL-C at any time to stop it.
 
 ### Administrative utilities
 
-Aside from the main `manager.py` and `manager-tcp.py` scripts, there are other three scripts to consider:
+Aside from the main `manager_ledger.py` and `manager_tcp.py` scripts, there are other three scripts to consider:
 
-- `adm.py`: administrative utility for a powHSM dongle. It provides common utilities that can be performed on a powHSM dongle.
+- `adm_ledger.py`: administrative utility for a Ledger powHSM dongle. It provides common utilities that can be performed on a powHSM dongle.
 - `lbutils.py`: common frontend to some of the `ledgerblue` modules. In particular, it ultimately serves the purpose of being able to build a binary for these utilities.
 - `signapp.py`: signer authorization generator. Serves the purpose of generating authorization files for Signer versions (see [the signer authorization documentation](../docs/signer-authorization.md) for details). It can be used to add externally generated signatures, or to sign with a manually input key (intended for testing purposes only). It can also be used to calculate the message to be signed to authorize a specific signer version (so that then the signature can be generated on a third-party application, e.g., MetaMask). Last, it has an option to calculate and output a Ledger app's hash.
 - `signonetime.py`: ledger app signer. Serves the purpose of signing Ledger Nano S firmware builds with a securely generated random one-time key. It is used in the distribution building process targeting the initial device setup process.
 
-The remaining `client.py` is a shorthand client utility for manually testing communication with a running manager or TCP manager.
+The remaining `client.py` is a shorthand client utility for manually testing communication with a running Ledger manager or TCP manager.
 
 ## Unit tests
 
