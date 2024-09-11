@@ -142,7 +142,7 @@ The validation process _for each of the targets_ is fairly straightforward, and 
 For completion's sake, a validation tool is provided within the administration toolset. So, for example, if the file depicted above was at `/a/path/to/the/attestation.json`, the JSON-formatted public keys generated at onboarding time were at `/a/path/to/the/public-keys.json` and we knew the issuer public key was `0490f5c9d15a0134bb019d2afd0bf297149738459706e7ac5be4abc350a1f818057224fce12ec9a65de18ec34d6e8c24db927835ea1692b14c32e9836a75dad609` (the actual ledger issuer public key, found in [ledger's endorsement setup tooling](https://github.com/LedgerHQ/blue-loader-python/blob/0.1.31/ledgerblue/endorsementSetup.py#L138)), we could issue:
 
 ```bash
-middleware/term> python adm.py verify_attestation -t /a/path/to/the/attestation.json -r 0490f5c9d15a0134bb019d2afd0bf297149738459706e7ac5be4abc350a1f818057224fce12ec9a65de18ec34d6e8c24db927835ea1692b14c32e9836a75dad609 -b /a/path/to/the/public-keys.json
+middleware/term> python adm_ledger.py verify_attestation -t /a/path/to/the/attestation.json -r 0490f5c9d15a0134bb019d2afd0bf297149738459706e7ac5be4abc350a1f818057224fce12ec9a65de18ec34d6e8c24db927835ea1692b14c32e9836a75dad609 -b /a/path/to/the/public-keys.json
 ```
 
 to then obtain the following sample output:

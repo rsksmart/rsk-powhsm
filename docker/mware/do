@@ -29,4 +29,4 @@ WORKDIR=$1; shift
 BINARY=$1; shift
 ARGS=$@
 
-docker run -ti --rm --name hsm-mware -v $HSM_ROOT:/hsm2 -v /dev/bus/usb:/dev/bus/usb --privileged -p$PORT:$PORT -w $WORKDIR $DOCKER_IMAGE $BINARY $ARGS
+docker run -ti --rm --name hsm-mware -v $HSM_ROOT:/hsm2 -v /dev/bus/usb:/dev/bus/usb --privileged --add-host=host.docker.internal:host-gateway -p$PORT:$PORT -w $WORKDIR $DOCKER_IMAGE $BINARY $ARGS

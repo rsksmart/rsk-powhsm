@@ -21,7 +21,7 @@
 # SOFTWARE.
 
 import os
-from ledger.hsm2dongle import HSM2Dongle
+from sgx.hsm2dongle import HSM2DongleSGX
 from mgr.runner import ManagerRunner
 from ledger.pin import FileBasedPin
 from user.options import UserOptionParser
@@ -39,12 +39,23 @@ def load_pin(user_options):
     return pin
 
 
-if __name__ == "__main__":
-    user_options = UserOptionParser("Start the powHSM manager",
-                                    with_pin=True).parse()
+def configure_protocol_messages(protocol):
+    protocol.MESSAGES = {
+        "restart": "restart the SGX powHSM",
+    }
 
-    runner = ManagerRunner("powHSM manager",
-                           lambda options: HSM2Dongle(options.dongle_debug),
-                           load_pin)
+
+if __name__ == "__main__":
+    user_options = UserOptionParser("Start the powHSM manager for SGX",
+                                    with_pin=True,
+                                    with_tcpconn=True,
+                                    host_name="SGX",
+                                    default_tcpconn_port=7777).parse()
+
+    runner = ManagerRunner("powHSM manager for SGX",
+                           lambda options: HSM2DongleSGX(options.tcpconn_host,
+                                                         options.tcpconn_port,
+                                                         options.io_debug),
+                           load_pin, configure_protocol_messages)
 
     runner.run(user_options)

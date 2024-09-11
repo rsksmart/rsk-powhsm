@@ -13,7 +13,7 @@ cp $ROOTDIR/firmware/src/tcpsigner/tcpsigner $DESTDIR
 
 echo "Building TCPManager..."
 
-$ROOTDIR/middleware/build/manager-tcp > /dev/null 2>&1
-cp $ROOTDIR/middleware/bin/manager-tcp.tgz $DESTDIR
+$ROOTDIR/middleware/build/manager_tcp > /dev/null 2>&1
+cp $ROOTDIR/middleware/bin/manager_tcp.tgz $DESTDIR
 
 echo "Done."

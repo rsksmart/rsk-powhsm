@@ -46,6 +46,11 @@ class HSM2ProtocolLedger(HSM2Protocol):
     # Required minimum number of pin retries available to proceed with unlocking
     MIN_AVAILABLE_RETRIES = 2
 
+    # Default user messages
+    MESSAGES = {
+        "restart": "restart the powHSM"
+    }
+
     def __init__(self, pin, dongle):
         super().__init__()
         self.hsm2dongle = dongle
@@ -73,7 +78,7 @@ class HSM2ProtocolLedger(HSM2Protocol):
             self.logger.info(
                 "Could not determine onboarded status. If unlocked, "
                 + "please enter the signing app and rerun the manager. Otherwise,"
-                + "disconnect and reconnect the ledger nano and try again"
+                + f"{self.MESSAGES["restart"]} and try again"
             )
             raise HSM2ProtocolInterrupt()
 
@@ -196,14 +201,13 @@ class HSM2ProtocolLedger(HSM2Protocol):
                     raise Exception("Dongle reported fail to change pin. Pin invalid?")
                 self.pin.commit_change()
                 self.logger.info(
-                    "PIN changed. Please disconnect and reconnect the ledger nano"
+                    f"PIN changed. Please {self.MESSAGES["restart"]}"
                 )
             except Exception as e:
                 self.pin.abort_change()
                 self.logger.error(
-                    "Error changing PIN: %s. Please disconnect and "
-                    "reconnect the ledger nano and try again",
-                    format(e),
+                    f"Error changing PIN: %s. Please {self.MESSAGES["restart"]} "
+                    "and try again", format(e),
                 )
             finally:
                 raise HSM2ProtocolInterrupt()

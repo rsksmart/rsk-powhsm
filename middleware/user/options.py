@@ -28,23 +28,25 @@ class UserOptionParser:
         self,
         description,
         with_pin,
-        with_tcpsigner=False,
+        with_tcpconn=False,
+        host_name="",
         default_port=9999,
         default_host="localhost",
         default_pin_file="pin.txt",
         default_logging_config_path="logging.cfg",
-        default_tcpsigner_host="localhost",
-        default_tcpsigner_port=8888,
+        default_tcpconn_host="localhost",
+        default_tcpconn_port=8888,
     ):
         self.description = description
         self.with_pin = with_pin
-        self.with_tcpsigner = with_tcpsigner
+        self.with_tcpconn = with_tcpconn
+        self.host_name = host_name
         self.default_port = default_port
         self.default_host = default_host
         self.default_pin_file = default_pin_file
         self.default_logging_config_path = default_logging_config_path
-        self.default_tcpsigner_port = default_tcpsigner_port
-        self.default_tcpsigner_host = default_tcpsigner_host
+        self.default_tcpconn_port = default_tcpconn_port
+        self.default_tcpconn_host = default_tcpconn_host
 
     def parse(self):
         parser = ArgumentParser(description=self.description)
@@ -65,10 +67,10 @@ class UserOptionParser:
         )
         parser.add_argument(
             "-D",
-            "--dongledebug",
-            dest="dongle_debug",
+            "--iodebug",
+            dest="io_debug",
             action="store_true",
-            help="Low level dongle debug. (defaults to no)",
+            help="Low level I/O debug. (defaults to no)",
         )
 
         if self.with_pin:
@@ -102,21 +104,22 @@ class UserOptionParser:
             help="Run in version 1 mode. (defaults to no)",
         )
 
-        if self.with_tcpsigner:
+        if self.with_tcpconn:
             parser.add_argument(
-                "-tp",
-                "--tcpsigner-port",
-                dest="tcpsigner_port",
-                help=f"TCPSigner listening port (default {self.default_tcpsigner_port})",
+                f"-{self.host_name.lower()[0]}p",
+                f"--{self.host_name.lower()}-port",
+                dest="tcpconn_port",
+                help=f"{self.host_name} listening port (default "
+                     f"{self.default_tcpconn_port})",
                 type=int,
-                default=self.default_tcpsigner_port,
+                default=self.default_tcpconn_port,
             )
             parser.add_argument(
-                "-th",
-                "--tcpsigner-host",
-                dest="tcpsigner_host",
-                help=f"TCPSigner host. (default '{self.default_tcpsigner_host}')",
-                default=self.default_tcpsigner_host,
+                f"-{self.host_name.lower()[0]}h",
+                f"--{self.host_name.lower()}-host",
+                dest="tcpconn_host",
+                help=f"{self.host_name} host. (default '{self.default_tcpconn_host}')",
+                default=self.default_tcpconn_host,
             )
 
         options = parser.parse_args()

@@ -67,6 +67,24 @@ static unsigned int do_onboard(unsigned int rx) {
     return TX_NO_DATA();
 }
 
+static unsigned int do_change_password(unsigned int rx) {
+    // Require a nonblank password
+    if (APDU_DATA_SIZE(rx) < 1) {
+        THROW(ERR_INVALID_DATA_SIZE);
+    }
+
+    // Password change
+    uint8_t tmp_buffer[apdu_buffer_size];
+    size_t password_length = APDU_DATA_SIZE(rx);
+    memcpy(tmp_buffer, APDU_DATA_PTR, password_length);
+    if (!access_set_password((char*)tmp_buffer, password_length)) {
+        THROW(ERR_PASSWORD_CHANGE);
+    }
+
+    SET_APDU_OP(1);
+    return TX_NO_DATA();
+}
+
 static unsigned int do_unlock(unsigned int rx) {
     if (!access_is_locked()) {
         SET_APDU_OP(1);
@@ -123,6 +141,11 @@ static external_processor_result_t system_do_process_apdu(unsigned int rx) {
         break;
     case SGX_ECHO:
         result.tx = do_echo(rx);
+        break;
+    case SGX_CHANGE_PASSWORD:
+        REQUIRE_ONBOARDED();
+        REQUIRE_UNLOCKED();
+        result.tx = do_change_password(rx);
         break;
     default:
         result.handled = false;

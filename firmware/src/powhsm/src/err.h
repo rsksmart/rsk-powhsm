@@ -35,6 +35,7 @@ typedef enum {
     ERR_DEVICE_ONBOARDED = 0x6BEF,
     ERR_ONBOARDING = 0x6BF0,
     ERR_DEVICE_LOCKED = 0x6BF1,
+    ERR_PASSWORD_CHANGE = 0x6BF2,
 } err_code_signer_t;
 
 #endif // __ERR_H

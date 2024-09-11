@@ -51,7 +51,7 @@ def main():
         "authorize_signer": do_authorize_signer,
     }
 
-    parser = ArgumentParser(description="powHSM Administrative tool")
+    parser = ArgumentParser(description="Ledger powHSM Administrative tool")
     parser.add_argument("operation", choices=list(actions.keys()))
     parser.add_argument("-p", "--pin", dest="pin", help="PIN.")
     parser.add_argument(

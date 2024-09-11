@@ -20,19 +20,37 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from ledger.hsm2dongle_tcp import HSM2DongleTCP
+import os
+from ledger.hsm2dongle import HSM2Dongle
 from mgr.runner import ManagerRunner
+from ledger.pin import FileBasedPin
 from user.options import UserOptionParser
 
-if __name__ == "__main__":
-    user_options = UserOptionParser("Start the powHSM manager for TCPSigner",
-                                    with_pin=False,
-                                    with_tcpsigner=True).parse()
 
-    runner = ManagerRunner("powHSM manager for TCPSigner",
-                           lambda options: HSM2DongleTCP(options.tcpsigner_host,
-                                                         options.tcpsigner_port,
-                                                         options.dongle_debug),
-                           load_pin=lambda options: None)
+def load_pin(user_options):
+    env_pin = os.environ.get("PIN", None)
+    if env_pin is not None:
+        env_pin = env_pin.encode()
+    pin = FileBasedPin(
+        user_options.pin_file,
+        default_pin=env_pin,
+        force_change=user_options.force_pin_change,
+    )
+    return pin
+
+
+def configure_protocol_messages(protocol):
+    protocol.MESSAGES = {
+        "restart": "disconnect and reconnect the ledger nano",
+    }
+
+
+if __name__ == "__main__":
+    user_options = UserOptionParser("Start the powHSM manager for Ledger",
+                                    with_pin=True).parse()
+
+    runner = ManagerRunner("powHSM manager",
+                           lambda options: HSM2Dongle(options.io_debug),
+                           load_pin, configure_protocol_messages)
 
     runner.run(user_options)
