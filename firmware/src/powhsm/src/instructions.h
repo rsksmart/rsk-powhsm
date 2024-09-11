@@ -58,6 +58,7 @@ typedef enum {
     SGX_RETRIES = 0xA2,
     SGX_UNLOCK = 0xA3,
     SGX_ECHO = 0xA4,
+    SGX_CHANGE_PASSWORD = 0xA5,
 } apdu_instruction_t;
 
 #endif // __INSTRUCTIONS_H

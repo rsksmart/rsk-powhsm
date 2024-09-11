@@ -13,9 +13,9 @@ TARGET_ID="$(cat $ROOT_DIR/scripts/target.id)"
 LBUTILS_DIR="$ROOT_DIR/bin/lbutils"
 LBUTILS_BUNDLE="$LBUTILS_DIR.tgz"
 LBUTILS="$LBUTILS_DIR/lbutils"
-ADMIN_DIR="$ROOT_DIR/bin/adm"
+ADMIN_DIR="$ROOT_DIR/bin/adm_ledger"
 ADMIN_BUNDLE="$ADMIN_DIR.tgz"
-ADMIN="$ADMIN_DIR/adm"
+ADMIN="$ADMIN_DIR/adm_ledger"
 
 function cleanBinaries() {
     rm -rf $LBUTILS_DIR

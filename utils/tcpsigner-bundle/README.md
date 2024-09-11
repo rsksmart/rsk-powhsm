@@ -23,8 +23,8 @@ docker/packer/build
 
 ### Building and bundling
 
-Before using the TCPSigner bundle (i.e., TCPSigner + Manager combo), both the TCPSigner
-and the TCPManager binaries must be built. In order to do that, within this document's
+Before using the TCPSigner bundle (i.e., TCPSigner + TCP Manager combo), both the TCPSigner
+and the TCP Manager binaries must be built. In order to do that, within this document's
 directory, issue:
 
 ```

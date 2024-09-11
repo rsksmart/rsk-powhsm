@@ -20,41 +20,28 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from enum import IntEnum
 from ledger.hsm2dongle_tcp import HSM2DongleTCP
+from mgr.runner import ManagerRunner
+from user.options import UserOptionParser
 
 
-class SgxCommand(IntEnum):
-    SGX_RETRIES = 0xA2,
-    SGX_UNLOCK = 0xA3,
-    SGX_ECHO = 0xA4,
-    SGX_CHANGE_PASSWORD = 0xA5,
+def configure_protocol_messages(protocol):
+    protocol.MESSAGES = {
+        "restart": "restart the TCPSigner",
+    }
 
 
-class HSM2DongleSGX(HSM2DongleTCP):
-    # Echo message
-    def echo(self):
-        message = bytes([0x41, 0x42, 0x43])
-        result = bytes(self._send_command(SgxCommand.SGX_ECHO, message))
-        # Result should be the command plus the message
-        expected_result = bytes([self.CLA, SgxCommand.SGX_ECHO]) + message
-        return result == expected_result
+if __name__ == "__main__":
+    user_options = UserOptionParser("Start the powHSM manager for TCPSigner",
+                                    with_pin=False,
+                                    with_tcpconn=True,
+                                    host_name="TCPSigner").parse()
 
-    # Unlock the device with the given pin
-    def unlock(self, pin):
-        response = self._send_command(SgxCommand.SGX_UNLOCK, bytes([0]) + pin)
+    runner = ManagerRunner("powHSM manager for TCPSigner",
+                           lambda options: HSM2DongleTCP(options.tcpconn_host,
+                                                         options.tcpconn_port,
+                                                         options.io_debug),
+                           load_pin=lambda options: None,
+                           configure_protocol=configure_protocol_messages)
 
-        # Nonzero indicates device unlocked
-        return response[2] != 0
-
-    # change pin
-    def new_pin(self, pin):
-        response = self._send_command(SgxCommand.SGX_CHANGE_PASSWORD, bytes([0]) + pin)
-
-        # One indicates pin changed
-        return response[2] == 1
-
-    # returns the number of pin retries available
-    def get_retries(self):
-        apdu_rcv = self._send_command(SgxCommand.SGX_RETRIES)
-        return apdu_rcv[2]
+    runner.run(user_options)
