@@ -30,11 +30,6 @@ from admin.unlock import do_unlock
 from admin.onboard import do_onboard
 from admin.pubkeys import do_get_pubkeys
 from admin.changepin import do_changepin
-from admin.attestation import do_attestation
-from admin.verify_attestation import do_verify_attestation
-from admin.authorize_signer import do_authorize_signer
-
-DEFAULT_ATT_UD_SOURCE = "https://public-node.rsk.co"
 
 
 def main():
@@ -45,13 +40,25 @@ def main():
         "onboard": do_onboard,
         "pubkeys": do_get_pubkeys,
         "changepin": do_changepin,
-        "attestation": do_attestation,
-        "verify_attestation": do_verify_attestation,
-        "authorize_signer": do_authorize_signer,
     }
 
-    parser = ArgumentParser(description="Ledger powHSM Administrative tool")
+    parser = ArgumentParser(description="SGX powHSM Administrative tool")
     parser.add_argument("operation", choices=list(actions.keys()))
+    parser.add_argument(
+        "-r",
+        "--port",
+        dest="sgx_port",
+        help="SGX powHSM listening port (default 7777)",
+        type=int,
+        default=7777,
+    )
+    parser.add_argument(
+        "-s",
+        "--host",
+        dest="sgx_host",
+        help="SGX powHSM host. (default 'localhost')",
+        default="localhost",
+    )
     parser.add_argument("-p", "--pin", dest="pin", help="PIN.")
     parser.add_argument(
         "-n",
@@ -72,7 +79,7 @@ def main():
         "-o",
         "--output",
         dest="output_file_path",
-        help="Output file (only valid for 'onboard', 'pubkeys' and 'attestation' "
+        help="Output file (only valid for 'onboard' and 'pubkeys' "
         "operations).",
     )
     parser.add_argument(
@@ -86,52 +93,6 @@ def main():
         const=True,
     )
     parser.add_argument(
-        "-e",
-        "--noexec",
-        dest="no_exec",
-        action="store_const",
-        help="Do not attempt to execute the signer after unlocking (only valid for the "
-        "'unlock' operation).",
-        default=False,
-        const=True,
-    )
-    parser.add_argument(
-        "-t",
-        "--attcert",
-        dest="attestation_certificate_file_path",
-        help="Attestation key certificate file (only valid for 'attestation' and "
-        "'verify_attestation' operations).",
-    )
-    parser.add_argument(
-        "-r",
-        "--root",
-        dest="root_authority",
-        help="Root attestation authority (only valid for 'verify_attestation' "
-        "operation). Defaults to Ledger's root authority.",
-    )
-    parser.add_argument(
-        "-b",
-        "--pubkeys",
-        dest="pubkeys_file_path",
-        help="Public keys file (only valid for 'verify_attestation' operation).",
-    )
-    parser.add_argument(
-        "--attudsource",
-        dest="attestation_ud_source",
-        default=DEFAULT_ATT_UD_SOURCE,
-        help="JSON-RPC endpoint used to retrieve the latest RSK block hash used "
-        "as the user defined value for the attestation (defaults to "
-        f"{DEFAULT_ATT_UD_SOURCE}). Can also specify a 32-byte hex string to use as"
-        " the value.",
-    )
-    parser.add_argument(
-        "-z",
-        "--signauth",
-        dest="signer_authorization_file_path",
-        help="Signer authorization file (only valid for 'authorize_signer' "
-        "operations).",
-    )
-    parser.add_argument(
         "-v",
         "--verbose",
         dest="verbose",
@@ -143,7 +104,10 @@ def main():
 
     try:
         options = parser.parse_args()
-        Platform.set(Platform.LEDGER)
+        Platform.set(Platform.SGX, {
+            "sgx_host": options.sgx_host,
+            "sgx_port": options.sgx_port,
+        })
         actions.get(options.operation, not_implemented)(options)
         sys.exit(0)
     except AdminError as e:

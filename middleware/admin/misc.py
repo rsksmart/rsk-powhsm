@@ -24,9 +24,11 @@ import sys
 import time
 from getpass import getpass
 from ledger.hsm2dongle import HSM2Dongle
+from sgx.hsm2dongle import HSM2DongleSGX
 from ledger.pin import BasePin
 from .dongle_admin import DongleAdmin
 from .dongle_eth import DongleEth
+from comm.platform import Platform
 
 PIN_ERROR_MESSAGE = ("Invalid pin given. It must be exactly 8 alphanumeric "
                      "characters with at least one alphabetic character.")
@@ -68,7 +70,13 @@ def not_implemented(options):
 
 def get_hsm(debug):
     info("Connecting to HSM... ", False)
-    hsm = HSM2Dongle(debug)
+    if Platform.is_ledger():
+        hsm = HSM2Dongle(debug)
+    elif Platform.is_sgx():
+        hsm = HSM2DongleSGX(Platform.options("sgx_host"),
+                            Platform.options("sgx_port"), debug)
+    else:
+        raise AdminError("Platform not set or unknown platform")
     hsm.connect()
     info("OK")
     return hsm

@@ -27,6 +27,7 @@ from ledger.hsm2dongle import HSM2Dongle
 from .misc import info, get_hsm, dispose_hsm, AdminError, wait_for_reconnection
 from .unlock import do_unlock
 from comm.bip32 import BIP32Path
+from comm.platform import Platform
 
 SIGNER_WAIT_TIME = 1  # second
 
@@ -65,7 +66,7 @@ def do_get_pubkeys(options):
     # Modes for which we can't get the public keys
     if mode in [HSM2Dongle.MODE.UNKNOWN, HSM2Dongle.MODE.BOOTLOADER]:
         raise AdminError(
-            "Device not in app mode. Disconnect and re-connect the ledger and try again")
+            f"Device not in app mode. {Platform.message("restart").capitalize()}")
 
     # Gather public keys
     pubkeys = {}

@@ -39,6 +39,7 @@ from .misc import (
 from .dongle_admin import DongleAdmin
 from .unlock import do_unlock
 from .certificate import HSMCertificate, HSMCertificateElement
+from comm.platform import Platform
 
 # TODO: this could perhaps be done with a different value.
 # Currently unused but necessary for the attestation setup process.
@@ -50,8 +51,8 @@ def do_onboard(options):
     head("### -> Onboarding and attestation setup", fill="#")
     hsm = None
 
-    # Require an output file
-    if options.output_file_path is None:
+    # Ledger-only: require an output file
+    if Platform.is_ledger() and options.output_file_path is None:
         raise AdminError("No output file path given")
 
     # Validate pin (if given)
@@ -71,8 +72,8 @@ def do_onboard(options):
 
     # Require bootloader mode for onboarding
     if mode != HSM2Dongle.MODE.BOOTLOADER:
-        raise AdminError("Device not in bootloader mode. Disconnect and re-connect the "
-                         "ledger and try again")
+        raise AdminError("Device not in bootloader mode. "
+                         f"{Platform.message("restart").capitalize()} and try again")
 
     # Echo check
     info("Sending echo... ", options.verbose)
@@ -120,6 +121,14 @@ def do_onboard(options):
 
     dispose_hsm(hsm)
 
+    if Platform.is_sgx():
+        head(["Onboarding done"])
+        return
+
+    if not Platform.is_ledger():
+        raise AdminError("Unsupported platform")
+
+    # **** Attestation setup is Ledger only (for now) ****
     head(
         [
             "Onboarding done",
