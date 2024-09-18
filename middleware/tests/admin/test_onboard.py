@@ -25,6 +25,7 @@ from unittest import TestCase
 from unittest.mock import Mock, call, patch, mock_open
 from admin.certificate import HSMCertificate, HSMCertificateElement
 from admin.misc import AdminError
+from comm.platform import Platform
 from admin.onboard import do_onboard
 import json
 from ledger.hsm2dongle import HSM2Dongle, HSM2DongleError
@@ -62,6 +63,7 @@ class TestOnboard(TestCase):
     }
 
     def setUp(self):
+        Platform.set(Platform.LEDGER)
         self.certificate_path = "cert-path"
         options = {
             "pin": self.VALID_PIN,
@@ -95,8 +97,8 @@ class TestOnboard(TestCase):
     @patch("admin.onboard.get_admin_hsm")
     @patch("admin.unlock.get_hsm")
     @patch("sys.stdin.readline")
-    def test_onboard(self, readline, get_hsm_unlock, get_admin_hsm,
-                     get_hsm_onboard, info_mock, *_):
+    def test_onboard_ledger(self, readline, get_hsm_unlock, get_admin_hsm,
+                            get_hsm_onboard, info_mock, *_):
         get_hsm_onboard.return_value = self.dongle
         get_hsm_unlock.return_value = self.dongle
         get_admin_hsm.return_value = self.dongle
@@ -124,6 +126,32 @@ class TestOnboard(TestCase):
                          file_mock.return_value.write.call_args_list)
         self.assertTrue(self.dongle.onboard.called)
         self.assertTrue(self.dongle.handshake.called)
+
+    @patch("admin.onboard.get_admin_hsm")
+    @patch("admin.unlock.get_hsm")
+    @patch("sys.stdin.readline")
+    def test_onboard_sgx(self, readline, get_hsm_unlock, get_admin_hsm,
+                         get_hsm_onboard, info_mock, *_):
+        Platform.set(Platform.SGX)
+
+        get_hsm_onboard.return_value = self.dongle
+        get_hsm_unlock.return_value = self.dongle
+
+        self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.BOOTLOADER)
+        self.dongle.is_onboarded = Mock(side_effect=[False, True])
+        self.dongle.onboard = Mock()
+        readline.return_value = "yes\n"
+
+        with patch("builtins.open", mock_open()):
+            do_onboard(self.default_options)
+
+        self.assertEqual(info_mock.call_args_list[5][0][0], "Onboarded: No")
+        self.assertEqual(info_mock.call_args_list[10][0][0], "Onboarded")
+
+        self.assertTrue(self.dongle.onboard.called)
+        self.assertFalse(self.dongle.get_device_key.called)
+        self.assertFalse(self.dongle.setup_endorsement_key.called)
+        self.assertFalse(self.dongle.handshake.called)
 
     @patch("admin.onboard.get_admin_hsm")
     @patch("admin.unlock.get_hsm")
@@ -280,7 +308,7 @@ class TestOnboard(TestCase):
         self.assertFalse(file_mock.return_value.write.called)
 
     @patch("sys.stdin.readline")
-    def test_onboard_no_output_file(self, readline, get_hsm, *_):
+    def test_onboard_no_output_file_ledger(self, readline, get_hsm, *_):
         readline.return_value = "yes\n"
         get_hsm.return_value = self.dongle
 
@@ -295,6 +323,23 @@ class TestOnboard(TestCase):
 
         self.assertEqual("No output file path given", str(e.exception))
         self.assertFalse(self.dongle.onboard.called)
+
+    @patch("sys.stdin.readline")
+    def test_onboard_no_output_file_sgx(self, readline, get_hsm, *_):
+        Platform.set(Platform.SGX)
+        readline.return_value = "yes\n"
+        get_hsm.return_value = self.dongle
+
+        self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.BOOTLOADER)
+        self.dongle.is_onboarded = Mock(return_value=False)
+        self.dongle.onboard = Mock()
+
+        options = self.default_options
+        options.output_file_path = None
+
+        do_onboard(options)
+
+        self.assertTrue(self.dongle.onboard.called)
 
     def test_onboard_invalid_pin(self, *_):
         options = self.default_options

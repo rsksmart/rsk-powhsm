@@ -20,23 +20,46 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from ledger.hsm2dongle_tcp import HSM2DongleTCP
-from mgr.runner import ManagerRunner
-from user.options import UserOptionParser
-from comm.platform import Platform
+class Platform:
+    LEDGER = "Ledger"
+    SGX = "SGX"
+    X86 = "X86"
+    VALID_PLATFORMS = [LEDGER, SGX, X86]
 
+    MESSAGES = {
+        LEDGER: {
+            "restart": "disconnect and re-connect the ledger nano",
+        },
+        SGX: {
+            "restart": "restart the SGX powHSM",
+        },
+        X86: {
+            "restart": "restart the TCPSigner",
+        }
+    }
 
-if __name__ == "__main__":
-    Platform.set(Platform.X86)
-    user_options = UserOptionParser("Start the powHSM manager for TCPSigner",
-                                    with_pin=False,
-                                    with_tcpconn=True,
-                                    host_name="TCPSigner").parse()
+    _platform = None
+    _options = None
 
-    runner = ManagerRunner("powHSM manager for TCPSigner",
-                           lambda options: HSM2DongleTCP(options.tcpconn_host,
-                                                         options.tcpconn_port,
-                                                         options.io_debug),
-                           load_pin=lambda options: None)
+    @classmethod
+    def set(klass, plf, options={}):
+        if plf not in klass.VALID_PLATFORMS:
+            raise RuntimeError("Invalid platform given")
+        klass._platform = plf
+        klass._options = options
 
-    runner.run(user_options)
+    @classmethod
+    def is_ledger(klass):
+        return klass._platform == Platform.LEDGER
+
+    @classmethod
+    def is_sgx(klass):
+        return klass._platform == Platform.SGX
+
+    @classmethod
+    def options(klass, key):
+        return klass._options[key]
+
+    @classmethod
+    def message(klass, key):
+        return klass.MESSAGES[klass._platform][key]

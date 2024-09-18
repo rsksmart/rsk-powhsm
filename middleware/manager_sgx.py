@@ -25,6 +25,7 @@ from sgx.hsm2dongle import HSM2DongleSGX
 from mgr.runner import ManagerRunner
 from ledger.pin import FileBasedPin
 from user.options import UserOptionParser
+from comm.platform import Platform
 
 
 def load_pin(user_options):
@@ -39,13 +40,8 @@ def load_pin(user_options):
     return pin
 
 
-def configure_protocol_messages(protocol):
-    protocol.MESSAGES = {
-        "restart": "restart the SGX powHSM",
-    }
-
-
 if __name__ == "__main__":
+    Platform.set(Platform.SGX)
     user_options = UserOptionParser("Start the powHSM manager for SGX",
                                     with_pin=True,
                                     with_tcpconn=True,
@@ -56,6 +52,6 @@ if __name__ == "__main__":
                            lambda options: HSM2DongleSGX(options.tcpconn_host,
                                                          options.tcpconn_port,
                                                          options.io_debug),
-                           load_pin, configure_protocol_messages)
+                           load_pin)
 
     runner.run(user_options)
