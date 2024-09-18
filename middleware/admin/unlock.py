@@ -32,6 +32,7 @@ from .misc import (
     AdminError,
     ask_for_pin,
 )
+from comm.platform import Platform
 
 
 def do_unlock(options, exit=True, no_exec=False, label=True):
@@ -65,8 +66,8 @@ def do_unlock(options, exit=True, no_exec=False, label=True):
 
     # Modes for which we can't unlock
     if mode == HSM2Dongle.MODE.UNKNOWN:
-        raise AdminError("Device mode unknown. Already unlocked? Otherwise disconnect "
-                         "and re-connect the ledger and try again")
+        raise AdminError("Device mode unknown. Already unlocked? Otherwise "
+                         f"{Platform.message("restart")} and try again")
     if mode == HSM2Dongle.MODE.SIGNER or mode == HSM2Dongle.MODE.UI_HEARTBEAT:
         raise AdminError("Device already unlocked")
 
@@ -87,9 +88,10 @@ def do_unlock(options, exit=True, no_exec=False, label=True):
         raise AdminError("Unable to unlock: PIN mismatch")
     info("PIN accepted")
 
+    # **** Ledger only ****
     # Exit the bootloader, go into menu (or, if app is properly signed, into
     # the app)
-    if exit:
+    if Platform.is_ledger() and exit:
         autoexec = not (options.no_exec or no_exec)
         info(f"Exiting to menu/app (execute signer: {bls(autoexec)})... ",
              options.verbose)

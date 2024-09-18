@@ -21,10 +21,12 @@
 # SOFTWARE.
 
 from enum import IntEnum
+from ledger.hsm2dongle import HSM2DongleError
 from ledger.hsm2dongle_tcp import HSM2DongleTCP
 
 
 class SgxCommand(IntEnum):
+    SGX_ONBOARD = 0xA0,
     SGX_RETRIES = 0xA2,
     SGX_UNLOCK = 0xA3,
     SGX_ECHO = 0xA4,
@@ -58,3 +60,19 @@ class HSM2DongleSGX(HSM2DongleTCP):
     def get_retries(self):
         apdu_rcv = self._send_command(SgxCommand.SGX_RETRIES)
         return apdu_rcv[2]
+
+    # Attempt to onboard the device using the given seed and pin
+    def onboard(self, seed, pin):
+        if type(seed) != bytes or len(seed) != self.ONBOARDING.SEED_LENGTH:
+            raise HSM2DongleError("Invalid seed given")
+
+        if type(pin) != bytes:
+            raise HSM2DongleError("Invalid pin given")
+
+        self.logger.info("Sending onboard command")
+        response = self._send_command(SgxCommand.SGX_ONBOARD, bytes([0x0]) + seed + pin)
+
+        if response[2] != 1:
+            raise HSM2DongleError("Error onboarding. Got '%s'" % response.hex())
+
+        return True

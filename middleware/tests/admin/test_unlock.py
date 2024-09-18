@@ -24,6 +24,7 @@ from types import SimpleNamespace
 from unittest import TestCase
 from unittest.mock import Mock, call, patch
 from admin.misc import AdminError
+from comm.platform import Platform
 from admin.unlock import do_unlock
 from ledger.hsm2dongle import HSM2Dongle
 from parameterized import parameterized
@@ -37,6 +38,7 @@ logging.disable(logging.CRITICAL)
 @patch("admin.unlock.get_hsm")
 class TestUnlock(TestCase):
     def setUp(self):
+        Platform.set(Platform.LEDGER)
         self.valid_pin = '1234ABCD'
         self.invalid_pin = '123456789'
 

@@ -6,8 +6,10 @@ BINDIR=$(realpath $BUILDDIR/../bin/)
 echo "Building all..."
 
 QUIET=1 $BUILDDIR/manager_ledger && \
+QUIET=1 $BUILDDIR/manager_sgx && \
 QUIET=1 $BUILDDIR/manager_tcp && \
 QUIET=1 $BUILDDIR/adm_ledger && \
+QUIET=1 $BUILDDIR/adm_sgx && \
 QUIET=1 $BUILDDIR/lbutils && \
 QUIET=1 $BUILDDIR/signapp && \
 echo "" && sha256sum $BINDIR/*.tgz

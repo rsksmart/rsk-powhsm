@@ -29,11 +29,10 @@ import logging
 
 
 class ManagerRunner:
-    def __init__(self, name, create_dongle, load_pin, configure_protocol=None):
+    def __init__(self, name, create_dongle, load_pin):
         self.name = name
         self.create_dongle = create_dongle
         self.load_pin = load_pin
-        self.configure_protocol = configure_protocol
 
     def run(self, user_options):
         configure_logging(user_options.logconfigfilepath)
@@ -52,8 +51,6 @@ class ManagerRunner:
             else:
                 logger.info("Using protocol version 2")
                 protocol = HSM2ProtocolLedger(pin, dongle)
-            if self.configure_protocol:
-                self.configure_protocol(protocol)
             server = TCPServer(user_options.host, user_options.port, protocol)
             server.run()
         except PinError as e:
