@@ -134,7 +134,7 @@ function verify_attestation() {
     error
 }
 
-echo -e "\e[1;32mWelcome to the powHSM Upgrade for RSK \e[0m"
+echo -e "\e[1;32mWelcome to the Ledger Nano S powHSM Upgrade for RSK \e[0m"
 echo -e "\e[1;32mPlease make sure your HSM is onboarded before continuing with the firmware upgrade.\e[0m"
 echo
 checkFirmware
