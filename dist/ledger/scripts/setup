@@ -160,7 +160,7 @@ function verify_attestation() {
     error
 }
 
-echo -e "\e[1;32mWelcome to the powHSM Setup for RSK \e[0m"
+echo -e "\e[1;32mWelcome to the Ledger Nano S powHSM Setup for RSK \e[0m"
 echo
 checkForPinFile
 checkFirmware

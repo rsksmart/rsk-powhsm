@@ -1,5 +1,6 @@
 bin
 firmware
+export
 public-keys.txt
 public-keys.json
 pin.txt

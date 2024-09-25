@@ -1,4 +1,4 @@
-# powHSM Setup and onboarding
+# powHSM for Ledger Nano S Setup and onboarding
 
 ## Prerequisites
 
