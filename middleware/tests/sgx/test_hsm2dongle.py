@@ -88,3 +88,54 @@ class TestHSM2DongleSGX(TestCase):
         self.dongle.exchange.return_value = bytes([0xAA, 0xBB, 0x05, 0xDD])
         self.assertEqual(5, self.hsm2dongle.get_retries())
         self.assert_exchange_called(bytes([0x80, 0xA2]))
+
+    def test_onboard_ok(self):
+        self.dongle.exchange.return_value = bytes([0xAA, 0xBB, 0x01])
+        self.assertTrue(self.hsm2dongle.onboard(bytes.fromhex("aa"*32), b"12345678"))
+        self.assert_exchange_called(bytes([0x80, 0xA0, 0x00]) +
+                                    bytes.fromhex("aa"*32) +
+                                    b"12345678")
+
+    def test_onboard_seed_invalid_type(self):
+        self.dongle.exchange.return_value = bytes([0xAA, 0xBB, 0x01])
+
+        with self.assertRaises(HSM2DongleError):
+            self.hsm2dongle.onboard(1234, b"12345678")
+
+        self.assertFalse(self.dongle.exchange.called)
+
+    def test_onboard_seed_invalid_length(self):
+        self.dongle.exchange.return_value = bytes([0xAA, 0xBB, 0x01])
+
+        with self.assertRaises(HSM2DongleError):
+            self.hsm2dongle.onboard(b"abcd", b"12345678")
+
+        self.assertFalse(self.dongle.exchange.called)
+
+    def test_onboard_pin_invalid_type(self):
+        self.dongle.exchange.return_value = bytes([0xAA, 0xBB, 0x01])
+
+        with self.assertRaises(HSM2DongleError):
+            self.hsm2dongle.onboard(bytes.fromhex("aa"*32), 4444)
+
+        self.assertFalse(self.dongle.exchange.called)
+
+    def test_onboard_error_result(self):
+        self.dongle.exchange.return_value = bytes([0xAA, 0xBB, 0xCC])
+
+        with self.assertRaises(HSM2DongleError):
+            self.hsm2dongle.onboard(bytes.fromhex("aa"*32), b'12345678')
+
+        self.assert_exchange_called(bytes([0x80, 0xA0, 0x00]) +
+                                    bytes.fromhex("aa"*32) +
+                                    b"12345678")
+
+    def test_onboard_error_xchg(self):
+        self.dongle.exchange.side_effect = RuntimeError("SomethingWentWrong")
+
+        with self.assertRaises(HSM2DongleError):
+            self.hsm2dongle.onboard(bytes.fromhex("aa"*32), b'12345678')
+
+        self.assert_exchange_called(bytes([0x80, 0xA0, 0x00]) +
+                                    bytes.fromhex("aa"*32) +
+                                    b"12345678")

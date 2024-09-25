@@ -1,0 +1,24 @@
+#!/bin/bash
+
+pushd $(dirname $0)/.. > /dev/null
+DIST_DIR=$(pwd)
+popd > /dev/null
+DOCKER_IMAGE=powhsmsgx:setup
+
+QUIET=""
+echo -e "\e[96mBuilding docker image $DOCKER_IMAGE (this will take a few minutes)..."
+if [[ "$2" != "-v" ]]; then
+    QUIET="-q"
+    echo -e "Run with '-v' if you want to see progress detail\e[94m"
+fi
+docker build -t $DOCKER_IMAGE $DIST_DIR $QUIET
+echo -e "\e[96mDocker image build done.\e[0m"
+echo
+
+DOCKER_USER="$(id -u):$(id -g)"
+
+docker run -ti --rm --user $DOCKER_USER \
+    --device=/dev/sgx_enclave:/dev/sgx_enclave \
+    --device=/dev/sgx_provision:/dev/sgx_provision \
+    -v $DIST_DIR:/setup -v /:/fs -w /setup \
+    $DOCKER_IMAGE $1
