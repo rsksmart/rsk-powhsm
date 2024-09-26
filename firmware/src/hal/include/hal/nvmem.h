@@ -73,8 +73,10 @@ void nvmem_init();
  * @param key a string key to uniquely identify the block
  * @param addr the base address of the block
  * @param size the size of the block in bytes
+ * 
+ * @return whether the block was successfully registered
  */
-void nvmem_register_block(char* key, void* addr, size_t size);
+bool nvmem_register_block(char* key, void* addr, size_t size);
 
 /**
  * @brief Loads registered blocks into memory
