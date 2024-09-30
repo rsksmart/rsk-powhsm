@@ -75,7 +75,7 @@ void nvmem_init();
  *
  * @return whether the block was successfully registered
  */
-bool nvmem_register_block(char* key, void* addr, size_t size);
+bool nvmem_register_block(char* key, void* addr, uint8_t size);
 
 /**
  * @brief Loads registered blocks into memory
