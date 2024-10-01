@@ -33,6 +33,8 @@
 #include "mock.h"
 
 #define TEST_NVMEM_NUM_BLOCKS 5
+// FIXME: sest_read will not work with blocks larger than 255 bytes. For this
+// reason we have to keep the block size below this limit for the nvmem tests.
 #define TEST_NVMEM_BLOCK_SIZE 255
 #define TEST_NVMEM_KEY_SIZE 32
 
@@ -73,7 +75,7 @@ void test_register_multiple_blocks() {
     setup();
     printf("Test nvmem register multiple blocks...\n");
 
-    size_t num_blocks = TEST_NVMEM_NUM_BLOCKS;
+    int num_blocks = TEST_NVMEM_NUM_BLOCKS;
     char blocks[num_blocks][TEST_NVMEM_BLOCK_SIZE];
     for (int i = 0; i < num_blocks; i++) {
         char key[TEST_NVMEM_KEY_SIZE];
@@ -86,7 +88,7 @@ void test_register_blocks_over_limit() {
     setup();
     printf("Test nvmem register blocks over the allowed limit...\n");
 
-    size_t num_blocks = TEST_NVMEM_NUM_BLOCKS + 1;
+    int num_blocks = TEST_NVMEM_NUM_BLOCKS + 1;
     char blocks[num_blocks][TEST_NVMEM_BLOCK_SIZE];
     for (int i = 0; i < num_blocks; i++) {
         char key[TEST_NVMEM_KEY_SIZE];

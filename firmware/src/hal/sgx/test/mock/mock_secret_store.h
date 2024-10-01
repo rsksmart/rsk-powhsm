@@ -21,11 +21,13 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
+
+#ifndef __MOCK_SECRET_STORE_H
+#define __MOCK_SECRET_STORE_H
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
-
-// Mock functions for the secret store
 
 /**
  * @brief Initializes the mock secret store
@@ -87,3 +89,5 @@ void mock_sest_fail_next_read(bool fail);
  * @param fail whether the next call to sest_write should fail
  */
 void mock_sest_fail_next_write(bool fail);
+
+#endif // #ifndef __MOCK_SECRET_STORE_H

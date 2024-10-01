@@ -21,13 +21,17 @@
 # SOFTWARE.
 
 SRCDIR = ../../src/trusted
-COMMONDIR = ../../../../common/src
 MOCKDIR = ../mock
 HALINCDIR = ../../../../hal/include
-THISCOMMONDIR = ../common
-CFLAGS  = -iquote $(COMMONDIR)
+TESTCOMMONDIR = ../common
+CFLAGS = -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-function
 CFLAGS += -iquote $(SRCDIR) -iquote $(HALINCDIR)
-CFLAGS += -iquote $(THISCOMMONDIR)
+CFLAGS += -iquote $(TESTCOMMONDIR)
+CFLAGS += -iquote $(MOCKDIR)
 CFLAGS += -DHSM_PLATFORM_SGX
 
+VPATH += $(MOCKDIR):$(SRCDIR)
+
 include ../../../../../coverage/coverage.mk
+
+CFLAGS += $(COVFLAGS)

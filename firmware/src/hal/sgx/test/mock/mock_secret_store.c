@@ -4,12 +4,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "mock.h"
+#include "mock_secret_store.h"
 
 typedef struct mock_sest_register {
     char *key;
     uint8_t *secret;
-    uint8_t secret_length;
+    size_t secret_length;
 } mock_sest_register_t;
 
 #define MOCK_SEST_MAX_REGISTERS 10
@@ -23,7 +23,7 @@ typedef struct mock_secret_store {
 static mock_secret_store_t g_mock_secret_store;
 
 bool mock_sest_exists(char *key) {
-    for (int i = 0; i < g_mock_secret_store.num_registers; i++) {
+    for (size_t i = 0; i < g_mock_secret_store.num_registers; i++) {
         if (strcmp(g_mock_secret_store.registers[i].key, key) == 0) {
             return true;
         }
@@ -37,7 +37,7 @@ bool mock_sest_write(char *key, uint8_t *secret, size_t secret_length) {
         return false;
     }
     int register_index = -1;
-    for (int i = 0; i < g_mock_secret_store.num_registers; i++) {
+    for (size_t i = 0; i < g_mock_secret_store.num_registers; i++) {
         if (strcmp(g_mock_secret_store.registers[i].key, key) == 0) {
             register_index = i;
             break;
@@ -65,7 +65,7 @@ uint8_t mock_sest_read(char *key, uint8_t *dest, size_t dest_length) {
         g_mock_secret_store.fail_next_read = false;
         return 0;
     }
-    for (int i = 0; i < g_mock_secret_store.num_registers; i++) {
+    for (size_t i = 0; i < g_mock_secret_store.num_registers; i++) {
         if (strcmp(g_mock_secret_store.registers[i].key, key) == 0) {
             assert(dest_length >=
                    g_mock_secret_store.registers[i].secret_length);
@@ -83,7 +83,7 @@ void mock_sest_init() {
 }
 
 void mock_sest_reset() {
-    for (int i = 0; i < g_mock_secret_store.num_registers; i++) {
+    for (size_t i = 0; i < g_mock_secret_store.num_registers; i++) {
         free(g_mock_secret_store.registers[i].key);
         free(g_mock_secret_store.registers[i].secret);
     }

@@ -36,7 +36,7 @@
 typedef struct {
     char* key;
     void* addr;
-    uint8_t size;
+    size_t size;
 } nvm_block_t;
 
 static nvm_block_t nvm_blocks[MAX_NVM_BLOCKS];
@@ -58,7 +58,7 @@ void nvmem_init() {
     nvm_blocks_count = 0;
 }
 
-bool nvmem_register_block(char* key, void* addr, uint8_t size) {
+bool nvmem_register_block(char* key, void* addr, size_t size) {
     if (nvm_blocks_count >= MAX_NVM_BLOCKS) {
         LOG("Error registering NVM block <%s>: too many blocks\n", key);
         return false;

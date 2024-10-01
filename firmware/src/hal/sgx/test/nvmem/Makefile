@@ -30,17 +30,7 @@ all: $(PROG)
 $(PROG): $(OBJS)
 	$(CC) $(COVFLAGS) -o $@ $^
 
-test_nvmem.o: test_nvmem.c
-	$(CC) $(CFLAGS) -c -o $@ $^
-
-nvmem.o: $(SRCDIR)/nvmem.c
-	$(CC) $(CFLAGS) $(COVFLAGS) -c -o $@ $^
-
-mock_secret_store.o: $(MOCKDIR)/mock_secret_store.c
-	$(CC) $(CFLAGS) -c -o $@ $^
-
 .PHONY: clean test
-
 clean:
 	rm -f $(PROG) *.o $(COVFILES)
 
