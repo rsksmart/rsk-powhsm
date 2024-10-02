@@ -22,30 +22,9 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __ASSERT_UTILS_H
-#define __ASSERT_UTILS_H
+#ifndef __MOCK_H
+#define __MOCK_H
 
-#include <assert.h>
-#include <string.h>
+#include "mock_secret_store.h"
 
-#define ASSERT_FAIL() assert(false)
-
-#define ASSERT_STR_EQUALS(a, b) \
-    assert(0 == strcmp((const char *)a, (const char *)b))
-
-#define ASSERT_MEMCMP(a, b, n) assert(0 == memcmp(a, b, n))
-
-#define ASSERT_ARRAY_VALUE(arr, value)         \
-    for (size_t i = 0; i < sizeof(arr); i++) { \
-        assert((arr)[i] == (value));           \
-    }
-
-#define ASSERT_ARRAY_CLEARED(arr) \
-    assert(memcmp(arr, (char[sizeof(arr)]){0}, sizeof(arr)) == 0)
-
-#define ASSERT_STRUCT_CLEARED(struct_name, struct_instance) \
-    assert(memcmp(&(struct_instance),                       \
-                  &(struct_name){0},                        \
-                  sizeof(struct_name)) == 0)
-
-#endif // __ASSERT_UTILS_H
+#endif // #ifndef __MOCK_H

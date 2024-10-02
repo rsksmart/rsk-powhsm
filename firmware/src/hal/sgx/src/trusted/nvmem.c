@@ -58,11 +58,18 @@ void nvmem_init() {
     nvm_blocks_count = 0;
 }
 
-void nvmem_register_block(char* key, void* addr, size_t size) {
+bool nvmem_register_block(char* key, void* addr, size_t size) {
+    if (nvm_blocks_count >= MAX_NVM_BLOCKS) {
+        LOG("Error registering NVM block <%s>: too many blocks\n", key);
+        return false;
+    }
+
     nvm_blocks[nvm_blocks_count].key = key;
     nvm_blocks[nvm_blocks_count].addr = addr;
     nvm_blocks[nvm_blocks_count].size = size;
     nvm_blocks_count++;
+
+    return true;
 }
 
 static void clear_blocks() {

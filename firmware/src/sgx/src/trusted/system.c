@@ -206,12 +206,19 @@ bool system_init(unsigned char *msg_buffer, size_t msg_buffer_size) {
     }
 
     nvmem_init();
-    nvmem_register_block("bcstate",
-                         &N_bc_state_var,
-                         sizeof(N_bc_state_var));
-    nvmem_register_block("bcstate_updating",
-                         &N_bc_state_updating_backup_var,
-                         sizeof(N_bc_state_updating_backup_var));
+    if (!nvmem_register_block("bcstate",
+                              &N_bc_state_var,
+                              sizeof(N_bc_state_var))) {
+        LOG("Error registering bcstate block\n");
+        return false;
+    }
+    if (!nvmem_register_block("bcstate_updating",
+                              &N_bc_state_updating_backup_var,
+                              sizeof(N_bc_state_updating_backup_var))) {
+        LOG("Error registering bcstate_updating block\n");
+        return false;
+    }
+
     if (!nvmem_load()) {
         LOG("Error loading nvmem\n");
         return false;
