@@ -28,6 +28,9 @@ jobs:
 
       - name: Firmware HAL's x86 unit tests
         run: firmware/src/hal/x86/test/run-all.sh
+      
+      - name: Firmware HAL's SGX unit tests
+        run: firmware/src/hal/sgx/test/run-all.sh
 
       - name: Firmware common lib unit tests
         run: firmware/src/common/test/run-all.sh
