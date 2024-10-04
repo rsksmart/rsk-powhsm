@@ -42,7 +42,7 @@ Throughout the rest of the document, we will refer to a middleware development e
 
 ### Ledger Manager
 
-The Ledger manager is the main middleware component for the Ledger powHSM implementation. Its role is to provide a high-level abstraction layer over the low-level powHSM dongle USB interface. It does this by starting a TCP service in a certain interface and port and implementing the [protocol](../docs/protocol.md) on top by means of interactions with the connected powHSM dongle. The entrypoint to the powHSM manager is the `manager_ledger.py` script. In order to start it, issue:
+The Ledger manager is the main middleware component for the Ledger powHSM implementation. Its role is to provide a high-level abstraction layer over the low-level powHSM dongle USB interface. It does this by starting a TCP service in a certain interface and port and implementing the [protocol](../docs/protocol.md) on top by means of interactions with the connected powHSM dongle. The entrypoint to the Ledger powHSM manager is the `manager_ledger.py` script. In order to start it, issue:
 
 ```
 (mware)> python manager_ledger.py
@@ -50,9 +50,19 @@ The Ledger manager is the main middleware component for the Ledger powHSM implem
 
 Hit CTRL-C at any time to stop it.
 
+### SGX Manager
+
+The SGX manager is the main middleware component for the SGX powHSM implementation. It is essentially an implementation of the Ledger manager that connects to an SGX powHSM by means of a TCP/IP connection. The entrypoint to the SGX powHSM manager is the `manager_sgx.py` script. You can use the SGX manager to run against a real SGX instance in an Intel SGX enabled server, or against an SGX simulation build on your local. For the former, make sure you build a `manager_sgx` binary package (see the corresponding section below for details) and then copy it over to the SGX server in order to run it there alongside the SGX powHSM. For the latter, and assuming an SGX simulation build is running in the same container, you can just issue:
+
+```
+(mware)> python manager_sgx.py
+```
+
+Hit CTRL-C at any time to stop it.
+
 ### TCP Manager
 
-This is an implementation of the Manager that connects to a dongle via a TCP/IP connection. Its main use is along the TCPSigner (an x86 implementation of the Signer component) for integration tests and the like. It's important to mention that Manager and TCP Manager share most of the code, and that the main difference lies in the dongle proxy used and available user options. The entrypoint to the TCP manager is the `manager_tcp.py` script. In order to start it, issue:
+This is an implementation of the Manager that connects to a powHSM via a TCP/IP connection. Its main use is along the TCPSigner (an x86 implementation of the Signer component) for integration tests and the like. It's important to mention that Ledger, SGX and TCP Manager share most of the code, and that the main difference lies in the powHSM proxy used and available user options. The entrypoint to the TCP manager is the `manager_tcp.py` script. In order to start it, issue:
 
 ```
 (mware)> python manager_tcp.py
@@ -62,14 +72,15 @@ Hit CTRL-C at any time to stop it.
 
 ### Administrative utilities
 
-Aside from the main `manager_ledger.py` and `manager_tcp.py` scripts, there are other three scripts to consider:
+Aside from the main `manager_ledger.py`, `manager_sgx.py` and `manager_tcp.py` scripts, there are other three scripts to consider:
 
 - `adm_ledger.py`: administrative utility for a Ledger powHSM dongle. It provides common utilities that can be performed on a powHSM dongle.
-- `lbutils.py`: common frontend to some of the `ledgerblue` modules. In particular, it ultimately serves the purpose of being able to build a binary for these utilities.
-- `signapp.py`: signer authorization generator. Serves the purpose of generating authorization files for Signer versions (see [the signer authorization documentation](../docs/signer-authorization.md) for details). It can be used to add externally generated signatures, or to sign with a manually input key (intended for testing purposes only). It can also be used to calculate the message to be signed to authorize a specific signer version (so that then the signature can be generated on a third-party application, e.g., MetaMask). Last, it has an option to calculate and output a Ledger app's hash.
-- `signonetime.py`: ledger app signer. Serves the purpose of signing Ledger Nano S firmware builds with a securely generated random one-time key. It is used in the distribution building process targeting the initial device setup process.
+- `adm_sgx.py`: administrative utility for an SGX powHSM. It provides common utilities that can be performed on a running SGX powHSM instance.
+- `lbutils.py`: common frontend to some of the `ledgerblue` modules. In particular, it ultimately serves the purpose of being able to build a binary for these utilities. This is used for Ledger exclusively.
+- `signapp.py`: signer authorization generator. Serves the purpose of generating authorization files for Signer versions (see [the signer authorization documentation](../docs/signer-authorization.md) for details). It can be used to add externally generated signatures, or to sign with a manually input key (intended for testing purposes only). It can also be used to calculate the message to be signed to authorize a specific signer version (so that then the signature can be generated on a third-party application, e.g., MetaMask). Last, it has an option to calculate and output a Ledger app's hash. This is used for Ledger exclusively.
+- `signonetime.py`: ledger app signer. Serves the purpose of signing Ledger Nano S firmware builds with a securely generated random one-time key. It is used in the distribution building process targeting the initial device setup process. This is used for Ledger exclusively.
 
-The remaining `client.py` is a shorthand client utility for manually testing communication with a running Ledger manager or TCP manager.
+The remaining `client.py` is a shorthand client utility for manually testing communication with a running Ledger, SGX or TCP manager.
 
 ## Unit tests
 
@@ -101,9 +112,10 @@ that should build (or rebuild in case the `Dockerfile` has changed) the correspo
 
 ### Building
 
-Distribution of the middleware is done in the form of `.tgz` archives containing the binaries - main file and dependencies -, which are first built using the python tool [pyinstaller](https://www.pyinstaller.org/) and then packed for distribution. Scripts for building binaries for each main tool can be found under the `middleware/build` directory. These scripts place the output under the `middleware/bin` directory. There are also two scripts that are shorthand for serial building:
+Distribution of the middleware is done in the form of `.tgz` archives containing the binaries - main file and dependencies -, which are first built using the python tool [pyinstaller](https://www.pyinstaller.org/) and then packed for distribution. Scripts for building binaries for each main tool can be found under the `middleware/build` directory. These scripts place the output under the `middleware/bin` directory. There are also three scripts that are shorthand for serial building:
 
 - `middleware/build/all`: builds all the tools.
-- `middleware/build/dist`: builds all the tools that are meant for distribution.
+- `middleware/build/dist_ledger`: builds all the tools that are meant for Ledger distribution.
+- `middleware/build/dist_sgx`: builds all the tools that are meant for SGX distribution.
 
 Within the same docker image, utility builds are bytewise reproducible.

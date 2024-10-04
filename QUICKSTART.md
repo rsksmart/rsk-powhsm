@@ -10,6 +10,7 @@ Whether new to the project or just wanting to quickly get an environment up and 
 ```
 ~/repo> docker/mware/build # Middleware image
 ~/repo> docker/ledger/build # Ledger image
+~/repo> docker/sgx/build # SGX image
 ~/repo> docker/packer/build # Middleware binary packer image
 ```
 
@@ -27,13 +28,19 @@ Unless otherwise stated, only x86 platforms are supported for building this proj
 ~/repo> firmware/src/ledger/signer/test/run-all.sh # Ledger Signer application unit tests
 ~/repo> firmware/src/common/test/run-all.sh # Common code unit tests
 ~/repo> firmware/src/powhsm/test/run-all.sh # powHSM logic unit tests
-~/repo> firmware/src/hal/test/run-all.sh # HAL unit tests
+~/repo> firmware/src/hal/common/test/run-all.sh # HAL common code unit tests
+~/repo> firmware/src/hal/x86/test/run-all.sh # HAL x86 implementation unit tests
 ```
 
 - Build Ledger Nano S application binaries:
 ```
-~/repo> firmware/build/build-signer <checkpoint> <difficulty> <network> # Build signer
-~/repo> firmware/build/build-ui <signer_hash> <signer_iteration> <signers_file> # Build UI
+~/repo> firmware/build/build-ledger-signer <checkpoint> <difficulty> <network> # Build signer
+~/repo> firmware/build/build-ledger-ui <signer_hash> <signer_iteration> <signers_file> # Build UI
+```
+
+- Build SGX binaries (both host and enclave):
+```
+~/repo> firmware/build/build-sgx <checkpoint> <difficulty> <network>
 ```
 
 - Build middleware binaries:
@@ -41,12 +48,22 @@ Unless otherwise stated, only x86 platforms are supported for building this proj
 ~/repo> middleware/build/all
 ```
 
-- Build a complete powHSM distribution:
+- Build a complete Ledger powHSM distribution:
 ```
-~/repo> ./build-dist <destination path> <checkpoint> <minimum difficulty> <network> <ui_iteration> <ui_authorizers>
+~/repo> ./build-dist-ledger <destination path> <checkpoint> <minimum difficulty> <network> <ui_iteration> <ui_authorizers>
+```
+
+- Build a complete SGX powHSM distribution:
+```
+~/repo> ./build-dist-sgx <destination path> <checkpoint> <minimum difficulty> <network>
 ```
 
 - Build the TCPSigner:
 ```
 ~/repo> firmware/build/build-tcpsigner
+```
+
+- Build the SGX simulator:
+```
+~/repo> firmware/build/build-sgx-sim <checkpoint> <minimum difficulty> <network>
 ```
