@@ -26,7 +26,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include <openenclave/enclave.h>
 #include <openenclave/corelibc/stdlib.h>
 #include <openenclave/seal.h>
 #include <sys/mount.h>
@@ -75,11 +74,6 @@ static uint8_t unseal_data(const sealed_secret_t* sealed_secret,
                            uint8_t* dest,
                            size_t dest_length) {
 #ifndef SIM_BUILD
-    if (sealed_secret->blob_size > MAX_BLOB_SIZE) {
-        LOG("Sealed blob size is too large\n");
-        goto unseal_data_error;
-    }
-
     uint8_t* plaintext = NULL;
     size_t plaintext_size = 0;
     oe_result_t result = oe_unseal(sealed_secret->blob,
