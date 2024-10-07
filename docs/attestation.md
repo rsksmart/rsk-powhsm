@@ -1,12 +1,16 @@
 # powHSM attestation
 
+## Foreword
+
+Currently, attestation is a feature supported only in the Ledger version of powHSM. An attestation implementation for the SGX version of powHSM is currently under development. Therefore, all the information contained herein must be interpreted as applying exclusively to the Ledger version of powHSM.
+
 ## Abstract
 
-This document describes the mechanisms through which a powHSM installation can prove to an end user that it is actually installed on an authentic physical Ledger device with a specific UI and Signer versions, along with its currently authorized signer version and generated public keys.
+This document describes the mechanisms through which a powHSM installation can prove to an end user that it is actually installed on an authentic physical Ledger device with specific UI and Signer versions, along with its currently authorized signer version and generated public keys.
 
 ## Preliminaries, native support and assumptions
 
-Each device currently used to run powHSM on, namely Ledger Nano S, ships with a mechanism to prove its authenticity and that also enables and leverages some basic additional support for user application attestation. For powHSM attestation we make extensive use of these mechanisms, assuming it is robust enough for our purpose.
+Each Ledger device currently used to run powHSM on, namely Ledger Nano S, ships with a mechanism to prove its authenticity and that also enables and leverages some basic additional support for user application attestation. For powHSM attestation we make extensive use of these mechanisms, assuming it is robust enough for our purpose.
 
 ## Device key and authenticity
 
@@ -174,4 +178,4 @@ Installed Signer hash: e1baa18564fc0c2c70ac4019609c6db643adbf12711c8b319f838e6a7
 ---------------------------------------------------------------------------------------
 ```
 
-and verify that the reported custom CA and UI and Signer hashes match the expected values.
+and verify that the reported UI and Signer application hashes match the expected value. Additionally, the user should check that each additional reported value corresponds with an expected or reasonable value (e.g., verify that the UD value corresponds to an RSK block header hash that was mined on or after the time of setup/update; or that in the case of an update, the public keys correspond to those of the powPeg member and have not been altered from the values obtained at setup).

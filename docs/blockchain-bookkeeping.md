@@ -243,7 +243,7 @@ At any point in time, the only block that is considered to be included in the bl
 
 ## Implementation considerations
 
-The implementation must take into account the limited resources available on the actual hardware, and thus implement the described algorithms as a set of request-response incremental operations without compromising the integrity of the update processes. For example, to process just a single block, many request-response operations might be needed, and that would correspond to a single iteration in either of the above algorithms.
+The implementation must take into account any potential limited resources available on the actual hardware, and thus implement the described algorithms as a set of request-response incremental operations without compromising the integrity of the update processes. For example, to process just a single block, many request-response operations might be needed, and that would correspond to a single iteration in either of the above algorithms.
 
 ## Miscellaneous
 
