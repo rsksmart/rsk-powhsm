@@ -2,13 +2,14 @@
 
 ## Overview and source code
 
-By firmware, we collectively refer to the group of applications that comprise the main powHSM logic and its different implementations (currently and namely, powHSM for Ledger Nano S and powHSM for x86 -- codenamed TCPSigner). The source code under this document's directory is located within the `src` directory, and is organised as follows:
+By firmware, we collectively refer to the group of applications that comprise the main powHSM logic and its different implementations (currently and namely, powHSM for Ledger Nano S, powHSM for Intel SGX and powHSM for x86 -- codenamed TCPSigner). The source code under this document's directory is located within the `src` directory, and is organised as follows:
 
-- `hal`: contains header and source files for the Hardware Abstraction Layer, on top of which the powHSM logic is built. Currently implemented for Ledger Nano S and x86.
+- `hal`: contains header and source files for the Hardware Abstraction Layer, on top of which the powHSM logic is built. Currently implemented for Ledger Nano S, Intel SGX and x86.
 - `powhsm`: contains the powHSM logic.
 - `ledger`: contains the Ledger Nano S apps.
+- `sgx`: contains the Intel SGX implementation of powHSM (host and enclave).
 - `tcpsigner`: contains the x86 implementation of powHSM.
-- `common`: contains some common headers used both in powHSM and the Ledger Nano S apps (note that the Ledger UI app does not use the HAL layer).
+- `common`: contains some common headers used both in powHSM, the Ledger Nano S apps and the Intel SGX host and enclave.
 
 ## powHSM for Ledger Nano S
 
@@ -46,6 +47,31 @@ Refer to [firmware/build/README.md](./build/README.md) for instructions on build
 
 See [Ledger's documentation](http://ledger.readthedocs.io) to get a reference on developing for the platform.
 
+## powHSM for Intel SGX
+
+### Host and Enclave
+
+There are two parts to the Intel SGX powHSM implementation: a host and an enclave. The enclave is responsible for hosting the core powHSM business logic, as well as for managing all secrets (e.g., private keys). This enclave runs in a reserved memory area and cannot be tampered with or accessed by any other entities than itself. Its only link with the outside world is the host, with which it shares a limited, well defined, communication protocol. The host, then, is responsible for managing the enclave creation, destruction, and all its interactions with the outside world -- including, but not limited to, disk and network access. Once built, both host and enclave take the form of binaries that must be deployed together to the Intel SGX server on which they are set to run.
+
+### Prerequisites
+
+Before starting, you must have the following installed on your system:
+
+- Docker
+
+The first time, you must build the docker image that will serve as the SGX build environment. Issue:
+
+```
+~/repo> docker/sgx/build
+```
+
+that should build (or rebuild in case any of the `Dockerfile`s have changed) the corresponding docker image.
+
+### Common tasks and documentation
+
+Refer to [firmware/build/README.md](./build/README.md) for instructions on building.
+
+See [Open Enclave](https://openenclave.io/sdk/) for development documentation and reference, and [Intel SGX](https://www.intel.com/content/www/us/en/products/docs/accelerator-engines/software-guard-extensions.html) for information about the underlying platform.
 
 ## powHSM for x86
 
@@ -53,19 +79,7 @@ Besides the Ledger implementation, there is also an x86 based implementation of 
 
 ## Tests
 
-There are some tests written in Python that serve the purpose of smoke testing the powHSM signer when either installed and running on a Ledger Nano S or via a fresh TCPSigner build. To run them against a TCPSigner, issue:
-
-```
-~/repo/firmware/test> ./test-all
-```
-
-To run them against a Ledger Nano S, issue:
-
-```
-~/repo/firmware/test> ./test-all dongle
-```
-
-Make sure that the Ledger is unlocked and with the signer app running for the tests to run correctly.
+There is a test framework written in Python with a rather large set of tests that serve the purpose of smoke testing the main powHSM signing business logic when either installed and running on a Ledger Nano S, an Intel SGX server or via a fresh TCPSigner build. Refer to [the firmware testing documentation](./test/README.md) for details on how to run these tests on each supported platform.
 
 ## Troubleshooting
 
