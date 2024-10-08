@@ -31,13 +31,6 @@
 #include "openenclave/common.h"
 #include "openenclave/seal.h"
 
-// Types of failures that can be simulated in this mock implementation
-typedef enum mock_seal_failure_type {
-    SEAL_FAILURE_NONE,
-    SEAL_FAILURE_OE_UNSEAL_PLAINTEXT_TOO_LARGE,
-    SEAL_FAILURE_OE_FAILURE,
-} mock_seal_failure_type_t;
-
 /**
  * @brief Initializes the mock seal implementation
  */
@@ -99,15 +92,7 @@ void assert_oe_seal_not_called();
 
 /**
  * @brief Simulates a failure on the next call to this mock implementation
- *
- * @param failure the type of failure to simulate
  */
-void mock_seal_fail_next(mock_seal_failure_type_t failure);
-
-/**
- * @brief Returns the maximum plaintext size allowed, based on the maximum blob
- * size.
- */
-size_t mock_seal_get_max_plaintext_size();
+void mock_seal_fail_next();
 
 #endif // #ifndef __MOCK_SEAL_H

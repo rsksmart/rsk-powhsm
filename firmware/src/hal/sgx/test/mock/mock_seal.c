@@ -24,11 +24,9 @@
 
 #include <assert.h>
 #include <string.h>
+#include <stdio.h>
 #include "mock_seal.h"
 #include "assert_utils.h"
-
-// The maximum allowed blob size, as defined in secret_store.c
-#define MAX_BLOB_SIZE (1024 * 1024)
 
 // A prefix added to sealed blobs in this mock implementation.
 // This is just to keep things simple and easily distinguishable.
@@ -47,7 +45,7 @@ typedef struct oe_seal_args {
 
 // Captures the arguments passed to oe_unseal
 typedef struct oe_unseal_args {
-    uint8_t blob[MAX_BLOB_SIZE];
+    uint8_t blob[BUFSIZ];
     size_t blob_size;
     const uint8_t* additional_data;
     size_t additional_data_size;
@@ -56,13 +54,13 @@ typedef struct oe_unseal_args {
 // Global variables to capture the arguments passed to oe_seal and oe_unseal
 static oe_seal_args_t G_oe_seal_args;
 static oe_unseal_args_t G_oe_unseal_args;
-// The next failure type to simulate
-mock_seal_failure_type_t G_next_failure = SEAL_FAILURE_NONE;
+// Simulates a OE_FAILURE in the next call to this mock implementation
+static bool G_fail_next = false;
 
 void mock_seal_init() {
     memset(&G_oe_seal_args, 0, sizeof(G_oe_seal_args));
     memset(&G_oe_unseal_args, 0, sizeof(G_oe_unseal_args));
-    G_next_failure = SEAL_FAILURE_NONE;
+    G_fail_next = false;
 }
 
 oe_result_t mock_oe_seal(const void* plugin_id,
@@ -82,8 +80,8 @@ oe_result_t mock_oe_seal(const void* plugin_id,
     G_oe_seal_args.additional_data = additional_data;
     G_oe_seal_args.additional_data_size = additional_data_size;
 
-    if (G_next_failure == SEAL_FAILURE_OE_FAILURE) {
-        G_next_failure = SEAL_FAILURE_NONE;
+    if (G_fail_next) {
+        G_fail_next = false;
         return OE_FAILURE;
     }
 
@@ -108,22 +106,12 @@ oe_result_t mock_oe_unseal(const uint8_t* blob,
     G_oe_unseal_args.additional_data = additional_data;
     G_oe_unseal_args.additional_data_size = additional_data_size;
 
-    switch (G_next_failure) {
-    case SEAL_FAILURE_OE_FAILURE:
-        G_next_failure = SEAL_FAILURE_NONE;
+    if (G_fail_next) {
+        G_fail_next = false;
         return OE_FAILURE;
-    case SEAL_FAILURE_OE_UNSEAL_PLAINTEXT_TOO_LARGE:
-        *plaintext_size = MAX_BLOB_SIZE + 1;
-        G_next_failure = SEAL_FAILURE_NONE;
-        break;
-    case SEAL_FAILURE_NONE:
-        *plaintext_size = blob_size - strlen(SEALED_PREFIX);
-        break;
-    default:
-        assert(false);
-        break;
     }
 
+    *plaintext_size = blob_size - strlen(SEALED_PREFIX);
     *plaintext = malloc(*plaintext_size);
     assert(*plaintext != NULL);
     memcpy(*plaintext, blob + strlen(SEALED_PREFIX), *plaintext_size);
@@ -174,10 +162,6 @@ void assert_oe_seal_not_called() {
     assert(G_oe_seal_args.additional_data_size == 0);
 }
 
-void mock_seal_fail_next(mock_seal_failure_type_t failure) {
-    G_next_failure = failure;
-}
-
-size_t mock_seal_get_max_plaintext_size() {
-    return MAX_BLOB_SIZE - strlen(SEALED_PREFIX);
+void mock_seal_fail_next() {
+    G_fail_next = true;
 }

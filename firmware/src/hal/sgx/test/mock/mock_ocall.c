@@ -22,17 +22,18 @@
  * IN THE SOFTWARE.
  */
 
+#include <assert.h>
 #include <string.h>
+#include "assert_utils.h"
 #include "openenclave/common.h"
 #include "mock_ocall.h"
 
-// Maximum size of a sealed blob, as defined in secret_store.c
-#define MAX_BLOB_SIZE (1024 * 1024)
-
 // Trivial key-value store implementation for testing purposes
 // This key-value store is only capable of storing a single key-value pair
-static char G_kvstore_key[256];
-static uint8_t G_kvstore_data[256];
+#define MOCK_KVSTORE_MAX_KEY_SIZE (256)
+#define MOCK_KVSTORE_MAX_DATA_SIZE (2 * 1024 * 1024)
+static char G_kvstore_key[MOCK_KVSTORE_MAX_KEY_SIZE];
+static uint8_t G_kvstore_data[MOCK_KVSTORE_MAX_DATA_SIZE];
 static size_t G_kvstore_data_size;
 // The type of failure to simulate on the next call to the mock implementation
 static mock_kvstore_failure_type_t G_next_failure;
@@ -58,6 +59,7 @@ oe_result_t mock_ocall_kvstore_save(bool* _retval,
     }
 
     strcpy(G_kvstore_key, key);
+    assert(data_size <= sizeof(G_kvstore_data));
     memcpy(G_kvstore_data, data, data_size);
     G_kvstore_data_size = data_size;
     *_retval = true;
@@ -70,7 +72,7 @@ oe_result_t mock_ocall_kvstore_exists(bool* _retval, char* key) {
         return OE_FAILURE;
     }
 
-    *_retval = (strcmp(key, G_kvstore_key) == 0);
+    *_retval = mock_ocall_kstore_key_exists(key);
     return OE_OK;
 }
 
@@ -84,13 +86,7 @@ oe_result_t mock_ocall_kvstore_get(size_t* _retval,
     }
 
     if (strcmp(key, G_kvstore_key) == 0) {
-        if (G_next_failure == KVSTORE_FAILURE_GET_SEALED_BLOB_TOO_LARGE) {
-            // Return a blob size that exceeds the limit allowed by the caller
-            G_next_failure = KVSTORE_FAILURE_NONE;
-            *_retval = MAX_BLOB_SIZE + 1;
-        } else {
-            *_retval = G_kvstore_data_size;
-        }
+        *_retval = G_kvstore_data_size;
         memcpy(data_buf, G_kvstore_data, G_kvstore_data_size);
     } else {
         *_retval = 0;
@@ -116,4 +112,13 @@ oe_result_t mock_ocall_kvstore_remove(bool* _retval, char* key) {
 
 void mock_ocall_kvstore_fail_next(mock_kvstore_failure_type_t failure) {
     G_next_failure = failure;
+}
+
+void mock_ocall_kstore_assert_value(char* key, const uint8_t* value) {
+    ASSERT_STR_EQUALS(key, G_kvstore_key);
+    ASSERT_STR_EQUALS(value, G_kvstore_data);
+}
+
+bool mock_ocall_kstore_key_exists(char* key) {
+    return (strcmp(key, G_kvstore_key) == 0);
 }

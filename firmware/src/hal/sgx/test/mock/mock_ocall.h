@@ -34,7 +34,6 @@
 typedef enum mock_kvstore_failure_type {
     KVSTORE_FAILURE_NONE,
     KVSTORE_FAILURE_SAVE,
-    KVSTORE_FAILURE_GET_SEALED_BLOB_TOO_LARGE,
     KVSTORE_FAILURE_OE_FAILURE,
 } mock_kvstore_failure_type_t;
 
@@ -75,5 +74,9 @@ oe_result_t mock_ocall_kvstore_remove(bool* _retval, char* key);
  * @param failure the type of failure to simulate
  */
 void mock_ocall_kvstore_fail_next(mock_kvstore_failure_type_t failure);
+
+void mock_ocall_kstore_assert_value(char* key, const uint8_t* value);
+
+bool mock_ocall_kstore_key_exists(char* key);
 
 #endif // __MOCK_OCALL_H
