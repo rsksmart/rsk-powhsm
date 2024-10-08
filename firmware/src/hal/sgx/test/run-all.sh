@@ -1,6 +1,6 @@
 #!/bin/bash
 BASEDIR=$(dirname $0)
-TESTDIRS="nvmem"
+TESTDIRS="nvmem secret_store"
 TESTDIRS=${1:-"$TESTDIRS"}
 
 for d in $TESTDIRS; do

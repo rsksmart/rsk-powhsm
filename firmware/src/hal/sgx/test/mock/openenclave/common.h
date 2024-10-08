@@ -22,11 +22,14 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __MOCK_H
-#define __MOCK_H
+#ifndef __MOCK_OE_COMMON_H
+#define __MOCK_OE_COMMON_H
 
-#include "mock_secret_store.h"
-#include "mock_seal.h"
-#include "mock_ocall.h"
+typedef enum oe_result {
+    OE_OK,
+    OE_FAILURE,
+} oe_result_t;
 
-#endif // #ifndef __MOCK_H
+#define oe_result_str(result) ((result) == OE_OK ? "OE_OK" : "OE_FAILURE")
+
+#endif // #ifndef __MOCK_OE_COMMON_H
