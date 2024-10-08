@@ -65,15 +65,15 @@ void mock_seal_init() {
     G_next_failure = SEAL_FAILURE_NONE;
 }
 
-oe_result_t oe_seal(const void* plugin_id,
-                    const oe_seal_setting_t* settings,
-                    size_t settings_count,
-                    const uint8_t* plaintext,
-                    size_t plaintext_size,
-                    const uint8_t* additional_data,
-                    size_t additional_data_size,
-                    uint8_t** blob,
-                    size_t* blob_size) {
+oe_result_t mock_oe_seal(const void* plugin_id,
+                         const oe_seal_setting_t* settings,
+                         size_t settings_count,
+                         const uint8_t* plaintext,
+                         size_t plaintext_size,
+                         const uint8_t* additional_data,
+                         size_t additional_data_size,
+                         uint8_t** blob,
+                         size_t* blob_size) {
     G_oe_seal_args.plugin_id = plugin_id;
     memcpy(&G_oe_seal_args.settings, settings, sizeof(oe_seal_setting_t));
     G_oe_seal_args.settings_count = settings_count;
@@ -97,12 +97,12 @@ oe_result_t oe_seal(const void* plugin_id,
     return OE_OK;
 }
 
-oe_result_t oe_unseal(const uint8_t* blob,
-                      size_t blob_size,
-                      const uint8_t* additional_data,
-                      size_t additional_data_size,
-                      uint8_t** plaintext,
-                      size_t* plaintext_size) {
+oe_result_t mock_oe_unseal(const uint8_t* blob,
+                           size_t blob_size,
+                           const uint8_t* additional_data,
+                           size_t additional_data_size,
+                           uint8_t** plaintext,
+                           size_t* plaintext_size) {
     memcpy(G_oe_unseal_args.blob, blob, blob_size);
     G_oe_unseal_args.blob_size = blob_size;
     G_oe_unseal_args.additional_data = additional_data;

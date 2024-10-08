@@ -29,6 +29,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include "openenclave/common.h"
+#include "openenclave/seal.h"
 
 // Types of failures that can be simulated in this mock implementation
 typedef enum mock_seal_failure_type {
@@ -36,15 +37,6 @@ typedef enum mock_seal_failure_type {
     SEAL_FAILURE_OE_UNSEAL_PLAINTEXT_TOO_LARGE,
     SEAL_FAILURE_OE_FAILURE,
 } mock_seal_failure_type_t;
-
-// Simplified version of the seal settings type. This is only used to ensure
-// that the API was called with the expected parameters.
-typedef struct {
-    int policy;
-} oe_seal_setting_t;
-
-#define OE_SEAL_SET_POLICY(policy) \
-    { (int)(policy) }
 
 /**
  * @brief Initializes the mock seal implementation
@@ -54,25 +46,25 @@ void mock_seal_init();
 /**
  * @brief Mock implementation of oe_seal API function
  */
-oe_result_t oe_seal(const void* plugin_id,
-                    const oe_seal_setting_t* settings,
-                    size_t settings_count,
-                    const uint8_t* plaintext,
-                    size_t plaintext_size,
-                    const uint8_t* additional_data,
-                    size_t additional_data_size,
-                    uint8_t** blob,
-                    size_t* blob_size);
+oe_result_t mock_oe_seal(const void* plugin_id,
+                         const oe_seal_setting_t* settings,
+                         size_t settings_count,
+                         const uint8_t* plaintext,
+                         size_t plaintext_size,
+                         const uint8_t* additional_data,
+                         size_t additional_data_size,
+                         uint8_t** blob,
+                         size_t* blob_size);
 
 /**
  * @brief Mock implementation of oe_unseal API function
  */
-oe_result_t oe_unseal(const uint8_t* blob,
-                      size_t blob_size,
-                      const uint8_t* additional_data,
-                      size_t additional_data_size,
-                      uint8_t** plaintext,
-                      size_t* plaintext_size);
+oe_result_t mock_oe_unseal(const uint8_t* blob,
+                           size_t blob_size,
+                           const uint8_t* additional_data,
+                           size_t additional_data_size,
+                           uint8_t** plaintext,
+                           size_t* plaintext_size);
 
 /**
  * @brief Asserts that the last call to oe_seal was made with the expected

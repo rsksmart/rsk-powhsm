@@ -37,12 +37,72 @@
 // The maximum value that can be returned by sest_read
 #define MAX_SEST_READ_SIZE (255)
 
+// Hand over the seal API calls to the mock implementation
+oe_result_t oe_seal(const void* plugin_id,
+                    const oe_seal_setting_t* settings,
+                    size_t settings_count,
+                    const uint8_t* plaintext,
+                    size_t plaintext_size,
+                    const uint8_t* additional_data,
+                    size_t additional_data_size,
+                    uint8_t** blob,
+                    size_t* blob_size) {
+    return mock_oe_seal(plugin_id,
+                        settings,
+                        settings_count,
+                        plaintext,
+                        plaintext_size,
+                        additional_data,
+                        additional_data_size,
+                        blob,
+                        blob_size);
+}
+
+oe_result_t oe_unseal(const uint8_t* blob,
+                      size_t blob_size,
+                      const uint8_t* additional_data,
+                      size_t additional_data_size,
+                      uint8_t** plaintext,
+                      size_t* plaintext_size) {
+    return mock_oe_unseal(blob,
+                          blob_size,
+                          additional_data,
+                          additional_data_size,
+                          plaintext,
+                          plaintext_size);
+}
+
+// Hand over the kvstore calls to the mock implementation
+oe_result_t ocall_kvstore_save(bool* _retval,
+                               char* key,
+                               uint8_t* data,
+                               size_t data_size) {
+    return mock_ocall_kvstore_save(_retval, key, data, data_size);
+}
+
+oe_result_t ocall_kvstore_exists(bool* _retval, char* key) {
+    return mock_ocall_kvstore_exists(_retval, key);
+}
+
+oe_result_t ocall_kvstore_get(size_t* _retval,
+                              char* key,
+                              uint8_t* data_buf,
+                              size_t buffer_size) {
+    return mock_ocall_kvstore_get(_retval, key, data_buf, buffer_size);
+}
+
+oe_result_t ocall_kvstore_remove(bool* _retval, char* key) {
+    return mock_ocall_kvstore_remove(_retval, key);
+}
+
+// Helper functions
 void setup() {
     mock_seal_init();
     mock_ocall_init();
     assert(sest_init());
 }
 
+// Test cases
 void test_secret_exists_after_write() {
     setup();
     printf("Test secret exists after write...\n");

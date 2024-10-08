@@ -25,6 +25,23 @@
 #ifndef __MOCK_HSM_T_H
 #define __MOCK_HSM_T_H
 
-#include "mock_ocall.h"
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include "openenclave/common.h"
+
+oe_result_t ocall_kvstore_save(bool* _retval,
+                               char* key,
+                               uint8_t* data,
+                               size_t data_size);
+
+oe_result_t ocall_kvstore_exists(bool* _retval, char* key);
+
+oe_result_t ocall_kvstore_get(size_t* _retval,
+                              char* key,
+                              uint8_t* data_buf,
+                              size_t buffer_size);
+
+oe_result_t ocall_kvstore_remove(bool* _retval, char* key);
 
 #endif // __MOCK_HSM_T_H

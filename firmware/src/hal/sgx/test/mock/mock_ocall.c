@@ -44,10 +44,10 @@ void mock_ocall_init() {
     G_next_failure = KVSTORE_FAILURE_NONE;
 }
 
-oe_result_t ocall_kvstore_save(bool* _retval,
-                               char* key,
-                               uint8_t* data,
-                               size_t data_size) {
+oe_result_t mock_ocall_kvstore_save(bool* _retval,
+                                    char* key,
+                                    uint8_t* data,
+                                    size_t data_size) {
     if (G_next_failure == KVSTORE_FAILURE_SAVE) {
         G_next_failure = KVSTORE_FAILURE_NONE;
         *_retval = false;
@@ -64,7 +64,7 @@ oe_result_t ocall_kvstore_save(bool* _retval,
     return OE_OK;
 }
 
-oe_result_t ocall_kvstore_exists(bool* _retval, char* key) {
+oe_result_t mock_ocall_kvstore_exists(bool* _retval, char* key) {
     if (G_next_failure == KVSTORE_FAILURE_OE_FAILURE) {
         G_next_failure = KVSTORE_FAILURE_NONE;
         return OE_FAILURE;
@@ -74,10 +74,10 @@ oe_result_t ocall_kvstore_exists(bool* _retval, char* key) {
     return OE_OK;
 }
 
-oe_result_t ocall_kvstore_get(size_t* _retval,
-                              char* key,
-                              uint8_t* data_buf,
-                              size_t buffer_size) {
+oe_result_t mock_ocall_kvstore_get(size_t* _retval,
+                                   char* key,
+                                   uint8_t* data_buf,
+                                   size_t buffer_size) {
     if (G_next_failure == KVSTORE_FAILURE_OE_FAILURE) {
         G_next_failure = KVSTORE_FAILURE_NONE;
         return OE_FAILURE;
@@ -98,7 +98,7 @@ oe_result_t ocall_kvstore_get(size_t* _retval,
     return OE_OK;
 }
 
-oe_result_t ocall_kvstore_remove(bool* _retval, char* key) {
+oe_result_t mock_ocall_kvstore_remove(bool* _retval, char* key) {
     if (G_next_failure == KVSTORE_FAILURE_OE_FAILURE) {
         G_next_failure = KVSTORE_FAILURE_NONE;
         return OE_FAILURE;

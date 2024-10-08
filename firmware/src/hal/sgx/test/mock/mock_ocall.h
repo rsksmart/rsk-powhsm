@@ -46,28 +46,28 @@ void mock_ocall_init();
 /**
  * @brief Mock implementation of ocall_kvstore_save
  */
-oe_result_t ocall_kvstore_save(bool* _retval,
-                               char* key,
-                               uint8_t* data,
-                               size_t data_size);
+oe_result_t mock_ocall_kvstore_save(bool* _retval,
+                                    char* key,
+                                    uint8_t* data,
+                                    size_t data_size);
 
 /**
  * @brief Mock implementation of ocall_kvstore_exists
  */
-oe_result_t ocall_kvstore_exists(bool* _retval, char* key);
+oe_result_t mock_ocall_kvstore_exists(bool* _retval, char* key);
 
 /**
  * @brief Mock implementation of ocall_kvstore_get
  */
-oe_result_t ocall_kvstore_get(size_t* _retval,
-                              char* key,
-                              uint8_t* data_buf,
-                              size_t buffer_size);
+oe_result_t mock_ocall_kvstore_get(size_t* _retval,
+                                   char* key,
+                                   uint8_t* data_buf,
+                                   size_t buffer_size);
 
 /**
  * @brief Mock implementation of ocall_kvstore_remove
  */
-oe_result_t ocall_kvstore_remove(bool* _retval, char* key);
+oe_result_t mock_ocall_kvstore_remove(bool* _retval, char* key);
 
 /**
  * @brief Simulates a failure on the next call to this mock implementation
