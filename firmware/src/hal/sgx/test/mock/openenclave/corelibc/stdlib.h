@@ -22,11 +22,9 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __MOCK_H
-#define __MOCK_H
+#ifndef __MOCK_OE_STDLIB_H
+#define __MOCK_OE_STDLIB_H
 
-#include "mock_secret_store.h"
-#include "mock_seal.h"
-#include "mock_ocall.h"
+#define oe_free(ptr) free(ptr)
 
-#endif // #ifndef __MOCK_H
+#endif // #ifndef __MOCK_OE_STDLIB_H

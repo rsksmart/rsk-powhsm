@@ -20,18 +20,19 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-SRCDIR = ../../src/trusted
-MOCKDIR = ../mock
-HALINCDIR = ../../../../hal/include
-TESTCOMMONDIR = ../common
-CFLAGS = -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-function
-CFLAGS += -iquote $(SRCDIR) -iquote $(HALINCDIR)
-CFLAGS += -iquote $(TESTCOMMONDIR)
-CFLAGS += -I$(MOCKDIR)
-CFLAGS += -DHSM_PLATFORM_SGX
+include ../common/common.mk
 
-VPATH += $(MOCKDIR):$(SRCDIR)
+PROG = test.out
+OBJS = secret_store.o test_secret_store.o platform.o mock_seal.o mock_ocall.o
 
-include ../../../../../coverage/coverage.mk
+all: $(PROG)
 
-CFLAGS += $(COVFLAGS)
+$(PROG): $(OBJS)
+	$(CC) $(COVFLAGS) -o $@ $^
+
+.PHONY: clean test
+clean:
+	rm -f $(PROG) *.o $(COVFILES)
+
+test: all
+	./$(PROG)
