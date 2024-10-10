@@ -58,4 +58,3 @@ int main() {
     test_write_uint32_be();
     return 0;
 }
-
