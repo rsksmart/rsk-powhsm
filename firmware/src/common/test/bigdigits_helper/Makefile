@@ -20,11 +20,20 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-SRCDIR = ../../src
-CFLAGS = -iquote $(SRCDIR) -iquote .
+include ../common.mk
 
-include ../../../../coverage/coverage.mk
+PROG = test.out
+OBJS = test_bigdigits_helper.o bigdigits_helper.o bigdigits.o
 
-CFLAGS += $(COVFLAGS)
+all: $(PROG)
 
-VPATH += $(SRCDIR)
+$(PROG): $(OBJS)
+	$(CC) $(COVFLAGS) -o $@ $^
+
+.PHONY: clean test
+
+clean:
+	rm -f $(PROG) ./*.o $(COVFILES)
+
+test: all
+	./$(PROG)
