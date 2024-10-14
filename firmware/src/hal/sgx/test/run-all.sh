@@ -1,7 +1,7 @@
 #!/bin/bash
 ROOTDIR=$(dirname $0)/../../../../..
 TESTDIR=$(realpath $(dirname $0) --relative-to $ROOTDIR)
-TESTDIRS="nvmem secret_store"
+TESTDIRS="nvmem secret_store seed"
 TESTDIRS=${1:-"$TESTDIRS"}
 
 for d in $TESTDIRS; do
