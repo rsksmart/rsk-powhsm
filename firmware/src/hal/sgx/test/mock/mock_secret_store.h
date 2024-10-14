@@ -72,6 +72,15 @@ bool mock_sest_write(char *key, uint8_t *secret, size_t secret_length);
 uint8_t mock_sest_read(char *key, uint8_t *dest, size_t dest_length);
 
 /**
+ * @brief Mock implementation of sest_remove
+ *
+ * @param key the key for the secret
+ *
+ * @returns whether the secret was successfully removed
+ */
+bool mock_sest_remove(char *key);
+
+/**
  * @brief Resets the mock secret store to its initial state
  */
 void mock_sest_reset();
