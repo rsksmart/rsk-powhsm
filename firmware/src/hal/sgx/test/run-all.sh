@@ -1,13 +1,12 @@
 #!/bin/bash
-BASEDIR=$(dirname $0)
-TESTDIRS="nvmem secret_store"
+ROOTDIR=$(dirname $0)/../../../../..
+TESTDIR=$(realpath $(dirname $0) --relative-to $ROOTDIR)
+TESTDIRS="nvmem secret_store seed"
 TESTDIRS=${1:-"$TESTDIRS"}
 
 for d in $TESTDIRS; do
     echo "******************************"
     echo "Testing $d..."
     echo "******************************"
-    cd "$BASEDIR/$d"
-    make clean test || exit $?
-    cd - > /dev/null
+    $ROOTDIR/docker/mware/do-notty-nousb /hsm2/$TESTDIR/$d "make clean test" || exit $?
 done

@@ -102,6 +102,22 @@ uint8_t mock_sest_read(char *key, uint8_t *dest, size_t dest_length) {
     return 0;
 }
 
+bool mock_sest_remove(char *key) {
+    for (size_t i = 0; i < g_mock_secret_store.num_registers; i++) {
+        if (strcmp(g_mock_secret_store.registers[i].key, key) == 0) {
+            free(g_mock_secret_store.registers[i].key);
+            free(g_mock_secret_store.registers[i].secret);
+            for (size_t j = i; j < g_mock_secret_store.num_registers - 1; j++) {
+                g_mock_secret_store.registers[j] =
+                    g_mock_secret_store.registers[j + 1];
+            }
+            g_mock_secret_store.num_registers--;
+            return true;
+        }
+    }
+    return false;
+}
+
 void mock_sest_init() {
     memset(&g_mock_secret_store, 0, sizeof(g_mock_secret_store));
 }
