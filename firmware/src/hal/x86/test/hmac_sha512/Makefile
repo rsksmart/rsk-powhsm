@@ -20,15 +20,21 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-INCDIR = ../../../include
-X86SRCDIR = ../../src
-COMMONSRCDIR = ../../../../common/src
-SRCDIR = $(X86SRCDIR):$(COMMONSRCDIR)
-CFLAGS  = -iquote $(INCDIR) -iquote $(X86SRCDIR) -iquote $(COMMONSRCDIR)
-CFLAGS += -DHSM_PLATFORM_X86
+include ../common/common.mk
 
-include ../../../../../coverage/coverage.mk
+CFLAGS += -iquote ../common
 
-CFLAGS += $(COVFLAGS)
+PROG = test.out
+OBJS = hmac_sha512.o endian.o test_hmac_sha512.o ../common/test_helpers.o
 
-VPATH += $(SRCDIR):$(INCDIR)
+all: $(PROG)
+
+$(PROG): $(OBJS)
+	$(CC) $(COVFLAGS) -o $@ $^
+
+.PHONY: clean test
+clean:
+	rm -f $(PROG) ./*.o $(COVFILES)
+
+test: all
+	./$(PROG)
