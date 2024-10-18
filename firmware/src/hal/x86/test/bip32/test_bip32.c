@@ -32,7 +32,7 @@ void test_parses_correctly(const char* path,
                            const uint32_t expected_parts[],
                            const size_t expected_parts_count) {
 
-    printf("Testing path \"%s\" is parsed correctly... ", path);
+    printf("\tPath \"%s\" is parsed correctly... ", path);
     fflush(stdout);
 
     uint8_t binpath[5 * sizeof(uint32_t) + 1];
@@ -57,7 +57,7 @@ void test_parses_correctly(const char* path,
 void test_parsing_fails(const char* path) {
     uint8_t binpath[5 * sizeof(uint32_t) + 1];
 
-    printf("Testing path \"%s\" parsing fails... ", path);
+    printf("\tPath \"%s\" parsing fails... ", path);
     fflush(stdout);
 
     assert(!bip32_parse_path(path, binpath));
@@ -65,7 +65,11 @@ void test_parsing_fails(const char* path) {
     printf("OK!\n");
 }
 
+// Implemented in test_bip32_derivation.c
+void test_derivation();
+
 int main() {
+    printf("Testing BIP32 path parsing...\n");
     test_parses_correctly("m/0/0/0/0/0", (const uint32_t[]){0, 0, 0, 0, 0}, 5);
     test_parses_correctly(
         "m/10/20/30/40/50", (const uint32_t[]){10, 20, 30, 40, 50}, 5);
@@ -115,6 +119,8 @@ int main() {
     test_parsing_fails("m/2147483648/0/0/0/0");
     test_parsing_fails("m/2147483648'/0/0/0/0");
     test_parsing_fails("m/01234567890/0/0/0/0");
+
+    test_derivation();
 
     return 0;
 }
