@@ -1,7 +1,7 @@
 #!/bin/bash
 ROOTDIR=$(dirname $0)/../../../../..
 TESTDIR=$(realpath $(dirname $0) --relative-to $ROOTDIR)
-TESTDIRS="bip32 endian hmac_sha256 keccak256"
+TESTDIRS="bip32 endian hmac_sha256 hmac_sha512 keccak256"
 TESTDIRS=${1:-"$TESTDIRS"}
 
 for d in $TESTDIRS; do
