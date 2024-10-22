@@ -20,24 +20,17 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-HALSRCDIR = ../../src/trusted/
-SGXSRCDIR = ../../../../sgx/src/
-TRUSTEDSRCDIR = ../../../../sgx/src/trusted/
-COMMONSRCDIR = ../../../../common/src/
-POWHSMSRCDIR = ../../../../powhsm/src/
+SRCDIR = ../../src/trusted
 MOCKDIR = ../mock
 HALINCDIR = ../../../../hal/include
 TESTCOMMONDIR = ../common
 CFLAGS = -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-function
-CFLAGS += -iquote $(HALSRCDIR) -iquote $(HALINCDIR)
+CFLAGS += -iquote $(SRCDIR) -iquote $(HALINCDIR)
 CFLAGS += -iquote $(TESTCOMMONDIR)
-CFLAGS += -iquote $(POWHSMSRCDIR)
-CFLAGS += -iquote $(COMMONSRCDIR)
-CFLAGS += -iquote $(SGXSRCDIR)
 CFLAGS += -I$(MOCKDIR)
 CFLAGS += -DHSM_PLATFORM_SGX
 
-VPATH += $(MOCKDIR):$(HALSRCDIR):$(TRUSTEDSRCDIR)
+VPATH += $(MOCKDIR):$(SRCDIR)
 
 include ../../../../../coverage/coverage.mk
 

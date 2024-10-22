@@ -32,7 +32,7 @@
 #include "hal/exceptions.h"
 #include "hal/log.h"
 #include "hsm.h"
-#include "trusted/system.h"
+#include "system.h"
 
 // Constants
 #define MAX_CALLS 10
