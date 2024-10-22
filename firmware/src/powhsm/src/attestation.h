@@ -33,7 +33,7 @@
 // -----------------------------------------------------------------------
 
 // Attestation message prefix
-#define ATT_MSG_PREFIX "HSM:SIGNER:5.2"
+#define ATT_MSG_PREFIX "HSM:SIGNER:5.3"
 #define ATT_MSG_PREFIX_LENGTH (sizeof(ATT_MSG_PREFIX) - sizeof(""))
 
 // -----------------------------------------------------------------------
