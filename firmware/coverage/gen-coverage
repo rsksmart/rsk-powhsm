@@ -12,6 +12,7 @@ if [[ $1 == "exec" ]]; then
     # Run unit tests with coverage generation
     COVERAGE=y $REPOROOT/firmware/src/common/test/run-all.sh
     COVERAGE=y $REPOROOT/firmware/src/powhsm/test/run-all.sh
+    COVERAGE=y $REPOROOT/firmware/src/sgx/test/run-all.sh
     COVERAGE=y $REPOROOT/firmware/src/ledger/ui/test/run-all.sh
     COVERAGE=y $REPOROOT/firmware/src/ledger/signer/test/run-all.sh
     COVERAGE=y $REPOROOT/firmware/src/tcpsigner/test/run-all.sh
