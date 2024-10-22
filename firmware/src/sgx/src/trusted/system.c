@@ -185,7 +185,7 @@ bool system_init(unsigned char *msg_buffer, size_t msg_buffer_size) {
         return false;
     }
 
-    // Make sure both access and init are in the same state
+    // Make sure both access and seed are in the same state
     if (!seed_available() ^ access_is_wiped()) {
         LOG("Inconsistent system state detected\n");
         if (!access_wipe() || !seed_wipe()) {

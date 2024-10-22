@@ -20,25 +20,19 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-HALSRCDIR = ../../src/trusted/
-SGXSRCDIR = ../../../../sgx/src/
-TRUSTEDSRCDIR = ../../../../sgx/src/trusted/
-COMMONSRCDIR = ../../../../common/src/
-POWHSMSRCDIR = ../../../../powhsm/src/
-MOCKDIR = ../mock
-HALINCDIR = ../../../../hal/include
-TESTCOMMONDIR = ../common
-CFLAGS = -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-function
-CFLAGS += -iquote $(HALSRCDIR) -iquote $(HALINCDIR)
-CFLAGS += -iquote $(TESTCOMMONDIR)
-CFLAGS += -iquote $(POWHSMSRCDIR)
-CFLAGS += -iquote $(COMMONSRCDIR)
-CFLAGS += -iquote $(SGXSRCDIR)
-CFLAGS += -I$(MOCKDIR)
-CFLAGS += -DHSM_PLATFORM_SGX
+include ../common/common.mk
 
-VPATH += $(MOCKDIR):$(HALSRCDIR):$(TRUSTEDSRCDIR)
+PROG = test.out
+OBJS = system.o test_system.o
 
-include ../../../../../coverage/coverage.mk
+all: $(PROG)
 
-CFLAGS += $(COVFLAGS)
+$(PROG): $(OBJS)
+	$(CC) $(COVFLAGS) -o $@ $^
+
+.PHONY: clean test
+clean:
+	rm -f $(PROG) *.o $(COVFILES)
+
+test: all
+	./$(PROG)
