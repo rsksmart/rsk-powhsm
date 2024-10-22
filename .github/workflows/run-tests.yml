@@ -37,6 +37,9 @@ jobs:
 
       - name: Firmware PowHSM's unit tests
         run: firmware/src/powhsm/test/run-all.sh
+      
+      - name: Firmware SGX's unit tests
+        run: firmware/src/sgx/test/run-all.sh
 
       - name: Ledger UI's unit tests
         run: firmware/src/ledger/ui/test/run-all.sh
