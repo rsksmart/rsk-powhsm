@@ -230,7 +230,7 @@ void test_op_ud_value() {
 
     assert_ok("\x80\x60\x01");
 
-    const char expected_msg[] = "HSM:UI:HB:5.1:" // Prefix
+    const char expected_msg[] = "HSM:UI:HB:5.2:" // Prefix
                                 "\x11"           // UD
                                 "\x22\x22\x22\x22\x22\x22\x22\x22\x22\x22" // .
                                 "\x22\x22\x22\x22\x22\x22\x22\x22\x22\x22" // .

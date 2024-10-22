@@ -23,13 +23,14 @@
 import json
 import hashlib
 import secp256k1 as ec
+import re
 from .misc import info, head, AdminError
 from .utils import is_nonempty_hex_string
 from .certificate import HSMCertificate
 
 
-UI_MESSAGE_HEADER = b"HSM:UI:5.1"
-SIGNER_MESSAGE_HEADER = b"HSM:SIGNER:5.1"
+UI_MESSAGE_HEADER_REGEX = re.compile(b"^HSM:UI:(5.[0-9])")
+SIGNER_MESSAGE_HEADER_REGEX = re.compile(b"^HSM:SIGNER:(5.[0-9])")
 UI_DERIVATION_PATH = "m/44'/0'/0'/0/0"
 UD_VALUE_LENGTH = 32
 PUBKEY_COMPRESSED_LENGTH = 33
@@ -43,6 +44,14 @@ SIGNER_ITERATION_LENGTH = 2
 DEFAULT_ROOT_AUTHORITY = "0490f5c9d15a0134bb019d2afd0bf297149738459706e7ac5be4abc350a1f8"\
                          "18057224fce12ec9a65de18ec34d6e8c24db927835ea1692b14c32e9836a75"\
                          "dad609"
+
+
+def match_ui_message_header(ui_message):
+    return UI_MESSAGE_HEADER_REGEX.match(ui_message)
+
+
+def match_signer_message_header(signer_message):
+    return SIGNER_MESSAGE_HEADER_REGEX.match(signer_message)
 
 
 def do_verify_attestation(options):
@@ -121,12 +130,14 @@ def do_verify_attestation(options):
 
     ui_message = bytes.fromhex(ui_result[1])
     ui_hash = bytes.fromhex(ui_result[2])
-    mh_len = len(UI_MESSAGE_HEADER)
-    if ui_message[:mh_len] != UI_MESSAGE_HEADER:
+    mh_match = match_ui_message_header(ui_message)
+    if mh_match is None:
         raise AdminError(
-            f"Invalid UI attestation message header: {ui_message[:mh_len].hex()}")
+            f"Invalid UI attestation message header: {ui_message.hex()}")
+    mh_len = len(mh_match.group(0))
 
-    # Extract UD value, UI public key and signer version from message
+    # Extract UI version, UD value, UI public key and signer version from message
+    ui_version = mh_match.group(1)
     ud_value = ui_message[mh_len:mh_len + UD_VALUE_LENGTH].hex()
     ui_public_key = ui_message[mh_len + UD_VALUE_LENGTH:mh_len + UD_VALUE_LENGTH +
                                PUBKEY_COMPRESSED_LENGTH].hex()
@@ -147,6 +158,7 @@ def do_verify_attestation(options):
             f"Authorized signer hash: {signer_hash}",
             f"Authorized signer iteration: {signer_iteration}",
             f"Installed UI hash: {ui_hash.hex()}",
+            f"Installed UI version: {ui_version.decode()}",
         ],
         fill="-",
     )
@@ -162,11 +174,12 @@ def do_verify_attestation(options):
 
     signer_message = bytes.fromhex(signer_result[1])
     signer_hash = bytes.fromhex(signer_result[2])
-    mh_len = len(SIGNER_MESSAGE_HEADER)
-    if signer_message[:mh_len] != SIGNER_MESSAGE_HEADER:
+    mh_match = match_signer_message_header(signer_message)
+    if mh_match is None:
         raise AdminError(
-            f"Invalid Signer attestation message header: {signer_message[:mh_len].hex()}")
+            f"Invalid Signer attestation message header: {signer_message.hex()}")
 
+    mh_len = len(mh_match.group(0))
     if signer_message[mh_len:] != pubkeys_hash:
         reported = signer_message[mh_len:].hex()
         raise AdminError(
@@ -174,11 +187,13 @@ def do_verify_attestation(options):
             f" but attestation reports {reported}"
         )
 
+    signer_version = mh_match.group(1)
     head(
         ["Signer verified with public keys:"] + pubkeys_output + [
             "",
             f"Hash: {signer_message[mh_len:].hex()}",
             f"Installed Signer hash: {signer_hash.hex()}",
+            f"Installed Signer version: {signer_version.decode()}",
         ],
         fill="-",
     )

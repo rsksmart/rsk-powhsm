@@ -25,7 +25,11 @@ from unittest import TestCase
 from unittest.mock import Mock, call, patch, mock_open
 from admin.misc import AdminError
 from admin.pubkeys import PATHS
-from admin.verify_attestation import do_verify_attestation
+from admin.verify_attestation import (
+    do_verify_attestation,
+    match_ui_message_header,
+    match_signer_message_header
+)
 import ecdsa
 import hashlib
 import logging
@@ -33,6 +37,8 @@ import logging
 logging.disable(logging.CRITICAL)
 
 EXPECTED_UI_DERIVATION_PATH = "m/44'/0'/0'/0/0"
+SIGNER_HEADER = b"HSM:SIGNER:5.2"
+UI_HEADER = b"HSM:UI:5.2"
 
 
 @patch("sys.stdout.write")
@@ -65,14 +71,14 @@ class TestVerifyAttestation(TestCase):
             )
         self.pubkeys_hash = pubkeys_hash.digest()
 
-        self.ui_msg = b"HSM:UI:5.1" + \
+        self.ui_msg = UI_HEADER + \
             bytes.fromhex("aa"*32) + \
             bytes.fromhex("bb"*33) + \
             bytes.fromhex("cc"*32) + \
             bytes.fromhex("0123")
         self.ui_hash = bytes.fromhex("ee" * 32)
 
-        self.signer_msg = b"HSM:SIGNER:5.1" + \
+        self.signer_msg = SIGNER_HEADER + \
             bytes.fromhex(self.pubkeys_hash.hex())
         self.signer_hash = bytes.fromhex("ff" * 32)
 
@@ -108,6 +114,7 @@ class TestVerifyAttestation(TestCase):
                 f"Authorized signer hash: {'cc'*32}",
                 "Authorized signer iteration: 291",
                 f"Installed UI hash: {'ee'*32}",
+                "Installed UI version: 5.2",
             ],
             fill="-",
         )
@@ -118,6 +125,7 @@ class TestVerifyAttestation(TestCase):
                 "",
                 f"Hash: {self.pubkeys_hash.hex()}",
                 f"Installed Signer hash: {'ff'*32}",
+                "Installed Signer version: 5.2",
             ],
             fill="-",
         )
@@ -276,3 +284,45 @@ class TestVerifyAttestation(TestCase):
         self.assertEqual([call(self.pubkeys_path, 'r')], file_mock.call_args_list)
         self.assertEqual(("Invalid Signer attestation: error validating 'signer'"),
                          str(e.exception))
+
+    def test_match_ui_message_header_valid_header(self, _):
+        valid_headers = [
+            UI_HEADER,
+            b"HSM:UI:5.0",
+            b"HSM:UI:5.5",
+            b"HSM:UI:5.9",
+        ]
+        for header in valid_headers:
+            ui_message = header + self.ui_msg[len(UI_HEADER):]
+            self.assertTrue(match_ui_message_header(ui_message))
+
+    def test_match_ui_message_header_invalid_header(self, _):
+        invalid_headers = [
+            SIGNER_HEADER,
+            b"HSM:UI:4.0",
+            b"HSM:UI:5.X",
+        ]
+        for header in invalid_headers:
+            ui_message = header + self.ui_msg[len(UI_HEADER):]
+            self.assertFalse(match_ui_message_header(ui_message))
+
+    def test_match_signer_message_header_valid_header(self, _):
+        valid_headers = [
+            SIGNER_HEADER,
+            b"HSM:SIGNER:5.0",
+            b"HSM:SIGNER:5.5",
+            b"HSM:SIGNER:5.9",
+        ]
+        for header in valid_headers:
+            signer_message = header + self.signer_msg[len(SIGNER_HEADER):]
+            self.assertTrue(match_signer_message_header(signer_message))
+
+    def test_match_signer_message_header_invalid_header(self, _):
+        invalid_headers = [
+            UI_HEADER,
+            b"HSM:SIGNER:4.0",
+            b"HSM:SIGNER:5.X",
+        ]
+        for header in invalid_headers:
+            signer_message = header + self.signer_msg[len(SIGNER_HEADER):]
+            self.assertFalse(match_signer_message_header(signer_message))
