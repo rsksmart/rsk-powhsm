@@ -1,5 +1,21 @@
 # Changelog
 
+## [5.3.0 ALPHA] - 23/10/2024
+
+### Features/enhancements
+
+- SGX powHSM inital implementation
+- SGX simulation build
+- SGX middleware manager
+- SGX middleware admin tooling
+- SGX distribution scripts
+- SGX tests
+- SGX documentation
+
+### Fixes
+
+- Removed compilation products from repository
+
 ## [5.2.0] - 09/09/2024
 
 ### Features/enhancements

@@ -34,7 +34,7 @@ jobs:
         run: |
           aws s3 sync \
             middleware/coverage/ \
-            s3://${{ secrets.CODECOVERAGE_S3_BUCKET }}/powhsm_5.2.x/middleware_coverage_report \
+            s3://${{ secrets.CODECOVERAGE_S3_BUCKET }}/powhsm_5.3.x/middleware_coverage_report \
             --sse aws:kms --sse-kms-key-id ${{ secrets.CODECOVERAGE_KMS_KEY_ID }} \
             --no-progress --follow-symlinks --delete --only-show-errors
 
@@ -49,7 +49,7 @@ jobs:
         run: |
           aws s3 sync \
             firmware/coverage/output/ \
-            s3://${{ secrets.CODECOVERAGE_S3_BUCKET }}/powhsm_5.2.x/firmware_coverage_report \
+            s3://${{ secrets.CODECOVERAGE_S3_BUCKET }}/powhsm_5.3.x/firmware_coverage_report \
             --sse aws:kms --sse-kms-key-id ${{ secrets.CODECOVERAGE_KMS_KEY_ID }} \
             --no-progress --follow-symlinks --delete --only-show-errors
 
