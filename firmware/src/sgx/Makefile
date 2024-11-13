@@ -38,13 +38,13 @@ POWHSM_SRC_DIR = ../powhsm/src
 COMMON_SRC_DIR = ../common/src
 
 ## Untrusted source files
-UNTRUSTED_SRC =  $(wildcard $(SGX_UNTRUSTED_SRC_DIR)/*.c)
+UNTRUSTED_SRC =  $(sort $(wildcard $(SGX_UNTRUSTED_SRC_DIR)/*.c))
 
 ## Trusted source files
-TRUSTED_SRC =  $(wildcard $(SGX_TRUSTED_SRC_DIR)/*.c)
-TRUSTED_SRC += $(wildcard $(HAL_TRUSTED_SRC_DIR)/*.c)
-TRUSTED_SRC += $(wildcard $(POWHSM_SRC_DIR)/*.c)
-TRUSTED_SRC += $(wildcard $(COMMON_SRC_DIR)/*.c)
+TRUSTED_SRC =  $(sort $(wildcard $(SGX_TRUSTED_SRC_DIR)/*.c))
+TRUSTED_SRC += $(sort $(wildcard $(HAL_TRUSTED_SRC_DIR)/*.c))
+TRUSTED_SRC += $(sort $(wildcard $(POWHSM_SRC_DIR)/*.c))
+TRUSTED_SRC += $(sort $(wildcard $(COMMON_SRC_DIR)/*.c))
 
 # Enclave definition files
 EDL_FILE = $(SGX_SRC_DIR)/$(ENCLAVE_NAME).edl
