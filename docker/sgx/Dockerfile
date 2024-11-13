@@ -4,20 +4,8 @@ FROM openenclavedockerregistry.azurecr.io/oetools-20.04:2024.10.2391
 RUN apt-get update && \
     apt-get install -y apt-utils vim && \
     apt-get install -y tar && \
-    apt-get install -y xz-utils && \
     apt-get install -y curl && \
-    apt-get install -y git && \
-    apt-get install -y clang-11 && \
-    apt-get install -y libssl-dev && \
-    apt-get install -y gdb && \
-    apt-get install -y libsgx-enclave-common && \
-    apt-get install -y libsgx-quote-ex && \
-    apt-get install -y libprotobuf17 && \
-    apt-get install -y libsgx-dcap-ql && \
-    apt-get install -y libsgx-dcap-ql-dev && \
-    apt-get install -y az-dcap-client && \
     apt-get install -y open-enclave && \
-    apt-get install -y gcc && \
     apt-get install -y make
 
 # Create directory to host symlinks to Open Enclave static libraries
