@@ -1,4 +1,4 @@
-FROM openenclavedockerregistry.azurecr.io/oetools-20.04:2023.11.21100
+FROM openenclavedockerregistry.azurecr.io/oetools-20.04:2024.10.2391
 
 # Install dependencies
 RUN apt-get update && \
