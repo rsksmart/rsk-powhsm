@@ -5,7 +5,7 @@ RUN apt-get update && \
     apt-get install -y apt-utils vim && \
     apt-get install -y tar && \
     apt-get install -y curl && \
-    apt-get install -y open-enclave && \
+    apt-get install -y open-enclave=0.19.4 && \
     apt-get install -y make
 
 # Create directory to host symlinks to Open Enclave static libraries
