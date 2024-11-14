@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.2.1] - 14/11/2024
+
+### Fixes
+
+- Removed compilation products from repository
+- Fixed failing middleware docker image build
+
 ## [5.2.0] - 09/09/2024
 
 ### Features/enhancements
