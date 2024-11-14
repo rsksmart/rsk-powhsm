@@ -1,5 +1,11 @@
 # Changelog
 
+## [5.3.1 ALPHA] - 14/11/2024
+
+### Fixes
+
+- Fixed failing middleware docker image build
+
 ## [5.3.0 ALPHA] - 23/10/2024
 
 ### Features/enhancements
