@@ -1,0 +1,29 @@
+#! /usr/bin/env bash
+
+if [[ $# -ne 1 ]]; then
+    echo "Usage: $0 <signed_enclave>"
+    exit 1
+fi
+
+pushd $(dirname $0) > /dev/null
+BUILD_ROOT=$(pwd)
+popd > /dev/null
+
+HSM_ROOT=$(realpath $BUILD_ROOT/../../)
+
+DOCKER_IMAGE=hsm:sgx
+source $BUILD_ROOT/../../docker/check-image
+
+ENCLAVE_BIN=$(realpath $1 --relative-to=$HSM_ROOT)
+if [[ ! -f $ENCLAVE_BIN ]]; then
+    echo "Invalid signed enclave path: $ENCLAVE_BIN"
+    exit 1
+fi
+
+DIGEST_CMD="oesign digest -e $ENCLAVE_BIN -d /tmp/enclave_digest > /dev/null && hexdump -v -e '/1 \"%02x\"' /tmp/enclave_digest"
+MRENCLAVE_CMD="oesign dump -e $ENCLAVE_BIN | grep mrenclave | cut -d '=' -f 2"
+EXTRACT_CMD="\$SGX_ENVSETUP && echo digest: \$($DIGEST_CMD) && echo mrenclave: \$($MRENCLAVE_CMD)"
+
+DOCKER_USER="$(id -u):$(id -g)"
+
+docker run -t --rm --user $DOCKER_USER -w /hsm2 -v ${HSM_ROOT}:/hsm2 ${DOCKER_IMAGE} /bin/bash -c "$EXTRACT_CMD"
