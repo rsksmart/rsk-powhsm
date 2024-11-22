@@ -34,7 +34,7 @@ class HSM2DongleCommand:
         self.Offset = hsm2dongle.OFF
         self.ErrorResult = hsm2dongle.ErrorResult
 
-    def send(self, op, data, timeout=None):
+    def send(self, op, data=b'', timeout=None):
         # Default timeout
         if timeout is None:
             timeout = self.dongle.DONGLE_TIMEOUT

@@ -39,3 +39,11 @@ void platform_request_exit() {
     }
     END_TRY_L(exit);
 }
+
+const char *platform_get_id() {
+    return "led";
+}
+
+uint64_t platform_get_timestamp() {
+    return (uint64_t)0;
+}

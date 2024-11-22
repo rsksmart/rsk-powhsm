@@ -30,8 +30,8 @@ from admin.unlock import do_unlock
 from admin.onboard import do_onboard
 from admin.pubkeys import do_get_pubkeys
 from admin.changepin import do_changepin
-from admin.attestation import do_attestation
-from admin.verify_attestation import do_verify_attestation
+from admin.ledger_attestation import do_attestation
+from admin.verify_ledger_attestation import do_verify_attestation
 from admin.authorize_signer import do_authorize_signer
 
 DEFAULT_ATT_UD_SOURCE = "https://public-node.rsk.co"

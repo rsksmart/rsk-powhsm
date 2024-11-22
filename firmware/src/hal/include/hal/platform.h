@@ -28,6 +28,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// Size in bytes of a platform id
+#define PLATFORM_ID_LENGTH 3
+
 /**
  * @brief Perform the platform-specific version of memmove
  *
@@ -41,6 +44,16 @@ void platform_memmove(void *dst, const void *src, unsigned int length);
  * @brief Request exiting/closing to the underlying platform
  */
 void platform_request_exit();
+
+/**
+ * @brief Get the current platform id
+ */
+const char *platform_get_id();
+
+/**
+ * @brief Get the current timestamp
+ */
+uint64_t platform_get_timestamp();
 
 /**
  * X86 specific headers

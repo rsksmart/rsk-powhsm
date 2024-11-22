@@ -46,6 +46,22 @@ bool endorsement_sign(uint8_t* msg,
                       uint8_t* signature_out_length);
 
 /**
+ * @brief Gets a pointer to the last signed envelope
+ *
+ * @return a pointer to a buffer containing the envelope,
+ *         or NULL if no envelope is available.
+ */
+uint8_t* endorsement_get_envelope();
+
+/**
+ * @brief Gets the length of the last signed envelope
+ *
+ * @return the byte length of the last signed envelope,
+ *         or ZERO if no envelope is available.
+ */
+size_t endorsement_get_envelope_length();
+
+/**
  * @brief Grabs the hash of the currently running code
  *
  * @param code_hash_out Where the code hash should be output
@@ -99,7 +115,7 @@ extern attestation_id_t attestation_id;
  */
 bool endorsement_init(char* att_file_path);
 
-#elif defined(HSM_PLATFORM_SGX)
+#elif defined(HSM_PLATFORM_SGX) || defined(HSM_PLATFORM_LEDGER)
 
 /**
  * @brief Initializes the endorsement module
