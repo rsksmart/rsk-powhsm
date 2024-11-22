@@ -1,7 +1,31 @@
 #! /usr/bin/env bash
 
-if [[ $# -ne 1 ]]; then
-    echo "Usage: $0 <signed_enclave>"
+function print_usage() {
+    echo "Usage: $0 <enclave_binary> <config_file>"
+    echo ""
+    echo "Options:"
+    echo "  enclave_binary:    path of an enclave binary file."
+    echo "  config_file:       configuration file specifying the enclave properties."
+    echo "                     refer to the oesign sign --help for the list of properties."
+    echo ""
+    echo "Description:"
+    echo "  This script extracts the MRENCLAVE and the DIGEST values from the enclave"
+    echo "  binary and prints them to stdout. The script can be used both for unsigned"
+    echo "  and signed enclave binaries."
+    echo ""
+    echo "  Signed binaries:"
+    echo "    The MRENCLAVE and DIGEST are calculated from the signed enclave binary and"
+    echo "    the enclave properties specified in the configuration file. Both values are"
+    echo "    printed in hexadecimal format to stdout."
+    echo ""
+    echo "  Unsigned binaries:"
+    echo "    The DIGEST is calculated from the unsigned enclave binary and the enclave"
+    echo "    properties specified in the configuration file. The MRENCLAVE is set to zero."
+    echo "    Both values are printed in hexadecimal format to stdout."
+}
+
+if [[ $# -lt 2 ]]; then
+    print_usage
     exit 1
 fi
 
@@ -19,8 +43,13 @@ if [[ ! -f $ENCLAVE_BIN ]]; then
     echo "Invalid signed enclave path: $ENCLAVE_BIN"
     exit 1
 fi
+CONFIG_FILE=$(realpath $2 --relative-to=$HSM_ROOT)
+if [[ ! -f $CONFIG_FILE ]]; then
+    echo "Invalid config file path: $CONFIG_FILE"
+    exit 1
+fi
 
-DIGEST_CMD="oesign digest -e $ENCLAVE_BIN -d /tmp/enclave_digest > /dev/null && hexdump -v -e '/1 \"%02x\"' /tmp/enclave_digest"
+DIGEST_CMD="oesign digest -e $ENCLAVE_BIN -c $CONFIG_FILE -d /tmp/enclave_digest > /dev/null && hexdump -v -e '/1 \"%02x\"' /tmp/enclave_digest"
 MRENCLAVE_CMD="oesign dump -e $ENCLAVE_BIN | grep mrenclave | cut -d '=' -f 2"
 EXTRACT_CMD="\$SGX_ENVSETUP && echo digest: \$($DIGEST_CMD) && echo mrenclave: \$($MRENCLAVE_CMD)"
 
