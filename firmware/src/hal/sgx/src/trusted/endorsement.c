@@ -113,6 +113,16 @@ bool endorsement_init() {
     return true;
 }
 
+// TODO: Implement
+uint8_t* endorsement_get_envelope() {
+    return NULL;
+}
+
+// TODO: Implement
+size_t endorsement_get_envelope_length() {
+    return 0;
+}
+
 bool endorsement_sign(uint8_t* msg,
                       size_t msg_size,
                       uint8_t* signature_out,
