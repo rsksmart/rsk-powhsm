@@ -1,11 +1,11 @@
 #! /usr/bin/env bash
 
 function print_usage() {
-    echo "Usage: $0 <signed_enclave> [config_file]"
+    echo "Usage: $0 <signed_enclave>"
     echo "  or   $0 <unsigned_enclave> <config_file>"
     echo ""
     echo "Options:"
-    echo "  signed_enclave:    path of a signed enclave binary file."
+    echo "  signed_enclave:    path of a signed enclave binary file (MUST end with '.signed' extension)."
     echo "  unsigned_enclave:  path of an unsigned enclave binary file."
     echo "  config_file:       configuration file specifying the enclave properties."
     echo "                     refer to the oesign sign --help for the list of properties."
@@ -17,11 +17,8 @@ function print_usage() {
     echo "  and signed enclave binaries."
     echo ""
     echo "  Signed binaries:"
-    echo "    The MRENCLAVE and DIGEST are calculated from the signed enclave binary and"
-    echo "    the enclave properties specified in the configuration file. Both values are"
-    echo "    printed in hexadecimal format to stdout."
-    echo "    If a configuration file is provided, the properties in the file will override"
-    echo "    the properties that were already defined in the signed enclave binary."
+    echo "    The MRENCLAVE and DIGEST are calculated from the signed enclave binary."
+    echo "    Both values are printed in hexadecimal format to stdout."
     echo ""
     echo "  Unsigned binaries:"
     echo "    The DIGEST is calculated from the unsigned enclave binary and the enclave"
@@ -45,16 +42,20 @@ source $BUILD_ROOT/../../docker/check-image
 
 ENCLAVE_BIN=$(realpath $1 --relative-to=$HSM_ROOT)
 if [[ ! -f $ENCLAVE_BIN ]]; then
-    echo "Invalid signed enclave path: $ENCLAVE_BIN"
+    echo "Invalid enclave path: $ENCLAVE_BIN"
     exit 1
 else
     ENCLAVE_ARG="-e $ENCLAVE_BIN"
 fi
 
-if [[ $# -eq 1 ]]; then
+if [[ $ENCLAVE_BIN == *.signed ]]; then
     CONFIG_ARG=""
-else
+elif [[ $# -ge 2 ]]; then
     CONFIG_ARG="-c $(realpath $2 --relative-to=$HSM_ROOT)"
+else
+    echo "Invalid usage"
+    print_usage
+    exit 1
 fi
 
 DIGEST_CMD="oesign digest $ENCLAVE_ARG $CONFIG_ARG -d /tmp/enclave_digest > /dev/null && hexdump -v -e '/1 \"%02x\"' /tmp/enclave_digest"
