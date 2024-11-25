@@ -40,3 +40,20 @@ BUILD_CMD="\$SGX_ENVSETUP && make clean $BUILD_TARGET CHECKPOINT=$1 TARGET_DIFFI
 DOCKER_USER="$(id -u):$(id -g)"
 
 docker run -t --rm --user $DOCKER_USER -w /hsm2/firmware/src/sgx -v ${HSM_ROOT}:/hsm2 ${DOCKER_IMAGE} /bin/bash -c "$BUILD_CMD"
+
+if [[ $? -ne 0 ]]; then
+    echo "Build failed"
+    exit 1
+fi
+
+HOST_BIN=$HSM_ROOT/firmware/src/sgx/bin/hsmsgx
+ENCLAVE_BIN=$HSM_ROOT/firmware/src/sgx/bin/hsmsgx_enclave.signed
+
+echo "*******************"
+echo "Build successful."
+echo "$(realpath $HOST_BIN --relative-to=$HSM_ROOT):"
+sha256sum $HOST_BIN | cut -d ' ' -f 1
+echo ""
+echo "$(realpath $ENCLAVE_BIN --relative-to=$HSM_ROOT):"
+$BUILD_ROOT/extract-mrenclave $ENCLAVE_BIN
+echo "*******************"
