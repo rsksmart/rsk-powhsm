@@ -37,7 +37,7 @@ if [[ $1 == "exec" ]]; then
     # Remove unwanted coverage info (test files, tcpsigner, x86 HAL implementation, mock files)
     lcov --remove $BASEDIR/coverage.info "*/test_*.c" --output-file $BASEDIR/coverage.info
     lcov --remove $BASEDIR/coverage.info "*/tcpsigner/src/*" --output-file $BASEDIR/coverage.info
-    lcov --remove $BASEDIR/coverage.info "*/hal/src/x86/*" --output-file $BASEDIR/coverage.info
+    lcov --remove $BASEDIR/coverage.info "*/hal/x86/src/*" --output-file $BASEDIR/coverage.info
     lcov --remove $BASEDIR/coverage.info "*/mock_*.c" --output-file $BASEDIR/coverage.info
     # Generate report and summary
     genhtml $BASEDIR/coverage.info --output $BASEDIR/output -p $SRCDIR -t "powHSM firmware"
