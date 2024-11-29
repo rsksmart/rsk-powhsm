@@ -36,6 +36,11 @@
 bool system_init(unsigned char *msg_buffer, size_t msg_buffer_size);
 
 /**
+ * @brief Finalises the system module
+ */
+void system_finalise();
+
+/**
  * @brief Process an APDU message
  * 
  * @param rx number of received bytes

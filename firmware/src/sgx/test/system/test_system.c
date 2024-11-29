@@ -276,6 +276,10 @@ bool endorsement_init() {
     return true;
 }
 
+void endorsement_finalise() {
+    // Nothing to do here
+}
+
 void nvmem_init() {
     NUM_CALLS(nvmem_init)++;
 }

@@ -38,6 +38,11 @@
 bool ecall_system_init(unsigned char *msg_buffer, size_t msg_buffer_size);
 
 /**
+ * @brief See system_finalise in system.h
+ */
+void ecall_system_finalise();
+
+/**
  * @brief See system_process_apdu in system.h
  */
 unsigned int ecall_system_process_apdu(unsigned int rx);

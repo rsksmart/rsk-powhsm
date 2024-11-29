@@ -9,6 +9,8 @@ enclave {
     trusted {
         public bool ecall_system_init(unsigned char *msg_buffer, size_t msg_buffer_size);
 
+        public void ecall_system_finalise();
+
         public unsigned int ecall_system_process_apdu(unsigned int rx);
     };
 

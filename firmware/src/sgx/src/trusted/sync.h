@@ -28,10 +28,10 @@
 #include <stdbool.h>
 #include "hal/log.h"
 
-#define SYNC_AQUIRE_LOCK()                                                     \
+#define SYNC_AQUIRE_LOCK(err_res)                                              \
     if (!sync_try_aqcuire_lock()) {                                            \
         LOG("Failed to acquire lock, ecall %s was not executed!\n", __func__); \
-        return false;                                                          \
+        return err_res;                                                        \
     }
 
 #define SYNC_RELEASE_LOCK() sync_release_lock()
