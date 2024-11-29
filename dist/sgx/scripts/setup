@@ -35,6 +35,12 @@ EXPORT_DIR="$ROOT_DIR/export"
 PUBLIC_KEY_FILE="$EXPORT_DIR/public-keys.txt"
 PUBLIC_KEY_FILE_JSON="$EXPORT_DIR/public-keys.json"
 
+# HSM scripts directory
+SCRIPTS_DIR=$ROOT_DIR/scripts
+
+# Directory where the finalized systemd service unit will be saved
+SERVICE_DIR=$ROOT_DIR/service
+
 function checkHsmBinaries() {
     # Check for HSM binary files
     FILES="$HSMBIN_DIR/hsmsgx $HSMBIN_DIR/hsmsgx_enclave.signed"
@@ -96,6 +102,15 @@ function selectInstallationDir() {
     done
 }
 
+function createServiceUnit() {
+    rm -rf $SERVICE_DIR
+    mkdir $SERVICE_DIR
+
+    cp $SCRIPTS_DIR/hsmsgx.service $SERVICE_DIR
+    # Replace the $HSM_INSTALL_DIR token in the script with the actual installation directory
+    sed -i "s|\$HSM_INSTALL_DIR|$INSTALL_DIR|g" $SERVICE_DIR/hsmsgx.service
+}
+
 function installPowHsm() {
     mkdir $REAL_INSTALL_DIR/bin
     cp -R $HSMBIN_DIR/* $REAL_INSTALL_DIR/bin
@@ -134,6 +149,7 @@ checkForPinFile
 checkHsmBinaries
 expandBinaries
 selectInstallationDir
+createServiceUnit
 echo
 echo -e "\e[1;32mInstalling the powHSM...\e[0m"
 installPowHsm
