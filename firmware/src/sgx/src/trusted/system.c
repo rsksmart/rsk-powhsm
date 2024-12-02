@@ -233,3 +233,8 @@ bool system_init(unsigned char *msg_buffer, size_t msg_buffer_size) {
 
     return true;
 }
+
+void system_finalise() {
+    // Finalise modules
+    endorsement_finalise();
+}

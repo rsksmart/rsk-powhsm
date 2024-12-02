@@ -96,8 +96,8 @@ static struct argp argp = {
 
 static void finalise_with(int exit_code) {
     printf("Terminating...\n");
+    eprx_system_finalise();
     io_finalise();
-    // TODO: finalize enclave, i/o
     printf("Done. Bye.\n");
     exit(exit_code);
 }

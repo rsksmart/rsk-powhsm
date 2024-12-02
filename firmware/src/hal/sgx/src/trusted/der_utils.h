@@ -22,27 +22,7 @@
  * IN THE SOFTWARE.
  */
 
-#include "hal/platform.h"
-#include "hal/log.h"
+#include <stdint.h>
+#include <openenclave/bits/sgx/sgxtypes.h>
 
-#include <string.h>
-
-void platform_memmove(void *dst, const void *src, unsigned int length) {
-    memmove(dst, src, length);
-}
-
-void platform_request_exit() {
-    // Currently unsupported, just log the call
-    LOG("platform_request_exit called\n");
-}
-
-const char *platform_get_id() {
-    return "sgx";
-}
-
-uint64_t platform_get_timestamp() {
-    // Trusted way of getting current timestamp
-    // currently unsupported in OE/SGX, return zero
-    // for the time being
-    return (uint64_t)0;
-}
+uint8_t der_encode_signature(uint8_t* dest, sgx_ecdsa256_signature_t* sig);

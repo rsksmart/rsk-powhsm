@@ -32,14 +32,20 @@
 #include "hal/log.h"
 
 bool ecall_system_init(unsigned char *msg_buffer, size_t msg_buffer_size) {
-    SYNC_AQUIRE_LOCK();
+    SYNC_AQUIRE_LOCK(false);
     bool success = system_init(msg_buffer, msg_buffer_size);
     SYNC_RELEASE_LOCK();
     return success;
 }
 
-unsigned int ecall_system_process_apdu(unsigned int rx) {
+void ecall_system_finalise() {
     SYNC_AQUIRE_LOCK();
+    system_finalise();
+    SYNC_RELEASE_LOCK();
+}
+
+unsigned int ecall_system_process_apdu(unsigned int rx) {
+    SYNC_AQUIRE_LOCK(0);
     unsigned int result = system_process_apdu(rx);
     SYNC_RELEASE_LOCK();
     return result;

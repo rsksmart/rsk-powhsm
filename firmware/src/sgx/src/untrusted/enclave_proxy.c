@@ -37,6 +37,21 @@ bool eprx_system_init(unsigned char *msg_buffer, size_t msg_buffer_size) {
     return result;
 }
 
+void eprx_system_finalise() {
+    oe_enclave_t *enclave = epro_get_enclave();
+    if (enclave == NULL) {
+        LOG("Failed to retrieve the enclave. "
+            "Unable to call system_finalise().\n");
+        return;
+    }
+
+    oe_result_t oe_result = ecall_system_finalise(enclave);
+    if (OE_OK != oe_result) {
+        LOG("Failed to call system_finalise(): oe_result=%u (%s)\n",
+            oe_result, oe_result_str(oe_result));
+    }
+}
+
 unsigned int eprx_system_process_apdu(unsigned int rx) {
     oe_enclave_t *enclave = epro_get_enclave();
     if (enclave == NULL) {
