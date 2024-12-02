@@ -1,0 +1,4 @@
+#!/bin/bash
+
+DOCKER_CNT=powhsmsgx-runner
+docker stop $DOCKER_CNT
