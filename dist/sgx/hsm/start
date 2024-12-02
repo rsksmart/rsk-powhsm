@@ -4,6 +4,8 @@ BINDIR=$(realpath $(dirname $0))
 WORKDIR=$(realpath $BINDIR/..)
 DOCKER_IMAGE=powhsmsgx:runner
 
+source $BINDIR/.env
+
 QUIET=""
 echo -e "\e[96mBuilding docker image $DOCKER_IMAGE (this will take a few minutes)..."
 if [[ "$2" != "-v" ]]; then
@@ -16,10 +18,13 @@ echo
 
 DOCKER_CNT=powhsmsgx-runner
 DOCKER_USER="$(id -u):$(id -g)"
+HOSTNAME="SGX"
+NETWORK=${NETWORK:-net_sgx}
 PORT=7777
 DOCKER_PORT="$PORT:$PORT"
 
-docker run -ti --rm --name $DOCKER_CNT --user $DOCKER_USER -v $WORKDIR:/hsm \
+docker run --rm --name $DOCKER_CNT --user $DOCKER_USER -v $WORKDIR:/hsm \
+    --hostname $HOSTNAME --network $NETWORK \
     --device=/dev/sgx_enclave:/dev/sgx_enclave \
     --device=/dev/sgx_provision:/dev/sgx_provision \
     -w /hsm -p$DOCKER_PORT $DOCKER_IMAGE \
