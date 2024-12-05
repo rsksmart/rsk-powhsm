@@ -30,7 +30,7 @@ from unittest import TestCase
 from admin.certificate import HSMCertificateElement
 
 
-class TestCertificateElement(TestCase):
+class TestHSMCertificateElement(TestCase):
     def test_create_certificate_element_ok(self):
         element = HSMCertificateElement({
             "name": "device",

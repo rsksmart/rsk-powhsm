@@ -29,7 +29,7 @@ from unittest.mock import call, patch, mock_open
 from admin.certificate import HSMCertificate, HSMCertificateElement
 
 
-class TestCertificate(TestCase):
+class TestHSMCertificate(TestCase):
     def test_create_valid_certificate_ok(self):
         cert = HSMCertificate({
             "version": 1,
@@ -155,7 +155,7 @@ class TestCertificate(TestCase):
                 "targets": ["attestation", "device"]
             })
 
-    @patch('admin.certificate.HSMCertificateElement')
+    @patch('admin.certificate_v1.HSMCertificateElement')
     def test_create_certificate_invalid_element(self, certElementMock):
         certElementMock.side_effect = ValueError()
         with self.assertRaises(ValueError):
