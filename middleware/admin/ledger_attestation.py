@@ -20,13 +20,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from .misc import info, head, get_hsm, dispose_hsm, AdminError, wait_for_reconnection
-from .utils import is_hex_string_of_length, normalize_hex_string
+from .misc import info, head, get_hsm, dispose_hsm, AdminError, wait_for_reconnection, \
+                  get_ud_value_for_attestation
 from .unlock import do_unlock
 from .certificate import HSMCertificate, HSMCertificateElement
-from .rsk_client import RskClient, RskClientError
-
-UD_VALUE_LENGTH = 32
 
 
 def do_attestation(options):
@@ -46,24 +43,9 @@ def do_attestation(options):
     except Exception as e:
         raise AdminError(f"While loading the attestation certificate file: {str(e)}")
 
-    # Get the UD value for the UI attestation
-    info("Gathering user-defined UI attestation value... ", options.verbose)
-
-    if is_hex_string_of_length(options.attestation_ud_source,
-                               UD_VALUE_LENGTH,
-                               allow_prefix=True):
-        ud_value = normalize_hex_string(options.attestation_ud_source)
-    else:
-        try:
-            rsk_client = RskClient(options.attestation_ud_source)
-            best_block = rsk_client.get_block_by_number(
-                rsk_client.get_best_block_number())
-            ud_value = best_block["hash"][2:]
-            if not is_hex_string_of_length(ud_value, UD_VALUE_LENGTH):
-                raise ValueError(f"Got invalid best block from RSK server: {ud_value}")
-        except RskClientError as e:
-            raise AdminError(f"While fetching the best RSK block hash: {str(e)}")
-
+    # Get the UD value for the attestations
+    info("Gathering user-defined attestation value... ", options.verbose)
+    ud_value = get_ud_value_for_attestation(options.attestation_ud_source)
     info(f"Using {ud_value} as the user-defined attestation value")
 
     # Attempt to unlock the device without exiting the UI

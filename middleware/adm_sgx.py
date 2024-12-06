@@ -25,11 +25,12 @@ from argparse import ArgumentParser
 import logging
 from ledger.hsm2dongle import HSM2DongleError
 from comm.platform import Platform
-from admin.misc import not_implemented, info, AdminError
+from admin.misc import not_implemented, info, AdminError, DEFAULT_ATT_UD_SOURCE
 from admin.unlock import do_unlock
 from admin.onboard import do_onboard
 from admin.pubkeys import do_get_pubkeys
 from admin.changepin import do_changepin
+from admin.sgx_attestation import do_attestation
 
 
 def main():
@@ -40,6 +41,7 @@ def main():
         "onboard": do_onboard,
         "pubkeys": do_get_pubkeys,
         "changepin": do_changepin,
+        "attestation": do_attestation,
     }
 
     parser = ArgumentParser(description="SGX powHSM Administrative tool")
@@ -79,7 +81,7 @@ def main():
         "-o",
         "--output",
         dest="output_file_path",
-        help="Output file (only valid for 'onboard' and 'pubkeys' "
+        help="Output file (only valid for 'onboard', 'pubkeys' and 'attestation' "
         "operations).",
     )
     parser.add_argument(
@@ -91,6 +93,15 @@ def main():
         "operations).",
         default=False,
         const=True,
+    )
+    parser.add_argument(
+        "--attudsource",
+        dest="attestation_ud_source",
+        default=DEFAULT_ATT_UD_SOURCE,
+        help="JSON-RPC endpoint used to retrieve the latest RSK block hash used "
+        "as the user defined value for the attestation (defaults to "
+        f"{DEFAULT_ATT_UD_SOURCE}). Can also specify a 32-byte hex string to use as"
+        " the value.",
     )
     parser.add_argument(
         "-v",

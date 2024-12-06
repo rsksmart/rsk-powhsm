@@ -20,5 +20,30 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from .certificate_v1 import HSMCertificate, HSMCertificateElement
-from .certificate_v2 import HSMCertificateV2, HSMCertificateV2Element
+from .certificate_v1 import HSMCertificate
+
+
+class HSMCertificateV2Element:
+    # TODO: actual logic and subclasses
+    def __init__(self, element_map):
+        self.element_map = element_map
+
+    # Stub
+    def name(self):
+        return "attestation"
+
+    def to_dict(self):
+        return self.element_map
+
+
+class HSMCertificateV2(HSMCertificate):
+    VERSION = 2
+    ELEMENT_BASE_CLASS = HSMCertificateV2Element
+
+    def validate_and_get_values(self, raw_root_pubkey_hex):
+        # TODO
+        pass
+
+    def _parse(self, certificate_map):
+        # TODO
+        pass
