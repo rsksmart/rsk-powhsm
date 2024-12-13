@@ -26,7 +26,7 @@ import secp256k1 as ec
 
 from unittest import TestCase
 from unittest.mock import call, patch, mock_open
-from admin.certificate import HSMCertificate, HSMCertificateElement
+from admin.certificate_v1 import HSMCertificate, HSMCertificateElement
 
 
 class TestHSMCertificate(TestCase):

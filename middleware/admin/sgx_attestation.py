@@ -20,9 +20,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import ecdsa
 from .misc import info, head, get_hsm, AdminError, get_ud_value_for_attestation
 from .unlock import do_unlock
-from .certificate import HSMCertificateV2, HSMCertificateV2Element
+from sgx.envelope import SgxEnvelope
+from .certificate import HSMCertificateV2, HSMCertificateV2ElementSGXQuote, \
+                         HSMCertificateV2ElementSGXAttestationKey, \
+                         HSMCertificateV2ElementX509
 
 
 def do_attestation(options):
@@ -58,14 +62,72 @@ def do_attestation(options):
 
     hsm.disconnect()
 
+    # Parse envelope
+    info("Parsing the powHSM attestation envelope...")
+    try:
+        envelope = SgxEnvelope(
+            bytes.fromhex(powhsm_attestation["envelope"]),
+            bytes.fromhex(powhsm_attestation["message"]))
+    except Exception as e:
+        raise AdminError(f"SGX envelope parse error: {str(e)}")
+
+    # Conversions
+    quote_signature = ecdsa.util.sigdecode_string(
+        envelope.quote_auth_data.signature.r +
+        envelope.quote_auth_data.signature.s,
+        ecdsa.NIST256p.order)
+    quote_signature = ecdsa.util.sigencode_der(
+        quote_signature[0],
+        quote_signature[1],
+        ecdsa.NIST256p.order)
+    att_key = ecdsa.VerifyingKey.from_string(
+        envelope.quote_auth_data.attestation_key.x +
+        envelope.quote_auth_data.attestation_key.y,
+        ecdsa.NIST256p)
+    qe_rb_signature = ecdsa.util.sigdecode_string(
+        envelope.quote_auth_data.qe_report_body_signature.r +
+        envelope.quote_auth_data.qe_report_body_signature.s,
+        ecdsa.NIST256p.order)
+    qe_rb_signature = ecdsa.util.sigencode_der(
+        qe_rb_signature[0],
+        qe_rb_signature[1],
+        ecdsa.NIST256p.order)
+
     # Generate and save the attestation certificate
     info("Generating the attestation certificate... ", options.verbose)
-
     att_cert = HSMCertificateV2()
-    # TODO:
-    # 1. Parse envelope
-    # 2. Add actual elements of the certificate
-    att_cert.add_element(HSMCertificateV2Element(powhsm_attestation))
+
+    att_cert.add_element(
+        HSMCertificateV2ElementSGXQuote(
+            name="quote",
+            message=envelope.quote.get_raw_data(),
+            custom_data=envelope.custom_message,
+            signature=quote_signature,
+            signed_by="attestation",
+        ))
+    att_cert.add_element(
+        HSMCertificateV2ElementSGXAttestationKey(
+            name="attestation",
+            message=envelope.quote_auth_data.qe_report_body.get_raw_data(),
+            key=att_key.to_string("uncompressed"),
+            auth_data=envelope.qe_auth_data.data,
+            signature=qe_rb_signature,
+            signed_by="quoting_enclave",
+        ))
+    att_cert.add_element(
+        HSMCertificateV2ElementX509(
+            name="quoting_enclave",
+            message=envelope.qe_cert_data.certs[0],
+            signed_by="platform_ca",
+        ))
+    att_cert.add_element(
+        HSMCertificateV2ElementX509(
+            name="platform_ca",
+            message=envelope.qe_cert_data.certs[1],
+            signed_by="sgx_root",
+        ))
+
+    att_cert.add_target("quote")
     att_cert.save_to_jsonfile(options.output_file_path)
 
     info(f"Attestation certificate saved to {options.output_file_path}")
