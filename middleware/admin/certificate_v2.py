@@ -24,16 +24,62 @@ from .certificate_v1 import HSMCertificate
 
 
 class HSMCertificateV2Element:
-    # TODO: actual logic and subclasses
-    def __init__(self, element_map):
-        self.element_map = element_map
+    pass
 
-    # Stub
-    def name(self):
-        return "attestation"
+
+class HSMCertificateV2ElementSGXQuote(HSMCertificateV2Element):
+    def __init__(self, name, message, custom_data, signature, signed_by):
+        self.name = name
+        self.message = message
+        self.custom_data = custom_data
+        self.signature = signature
+        self.signed_by = signed_by
 
     def to_dict(self):
-        return self.element_map
+        return {
+            "name": self.name,
+            "type": "sgx_quote",
+            "message": self.message.hex(),
+            "custom_data": self.custom_data.hex(),
+            "signature": self.signature.hex(),
+            "signed_by": self.signed_by,
+        }
+
+
+class HSMCertificateV2ElementSGXAttestationKey(HSMCertificateV2Element):
+    def __init__(self, name, message, key, auth_data, signature, signed_by):
+        self.name = name
+        self.message = message
+        self.key = key
+        self.auth_data = auth_data
+        self.signature = signature
+        self.signed_by = signed_by
+
+    def to_dict(self):
+        return {
+            "name": self.name,
+            "type": "sgx_attestation_key",
+            "message": self.message.hex(),
+            "key": self.key.hex(),
+            "auth_data": self.auth_data.hex(),
+            "signature": self.signature.hex(),
+            "signed_by": self.signed_by,
+        }
+
+
+class HSMCertificateV2ElementX509(HSMCertificateV2Element):
+    def __init__(self, name, message, signed_by):
+        self.name = name
+        self.message = message
+        self.signed_by = signed_by
+
+    def to_dict(self):
+        return {
+            "name": self.name,
+            "type": "x509_pem",
+            "message": self.message.decode('ASCII'),
+            "signed_by": self.signed_by,
+        }
 
 
 class HSMCertificateV2(HSMCertificate):

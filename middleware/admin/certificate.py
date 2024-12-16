@@ -21,4 +21,6 @@
 # SOFTWARE.
 
 from .certificate_v1 import HSMCertificate, HSMCertificateElement
-from .certificate_v2 import HSMCertificateV2, HSMCertificateV2Element
+from .certificate_v2 import HSMCertificateV2, HSMCertificateV2ElementSGXQuote, \
+                            HSMCertificateV2ElementSGXAttestationKey, \
+                            HSMCertificateV2ElementX509
