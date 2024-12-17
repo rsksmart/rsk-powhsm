@@ -26,7 +26,7 @@ import secp256k1 as ec
 
 from unittest import TestCase
 from unittest.mock import call, patch, mock_open
-from admin.certificate_v1 import HSMCertificate, HSMCertificateElement
+from admin.certificate import HSMCertificate, HSMCertificateElement
 
 
 class TestHSMCertificate(TestCase):
@@ -155,7 +155,7 @@ class TestHSMCertificate(TestCase):
                 "targets": ["attestation", "device"]
             })
 
-    @patch('admin.certificate_v1.HSMCertificateElement')
+    @patch('admin.certificate_v1.HSMCertificate.ELEMENT_FACTORY')
     def test_create_certificate_invalid_element(self, certElementMock):
         certElementMock.side_effect = ValueError()
         with self.assertRaises(ValueError):

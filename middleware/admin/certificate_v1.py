@@ -125,18 +125,24 @@ class HSMCertificate:
     VERSION = 1  # Only supported version
     ROOT_ELEMENT = "root"
     ELEMENT_BASE_CLASS = HSMCertificateElement
+    ELEMENT_FACTORY = HSMCertificateElement
 
-    @staticmethod
-    def from_jsonfile(path):
+    @classmethod
+    def from_jsonfile(kls, path):
         try:
             with open(path, "r") as file:
                 certificate_map = json.loads(file.read())
 
             if type(certificate_map) != dict:
                 raise ValueError(
-                    "JSON file must contain an object as a top level element")
+                    "Certificate file must contain an object as a top level element")
 
-            return HSMCertificate(certificate_map)
+            if certificate_map.get("version") not in kls.VERSION_MAPPING:
+                raise ValueError("Invalid or unsupported HSM certificate "
+                                 "version (supported versions are "
+                                 f"{", ".join(kls.VERSION_MAPPING.keys())})")
+
+            return kls.VERSION_MAPPING[certificate_map["version"]](certificate_map)
         except (ValueError, json.JSONDecodeError) as e:
             raise ValueError('Unable to read HSM certificate from "%s": %s' %
                              (path, str(e)))
@@ -190,8 +196,8 @@ class HSMCertificate:
 
     def add_element(self, element):
         if not isinstance(element, self.ELEMENT_BASE_CLASS):
-            raise ValueError(
-                f"Expected an HSMCertificateElement but got a {type(element)}")
+            raise ValueError(f"Expected an {self.ELEMENT_BASE_CLASS.__name__} "
+                             "but got a {type(element)}")
         self._elements[element.name] = element
 
     def clear_targets(self):
@@ -214,11 +220,9 @@ class HSMCertificate:
             file.write("%s\n" % json.dumps(self.to_dict(), indent=2))
 
     def _parse(self, certificate_map):
-        if "version" not in certificate_map or certificate_map["version"] != self.VERSION:
-            raise ValueError(
-                "Invalid or unsupported HSM certificate version "
-                f"(current version is {self.VERSION})"
-            )
+        if certificate_map.get("version") != self.VERSION:
+            raise ValueError("Invalid or unexpected HSM certificate version "
+                             f"(expected {self.VERSION})")
 
         if "targets" not in certificate_map or type(certificate_map["targets"]) != list:
             raise ValueError("Missing or invalid targets")
@@ -229,7 +233,7 @@ class HSMCertificate:
             raise ValueError("Missing elements")
 
         for item in certificate_map["elements"]:
-            element = HSMCertificateElement(item)
+            element = self.ELEMENT_FACTORY(item)
             self._elements[item["name"]] = element
 
         # Sanity: check each target has a path to the root authority

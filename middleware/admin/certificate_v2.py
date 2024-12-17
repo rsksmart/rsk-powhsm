@@ -20,76 +20,176 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import base64
 from .certificate_v1 import HSMCertificate
+from .utils import is_nonempty_hex_string
 
 
 class HSMCertificateV2Element:
-    pass
+    def __init__(self):
+        raise RuntimeError("Cannot instantiate an "
+                           "abstract HSMCertificateV2Element")
+
+    @classmethod
+    def from_dict(kls, element_map):
+        if element_map.get("type") not in kls.TYPE_MAPPING:
+            raise ValueError("Invalid or missing element type for "
+                             f"element {element_map.get("name")}")
+
+        return kls.TYPE_MAPPING[element_map["type"]](element_map)
+
+    def _init_with_map(self, element_map):
+        if "name" not in element_map:
+            raise ValueError("Missing name for HSM certificate element")
+
+        self._name = element_map["name"]
+
+        if "signed_by" not in element_map:
+            raise ValueError("Missing certifier for HSM certificate element")
+        self._signed_by = element_map["signed_by"]
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def signed_by(self):
+        return self._signed_by
 
 
 class HSMCertificateV2ElementSGXQuote(HSMCertificateV2Element):
-    def __init__(self, name, message, custom_data, signature, signed_by):
-        self.name = name
-        self.message = message
-        self.custom_data = custom_data
-        self.signature = signature
-        self.signed_by = signed_by
+    def __init__(self, element_map):
+        self._init_with_map(element_map)
+
+    def _init_with_map(self, element_map):
+        super()._init_with_map(element_map)
+
+        if not is_nonempty_hex_string(element_map.get("message")):
+            raise ValueError(f"Invalid message for HSM certificate element {self.name}")
+        self._message = bytes.fromhex(element_map["message"])
+
+        if not is_nonempty_hex_string(element_map.get("custom_data")):
+            raise ValueError("Invalid custom data for HSM certificate "
+                             f"element {self.name}")
+        self._custom_data = bytes.fromhex(element_map["custom_data"])
+
+        if not is_nonempty_hex_string(element_map.get("signature")):
+            raise ValueError("Invalid signature for HSM certificate element {self.name}")
+        self._signature = bytes.fromhex(element_map["signature"])
+
+    @property
+    def message(self):
+        return self._message.hex()
+
+    @property
+    def custom_data(self):
+        return self._custom_data.hex()
+
+    @property
+    def signature(self):
+        return self._signature.hex()
 
     def to_dict(self):
         return {
             "name": self.name,
             "type": "sgx_quote",
-            "message": self.message.hex(),
-            "custom_data": self.custom_data.hex(),
-            "signature": self.signature.hex(),
+            "message": self.message,
+            "custom_data": self.custom_data,
+            "signature": self.signature,
             "signed_by": self.signed_by,
         }
 
 
 class HSMCertificateV2ElementSGXAttestationKey(HSMCertificateV2Element):
-    def __init__(self, name, message, key, auth_data, signature, signed_by):
-        self.name = name
-        self.message = message
-        self.key = key
-        self.auth_data = auth_data
-        self.signature = signature
-        self.signed_by = signed_by
+    def __init__(self, element_map):
+        self._init_with_map(element_map)
+
+    def _init_with_map(self, element_map):
+        super()._init_with_map(element_map)
+
+        if not is_nonempty_hex_string(element_map.get("message")):
+            raise ValueError(f"Invalid message for HSM certificate element {self.name}")
+        self._message = bytes.fromhex(element_map["message"])
+
+        if not is_nonempty_hex_string(element_map.get("key")):
+            raise ValueError(f"Invalid key for HSM certificate element {self.name}")
+        self._key = bytes.fromhex(element_map["key"])
+
+        if not is_nonempty_hex_string(element_map.get("auth_data")):
+            raise ValueError(f"Invalid auth data for HSM certificate element {self.name}")
+        self._auth_data = bytes.fromhex(element_map["auth_data"])
+
+        if not is_nonempty_hex_string(element_map.get("signature")):
+            raise ValueError(f"Invalid signature for HSM certificate element {self.name}")
+        self._signature = bytes.fromhex(element_map["signature"])
+
+    @property
+    def message(self):
+        return self._message.hex()
+
+    @property
+    def key(self):
+        return self._key.hex()
+
+    @property
+    def auth_data(self):
+        return self._auth_data.hex()
+
+    @property
+    def signature(self):
+        return self._signature.hex()
 
     def to_dict(self):
         return {
             "name": self.name,
             "type": "sgx_attestation_key",
-            "message": self.message.hex(),
-            "key": self.key.hex(),
-            "auth_data": self.auth_data.hex(),
-            "signature": self.signature.hex(),
+            "message": self.message,
+            "key": self.key,
+            "auth_data": self.auth_data,
+            "signature": self.signature,
             "signed_by": self.signed_by,
         }
 
 
 class HSMCertificateV2ElementX509(HSMCertificateV2Element):
-    def __init__(self, name, message, signed_by):
-        self.name = name
-        self.message = message
-        self.signed_by = signed_by
+    def __init__(self, element_map):
+        self._init_with_map(element_map)
+
+    def _init_with_map(self, element_map):
+        super()._init_with_map(element_map)
+
+        try:
+            self._message = base64.b64decode(element_map.get("message"))
+        except Exception:
+            raise ValueError(f"Invalid message for HSM certificate element {self.name}")
+
+    @property
+    def message(self):
+        return base64.b64encode(self._message).decode("ASCII")
 
     def to_dict(self):
         return {
             "name": self.name,
             "type": "x509_pem",
-            "message": self.message.decode('ASCII'),
+            "message": self.message,
             "signed_by": self.signed_by,
         }
 
 
+# Element type mappings
+HSMCertificateV2Element.TYPE_MAPPING = {
+    "sgx_quote": HSMCertificateV2ElementSGXQuote,
+    "sgx_attestation_key": HSMCertificateV2ElementSGXAttestationKey,
+    "x509_pem": HSMCertificateV2ElementX509,
+}
+
+
 class HSMCertificateV2(HSMCertificate):
     VERSION = 2
+    ROOT_ELEMENT = "sgx_root"
     ELEMENT_BASE_CLASS = HSMCertificateV2Element
+    ELEMENT_FACTORY = HSMCertificateV2Element.from_dict
 
     def validate_and_get_values(self, raw_root_pubkey_hex):
-        # TODO
-        pass
-
-    def _parse(self, certificate_map):
         # TODO
         pass
