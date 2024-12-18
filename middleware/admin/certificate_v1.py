@@ -137,12 +137,13 @@ class HSMCertificate:
                 raise ValueError(
                     "Certificate file must contain an object as a top level element")
 
-            if certificate_map.get("version") not in kls.VERSION_MAPPING:
+            version = certificate_map.get("version")
+            if version not in kls.VERSION_MAPPING:
                 raise ValueError("Invalid or unsupported HSM certificate "
-                                 "version (supported versions are "
+                                 f"version {version} (supported versions are "
                                  f"{", ".join(kls.VERSION_MAPPING.keys())})")
 
-            return kls.VERSION_MAPPING[certificate_map["version"]](certificate_map)
+            return kls.VERSION_MAPPING[version](certificate_map)
         except (ValueError, json.JSONDecodeError) as e:
             raise ValueError('Unable to read HSM certificate from "%s": %s' %
                              (path, str(e)))
@@ -220,9 +221,10 @@ class HSMCertificate:
             file.write("%s\n" % json.dumps(self.to_dict(), indent=2))
 
     def _parse(self, certificate_map):
-        if certificate_map.get("version") != self.VERSION:
+        version = certificate_map.get("version")
+        if version != self.VERSION:
             raise ValueError("Invalid or unexpected HSM certificate version "
-                             f"(expected {self.VERSION})")
+                             f"{version} (expected {self.VERSION})")
 
         if "targets" not in certificate_map or type(certificate_map["targets"]) != list:
             raise ValueError("Missing or invalid targets")
