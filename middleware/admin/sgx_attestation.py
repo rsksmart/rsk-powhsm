@@ -98,34 +98,34 @@ def do_attestation(options):
     att_cert = HSMCertificateV2()
 
     att_cert.add_element(
-        HSMCertificateV2ElementSGXQuote(
-            name="quote",
-            message=envelope.quote.get_raw_data(),
-            custom_data=envelope.custom_message,
-            signature=quote_signature,
-            signed_by="attestation",
-        ))
+        HSMCertificateV2ElementSGXQuote({
+            "name": "quote",
+            "message": envelope.quote.get_raw_data().hex(),
+            "custom_data": envelope.custom_message.hex(),
+            "signature": quote_signature.hex(),
+            "signed_by": "attestation",
+        }))
     att_cert.add_element(
-        HSMCertificateV2ElementSGXAttestationKey(
-            name="attestation",
-            message=envelope.quote_auth_data.qe_report_body.get_raw_data(),
-            key=att_key.to_string("uncompressed"),
-            auth_data=envelope.qe_auth_data.data,
-            signature=qe_rb_signature,
-            signed_by="quoting_enclave",
-        ))
+        HSMCertificateV2ElementSGXAttestationKey({
+            "name": "attestation",
+            "message": envelope.quote_auth_data.qe_report_body.get_raw_data().hex(),
+            "key": att_key.to_string("uncompressed").hex(),
+            "auth_data": envelope.qe_auth_data.data.hex(),
+            "signature": qe_rb_signature.hex(),
+            "signed_by": "quoting_enclave",
+        }))
     att_cert.add_element(
-        HSMCertificateV2ElementX509(
-            name="quoting_enclave",
-            message=envelope.qe_cert_data.certs[0],
-            signed_by="platform_ca",
-        ))
+        HSMCertificateV2ElementX509({
+            "name": "quoting_enclave",
+            "message": envelope.qe_cert_data.certs[0],
+            "signed_by": "platform_ca",
+        }))
     att_cert.add_element(
-        HSMCertificateV2ElementX509(
-            name="platform_ca",
-            message=envelope.qe_cert_data.certs[1],
-            signed_by="sgx_root",
-        ))
+        HSMCertificateV2ElementX509({
+            "name": "platform_ca",
+            "message": envelope.qe_cert_data.certs[1],
+            "signed_by": "sgx_root",
+        }))
 
     att_cert.add_target("quote")
     att_cert.save_to_jsonfile(options.output_file_path)

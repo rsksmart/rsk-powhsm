@@ -24,3 +24,10 @@ from .certificate_v1 import HSMCertificate, HSMCertificateElement
 from .certificate_v2 import HSMCertificateV2, HSMCertificateV2ElementSGXQuote, \
                             HSMCertificateV2ElementSGXAttestationKey, \
                             HSMCertificateV2ElementX509
+
+
+# Assign version mapping to the parent class
+HSMCertificate.VERSION_MAPPING = {
+    1: HSMCertificate,
+    2: HSMCertificateV2,
+}

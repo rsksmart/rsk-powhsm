@@ -65,7 +65,7 @@ class TestSgxAttestation(TestCase):
             "envelope": "11"*32,
             "message": "22"*32,
         }
-        quote = SimpleNamespace(**{"get_raw_data": lambda: "quote-raw-data"})
+        quote = SimpleNamespace(**{"get_raw_data": lambda: b"quote-raw-data"})
         sig = SimpleNamespace(**{"r": b"a"*32, "s": b"a"*32})
         self.att_key = ecdsa.SigningKey.generate(curve=ecdsa.NIST256p).\
             get_verifying_key()
@@ -76,11 +76,11 @@ class TestSgxAttestation(TestCase):
             "signature": sig,
             "attestation_key": attkey,
             "qe_report_body": SimpleNamespace(**{
-                "get_raw_data": lambda: "qerb-raw-data"}),
+                "get_raw_data": lambda: b"qerb-raw-data"}),
             "qe_report_body_signature": qesig,
         })
         qead = SimpleNamespace(**{
-            "data": "qead-data",
+            "data": b"qead-data",
         })
         qecd = SimpleNamespace(**{
             "certs": ["qecd-cert-0", "qecd-cert-1"],
@@ -90,7 +90,7 @@ class TestSgxAttestation(TestCase):
             "quote_auth_data": qad,
             "qe_auth_data": qead,
             "qe_cert_data": qecd,
-            "custom_message": "a-custom-message",
+            "custom_message": b"a-custom-message",
         })
         self.SgxEnvelope.return_value = envelope
 
@@ -123,32 +123,32 @@ class TestSgxAttestation(TestCase):
             bytes.fromhex("11"*32),
             bytes.fromhex("22"*32),
         )
-        self.HSMCertificateV2ElementSGXQuote.assert_called_with(
-            name="quote",
-            message="quote-raw-data",
-            custom_data="a-custom-message",
-            signature=bytes.fromhex("30440220"+"61"*32+"0220"+"61"*32),
-            signed_by="attestation",
-        )
-        self.HSMCertificateV2ElementSGXAttestationKey.assert_called_with(
-            name="attestation",
-            message="qerb-raw-data",
-            key=self.att_key.to_string("uncompressed"),
-            auth_data="qead-data",
-            signature=bytes.fromhex("30440220"+"63"*32+"0220"+"63"*32),
-            signed_by="quoting_enclave",
-        )
+        self.HSMCertificateV2ElementSGXQuote.assert_called_with({
+            "name": "quote",
+            "message": b"quote-raw-data".hex(),
+            "custom_data": b"a-custom-message".hex(),
+            "signature": "30440220"+"61"*32+"0220"+"61"*32,
+            "signed_by": "attestation",
+        })
+        self.HSMCertificateV2ElementSGXAttestationKey.assert_called_with({
+            "name": "attestation",
+            "message": b"qerb-raw-data".hex(),
+            "key": self.att_key.to_string("uncompressed").hex(),
+            "auth_data": b"qead-data".hex(),
+            "signature": "30440220"+"63"*32+"0220"+"63"*32,
+            "signed_by": "quoting_enclave",
+        })
         self.HSMCertificateV2ElementX509.assert_has_calls([
-            call(
-                name="quoting_enclave",
-                message="qecd-cert-0",
-                signed_by="platform_ca",
-            ),
-            call(
-                name="platform_ca",
-                message="qecd-cert-1",
-                signed_by="sgx_root",
-            )
+            call({
+                "name": "quoting_enclave",
+                "message": "qecd-cert-0",
+                "signed_by": "platform_ca",
+            }),
+            call({
+                "name": "platform_ca",
+                "message": "qecd-cert-1",
+                "signed_by": "sgx_root",
+            })
         ])
         cert = self.HSMCertificateV2.return_value
         cert.add_element.assert_has_calls([
