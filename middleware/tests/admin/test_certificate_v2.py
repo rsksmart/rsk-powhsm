@@ -41,6 +41,18 @@ class TestHSMCertificateV2(TestCase):
         cert = HSMCertificateV2(TEST_CERTIFICATE)
         self.assertEqual(TEST_CERTIFICATE, cert.to_dict())
 
+    def test_validate_and_get_values_value(self):
+        cert = HSMCertificateV2(TEST_CERTIFICATE)
+        self.assertEqual({
+            "quote": (
+                True,
+                "504f5748534d3a352e343a3a736778f36f7bc09aab50c0886a442b2d04b18186720bd"
+                "a7a753643066cd0bc0a4191800c4d091913d39750dc8975adbdd261bd10c1c2e110fa"
+                "a47cfbe30e740895552bbdcb3c17c7aee714cec8ad900341bfd987b452280220dcbd6"
+                "e7191f67ea4209b00000000000000000000000000000000",
+                None)
+            }, cert.validate_and_get_values('a-root-of-trust'))
+
 
 class TestHSMCertificateV2Element(TestCase):
     def test_from_dict_unknown_type(self):

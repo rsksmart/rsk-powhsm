@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from .certificate_v1 import HSMCertificate, HSMCertificateElement
+from .certificate_v1 import HSMCertificate, HSMCertificateRoot, HSMCertificateElement
 from .certificate_v2 import HSMCertificateV2, HSMCertificateV2ElementSGXQuote, \
                             HSMCertificateV2ElementSGXAttestationKey, \
                             HSMCertificateV2ElementX509
