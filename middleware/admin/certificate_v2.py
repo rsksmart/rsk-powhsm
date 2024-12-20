@@ -27,8 +27,7 @@ from .utils import is_nonempty_hex_string
 
 class HSMCertificateV2Element:
     def __init__(self):
-        raise RuntimeError("Cannot instantiate an "
-                           "abstract HSMCertificateV2Element")
+        raise NotImplementedError("Cannot instantiate a HSMCertificateV2Element")
 
     @classmethod
     def from_dict(kls, element_map):
@@ -55,6 +54,22 @@ class HSMCertificateV2Element:
     @property
     def signed_by(self):
         return self._signed_by
+
+    def get_value(self):
+        raise NotImplementedError(f"{type(self).__name__} can't provide a value")
+
+    def get_pubkey(self):
+        # TODO: this should yield not implemented
+        # TODO: implementation should be down to each specific subclass
+        return None
+
+    def is_valid(self, certifier):
+        # TODO: this should yield not implemented
+        # TODO: implementation should be down to each specific subclass
+        return True
+
+    def get_tweak(self):
+        return None
 
 
 class HSMCertificateV2ElementSGXQuote(HSMCertificateV2Element):
@@ -88,6 +103,9 @@ class HSMCertificateV2ElementSGXQuote(HSMCertificateV2Element):
     @property
     def signature(self):
         return self._signature.hex()
+
+    def get_value(self):
+        return self.custom_data
 
     def to_dict(self):
         return {
@@ -189,7 +207,3 @@ class HSMCertificateV2(HSMCertificate):
     ROOT_ELEMENT = "sgx_root"
     ELEMENT_BASE_CLASS = HSMCertificateV2Element
     ELEMENT_FACTORY = HSMCertificateV2Element.from_dict
-
-    def validate_and_get_values(self, raw_root_pubkey_hex):
-        # TODO
-        pass

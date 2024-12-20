@@ -27,7 +27,21 @@ from parameterized import parameterized
 import secp256k1 as ec
 
 from unittest import TestCase
-from admin.certificate import HSMCertificateElement
+from unittest.mock import Mock
+from admin.certificate import HSMCertificateRoot, HSMCertificateElement
+
+
+class TestHSMCertificateRoot(TestCase):
+    def test_ok(self):
+        pubkey = ec.PrivateKey().pubkey
+        root = HSMCertificateRoot(pubkey.serialize(compressed=False).hex())
+        self.assertEqual(
+            pubkey.serialize(compressed=True),
+            root.get_pubkey().serialize(compressed=True))
+
+    def test_invalid_pubkey(self):
+        with self.assertRaises(ValueError):
+            HSMCertificateRoot("invalid-pubkey")
 
 
 class TestHSMCertificateElement(TestCase):
@@ -100,6 +114,7 @@ class TestHSMCertificateElement(TestCase):
         privkey = ec.PrivateKey()
         msg = 'aa' * 65
         signature = privkey.ecdsa_serialize(privkey.ecdsa_sign(bytes.fromhex(msg))).hex()
+        mock_certifier = Mock(get_pubkey=lambda: privkey.pubkey)
 
         element = HSMCertificateElement({
             "name": "device",
@@ -113,7 +128,7 @@ class TestHSMCertificateElement(TestCase):
             "signature": signature,
             "signed_by": "root"
         }, element.to_dict())
-        self.assertTrue(element.is_valid(privkey.pubkey))
+        self.assertTrue(element.is_valid(mock_certifier))
 
     def test_certificate_element_is_valid_with_tweak_ok(self):
         privkey = ec.PrivateKey()
@@ -124,6 +139,7 @@ class TestHSMCertificateElement(TestCase):
             pubkey.serialize(compressed=False),
             hashlib.sha256,
         ).digest()
+        mock_certifier = Mock(get_pubkey=lambda: pubkey)
 
         tweak_privkey = ec.PrivateKey(privkey.tweak_add(tweak), raw=True)
         msg = os.urandom(66).hex()
@@ -144,7 +160,7 @@ class TestHSMCertificateElement(TestCase):
             "signed_by": "root",
             "tweak": raw_tweak
         }, element.to_dict())
-        self.assertTrue(element.is_valid(pubkey))
+        self.assertTrue(element.is_valid(mock_certifier))
 
     def test_certificate_element_is_valid_wrong_signature(self):
         privkey = ec.PrivateKey()

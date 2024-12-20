@@ -27,6 +27,21 @@ import hashlib
 from .utils import is_nonempty_hex_string
 
 
+class HSMCertificateRoot:
+    def __init__(self, raw_pubkey_hex):
+        # Parse the public key
+        try:
+            self.pubkey = ec.PublicKey(bytes.fromhex(raw_pubkey_hex), raw=True)
+        except Exception:
+            raise ValueError("Error parsing certificate root public key")
+
+    def __repr__(self):
+        return self.pubkey.serialize(compressed=False).hex()
+
+    def get_pubkey(self):
+        return self.pubkey
+
+
 class HSMCertificateElement:
     VALID_NAMES = ["device", "attestation", "ui", "signer"]
     EXTRACTORS = {
@@ -98,10 +113,11 @@ class HSMCertificateElement:
 
         return result
 
-    def is_valid(self, certifier_pubkey):
+    def is_valid(self, certifier):
         try:
             message = bytes.fromhex(self.message)
 
+            certifier_pubkey = certifier.get_pubkey()
             verifier_pubkey = certifier_pubkey
             if self.tweak is not None:
                 tweak = hmac.new(
@@ -119,6 +135,12 @@ class HSMCertificateElement:
 
     def get_value(self):
         return self.EXTRACTORS[self.name](bytes.fromhex(self.message)).hex()
+
+    def get_pubkey(self):
+        return ec.PublicKey(bytes.fromhex(self.get_value()), raw=True)
+
+    def get_tweak(self):
+        return self.tweak
 
 
 class HSMCertificate:
@@ -155,14 +177,7 @@ class HSMCertificate:
         if certificate_map is not None:
             self._parse(certificate_map)
 
-    def validate_and_get_values(self, raw_root_pubkey_hex):
-        # Parse the root public key
-        try:
-            root_pubkey = ec.PublicKey(bytes.fromhex(raw_root_pubkey_hex), raw=True)
-        except Exception:
-            return dict([(target, (False, self.ROOT_ELEMENT))
-                         for target in self._targets])
-
+    def validate_and_get_values(self, root_of_trust):
         result = {}
         for target in self._targets:
             # Build the chain from the target to the root
@@ -178,19 +193,18 @@ class HSMCertificate:
             # If valid, return True and the value of the leaf
             # If not valid, return False and the name of the element that
             # failed the validation
-            current_pubkey = root_pubkey
+            current_certifier = root_of_trust
             while True:
                 # Validate this element
-                if not current.is_valid(current_pubkey):
+                if not current.is_valid(current_certifier):
                     result[target] = (False, current.name)
                     break
                 # Reached the leaf? => valid!
                 if len(chain) == 0:
-                    result[target] = (True, current.get_value(), current.tweak)
+                    result[target] = (True, current.get_value(), current.get_tweak())
                     break
 
-                current_pubkey = ec.PublicKey(bytes.fromhex(current.get_value()),
-                                              raw=True)
+                current_certifier = current
                 current = chain.pop()
 
         return result

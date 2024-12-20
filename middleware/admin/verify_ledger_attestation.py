@@ -26,7 +26,7 @@ import secp256k1 as ec
 import re
 from .misc import info, head, AdminError
 from .utils import is_nonempty_hex_string
-from .certificate import HSMCertificate
+from .certificate import HSMCertificate, HSMCertificateRoot
 
 
 UI_MESSAGE_HEADER_REGEX = re.compile(b"^HSM:UI:(5.[0-9])")
@@ -69,6 +69,10 @@ def do_verify_attestation(options):
         if not is_nonempty_hex_string(options.root_authority):
             raise AdminError("Invalid root authority")
         root_authority = options.root_authority
+    try:
+        root_authority = HSMCertificateRoot(root_authority)
+    except ValueError:
+        raise AdminError("Invalid root authority")
     info(f"Using {root_authority} as root authority")
 
     # Load the given public keys and compute
