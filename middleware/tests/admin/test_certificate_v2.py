@@ -21,6 +21,7 @@
 # SOFTWARE.
 
 from unittest import TestCase
+from unittest.mock import patch
 from admin.certificate_v1 import HSMCertificate
 from admin.certificate_v2 import HSMCertificateV2, HSMCertificateV2Element, \
                                  HSMCertificateV2ElementSGXQuote, \
@@ -41,17 +42,34 @@ class TestHSMCertificateV2(TestCase):
         cert = HSMCertificateV2(TEST_CERTIFICATE)
         self.assertEqual(TEST_CERTIFICATE, cert.to_dict())
 
-    def test_validate_and_get_values_value(self):
+    @patch("admin.certificate_v2.SgxQuote")
+    def test_validate_and_get_values_value(self, SgxQuoteMock):
+        SgxQuoteMock.return_value = "an-sgx-quote"
         cert = HSMCertificateV2(TEST_CERTIFICATE)
         self.assertEqual({
             "quote": (
-                True,
-                "504f5748534d3a352e343a3a736778f36f7bc09aab50c0886a442b2d04b18186720bd"
-                "a7a753643066cd0bc0a4191800c4d091913d39750dc8975adbdd261bd10c1c2e110fa"
-                "a47cfbe30e740895552bbdcb3c17c7aee714cec8ad900341bfd987b452280220dcbd6"
-                "e7191f67ea4209b00000000000000000000000000000000",
-                None)
+                True, {
+                    "sgx_quote": "an-sgx-quote",
+                    "message": "504f5748534d3a352e343a3a736778f36f7bc09aab50c0886a442b2"
+                               "d04b18186720bda7a753643066cd0bc0a4191800c4d091913d39750"
+                               "dc8975adbdd261bd10c1c2e110faa47cfbe30e740895552bbdcb3c1"
+                               "7c7aee714cec8ad900341bfd987b452280220dcbd6e7191f67ea420"
+                               "9b00000000000000000000000000000000",
+                }, None)
             }, cert.validate_and_get_values('a-root-of-trust'))
+        SgxQuoteMock.assert_called_with(bytes.fromhex(
+            "03000200000000000a000f00939a7233f79c4ca9940a0db3957f0607ceae3549bc7273eb34"
+            "d562f4564fc182000000000e0e100fffff0100000000000000000001000000000000000000"
+            "00000000000000000000000000000000000000000000050000000000000007000000000000"
+            "00d32688d3c1f3dfcc8b0b36eac7c89d49af331800bd56248044166fa6699442c100000000"
+            "00000000000000000000000000000000000000000000000000000000718c2f1a0efbd513e0"
+            "16fafd6cf62a624442f2d83708d4b33ab5a8d8c1cd4dd00000000000000000000000000000"
+            "00000000000000000000000000000000000000000000000000000000000000000000000000"
+            "00000000000000000000000000000000000000000000000000000000000000000000000000"
+            "00000000000000006400010000000000000000000000000000000000000000000000000000"
+            "00000000000000000000000000000000000000000000000000000000000000000000009e95"
+            "bb875c1a728071f70ad8c9d03f1744c19acb0580921e611ac9104f7701d000000000000000"
+            "00000000000000000000000000000000000000000000000000"))
 
 
 class TestHSMCertificateV2Element(TestCase):
@@ -281,3 +299,29 @@ class TestHSMCertificateV2ElementX509(TestCase):
                 "signed_by": "platform_ca"
             })
         self.assertIn("Invalid message", str(e.exception))
+
+    def test_from_pem(self):
+        self.assertEqual({
+            "name": "thename",
+            "type": "x509_pem",
+            "message": "dGhpcyBpcyBhbiBhc2NpaSBtZXNzYWdl",
+            "signed_by": "whosigned",
+        }, HSMCertificateV2ElementX509.from_pem("""
+        -----BEGIN CERTIFICATE-----
+        dGhpcyBpcyBhbiBhc2NpaSBtZXNzYWdl
+        -----END CERTIFICATE-----
+        """, "thename", "whosigned").to_dict())
+
+    @patch("admin.certificate_v2.Path")
+    @patch("admin.certificate_v2.HSMCertificateV2ElementX509.from_pem")
+    def test_from_pemfile(self, from_pem, Path):
+        Path.return_value.read_text.return_value = "the pem contents"
+        from_pem.return_value = "the instance"
+        self.assertEqual("the instance",
+                         HSMCertificateV2ElementX509.from_pemfile("a-file.pem",
+                                                                  "the name",
+                                                                  "who signed"))
+        Path.assert_called_with("a-file.pem")
+        from_pem.assert_called_with("the pem contents",
+                                    "the name",
+                                    "who signed")

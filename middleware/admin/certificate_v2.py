@@ -20,9 +20,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import re
+from pathlib import Path
 import base64
 from .certificate_v1 import HSMCertificate
 from .utils import is_nonempty_hex_string
+from sgx.envelope import SgxQuote
 
 
 class HSMCertificateV2Element:
@@ -105,7 +108,10 @@ class HSMCertificateV2ElementSGXQuote(HSMCertificateV2Element):
         return self._signature.hex()
 
     def get_value(self):
-        return self.custom_data
+        return {
+            "sgx_quote": SgxQuote(self._message),
+            "message": self.custom_data,
+        }
 
     def to_dict(self):
         return {
@@ -170,6 +176,21 @@ class HSMCertificateV2ElementSGXAttestationKey(HSMCertificateV2Element):
 
 
 class HSMCertificateV2ElementX509(HSMCertificateV2Element):
+    @classmethod
+    def from_pemfile(kls, pem_path, name, signed_by):
+        return kls.from_pem(Path(pem_path).read_text(), name, signed_by)
+
+    @classmethod
+    def from_pem(kls, pem_str, name, signed_by):
+        return kls({
+            "name": name,
+            "message": re.sub(r"[\s\n\r]+", " ", pem_str)
+                         .replace("-----END CERTIFICATE-----", "")
+                         .replace("-----BEGIN CERTIFICATE-----", "")
+                         .strip().encode(),
+            "signed_by": signed_by,
+        })
+
     def __init__(self, element_map):
         self._init_with_map(element_map)
 

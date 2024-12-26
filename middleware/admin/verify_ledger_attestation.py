@@ -20,31 +20,22 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import json
-import hashlib
-import secp256k1 as ec
 import re
 from .misc import info, head, AdminError
+from .attestation_utils import PowHsmAttestationMessage, load_pubkeys, \
+                               compute_pubkeys_hash, compute_pubkeys_output
 from .utils import is_nonempty_hex_string
 from .certificate import HSMCertificate, HSMCertificateRoot
 
 
-UI_MESSAGE_HEADER_REGEX = re.compile(b"^HSM:UI:(5.[0-9])")
-SIGNER_LEGACY_MESSAGE_HEADER_REGEX = re.compile(b"^HSM:SIGNER:(5.[0-9])")
+UI_MESSAGE_HEADER_REGEX = re.compile(b"^HSM:UI:([2,3,4,5].[0-9])")
+SIGNER_LEGACY_MESSAGE_HEADER_REGEX = re.compile(b"^HSM:SIGNER:([2,3,4,5].[0-9])")
 UI_DERIVATION_PATH = "m/44'/0'/0'/0/0"
 UD_VALUE_LENGTH = 32
+PUBLIC_KEYS_HASH_LENGTH = 32
 PUBKEY_COMPRESSED_LENGTH = 33
 SIGNER_HASH_LENGTH = 32
 SIGNER_ITERATION_LENGTH = 2
-
-# New signer message header with fields
-SIGNER_MESSAGE_HEADER_REGEX = re.compile(b"^POWHSM:(5.[0-9])::")
-SM_PLATFORM_LEN = 3
-SM_UD_LEN = 32
-SM_PKH_LEN = 32
-SM_BB_LEN = 32
-SM_TXN_LEN = 8
-SM_TMSTMP_LEN = 8
 
 # Ledger's root authority
 # (according to
@@ -75,45 +66,18 @@ def do_verify_attestation(options):
         raise AdminError("Invalid root authority")
     info(f"Using {root_authority} as root authority")
 
-    # Load the given public keys and compute
-    # their hash (sha256sum of the uncompressed
-    # public keys in lexicographical path order)
-    # Also find and save the public key corresponding
-    # to the expected derivation path for the UI
-    # attestation
-    expected_ui_public_key = None
-    try:
-        with open(options.pubkeys_file_path, "r") as file:
-            pubkeys_map = json.loads(file.read())
+    # Load public keys, compute their hash and format them for output
+    pubkeys_map = load_pubkeys(options.pubkeys_file_path)
+    pubkeys_hash = compute_pubkeys_hash(pubkeys_map)
+    pubkeys_output = compute_pubkeys_output(pubkeys_map)
 
-        if type(pubkeys_map) != dict:
-            raise ValueError(
-                "Public keys file must contain an object as a top level element")
-
-        pubkeys_hash = hashlib.sha256()
-        pubkeys_output = []
-        path_name_padding = max(map(len, pubkeys_map.keys()))
-        for path in sorted(pubkeys_map.keys()):
-            pubkey = pubkeys_map[path]
-            if not is_nonempty_hex_string(pubkey):
-                raise AdminError(f"Invalid public key for path {path}: {pubkey}")
-            pubkey = ec.PublicKey(bytes.fromhex(pubkey), raw=True)
-            pubkeys_hash.update(pubkey.serialize(compressed=False))
-            pubkeys_output.append(
-                f"{(path + ':').ljust(path_name_padding+1)} "
-                f"{pubkey.serialize(compressed=True).hex()}"
-            )
-            if path == UI_DERIVATION_PATH:
-                expected_ui_public_key = pubkey.serialize(compressed=True).hex()
-        pubkeys_hash = pubkeys_hash.digest()
-
-    except (ValueError, json.JSONDecodeError) as e:
-        raise ValueError('Unable to read public keys from "%s": %s' %
-                         (options.pubkeys_file_path, str(e)))
-
+    # Find the expected UI public key
+    expected_ui_public_key = next(filter(
+        lambda pair: pair[0] == UI_DERIVATION_PATH, pubkeys_map.items()), (None, None))[1]
     if expected_ui_public_key is None:
         raise AdminError(
             f"Public key with path {UI_DERIVATION_PATH} not present in public key file")
+    expected_ui_public_key = expected_ui_public_key.serialize(compressed=True).hex()
 
     # Load the given attestation key certificate
     try:
@@ -155,6 +119,10 @@ def do_verify_attestation(options):
                                   SIGNER_HASH_LENGTH + SIGNER_ITERATION_LENGTH]
     signer_iteration = int.from_bytes(signer_iteration, byteorder='big', signed=False)
 
+    if ui_public_key != expected_ui_public_key:
+        raise AdminError("Invalid UI attestation: unexpected public key reported. "
+                         f"Expected {expected_ui_public_key} but got {ui_public_key}")
+
     head(
         [
             "UI verified with:",
@@ -180,40 +148,31 @@ def do_verify_attestation(options):
     signer_message = bytes.fromhex(signer_result[1])
     signer_hash = bytes.fromhex(signer_result[2])
     lmh_match = SIGNER_LEGACY_MESSAGE_HEADER_REGEX.match(signer_message)
-    mh_match = SIGNER_MESSAGE_HEADER_REGEX.match(signer_message)
-    if lmh_match is None and mh_match is None:
+    if lmh_match is None and not PowHsmAttestationMessage.is_header(signer_message):
         raise AdminError(
             f"Invalid Signer attestation message header: {signer_message.hex()}")
 
     if lmh_match is not None:
         # Legacy header
+        powhsm_message = None
         hlen = len(lmh_match.group(0))
-        signer_version = lmh_match.group(1)
+        signer_version = lmh_match.group(1).decode()
         offset = hlen
         reported_pubkeys_hash = signer_message[offset:]
-        offset += SM_PKH_LEN
+        offset += PUBLIC_KEYS_HASH_LENGTH
+        if signer_message[offset:] != b'':
+            raise AdminError(f"Signer attestation message longer "
+                             f"than expected: {signer_message.hex()}")
     else:
         # New header
-        hlen = len(mh_match.group(0))
-        signer_version = mh_match.group(1)
-        offset = hlen
-        reported_platform = signer_message[offset:offset+SM_PLATFORM_LEN]
-        offset += SM_PLATFORM_LEN
-        reported_ud_value = signer_message[offset:offset+SM_UD_LEN]
-        offset += SM_UD_LEN
-        reported_pubkeys_hash = signer_message[offset:offset+SM_PKH_LEN]
-        offset += SM_PKH_LEN
-        reported_best_block = signer_message[offset:offset+SM_BB_LEN]
-        offset += SM_BB_LEN
-        reported_txn_head = signer_message[offset:offset+SM_TXN_LEN]
-        offset += SM_TXN_LEN
-        reported_timestamp = signer_message[offset:offset+SM_TMSTMP_LEN]
-        offset += SM_TMSTMP_LEN
+        try:
+            powhsm_message = PowHsmAttestationMessage(signer_message, name="Signer")
+        except ValueError as e:
+            raise AdminError(str(e))
+        signer_version = powhsm_message.version
+        reported_pubkeys_hash = powhsm_message.public_keys_hash
 
-    if signer_message[offset:] != b'':
-        raise AdminError(f"Signer attestation message longer "
-                         f"than expected: {signer_message.hex()}")
-
+    # Validations on extracted values
     if reported_pubkeys_hash != pubkeys_hash:
         raise AdminError(
             f"Signer attestation public keys hash mismatch: expected {pubkeys_hash.hex()}"
@@ -224,16 +183,16 @@ def do_verify_attestation(options):
         f"Hash: {pubkeys_hash.hex()}",
         "",
         f"Installed Signer hash: {signer_hash.hex()}",
-        f"Installed Signer version: {signer_version.decode()}",
+        f"Installed Signer version: {signer_version}",
     ]
 
-    if mh_match is not None:
+    if powhsm_message is not None:
         signer_info += [
-            f"Platform: {reported_platform.decode("ASCII")}",
-            f"UD value: {reported_ud_value.hex()}",
-            f"Best block: {reported_best_block.hex()}",
-            f"Last transaction signed: {reported_txn_head.hex()}",
-            f"Timestamp: {reported_timestamp.hex()}",
+            f"Platform: {powhsm_message.platform}",
+            f"UD value: {powhsm_message.ud_value.hex()}",
+            f"Best block: {powhsm_message.best_block.hex()}",
+            f"Last transaction signed: {powhsm_message.last_signed_tx.hex()}",
+            f"Timestamp: {powhsm_message.timestamp}",
         ]
 
     head(
