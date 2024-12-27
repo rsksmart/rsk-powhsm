@@ -2,6 +2,9 @@ name: Lint C code
 
 on: [push]
 
+# Declare default permissions as read only.
+permissions: read-all
+
 jobs:
   run-c-linter:
     name: Run C linter

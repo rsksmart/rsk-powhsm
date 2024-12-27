@@ -2,6 +2,9 @@ name: Lint Python code
 
 on: [push]
 
+# Declare default permissions as read only.
+permissions: read-all
+
 jobs:
   run-python-linter:
     name: Run Python linter
