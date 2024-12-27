@@ -22,11 +22,12 @@
 
 from types import SimpleNamespace
 from unittest import TestCase
-from unittest.mock import Mock, call, patch, mock_open
+from unittest.mock import Mock, call, patch
 from admin.misc import AdminError
 from admin.pubkeys import PATHS
 from admin.verify_ledger_attestation import do_verify_attestation
 import ecdsa
+import secp256k1 as ec
 import hashlib
 import logging
 
@@ -39,7 +40,7 @@ UI_HEADER = b"HSM:UI:5.3"
 
 
 @patch("sys.stdout.write")
-class TestVerifyAttestation(TestCase):
+class TestVerifyLedgerAttestation(TestCase):
     def setUp(self):
         self.certification_path = 'certification-path'
         self.pubkeys_path = 'pubkeys-path'
@@ -60,17 +61,20 @@ class TestVerifyAttestation(TestCase):
         path_name_padding = max(map(len, paths))
         for path in sorted(paths):
             pubkey = ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1).get_verifying_key()
-            self.public_keys[path] = pubkey.to_string('compressed').hex()
+            self.public_keys[path] = ec.PublicKey(
+                pubkey.to_string('compressed'), raw=True)
             pubkeys_hash.update(pubkey.to_string('uncompressed'))
             self.expected_pubkeys_output.append(
                 f"{(path + ':').ljust(path_name_padding+1)} "
                 f"{pubkey.to_string('compressed').hex()}"
             )
         self.pubkeys_hash = pubkeys_hash.digest()
+        self.expected_ui_pubkey = self.public_keys[EXPECTED_UI_DERIVATION_PATH]\
+            .serialize(compressed=True).hex()
 
         self.ui_msg = UI_HEADER + \
             bytes.fromhex("aa"*32) + \
-            bytes.fromhex("bb"*33) + \
+            bytes.fromhex(self.expected_ui_pubkey) + \
             bytes.fromhex("cc"*32) + \
             bytes.fromhex("0123")
         self.ui_hash = bytes.fromhex("ee" * 32)
@@ -81,7 +85,7 @@ class TestVerifyAttestation(TestCase):
             bytes.fromhex(self.pubkeys_hash.hex()) + \
             bytes.fromhex('bb'*32) + \
             bytes.fromhex('cc'*8) + \
-            bytes.fromhex('dd'*8)
+            bytes.fromhex('00'*7 + 'ab')
 
         self.signer_hash = bytes.fromhex("ff" * 32)
 
@@ -91,9 +95,9 @@ class TestVerifyAttestation(TestCase):
 
     @patch("admin.verify_ledger_attestation.head")
     @patch("admin.verify_ledger_attestation.HSMCertificate")
-    @patch("json.loads")
+    @patch("admin.verify_ledger_attestation.load_pubkeys")
     def test_verify_attestation_legacy(self,
-                                       loads_mock,
+                                       load_pubkeys_mock,
                                        certificate_mock,
                                        head_mock, _):
         self.signer_msg = LEGACY_SIGNER_HEADER + \
@@ -101,15 +105,14 @@ class TestVerifyAttestation(TestCase):
         self.signer_hash = bytes.fromhex("ff" * 32)
         self.result['signer'] = (True, self.signer_msg.hex(), self.signer_hash.hex())
 
-        loads_mock.return_value = self.public_keys
+        load_pubkeys_mock.return_value = self.public_keys
         att_cert = Mock()
         att_cert.validate_and_get_values = Mock(return_value=self.result)
         certificate_mock.from_jsonfile = Mock(return_value=att_cert)
 
-        with patch('builtins.open', mock_open(read_data='')) as file_mock:
-            do_verify_attestation(self.default_options)
+        do_verify_attestation(self.default_options)
 
-        self.assertEqual([call(self.pubkeys_path, 'r')], file_mock.call_args_list)
+        load_pubkeys_mock.assert_called_with(self.pubkeys_path)
         self.assertEqual([call(self.certification_path)],
                          certificate_mock.from_jsonfile.call_args_list)
 
@@ -117,7 +120,8 @@ class TestVerifyAttestation(TestCase):
             [
                 "UI verified with:",
                 f"UD value: {'aa'*32}",
-                f"Derived public key ({EXPECTED_UI_DERIVATION_PATH}): {'bb'*33}",
+                f"Derived public key ({EXPECTED_UI_DERIVATION_PATH}): "
+                f"{self.expected_ui_pubkey}",
                 f"Authorized signer hash: {'cc'*32}",
                 "Authorized signer iteration: 291",
                 f"Installed UI hash: {'ee'*32}",
@@ -140,21 +144,19 @@ class TestVerifyAttestation(TestCase):
 
     @patch("admin.verify_ledger_attestation.head")
     @patch("admin.verify_ledger_attestation.HSMCertificate")
-    @patch("json.loads")
+    @patch("admin.verify_ledger_attestation.load_pubkeys")
     def test_verify_attestation(self,
-                                loads_mock,
+                                load_pubkeys_mock,
                                 certificate_mock,
-                                head_mock,
-                                _):
-        loads_mock.return_value = self.public_keys
+                                head_mock, _):
+        load_pubkeys_mock.return_value = self.public_keys
         att_cert = Mock()
         att_cert.validate_and_get_values = Mock(return_value=self.result)
         certificate_mock.from_jsonfile = Mock(return_value=att_cert)
 
-        with patch('builtins.open', mock_open(read_data='')) as file_mock:
-            do_verify_attestation(self.default_options)
+        do_verify_attestation(self.default_options)
 
-        self.assertEqual([call(self.pubkeys_path, 'r')], file_mock.call_args_list)
+        load_pubkeys_mock.assert_called_with(self.pubkeys_path)
         self.assertEqual([call(self.certification_path)],
                          certificate_mock.from_jsonfile.call_args_list)
 
@@ -162,7 +164,8 @@ class TestVerifyAttestation(TestCase):
             [
                 "UI verified with:",
                 f"UD value: {'aa'*32}",
-                f"Derived public key ({EXPECTED_UI_DERIVATION_PATH}): {'bb'*33}",
+                f"Derived public key ({EXPECTED_UI_DERIVATION_PATH}): "
+                f"{self.expected_ui_pubkey}",
                 f"Authorized signer hash: {'cc'*32}",
                 "Authorized signer iteration: 291",
                 f"Installed UI hash: {'ee'*32}",
@@ -185,7 +188,7 @@ class TestVerifyAttestation(TestCase):
                 "Best block: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
                 "bbbbb",
                 "Last transaction signed: cccccccccccccccc",
-                "Timestamp: dddddddddddddddd",
+                "Timestamp: 171",
             ],
             fill="-",
         )
@@ -206,66 +209,43 @@ class TestVerifyAttestation(TestCase):
             do_verify_attestation(options)
         self.assertEqual('No public keys file given', str(e.exception))
 
-    @patch("json.loads")
-    def test_verify_attestation_invalid_pubkeys_map(self, loads_mock, _):
-        loads_mock.return_value = 'invalid-json'
-        with patch('builtins.open', mock_open(read_data='')):
-            with self.assertRaises(ValueError) as e:
-                do_verify_attestation(self.default_options)
-
-        self.assertEqual(('Unable to read public keys from "pubkeys-path": Public keys '
-                          'file must contain an object as a top level element'),
-                         str(e.exception))
-
-    @patch("json.loads")
-    def test_verify_attestation_invalid_pubkey(self, loads_mock, _):
-        loads_mock.return_value = {'invalid-path': 'invalid-key'}
-        with patch('builtins.open', mock_open(read_data='')):
-            with self.assertRaises(AdminError) as e:
-                do_verify_attestation(self.default_options)
-
-        self.assertEqual('Invalid public key for path invalid-path: invalid-key',
-                         str(e.exception))
-
-    @patch("json.loads")
-    def test_verify_attestation_no_ui_derivation_key(self, loads_mock, _):
+    @patch("admin.verify_ledger_attestation.load_pubkeys")
+    def test_verify_attestation_no_ui_derivation_key(self, load_pubkeys_mock, _):
         incomplete_pubkeys = self.public_keys
         incomplete_pubkeys.pop(EXPECTED_UI_DERIVATION_PATH, None)
-        loads_mock.return_value = incomplete_pubkeys
+        load_pubkeys_mock.return_value = incomplete_pubkeys
 
-        with patch('builtins.open', mock_open(read_data='')) as file_mock:
-            with self.assertRaises(AdminError) as e:
-                do_verify_attestation(self.default_options)
+        with self.assertRaises(AdminError) as e:
+            do_verify_attestation(self.default_options)
 
-        self.assertEqual([call(self.pubkeys_path, 'r')], file_mock.call_args_list)
+        load_pubkeys_mock.assert_called_with(self.pubkeys_path)
         self.assertEqual((f'Public key with path {EXPECTED_UI_DERIVATION_PATH} '
                           'not present in public key file'),
                          str(e.exception))
 
     @patch("admin.verify_ledger_attestation.HSMCertificate")
-    @patch("json.loads")
+    @patch("admin.verify_ledger_attestation.load_pubkeys")
     def test_verify_attestation_invalid_certificate(self,
-                                                    loads_mock,
+                                                    load_pubkeys_mock,
                                                     certificate_mock,
                                                     _):
-        loads_mock.return_value = self.public_keys
+        load_pubkeys_mock.return_value = self.public_keys
         certificate_mock.from_jsonfile = Mock(side_effect=Exception('error-msg'))
 
-        with patch('builtins.open', mock_open(read_data='')) as file_mock:
-            with self.assertRaises(AdminError) as e:
-                do_verify_attestation(self.default_options)
+        with self.assertRaises(AdminError) as e:
+            do_verify_attestation(self.default_options)
 
-        self.assertEqual([call(self.pubkeys_path, 'r')], file_mock.call_args_list)
+        load_pubkeys_mock.assert_called_with(self.pubkeys_path)
         self.assertEqual('While loading the attestation certificate file: error-msg',
                          str(e.exception))
 
     @patch("admin.verify_ledger_attestation.HSMCertificate")
-    @patch("json.loads")
+    @patch("admin.verify_ledger_attestation.load_pubkeys")
     def test_verify_attestation_no_ui_att(self,
-                                          loads_mock,
+                                          load_pubkeys_mock,
                                           certificate_mock,
                                           _):
-        loads_mock.return_value = self.public_keys
+        load_pubkeys_mock.return_value = self.public_keys
 
         result = self.result
         result.pop('ui', None)
@@ -273,115 +253,106 @@ class TestVerifyAttestation(TestCase):
         att_cert.validate_and_get_values = Mock(return_value=self.result)
         certificate_mock.from_jsonfile = Mock(return_value=att_cert)
 
-        with patch('builtins.open', mock_open(read_data='')) as file_mock:
-            with self.assertRaises(AdminError) as e:
-                do_verify_attestation(self.default_options)
+        with self.assertRaises(AdminError) as e:
+            do_verify_attestation(self.default_options)
 
-        self.assertEqual([call(self.pubkeys_path, 'r')], file_mock.call_args_list)
+        load_pubkeys_mock.assert_called_with(self.pubkeys_path)
         self.assertEqual('Certificate does not contain a UI attestation',
                          str(e.exception))
 
     @patch("admin.verify_ledger_attestation.HSMCertificate")
-    @patch("json.loads")
+    @patch("admin.verify_ledger_attestation.load_pubkeys")
     def test_verify_attestation_invalid_ui_att(self,
-                                               loads_mock,
+                                               load_pubkeys_mock,
                                                certificate_mock,
                                                _):
-        loads_mock.return_value = self.public_keys
+        load_pubkeys_mock.return_value = self.public_keys
         result = self.result
         result['ui'] = (False, 'ui')
         att_cert = Mock()
         att_cert.validate_and_get_values = Mock(return_value=result)
         certificate_mock.from_jsonfile = Mock(return_value=att_cert)
 
-        with patch('builtins.open', mock_open(read_data='')) as file_mock:
-            with self.assertRaises(AdminError) as e:
-                do_verify_attestation(self.default_options)
+        with self.assertRaises(AdminError) as e:
+            do_verify_attestation(self.default_options)
 
-        self.assertEqual([call(self.pubkeys_path, 'r')], file_mock.call_args_list)
+        load_pubkeys_mock.assert_called_with(self.pubkeys_path)
         self.assertEqual("Invalid UI attestation: error validating 'ui'",
                          str(e.exception))
 
     @patch("admin.verify_ledger_attestation.HSMCertificate")
-    @patch("json.loads")
+    @patch("admin.verify_ledger_attestation.load_pubkeys")
     def test_verify_attestation_no_signer_att(self,
-                                              loads_mock,
+                                              load_pubkeys_mock,
                                               certificate_mock,
                                               _):
-        loads_mock.return_value = self.public_keys
-
+        load_pubkeys_mock.return_value = self.public_keys
         result = self.result
         result.pop('signer', None)
         att_cert = Mock()
         att_cert.validate_and_get_values = Mock(return_value=self.result)
         certificate_mock.from_jsonfile = Mock(return_value=att_cert)
 
-        with patch('builtins.open', mock_open(read_data='')) as file_mock:
-            with self.assertRaises(AdminError) as e:
-                do_verify_attestation(self.default_options)
+        with self.assertRaises(AdminError) as e:
+            do_verify_attestation(self.default_options)
 
-        self.assertEqual([call(self.pubkeys_path, 'r')], file_mock.call_args_list)
+        load_pubkeys_mock.assert_called_with(self.pubkeys_path)
         self.assertEqual('Certificate does not contain a Signer attestation',
                          str(e.exception))
 
     @patch("admin.verify_ledger_attestation.HSMCertificate")
-    @patch("json.loads")
+    @patch("admin.verify_ledger_attestation.load_pubkeys")
     def test_verify_attestation_invalid_signer_att(self,
-                                                   loads_mock,
+                                                   load_pubkeys_mock,
                                                    certificate_mock,
                                                    _):
-        loads_mock.return_value = self.public_keys
+        load_pubkeys_mock.return_value = self.public_keys
         result = self.result
         result['signer'] = (False, 'signer')
         att_cert = Mock()
         att_cert.validate_and_get_values = Mock(return_value=result)
         certificate_mock.from_jsonfile = Mock(return_value=att_cert)
 
-        with patch('builtins.open', mock_open(read_data='')) as file_mock:
-            with self.assertRaises(AdminError) as e:
-                do_verify_attestation(self.default_options)
+        with self.assertRaises(AdminError) as e:
+            do_verify_attestation(self.default_options)
 
-        self.assertEqual([call(self.pubkeys_path, 'r')], file_mock.call_args_list)
+        load_pubkeys_mock.assert_called_with(self.pubkeys_path)
         self.assertEqual(("Invalid Signer attestation: error validating 'signer'"),
                          str(e.exception))
 
     @patch("admin.verify_ledger_attestation.HSMCertificate")
-    @patch("json.loads")
+    @patch("admin.verify_ledger_attestation.load_pubkeys")
     def test_verify_attestation_invalid_signer_att_header(self,
-                                                          loads_mock,
+                                                          load_pubkeys_mock,
                                                           certificate_mock, _):
-        loads_mock.return_value = self.public_keys
+        load_pubkeys_mock.return_value = self.public_keys
         signer_header = b"POWHSM:AAA::somerandomstuff".hex()
         self.result["signer"] = (True, signer_header, self.signer_hash.hex())
         att_cert = Mock()
         att_cert.validate_and_get_values = Mock(return_value=self.result)
         certificate_mock.from_jsonfile = Mock(return_value=att_cert)
 
-        with patch('builtins.open', mock_open(read_data='')) as file_mock:
-            with self.assertRaises(AdminError) as e:
-                do_verify_attestation(self.default_options)
+        with self.assertRaises(AdminError) as e:
+            do_verify_attestation(self.default_options)
 
-        self.assertEqual([call(self.pubkeys_path, 'r')], file_mock.call_args_list)
+        load_pubkeys_mock.assert_called_with(self.pubkeys_path)
         self.assertEqual((f"Invalid Signer attestation message header: {signer_header}"),
                          str(e.exception))
 
     @patch("admin.verify_ledger_attestation.HSMCertificate")
-    @patch("json.loads")
+    @patch("admin.verify_ledger_attestation.load_pubkeys")
     def test_verify_attestation_invalid_signer_att_msg_too_long(self,
-                                                                loads_mock,
+                                                                load_pubkeys_mock,
                                                                 certificate_mock, _):
-        loads_mock.return_value = self.public_keys
+        load_pubkeys_mock.return_value = self.public_keys
         signer_header = (b"POWHSM:5.9::" + b"aa"*300).hex()
         self.result["signer"] = (True, signer_header, self.signer_hash.hex())
         att_cert = Mock()
         att_cert.validate_and_get_values = Mock(return_value=self.result)
         certificate_mock.from_jsonfile = Mock(return_value=att_cert)
 
-        with patch('builtins.open', mock_open(read_data='')) as file_mock:
-            with self.assertRaises(AdminError) as e:
-                do_verify_attestation(self.default_options)
+        with self.assertRaises(AdminError) as e:
+            do_verify_attestation(self.default_options)
 
-        self.assertEqual([call(self.pubkeys_path, 'r')], file_mock.call_args_list)
-        self.assertEqual(("Signer attestation message longer "
-                         f"than expected: {signer_header}"),
-                         str(e.exception))
+        load_pubkeys_mock.assert_called_with(self.pubkeys_path)
+        self.assertIn("Signer attestation message length mismatch", str(e.exception))
