@@ -20,9 +20,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import ecdsa
+import hashlib
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import Mock, patch
+from parameterized import parameterized
 from admin.certificate_v1 import HSMCertificate
+from sgx.envelope import SgxQuote
 from admin.certificate_v2 import HSMCertificateV2, HSMCertificateV2Element, \
                                  HSMCertificateV2ElementSGXQuote, \
                                  HSMCertificateV2ElementSGXAttestationKey, \
@@ -36,43 +40,62 @@ class TestHSMCertificateV2(TestCase):
 
     def test_create_empty_certificate_ok(self):
         cert = HSMCertificateV2()
-        self.assertEqual({'version': 2, 'targets': [], 'elements': []}, cert.to_dict())
+        self.assertEqual({"version": 2, "targets": [], "elements": []}, cert.to_dict())
 
     def test_parse_identity(self):
         cert = HSMCertificateV2(TEST_CERTIFICATE)
         self.assertEqual(TEST_CERTIFICATE, cert.to_dict())
 
-    @patch("admin.certificate_v2.SgxQuote")
-    def test_validate_and_get_values_value(self, SgxQuoteMock):
-        SgxQuoteMock.return_value = "an-sgx-quote"
+    def mock_element(self, which_one_invalid):
+        class MockElement:
+            def __init__(self, d):
+                self.d = d
+                self.name = d["name"]
+                self.signed_by = d["signed_by"]
+
+            def is_valid(self, c):
+                return self.name != which_one_invalid
+
+            def get_value(self):
+                return f"the value for {self.name}"
+
+            def get_tweak(self):
+                return None
+
+        def mock_element_factory(k, d):
+            return MockElement(d)
+
+        HSMCertificateV2.ELEMENT_FACTORY = mock_element_factory
+
+    def test_validate_and_get_values_value(self):
+        self.mock_element(True)
         cert = HSMCertificateV2(TEST_CERTIFICATE)
         self.assertEqual({
-            "quote": (
-                True, {
-                    "sgx_quote": "an-sgx-quote",
-                    "message": "504f5748534d3a352e343a3a736778f36f7bc09aab50c0886a442b2"
-                               "d04b18186720bda7a753643066cd0bc0a4191800c4d091913d39750"
-                               "dc8975adbdd261bd10c1c2e110faa47cfbe30e740895552bbdcb3c1"
-                               "7c7aee714cec8ad900341bfd987b452280220dcbd6e7191f67ea420"
-                               "9b00000000000000000000000000000000",
-                }, None)
-            }, cert.validate_and_get_values('a-root-of-trust'))
-        SgxQuoteMock.assert_called_with(bytes.fromhex(
-            "03000200000000000a000f00939a7233f79c4ca9940a0db3957f0607ceae3549bc7273eb34"
-            "d562f4564fc182000000000e0e100fffff0100000000000000000001000000000000000000"
-            "00000000000000000000000000000000000000000000050000000000000007000000000000"
-            "00d32688d3c1f3dfcc8b0b36eac7c89d49af331800bd56248044166fa6699442c100000000"
-            "00000000000000000000000000000000000000000000000000000000718c2f1a0efbd513e0"
-            "16fafd6cf62a624442f2d83708d4b33ab5a8d8c1cd4dd00000000000000000000000000000"
-            "00000000000000000000000000000000000000000000000000000000000000000000000000"
-            "00000000000000000000000000000000000000000000000000000000000000000000000000"
-            "00000000000000006400010000000000000000000000000000000000000000000000000000"
-            "00000000000000000000000000000000000000000000000000000000000000000000009e95"
-            "bb875c1a728071f70ad8c9d03f1744c19acb0580921e611ac9104f7701d000000000000000"
-            "00000000000000000000000000000000000000000000000000"))
+                "quote": (True, "the value for quote", None),
+            }, cert.validate_and_get_values("a-root-of-trust"))
+
+    @parameterized.expand([
+        ("invalid_quote", "quote"),
+        ("invalid_attestation", "attestation"),
+        ("invalid_qe", "quoting_enclave"),
+        ("invalid_plf", "platform_ca"),
+    ])
+    def test_validate_and_get_values_invalid(self, _, invalid_name):
+        self.mock_element(invalid_name)
+        cert = HSMCertificateV2(TEST_CERTIFICATE)
+        self.assertEqual({
+                "quote": (False, invalid_name),
+            }, cert.validate_and_get_values("a-root-of-trust"))
 
 
 class TestHSMCertificateV2Element(TestCase):
+    def setUp(self):
+        class TestElement(HSMCertificateV2Element):
+            def __init__(self):
+                pass
+
+        self.instance = TestElement()
+
     def test_from_dict_unknown_type(self):
         with self.assertRaises(ValueError) as e:
             HSMCertificateV2Element.from_dict({
@@ -103,12 +126,41 @@ class TestHSMCertificateV2Element(TestCase):
             })
         self.assertIn("Missing certifier", str(e.exception))
 
+    def test_cant_instantiate(self):
+        with self.assertRaises(NotImplementedError):
+            HSMCertificateV2Element()
+
+    def test_get_pubkey_notimplemented(self):
+        with self.assertRaises(NotImplementedError):
+            self.instance.get_pubkey()
+
+    def test_get_value_notimplemented(self):
+        with self.assertRaises(NotImplementedError):
+            self.instance.get_value()
+
+    def test_is_valid_notimplemented(self):
+        with self.assertRaises(NotImplementedError):
+            self.instance.is_valid("a-certifier")
+
 
 class TestHSMCertificateV2ElementSGXQuote(TestCase):
+    TEST_MESSAGE = \
+        "03000200000000000a000f00939a7233f79c4ca9940a0db3957f0607ceae3549bc7273eb34d562f"\
+        "4564fc182000000000e0e100fffff01000000000000000000010000000000000000000000000000"\
+        "000000000000000000000000000000000005000000000000000700000000000000d32688d3c1f3d"\
+        "fcc8b0b36eac7c89d49af331800bd56248044166fa6699442c10000000000000000000000000000"\
+        "000000000000000000000000000000000000718c2f1a0efbd513e016fafd6cf62a624442f2d8370"\
+        "8d4b33ab5a8d8c1cd4dd00000000000000000000000000000000000000000000000000000000000"\
+        "0000000000000000000000000000000000000000000000000000000000000000000000000000000"\
+        "0000000000000000000000000000000000000000000000000000000640001000000000000000000"\
+        "0000000000000000000000000000000000000000000000000000000000000000000000000000000"\
+        "00000000000000000000000005d53b30e22f66979d36721e10ab7722557257a9ef8ba77ec7fe430"\
+        "493c3542f90000000000000000000000000000000000000000000000000000000000000000"
+
     def setUp(self):
         self.elem = HSMCertificateV2ElementSGXQuote({
             "name": "thename",
-            "message": "aabbcc",
+            "message": self.TEST_MESSAGE,
             "custom_data": "ddeeff",
             "signature": "112233",
             "signed_by": "whosigned",
@@ -117,7 +169,9 @@ class TestHSMCertificateV2ElementSGXQuote(TestCase):
     def test_props(self):
         self.assertEqual("thename", self.elem.name)
         self.assertEqual("whosigned", self.elem.signed_by)
-        self.assertEqual("aabbcc", self.elem.message)
+        self.assertIsInstance(self.elem.message, SgxQuote)
+        self.assertEqual(bytes.fromhex(self.TEST_MESSAGE),
+                         self.elem.message.get_raw_data())
         self.assertEqual("ddeeff", self.elem.custom_data)
         self.assertEqual("112233", self.elem.signature)
 
@@ -125,7 +179,7 @@ class TestHSMCertificateV2ElementSGXQuote(TestCase):
         self.assertEqual({
             "name": "thename",
             "type": "sgx_quote",
-            "message": "aabbcc",
+            "message": self.TEST_MESSAGE,
             "custom_data": "ddeeff",
             "signature": "112233",
             "signed_by": "whosigned",
@@ -154,7 +208,7 @@ class TestHSMCertificateV2ElementSGXQuote(TestCase):
             HSMCertificateV2Element.from_dict({
                 "name": "quote",
                 "type": "sgx_quote",
-                "message": "aabbccdd",
+                "message": self.TEST_MESSAGE,
                 "custom_data": "not-hex",
                 "signature": "445566778899",
                 "signed_by": "attestation"
@@ -166,12 +220,67 @@ class TestHSMCertificateV2ElementSGXQuote(TestCase):
             HSMCertificateV2Element.from_dict({
                 "name": "quote",
                 "type": "sgx_quote",
-                "message": "aabbccdd",
+                "message": self.TEST_MESSAGE,
                 "custom_data": "112233",
                 "signature": "not-hex",
                 "signed_by": "attestation"
             })
         self.assertIn("Invalid signature", str(e.exception))
+
+    def test_get_pubkey_notimplemented(self):
+        with self.assertRaises(NotImplementedError):
+            self.elem.get_pubkey()
+
+    def test_is_valid_ok(self):
+        pk = ecdsa.SigningKey.generate(ecdsa.NIST256p)
+        certifier = Mock()
+        certifier.get_pubkey.return_value = pk.verifying_key
+
+        valid_elem = HSMCertificateV2ElementSGXQuote({
+            "name": "thename",
+            "message": self.TEST_MESSAGE,
+            "custom_data": "10061982",
+            "signature": pk.sign_digest(
+                hashlib.sha256(bytes.fromhex(self.TEST_MESSAGE)).digest(),
+                sigencode=ecdsa.util.sigencode_der
+            ).hex(),
+            "signed_by": "whosigned",
+        })
+        self.assertTrue(valid_elem.is_valid(certifier))
+
+    def test_is_valid_custom_data_mismatch(self):
+        pk = ecdsa.SigningKey.generate(ecdsa.NIST256p)
+        certifier = Mock()
+        certifier.get_pubkey.return_value = pk.verifying_key
+
+        valid_elem = HSMCertificateV2ElementSGXQuote({
+            "name": "thename",
+            "message": self.TEST_MESSAGE,
+            "custom_data": "11061982",
+            "signature": pk.sign_digest(
+                hashlib.sha256(bytes.fromhex(self.TEST_MESSAGE)).digest(),
+                sigencode=ecdsa.util.sigencode_der
+            ).hex(),
+            "signed_by": "whosigned",
+        })
+        self.assertFalse(valid_elem.is_valid(certifier))
+
+    def test_is_valid_signature_mismatch(self):
+        pk = ecdsa.SigningKey.generate(ecdsa.NIST256p)
+        certifier = Mock()
+        certifier.get_pubkey.return_value = pk.verifying_key
+
+        valid_elem = HSMCertificateV2ElementSGXQuote({
+            "name": "thename",
+            "message": self.TEST_MESSAGE,
+            "custom_data": "10061982",
+            "signature": pk.sign_digest(
+                hashlib.sha256(b"something else").digest(),
+                sigencode=ecdsa.util.sigencode_der
+            ).hex(),
+            "signed_by": "whosigned",
+        })
+        self.assertFalse(valid_elem.is_valid(certifier))
 
 
 class TestHSMCertificateV2ElementSGXAttestationKey(TestCase):
@@ -262,6 +371,10 @@ class TestHSMCertificateV2ElementSGXAttestationKey(TestCase):
             })
         self.assertIn("Invalid signature", str(e.exception))
 
+    def test_get_value_notimplemented(self):
+        with self.assertRaises(NotImplementedError):
+            self.elem.get_value()
+
 
 class TestHSMCertificateV2ElementX509(TestCase):
     def setUp(self):
@@ -299,6 +412,10 @@ class TestHSMCertificateV2ElementX509(TestCase):
                 "signed_by": "platform_ca"
             })
         self.assertIn("Invalid message", str(e.exception))
+
+    def test_get_value_notimplemented(self):
+        with self.assertRaises(NotImplementedError):
+            self.elem.get_value()
 
     def test_from_pem(self):
         self.assertEqual({

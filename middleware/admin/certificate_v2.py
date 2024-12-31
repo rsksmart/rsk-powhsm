@@ -23,6 +23,8 @@
 import re
 from pathlib import Path
 import base64
+import ecdsa
+import hashlib
 from .certificate_v1 import HSMCertificate
 from .utils import is_nonempty_hex_string
 from sgx.envelope import SgxQuote
@@ -62,14 +64,10 @@ class HSMCertificateV2Element:
         raise NotImplementedError(f"{type(self).__name__} can't provide a value")
 
     def get_pubkey(self):
-        # TODO: this should yield not implemented
-        # TODO: implementation should be down to each specific subclass
-        return None
+        raise NotImplementedError(f"{type(self).__name__} can't provide a public key")
 
     def is_valid(self, certifier):
-        # TODO: this should yield not implemented
-        # TODO: implementation should be down to each specific subclass
-        return True
+        raise NotImplementedError(f"{type(self).__name__} can't be queried for validity")
 
     def get_tweak(self):
         return None
@@ -97,7 +95,7 @@ class HSMCertificateV2ElementSGXQuote(HSMCertificateV2Element):
 
     @property
     def message(self):
-        return self._message.hex()
+        return SgxQuote(self._message)
 
     @property
     def custom_data(self):
@@ -107,9 +105,25 @@ class HSMCertificateV2ElementSGXQuote(HSMCertificateV2Element):
     def signature(self):
         return self._signature.hex()
 
+    def is_valid(self, certifier):
+        try:
+            # Validate custom data
+            expected = hashlib.sha256(self._custom_data).digest()
+            if expected != self.message.report_body.report_data.field[:len(expected)]:
+                return False
+
+            # Verify signature against the certifier
+            return certifier.get_pubkey().verify_digest(
+                self._signature,
+                hashlib.sha256(self._message).digest(),
+                ecdsa.util.sigdecode_der,
+            )
+        except Exception:
+            return False
+
     def get_value(self):
         return {
-            "sgx_quote": SgxQuote(self._message),
+            "sgx_quote": self.message,
             "message": self.custom_data,
         }
 
@@ -117,7 +131,7 @@ class HSMCertificateV2ElementSGXQuote(HSMCertificateV2Element):
         return {
             "name": self.name,
             "type": "sgx_quote",
-            "message": self.message,
+            "message": self._message.hex(),
             "custom_data": self.custom_data,
             "signature": self.signature,
             "signed_by": self.signed_by,
@@ -163,6 +177,12 @@ class HSMCertificateV2ElementSGXAttestationKey(HSMCertificateV2Element):
     def signature(self):
         return self._signature.hex()
 
+    def is_valid(self, certifier):
+        return True
+
+    def get_pubkey(self):
+        return ecdsa.VerifyingKey.from_string(self._key, ecdsa.NIST256p)
+
     def to_dict(self):
         return {
             "name": self.name,
@@ -205,6 +225,12 @@ class HSMCertificateV2ElementX509(HSMCertificateV2Element):
     @property
     def message(self):
         return base64.b64encode(self._message).decode("ASCII")
+
+    def is_valid(self, certifier):
+        return True
+
+    def get_pubkey(self):
+        return None
 
     def to_dict(self):
         return {
