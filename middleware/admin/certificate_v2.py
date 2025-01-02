@@ -25,9 +25,12 @@ from pathlib import Path
 import base64
 import ecdsa
 import hashlib
+from cryptography import x509
+from cryptography.hazmat.primitives.serialization import PublicFormat, Encoding
+from cryptography.hazmat.primitives.asymmetric.ec import SECP256R1
 from .certificate_v1 import HSMCertificate
 from .utils import is_nonempty_hex_string
-from sgx.envelope import SgxQuote
+from sgx.envelope import SgxQuote, SgxReportBody
 
 
 class HSMCertificateV2Element:
@@ -163,11 +166,11 @@ class HSMCertificateV2ElementSGXAttestationKey(HSMCertificateV2Element):
 
     @property
     def message(self):
-        return self._message.hex()
+        return SgxReportBody(self._message)
 
     @property
     def key(self):
-        return self._key.hex()
+        return ecdsa.VerifyingKey.from_string(self._key, ecdsa.NIST256p)
 
     @property
     def auth_data(self):
@@ -178,7 +181,20 @@ class HSMCertificateV2ElementSGXAttestationKey(HSMCertificateV2Element):
         return self._signature.hex()
 
     def is_valid(self, certifier):
-        return True
+        try:
+            # Validate report data
+            expected = hashlib.sha256(self.key.to_string() + self._auth_data).digest()
+            if expected != self.message.report_data.field[:len(expected)]:
+                return False
+
+            # Verify signature against the certifier
+            return certifier.get_pubkey().verify_digest(
+                self._signature,
+                hashlib.sha256(self._message).digest(),
+                ecdsa.util.sigdecode_der,
+            )
+        except Exception:
+            return False
 
     def get_pubkey(self):
         return ecdsa.VerifyingKey.from_string(self._key, ecdsa.NIST256p)
@@ -187,8 +203,8 @@ class HSMCertificateV2ElementSGXAttestationKey(HSMCertificateV2Element):
         return {
             "name": self.name,
             "type": "sgx_attestation_key",
-            "message": self.message,
-            "key": self.key,
+            "message": self.message.get_raw_data().hex(),
+            "key": self.key.to_string("uncompressed").hex(),
             "auth_data": self.auth_data,
             "signature": self.signature,
             "signed_by": self.signed_by,
@@ -196,6 +212,9 @@ class HSMCertificateV2ElementSGXAttestationKey(HSMCertificateV2Element):
 
 
 class HSMCertificateV2ElementX509(HSMCertificateV2Element):
+    HEADER_BEGIN = "-----BEGIN CERTIFICATE-----"
+    HEADER_END = "-----END CERTIFICATE-----"
+
     @classmethod
     def from_pemfile(kls, pem_path, name, signed_by):
         return kls.from_pem(Path(pem_path).read_text(), name, signed_by)
@@ -205,14 +224,15 @@ class HSMCertificateV2ElementX509(HSMCertificateV2Element):
         return kls({
             "name": name,
             "message": re.sub(r"[\s\n\r]+", " ", pem_str)
-                         .replace("-----END CERTIFICATE-----", "")
-                         .replace("-----BEGIN CERTIFICATE-----", "")
+                         .replace(kls.HEADER_END, "")
+                         .replace(kls.HEADER_BEGIN, "")
                          .strip().encode(),
             "signed_by": signed_by,
         })
 
     def __init__(self, element_map):
         self._init_with_map(element_map)
+        self._certificate = None
 
     def _init_with_map(self, element_map):
         super()._init_with_map(element_map)
@@ -226,11 +246,29 @@ class HSMCertificateV2ElementX509(HSMCertificateV2Element):
     def message(self):
         return base64.b64encode(self._message).decode("ASCII")
 
+    @property
+    def certificate(self):
+        if self._certificate is None:
+            self._certificate = x509.load_pem_x509_certificate((
+                self.HEADER_BEGIN + self.message + self.HEADER_END).encode())
+        return self._certificate
+
     def is_valid(self, certifier):
         return True
 
     def get_pubkey(self):
-        return None
+        try:
+            public_key = self.certificate.public_key()
+
+            if not isinstance(public_key.curve, SECP256R1):
+                raise ValueError("Certificate does not have a NIST P-256 public key")
+
+            public_bytes = public_key.public_bytes(
+                Encoding.X962, PublicFormat.CompressedPoint)
+
+            return ecdsa.VerifyingKey.from_string(public_bytes, ecdsa.NIST256p)
+        except Exception as e:
+            raise ValueError(f"Error gathering public key from certificate: {str(e)}")
 
     def to_dict(self):
         return {
