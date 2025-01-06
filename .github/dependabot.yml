@@ -8,6 +8,12 @@ updates:
 
   # Maintain dependencies for Docker
   - package-ecosystem: docker
-    directory: /
+    directories:
+      - "docker/afl"
+      - "docker/ledger"
+      - "docker/mware"
+      - "docker/packer"
+      - "dist"
+      - "utils/tcpsigner-bundle/dist/"
     schedule:
       interval: daily
