@@ -3,7 +3,7 @@
 # then removes the binaries, so let's compile it again.
 
 # unfortunately no cool tags provided, so let's go with a digest.
-FROM aflplusplus/aflplusplus@sha256:19fc0f301e5da8b9f316663cbdb7fe6041b9c79e755cd6e21298eee3e1a0f262 as afl
+FROM aflplusplus/aflplusplus@sha256:5ff5a2bfa1c8e2d7498cff920d3cef02579b9a31786dbe40701ff9d334299991 as afl
 
 # Need to install GCC7 because signer / tcpsigner are compiled with
 # GCC6 and GCC9 respectively. AFL++ image comes with GCC10 which
