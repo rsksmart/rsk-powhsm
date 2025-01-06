@@ -2,6 +2,9 @@ name: Lint C code
 
 on: [push]
 
+# Declare default permissions as read only.
+permissions: read-all
+
 jobs:
   run-c-linter:
     name: Run C linter
@@ -9,7 +12,7 @@ jobs:
 
     steps:
       - name: Checkout this repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 #v4.2.2
 
       - name: Build the ledger docker image
         run: docker/ledger/build
