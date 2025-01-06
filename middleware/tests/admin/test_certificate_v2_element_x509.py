@@ -20,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from datetime import datetime, timedelta, UTC
 from unittest import TestCase
 from unittest.mock import Mock, patch
 from ecdsa import NIST256p
@@ -111,7 +112,7 @@ class TestHSMCertificateV2ElementX509(TestCase):
         )
         self.assertEqual(1, load_pem_x509_certificate.call_count)
 
-    def setup_is_valid_mocks(self, load_pem_x509_certificate, VerifyingKey):
+    def setup_pubkey_mocks(self, load_pem_x509_certificate, VerifyingKey):
         self.pubkey = Mock()
         self.pubkey.curve = SECP256R1()
         self.pubkey.public_bytes.return_value = "the-public-bytes"
@@ -123,7 +124,7 @@ class TestHSMCertificateV2ElementX509(TestCase):
     @patch("admin.certificate_v2.ecdsa.VerifyingKey")
     @patch("admin.certificate_v2.x509.load_pem_x509_certificate")
     def test_get_pubkey_ok(self, load_pem_x509_certificate, VerifyingKey):
-        self.setup_is_valid_mocks(load_pem_x509_certificate, VerifyingKey)
+        self.setup_pubkey_mocks(load_pem_x509_certificate, VerifyingKey)
 
         self.assertEqual("the-expected-pubkey", self.elem.get_pubkey())
         self.pubkey.public_bytes.assert_called_with(
@@ -133,7 +134,7 @@ class TestHSMCertificateV2ElementX509(TestCase):
     @patch("admin.certificate_v2.ecdsa.VerifyingKey")
     @patch("admin.certificate_v2.x509.load_pem_x509_certificate")
     def test_get_pubkey_err_load_cert(self, load_pem_x509_certificate, VerifyingKey):
-        self.setup_is_valid_mocks(load_pem_x509_certificate, VerifyingKey)
+        self.setup_pubkey_mocks(load_pem_x509_certificate, VerifyingKey)
         load_pem_x509_certificate.side_effect = Exception("blah blah")
 
         with self.assertRaises(ValueError) as e:
@@ -146,7 +147,7 @@ class TestHSMCertificateV2ElementX509(TestCase):
     @patch("admin.certificate_v2.ecdsa.VerifyingKey")
     @patch("admin.certificate_v2.x509.load_pem_x509_certificate")
     def test_get_pubkey_err_get_pub(self, load_pem_x509_certificate, VerifyingKey):
-        self.setup_is_valid_mocks(load_pem_x509_certificate, VerifyingKey)
+        self.setup_pubkey_mocks(load_pem_x509_certificate, VerifyingKey)
         self.cert.public_key.side_effect = Exception("blah blah")
 
         with self.assertRaises(ValueError) as e:
@@ -160,7 +161,7 @@ class TestHSMCertificateV2ElementX509(TestCase):
     @patch("admin.certificate_v2.x509.load_pem_x509_certificate")
     def test_get_pubkey_err_pub_notnistp256(self, load_pem_x509_certificate,
                                             VerifyingKey):
-        self.setup_is_valid_mocks(load_pem_x509_certificate, VerifyingKey)
+        self.setup_pubkey_mocks(load_pem_x509_certificate, VerifyingKey)
         self.pubkey.curve = "somethingelse"
 
         with self.assertRaises(ValueError) as e:
@@ -173,7 +174,7 @@ class TestHSMCertificateV2ElementX509(TestCase):
     @patch("admin.certificate_v2.ecdsa.VerifyingKey")
     @patch("admin.certificate_v2.x509.load_pem_x509_certificate")
     def test_get_pubkey_err_public_bytes(self, load_pem_x509_certificate, VerifyingKey):
-        self.setup_is_valid_mocks(load_pem_x509_certificate, VerifyingKey)
+        self.setup_pubkey_mocks(load_pem_x509_certificate, VerifyingKey)
         self.pubkey.public_bytes.side_effect = Exception("blah blah")
 
         with self.assertRaises(ValueError) as e:
@@ -188,7 +189,7 @@ class TestHSMCertificateV2ElementX509(TestCase):
     @patch("admin.certificate_v2.x509.load_pem_x509_certificate")
     def test_get_pubkey_err_ecdsafromstring(self, load_pem_x509_certificate,
                                             VerifyingKey):
-        self.setup_is_valid_mocks(load_pem_x509_certificate, VerifyingKey)
+        self.setup_pubkey_mocks(load_pem_x509_certificate, VerifyingKey)
         VerifyingKey.from_string.side_effect = Exception("blah blah")
 
         with self.assertRaises(ValueError) as e:
@@ -198,3 +199,95 @@ class TestHSMCertificateV2ElementX509(TestCase):
         self.pubkey.public_bytes.assert_called_with(
             Encoding.X962, PublicFormat.CompressedPoint)
         VerifyingKey.from_string.assert_called_with("the-public-bytes", NIST256p)
+
+    def setup_is_valid_mocks(self, load_pem_x509_certificate, ec):
+        self.certifier = HSMCertificateV2ElementX509({
+            "name": "mock-certifier",
+            "signed_by": "someone-else",
+            "message": "Y2VydGlmaWVy"
+        })
+
+        self.mock_certifier = Mock()
+        self.mock_elem = Mock()
+
+        def load_mock(data):
+            if b"Y2VydGlmaWVy" in data:
+                return self.mock_certifier
+            return self.mock_elem
+
+        load_pem_x509_certificate.side_effect = load_mock
+
+        self.now = datetime.now(UTC)
+        one_week = timedelta(weeks=1)
+        self.mock_elem.not_valid_before_utc = self.now - one_week
+        self.mock_elem.not_valid_after_utc = self.now + one_week
+        self.mock_certifier_pk = Mock()
+        self.mock_certifier.public_key.return_value = self.mock_certifier_pk
+        self.mock_elem.signature = "the-signature"
+        self.mock_elem.tbs_certificate_bytes = "the-fingerprint"
+        self.mock_elem.signature_hash_algorithm = "the-signature-hash-algo"
+        ec.ECDSA.return_value = "the-ecdsa-algo"
+
+    @patch("admin.certificate_v2.ec")
+    @patch("admin.certificate_v2.x509.load_pem_x509_certificate")
+    def test_is_valid_ok(self, load_pem_x509_certificate, ec):
+        self.setup_is_valid_mocks(load_pem_x509_certificate, ec)
+
+        self.assertTrue(self.elem.is_valid(self.certifier))
+
+        self.mock_certifier_pk.verify.assert_called_with(
+            "the-signature",
+            "the-fingerprint",
+            "the-ecdsa-algo"
+        )
+        ec.ECDSA.assert_called_with("the-signature-hash-algo")
+
+    @patch("admin.certificate_v2.ec")
+    @patch("admin.certificate_v2.x509.load_pem_x509_certificate")
+    def test_is_valid_before_in_future(self, load_pem_x509_certificate, ec):
+        self.setup_is_valid_mocks(load_pem_x509_certificate, ec)
+        self.mock_elem.not_valid_before_utc = self.now + \
+            timedelta(minutes=1)
+
+        self.assertFalse(self.elem.is_valid(self.certifier))
+
+        self.mock_certifier_pk.verify.assert_not_called()
+        ec.ECDSA.assert_not_called()
+
+    @patch("admin.certificate_v2.ec")
+    @patch("admin.certificate_v2.x509.load_pem_x509_certificate")
+    def test_is_valid_after_in_past(self, load_pem_x509_certificate, ec):
+        self.setup_is_valid_mocks(load_pem_x509_certificate, ec)
+        self.mock_elem.not_valid_after_utc = self.now - \
+            timedelta(minutes=1)
+
+        self.assertFalse(self.elem.is_valid(self.certifier))
+
+        self.mock_certifier_pk.verify.assert_not_called()
+        ec.ECDSA.assert_not_called()
+
+    @patch("admin.certificate_v2.ec")
+    @patch("admin.certificate_v2.x509.load_pem_x509_certificate")
+    def test_is_valid_signature_invalid(self, load_pem_x509_certificate, ec):
+        self.setup_is_valid_mocks(load_pem_x509_certificate, ec)
+        self.mock_certifier_pk.verify.side_effect = RuntimeError("wrong signature")
+
+        self.assertFalse(self.elem.is_valid(self.certifier))
+
+        self.mock_certifier_pk.verify.assert_called_with(
+            "the-signature",
+            "the-fingerprint",
+            "the-ecdsa-algo"
+        )
+        ec.ECDSA.assert_called_with("the-signature-hash-algo")
+
+    @patch("admin.certificate_v2.ec")
+    @patch("admin.certificate_v2.x509.load_pem_x509_certificate")
+    def test_is_valid_x509_error(self, load_pem_x509_certificate, ec):
+        self.setup_is_valid_mocks(load_pem_x509_certificate, ec)
+        load_pem_x509_certificate.side_effect = ValueError("a random error")
+
+        self.assertFalse(self.elem.is_valid(self.certifier))
+
+        self.mock_certifier_pk.verify.assert_not_called()
+        ec.ECDSA.assert_not_called()

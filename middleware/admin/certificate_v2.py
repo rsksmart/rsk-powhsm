@@ -21,13 +21,14 @@
 # SOFTWARE.
 
 import re
-from pathlib import Path
 import base64
 import ecdsa
 import hashlib
+from datetime import datetime, UTC
+from pathlib import Path
 from cryptography import x509
 from cryptography.hazmat.primitives.serialization import PublicFormat, Encoding
-from cryptography.hazmat.primitives.asymmetric.ec import SECP256R1
+from cryptography.hazmat.primitives.asymmetric import ec
 from .certificate_v1 import HSMCertificate
 from .utils import is_nonempty_hex_string
 from sgx.envelope import SgxQuote, SgxReportBody
@@ -254,13 +255,40 @@ class HSMCertificateV2ElementX509(HSMCertificateV2Element):
         return self._certificate
 
     def is_valid(self, certifier):
-        return True
+        try:
+            # IMPORTANT: for now, we only allow verifying the validity of an
+            # HSMCertificateV2ElementX509 using another HSMCertificateV2ElementX509
+            # instance as certifier. That way, we simplify the validation procedure
+            # and ensure maximum compatibility wrt the underlying library used
+            # (cryptography)
+            if not isinstance(certifier, type(self)):
+                return False
+
+            subject = self.certificate
+            issuer = certifier.certificate
+            now = datetime.now(UTC)
+
+            # 1. Check validity period
+            if subject.not_valid_before_utc > now or subject.not_valid_after_utc < now:
+                return False
+
+            # 2. Verify the signature
+            issuer.public_key().verify(
+                subject.signature,
+                subject.tbs_certificate_bytes,
+                ec.ECDSA(subject.signature_hash_algorithm)
+            )
+
+            return True
+
+        except Exception:
+            return False
 
     def get_pubkey(self):
         try:
             public_key = self.certificate.public_key()
 
-            if not isinstance(public_key.curve, SECP256R1):
+            if not isinstance(public_key.curve, ec.SECP256R1):
                 raise ValueError("Certificate does not have a NIST P-256 public key")
 
             public_bytes = public_key.public_bytes(

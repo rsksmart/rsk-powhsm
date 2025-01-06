@@ -94,7 +94,9 @@ class TestVerifySgxAttestation(TestCase):
 
     def configure_mocks(self, get_root_of_trust, load_pubkeys,
                         HSMCertificate, head):
-        get_root_of_trust.return_value = "the-root-of-trust"
+        self.root_of_trust = Mock()
+        self.root_of_trust.is_valid.return_value = True
+        get_root_of_trust.return_value = self.root_of_trust
         load_pubkeys.return_value = self.public_keys
         self.mock_certificate = Mock()
         self.mock_certificate.validate_and_get_values.return_value = self.validate_result
@@ -116,10 +118,11 @@ class TestVerifySgxAttestation(TestCase):
             get_root_of_trust.assert_called_with(custom_root)
         else:
             get_root_of_trust.assert_called_with(DEFAULT_ROOT_AUTHORITY)
+        self.root_of_trust.is_valid.assert_called_with(self.root_of_trust)
         load_pubkeys.assert_called_with(self.pubkeys_path)
         HSMCertificate.from_jsonfile.assert_called_with(self.certification_path)
         self.mock_certificate.validate_and_get_values \
-            .assert_called_with("the-root-of-trust")
+            .assert_called_with(self.root_of_trust)
         head.assert_called_with([
             "powHSM verified with public keys:"
         ] + self.expected_pubkeys_output + [
@@ -135,6 +138,36 @@ class TestVerifySgxAttestation(TestCase):
             "Timestamp: 205",
         ], fill="-")
 
+    def test_verify_attestation_err_get_root(self, get_root_of_trust, load_pubkeys,
+                                             HSMCertificate, head, _):
+        self.configure_mocks(get_root_of_trust, load_pubkeys, HSMCertificate, head)
+        get_root_of_trust.side_effect = ValueError("root of trust error")
+
+        with self.assertRaises(AdminError) as e:
+            do_verify_attestation(self.options)
+        self.assertIn("root of trust error", str(e.exception))
+
+        get_root_of_trust.assert_called_with(DEFAULT_ROOT_AUTHORITY)
+        self.root_of_trust.is_valid.assert_not_called()
+        load_pubkeys.assert_not_called()
+        HSMCertificate.from_jsonfile.assert_not_called()
+        self.mock_certificate.validate_and_get_values.assert_not_called()
+
+    def test_verify_attestation_err_root_invalid(self, get_root_of_trust, load_pubkeys,
+                                                 HSMCertificate, head, _):
+        self.configure_mocks(get_root_of_trust, load_pubkeys, HSMCertificate, head)
+        self.root_of_trust.is_valid.return_value = False
+
+        with self.assertRaises(AdminError) as e:
+            do_verify_attestation(self.options)
+        self.assertIn("self-signed root of trust", str(e.exception))
+
+        get_root_of_trust.assert_called_with(DEFAULT_ROOT_AUTHORITY)
+        self.root_of_trust.is_valid.assert_called_with(self.root_of_trust)
+        load_pubkeys.assert_not_called()
+        HSMCertificate.from_jsonfile.assert_not_called()
+        self.mock_certificate.validate_and_get_values.assert_not_called()
+
     def test_verify_attestation_err_load_pubkeys(self, get_root_of_trust, load_pubkeys,
                                                  HSMCertificate, head, _):
         self.configure_mocks(get_root_of_trust, load_pubkeys, HSMCertificate, head)
@@ -145,6 +178,7 @@ class TestVerifySgxAttestation(TestCase):
         self.assertIn("pubkeys error", str(e.exception))
 
         get_root_of_trust.assert_called_with(DEFAULT_ROOT_AUTHORITY)
+        self.root_of_trust.is_valid.assert_called_with(self.root_of_trust)
         load_pubkeys.assert_called_with(self.pubkeys_path)
         HSMCertificate.from_jsonfile.assert_not_called()
         self.mock_certificate.validate_and_get_values.assert_not_called()
@@ -159,6 +193,7 @@ class TestVerifySgxAttestation(TestCase):
         self.assertIn("load cert error", str(e.exception))
 
         get_root_of_trust.assert_called_with(DEFAULT_ROOT_AUTHORITY)
+        self.root_of_trust.is_valid.assert_called_with(self.root_of_trust)
         load_pubkeys.assert_called_with(self.pubkeys_path)
         HSMCertificate.from_jsonfile.assert_called_with(self.certification_path)
         self.mock_certificate.validate_and_get_values.assert_not_called()
@@ -173,10 +208,11 @@ class TestVerifySgxAttestation(TestCase):
         self.assertIn("does not contain", str(e.exception))
 
         get_root_of_trust.assert_called_with(DEFAULT_ROOT_AUTHORITY)
+        self.root_of_trust.is_valid.assert_called_with(self.root_of_trust)
         load_pubkeys.assert_called_with(self.pubkeys_path)
         HSMCertificate.from_jsonfile.assert_called_with(self.certification_path)
         self.mock_certificate.validate_and_get_values \
-            .assert_called_with("the-root-of-trust")
+            .assert_called_with(self.root_of_trust)
 
     def test_verify_attestation_validation_failed(self, get_root_of_trust, load_pubkeys,
                                                   HSMCertificate, head, _):
@@ -190,10 +226,11 @@ class TestVerifySgxAttestation(TestCase):
         self.assertIn("validation error", str(e.exception))
 
         get_root_of_trust.assert_called_with(DEFAULT_ROOT_AUTHORITY)
+        self.root_of_trust.is_valid.assert_called_with(self.root_of_trust)
         load_pubkeys.assert_called_with(self.pubkeys_path)
         HSMCertificate.from_jsonfile.assert_called_with(self.certification_path)
         self.mock_certificate.validate_and_get_values \
-            .assert_called_with("the-root-of-trust")
+            .assert_called_with(self.root_of_trust)
 
     def test_verify_attestation_invalid_header(self, get_root_of_trust, load_pubkeys,
                                                HSMCertificate, head, _):
@@ -205,10 +242,11 @@ class TestVerifySgxAttestation(TestCase):
         self.assertIn("message header", str(e.exception))
 
         get_root_of_trust.assert_called_with(DEFAULT_ROOT_AUTHORITY)
+        self.root_of_trust.is_valid.assert_called_with(self.root_of_trust)
         load_pubkeys.assert_called_with(self.pubkeys_path)
         HSMCertificate.from_jsonfile.assert_called_with(self.certification_path)
         self.mock_certificate.validate_and_get_values \
-            .assert_called_with("the-root-of-trust")
+            .assert_called_with(self.root_of_trust)
 
     def test_verify_attestation_invalid_message(self, get_root_of_trust, load_pubkeys,
                                                 HSMCertificate, head, _):
@@ -220,10 +258,11 @@ class TestVerifySgxAttestation(TestCase):
         self.assertIn("parsing", str(e.exception))
 
         get_root_of_trust.assert_called_with(DEFAULT_ROOT_AUTHORITY)
+        self.root_of_trust.is_valid.assert_called_with(self.root_of_trust)
         load_pubkeys.assert_called_with(self.pubkeys_path)
         HSMCertificate.from_jsonfile.assert_called_with(self.certification_path)
         self.mock_certificate.validate_and_get_values \
-            .assert_called_with("the-root-of-trust")
+            .assert_called_with(self.root_of_trust)
 
     def test_verify_attestation_pkh_mismatch(self, get_root_of_trust, load_pubkeys,
                                              HSMCertificate, head, _):
@@ -235,7 +274,8 @@ class TestVerifySgxAttestation(TestCase):
         self.assertIn("hash mismatch", str(e.exception))
 
         get_root_of_trust.assert_called_with(DEFAULT_ROOT_AUTHORITY)
+        self.root_of_trust.is_valid.assert_called_with(self.root_of_trust)
         load_pubkeys.assert_called_with(self.pubkeys_path)
         HSMCertificate.from_jsonfile.assert_called_with(self.certification_path)
         self.mock_certificate.validate_and_get_values \
-            .assert_called_with("the-root-of-trust")
+            .assert_called_with(self.root_of_trust)
