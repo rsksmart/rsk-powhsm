@@ -34,6 +34,7 @@ PIN_FILE="$ROOT_DIR/pin.txt"
 EXPORT_DIR="$ROOT_DIR/export"
 PUBLIC_KEY_FILE="$EXPORT_DIR/public-keys.txt"
 PUBLIC_KEY_FILE_JSON="$EXPORT_DIR/public-keys.json"
+ATTESTATION_FILE="$EXPORT_DIR/attestation.json"
 
 # HSM scripts directory
 SCRIPTS_DIR=$ROOT_DIR/scripts
@@ -139,7 +140,17 @@ function onboard() {
 }
 
 function keys() {
-    $ADMIN pubkeys -o $PUBLIC_KEY_FILE
+    $ADMIN pubkeys -uo $PUBLIC_KEY_FILE
+    error
+}
+
+function attestation() {
+    $ADMIN attestation -o $ATTESTATION_FILE
+    error
+}
+
+function verify_attestation() {
+    $ADMIN verify_attestation -t $ATTESTATION_FILE -b $PUBLIC_KEY_FILE_JSON
     error
 }
 
@@ -161,9 +172,15 @@ echo -e "\e[1;33mOnboarding the powHSM... \e[0m"
 onboard
 echo -e "\e[1;33mOnboarding complete.\e[0m"
 echo
-echo -e "\e[1;32mGathering public keys\e[0m"
+echo -e "\e[1;32mGathering attestation\e[0m"
 createOutputDir
+attestation
+echo
+echo -e "\e[1;32mGathering public keys\e[0m"
 keys
+echo
+echo -e "\e[1;32mVerifying attestation\e[0m"
+verify_attestation
 echo
 echo -e "\e[1;32mStopping the powHSM...\e[0m"
 stopPowHsm
