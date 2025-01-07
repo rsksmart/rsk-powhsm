@@ -53,6 +53,9 @@ def do_verify_attestation(options):
     info(f"Attempting to gather root authority from {root_authority}...")
     try:
         root_of_trust = get_root_of_trust(root_authority)
+        info("Attempting to validate self-signed root authority...")
+        if not root_of_trust.is_valid(root_of_trust):
+            raise ValueError("Failed to validate self-signed root of trust")
     except Exception as e:
         raise AdminError(f"Invalid root authority {root_authority}: {e}")
     info(f"Using {root_authority} as root authority")
