@@ -24,8 +24,10 @@
 
 #include <sys/stat.h>
 #include <ctype.h>
-#include "hsm_u.h"
+#include <stdio.h>
+#include <string.h>
 #include "log.h"
+#include "keyvalue_store.h"
 
 #define KVSTORE_PREFIX "./kvstore-"
 #define KVSTORE_SUFFIX ".dat"
