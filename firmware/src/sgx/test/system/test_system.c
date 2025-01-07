@@ -31,6 +31,7 @@
 #include "hal/communication.h"
 #include "hal/exceptions.h"
 #include "hal/log.h"
+#include "apdu.h"
 #include "hsm.h"
 #include "system.h"
 
@@ -944,6 +945,33 @@ void test_retries_cmd_handled() {
     ASSERT_APDU("\x80\xA2\x03");
 }
 
+void test_heartbeat_cmd_throws_unsupported() {
+    setup();
+    printf("Test heartbeat command throws unsupported instruction...\n");
+
+    system_init(G_io_apdu_buffer, sizeof(G_io_apdu_buffer));
+    unsigned int rx = 0;
+    SEED_SET_AVAILABLE(true);
+    ACCESS_UNLOCK();
+    SET_APDU("\x80\x60\x00", rx); // SGX_ONBOARD
+    BEGIN_TRY {
+        TRY {
+            system_process_apdu(rx);
+            // system_process_apdu should throw ERR_INS_NOT_SUPPORTED
+            ASSERT_FAIL();
+        }
+        CATCH_OTHER(e) {
+            assert(e == ERR_INS_NOT_SUPPORTED);
+        }
+        FINALLY {
+            ASSERT_NOT_HANDLED();
+            teardown();
+            return;
+        }
+    }
+    END_TRY;
+}
+
 void test_invalid_cmd_not_handled() {
     setup();
     printf("Test invalid command is ignored...\n");
@@ -986,6 +1014,7 @@ int main() {
     test_echo_cmd_handled();
     test_is_locked_cmd_handled();
     test_retries_cmd_handled();
+    test_heartbeat_cmd_throws_unsupported();
     test_invalid_cmd_not_handled();
 
     return 0;
