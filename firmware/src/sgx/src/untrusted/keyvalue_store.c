@@ -23,26 +23,54 @@
  */
 
 #include <sys/stat.h>
+#include <ctype.h>
 #include "hsm_u.h"
 #include "log.h"
 
 #define KVSTORE_PREFIX "./kvstore-"
 #define KVSTORE_SUFFIX ".dat"
+#define KVSTORE_MAX_KEY_LEN 256
+
+
+// Sanitizes a key by allowing only [a-zA-Z0-9]. Anything else is replaced by an underscore
+static void sanitize_key(char* key, char *sanitized_key) {
+    if (!key || !sanitized_key) return;
+
+    size_t key_len = strlen(key);
+
+    // Truncate key if it's too long
+    if (key_len > KVSTORE_MAX_KEY_LEN) {
+        key_len = KVSTORE_MAX_KEY_LEN;
+    }
+
+    for (size_t i = 0; i < key_len; i++) {
+        if (isalnum(key[i])) {
+            sanitized_key[i] = key[i];
+        } else {
+            sanitized_key[i] = '_';
+        }
+    }
+    sanitized_key[key_len] = '\0';
+}
 
 static char* filename_for(char* key) {
+    char sanitized_key[KVSTORE_MAX_KEY_LEN + 1];
+    sanitize_key(key, sanitized_key);
     size_t filename_size = strlen(KVSTORE_PREFIX) + 
                            strlen(KVSTORE_SUFFIX) + 
-                           strlen(key);
+                           strlen(sanitized_key);
     char* filename = malloc(filename_size+1);
     strcpy(filename, "");
     strcat(filename, KVSTORE_PREFIX);
-    strcat(filename, key);
+    strcat(filename, sanitized_key);
     strcat(filename, KVSTORE_SUFFIX);
     return filename;
 }
 
 static FILE* open_file_for(char* key, char* mode, size_t* file_size) {
-    char* filename = filename_for(key);
+    char sanitized_key[KVSTORE_MAX_KEY_LEN + 1];
+    sanitize_key(key, sanitized_key);
+    char* filename = filename_for(sanitized_key);
     struct stat fst;
     stat(filename, &fst);
     if (file_size) *file_size = fst.st_size;
