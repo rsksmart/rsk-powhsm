@@ -259,7 +259,7 @@ class HSMCertificateV2ElementX509(HSMCertificateV2Element):
             # IMPORTANT: for now, we only allow verifying the validity of an
             # HSMCertificateV2ElementX509 using another HSMCertificateV2ElementX509
             # instance as certifier. That way, we simplify the validation procedure
-            # and ensure maximum compatibility wrt the underlying library used
+            # and ensure maximum use of the underlying library's capabilities
             # (cryptography)
             if not isinstance(certifier, type(self)):
                 return False
