@@ -29,7 +29,7 @@
 
 #define KVSTORE_PREFIX "./kvstore-"
 #define KVSTORE_SUFFIX ".dat"
-#define KVSTORE_MAX_KEY_LEN 256
+#define KVSTORE_MAX_KEY_LEN 150
 
 
 // Sanitizes a key by allowing only [a-zA-Z0-9]. Anything else is replaced by an underscore
