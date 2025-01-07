@@ -32,7 +32,7 @@
 #define KVSTORE_MAX_KEY_LEN 150
 
 
-// Sanitizes a key by allowing only [a-zA-Z0-9]. Anything else is replaced by an underscore
+// Sanitizes a key by allowing only [a-zA-Z0-9]. Anything else is replaced by an '-'
 static void sanitize_key(char* key, char *sanitized_key) {
     if (!key || !sanitized_key) return;
 
@@ -47,7 +47,7 @@ static void sanitize_key(char* key, char *sanitized_key) {
         if (isalnum(key[i])) {
             sanitized_key[i] = key[i];
         } else {
-            sanitized_key[i] = '_';
+            sanitized_key[i] = '-';
         }
     }
     sanitized_key[key_len] = '\0';
