@@ -70,9 +70,7 @@ static char* filename_for(char* key) {
 }
 
 static FILE* open_file_for(char* key, char* mode, size_t* file_size) {
-    char sanitized_key[KVSTORE_MAX_KEY_LEN + 1];
-    sanitize_key(key, sanitized_key);
-    char* filename = filename_for(sanitized_key);
+    char* filename = filename_for(key);
     struct stat fst;
     stat(filename, &fst);
     if (file_size) *file_size = fst.st_size;
