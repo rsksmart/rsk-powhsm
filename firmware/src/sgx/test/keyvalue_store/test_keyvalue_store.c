@@ -27,6 +27,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include "keyvalue_store.h"
 
 // Test helpers
@@ -65,6 +66,18 @@ void assert_file_exists(char* filename, bool exists) {
     if (file) {
         fclose(file);
     }
+}
+
+void assert_file_contents(char* filename, uint8_t* data, size_t data_size) {
+    FILE* file = fopen(filename, "rb");
+    assert(file != NULL);
+
+    uint8_t file_data[BUFSIZ];
+    size_t file_size = fread(file_data, sizeof(file_data[0]), sizeof(file_data), file);
+    assert(file_size == data_size);
+    assert(memcmp(file_data, data, data_size) == 0);
+
+    fclose(file);
 }
 
 // Test cases
@@ -185,10 +198,11 @@ void test_filename() {
         assert_file_exists(input_data[i].filename, false);
     }
 
-    // Save data to each key and assert that the file name is correct
+    // Save data to each key and assert that the file name and contents are correct
     for (size_t i = 0; i < num_inputs; i++) {
         save_and_assert_success(input_data[i].key, (uint8_t*)input_data[i].data, strlen(input_data[i].data));
         assert_file_exists(input_data[i].filename, true);
+        assert_file_contents(input_data[i].filename, (uint8_t*)input_data[i].data, strlen(input_data[i].data));
     }
 }
 
@@ -217,15 +231,16 @@ void test_sanitize_key() {
         assert_file_exists(input_data[i].filename, false);
     }
 
-    // Save data to each key and assert that the file name is correct
+    // Save data to each key and assert that the file name and contents are correct
     for (size_t i = 0; i < num_inputs; i++) {
-        save_and_assert_success(input_data[i].key, (uint8_t*)"some data", strlen("some data"));
+        save_and_assert_success(input_data[i].key, input_data[i].data, strlen(input_data[i].data));
         assert_file_exists(input_data[i].filename, true);
+        assert_file_contents(input_data[i].filename, input_data[i].data, strlen(input_data[i].data));
     }
 
     // Ensure data can be retrieved with the original key
     for (size_t i = 0; i < num_inputs; i++) {
-        assert_key_value(input_data[i].key, (uint8_t*)"some data", strlen("some data"));
+        assert_key_value(input_data[i].key, input_data[i].data, strlen(input_data[i].data));
     }
 }
 
