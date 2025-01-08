@@ -147,6 +147,10 @@ static external_processor_result_t system_do_process_apdu(unsigned int rx) {
         REQUIRE_UNLOCKED();
         result.tx = do_change_password(rx);
         break;
+    case INS_HEARTBEAT:
+        // For now, we don't support heartbeat in SGX
+        THROW(ERR_INS_NOT_SUPPORTED);
+        break;
     default:
         result.handled = false;
     }
