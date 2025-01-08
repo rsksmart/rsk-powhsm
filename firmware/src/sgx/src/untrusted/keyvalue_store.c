@@ -34,7 +34,8 @@
 #define KVSTORE_MAX_KEY_LEN 150
 
 
-// Sanitizes a key by allowing only [a-zA-Z0-9]. Anything else is replaced by an '-'
+// Sanitizes a key by allowing only [a-zA-Z0-9]. If one or more invalid characters are
+// found, Replace them with a single hyphen.
 static void sanitize_key(char* key, char *sanitized_key) {
     if (!key || !sanitized_key) return;
 
@@ -45,14 +46,18 @@ static void sanitize_key(char* key, char *sanitized_key) {
         key_len = KVSTORE_MAX_KEY_LEN;
     }
 
+    bool prev_char_valid = false;
+    size_t sanitized_key_len = 0;
     for (size_t i = 0; i < key_len; i++) {
         if (isalnum(key[i])) {
-            sanitized_key[i] = key[i];
-        } else {
-            sanitized_key[i] = '-';
+            sanitized_key[sanitized_key_len++] = key[i];
+            prev_char_valid = true;
+        } else if (prev_char_valid) {
+            sanitized_key[sanitized_key_len++] = '-';
+            prev_char_valid = false;
         }
     }
-    sanitized_key[key_len] = '\0';
+    sanitized_key[sanitized_key_len] = '\0';
 }
 
 static char* filename_for(char* key) {

@@ -206,8 +206,9 @@ void test_sanitize_key() {
         {"lettersandnumbers123", "kvstore-lettersandnumbers123.dat", "data3"},
         {"letters-and-numbers-with-hyphen-123", "kvstore-letters-and-numbers-with-hyphen-123.dat", "data4"},
         {"key containing spaces", "kvstore-key-containing-spaces.dat", "data5"},
-        {"key containing special characters!@#$%^&*()", "kvstore-key-containing-special-characters----------.dat", "data6"},
-        {"../../../../../etc/passwd", "kvstore----------------etc-passwd.dat", "data7"},
+        {"key containing special characters!@#$%^&*()", "kvstore-key-containing-special-characters-.dat", "data6"},
+        {"../../../../../etc/passwd", "kvstore-etc-passwd.dat", "data7"},
+        {"some@#£_&-(_./file#£+-:;name", "kvstore-some-file-name.dat", "data8"},
     };
     size_t num_inputs = sizeof(input_data) / sizeof(input_data[0]);
 
