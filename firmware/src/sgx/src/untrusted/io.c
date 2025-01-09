@@ -43,6 +43,13 @@ int serverfd;
 int connfd;
 struct sockaddr_in servaddr, cliaddr;
 
+static void close_and_reset_fd(int *fd) {
+    if (fd && (*fd != -1)) {
+        close(*fd);
+        *fd = -1;
+    }
+}
+
 static int start_server(int port, const char *host) {
     int sockfd;
     struct hostent *hostinfo;
@@ -107,20 +114,14 @@ static bool accept_connection() {
 }
 
 bool io_init(int port, const char *host) {
-    connfd = 0;
+    connfd = -1;
     serverfd = start_server(port, host);
     return serverfd;
 }
 
 void io_finalise() {
-    if (connfd) {
-        close(connfd);
-        connfd = 0;
-    }
-    if (serverfd) {
-        close(serverfd);
-        serverfd = 0;
-    }
+    close_and_reset_fd(&connfd);
+    close_and_reset_fd(&serverfd);
 }
 
 unsigned short io_exchange(unsigned short tx) {
@@ -129,7 +130,7 @@ unsigned short io_exchange(unsigned short tx) {
     int readlen;
 
     while (true) {
-        if (!connfd) {
+        if (connfd == -1) {
             if (!accept_connection()) {
                 LOG("Error accepting client connection\n");
                 return 0;
@@ -146,13 +147,13 @@ unsigned short io_exchange(unsigned short tx) {
             tx_net = htonl(tx_net);
             if (send(connfd, &tx_net, sizeof(tx_net), MSG_NOSIGNAL) == -1) {
                 LOG("Connection closed by the client\n");
-                connfd = 0;
+                close_and_reset_fd(&connfd);
                 continue;
             }
             // Write APDU
             if (send(connfd, io_apdu_buffer, tx, MSG_NOSIGNAL) == -1) {
                 LOG("Connection closed by the client\n");
-                connfd = 0;
+                close_and_reset_fd(&connfd);
                 continue;
             }
             LOG_HEX("I/O =>", io_apdu_buffer, tx);
@@ -172,8 +173,7 @@ unsigned short io_exchange(unsigned short tx) {
                         "Disconnected\n",
                         readlen,
                         rx);
-                    close(connfd);
-                    connfd = 0;
+                    close_and_reset_fd(&connfd);
                     continue;
                 }
                 LOG_HEX("I/O <=", io_apdu_buffer, rx);
@@ -196,7 +196,6 @@ unsigned short io_exchange(unsigned short tx) {
                 readlen,
                 sizeof(rx_net));
         }
-        close(connfd);
-        connfd = 0;
+        close_and_reset_fd(&connfd);
     }
 }
