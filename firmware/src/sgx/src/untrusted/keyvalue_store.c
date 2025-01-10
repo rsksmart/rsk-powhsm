@@ -23,19 +23,52 @@
  */
 
 #include <sys/stat.h>
-#include "hsm_u.h"
+#include <ctype.h>
+#include <stdio.h>
+#include <string.h>
 #include "log.h"
+#include "keyvalue_store.h"
 
 #define KVSTORE_PREFIX "./kvstore-"
 #define KVSTORE_SUFFIX ".dat"
+#define KVSTORE_MAX_KEY_LEN 150
+
+// Sanitizes a key by allowing only [a-zA-Z0-9]. If one or more invalid
+// characters are found, Replace them with a single hyphen.
+static void sanitize_key(char* key, char* sanitized_key) {
+    if (!key || !sanitized_key)
+        return;
+
+    size_t key_len = strlen(key);
+
+    // Truncate key if it's too long
+    if (key_len > KVSTORE_MAX_KEY_LEN) {
+        key_len = KVSTORE_MAX_KEY_LEN;
+    }
+
+    bool prev_char_valid = false;
+    size_t sanitized_key_len = 0;
+    for (size_t i = 0; i < key_len; i++) {
+        if (isalnum(key[i])) {
+            sanitized_key[sanitized_key_len++] = key[i];
+            prev_char_valid = true;
+        } else if (prev_char_valid) {
+            sanitized_key[sanitized_key_len++] = '-';
+            prev_char_valid = false;
+        }
+    }
+    sanitized_key[sanitized_key_len] = '\0';
+}
 
 static char* filename_for(char* key) {
+    char sanitized_key[KVSTORE_MAX_KEY_LEN + 1];
+    sanitize_key(key, sanitized_key);
     size_t filename_size =
-        strlen(KVSTORE_PREFIX) + strlen(KVSTORE_SUFFIX) + strlen(key);
+        strlen(KVSTORE_PREFIX) + strlen(KVSTORE_SUFFIX) + strlen(sanitized_key);
     char* filename = malloc(filename_size + 1);
     strcpy(filename, "");
     strcat(filename, KVSTORE_PREFIX);
-    strcat(filename, key);
+    strcat(filename, sanitized_key);
     strcat(filename, KVSTORE_SUFFIX);
     return filename;
 }
