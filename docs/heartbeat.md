@@ -2,7 +2,7 @@
 
 ## Foreword
 
-Currently, just like what happens in the case of [attestation](./attestation.md), heartbeat is a feature supported only in the Ledger version of powHSM. A heartbeat implementation for the SGX version of powHSM is currently under development. Therefore, all the information contained herein must be interpreted as applying exclusively to the Ledger version of powHSM.
+Currently, heartbeat is a feature supported only in the Ledger version of powHSM. A heartbeat implementation for the SGX version of powHSM is currently under development. Therefore, all the information contained herein must be interpreted as applying exclusively to the Ledger version of powHSM.
 
 ## Abstract
 
