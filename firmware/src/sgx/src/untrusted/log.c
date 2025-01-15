@@ -27,7 +27,7 @@
 
 #include "log.h"
 
-static char* log_prefix = (char*)NULL;
+static char *log_prefix = (char *)NULL;
 
 void LOG(const char *format, ...) {
     va_list args;
@@ -57,10 +57,10 @@ void LOG_HEX(const char *prefix, const void *buffer, const size_t size) {
     printf("\n");
 }
 
-void log_set_prefix(const char* prefix) {
-    log_prefix = (char*)prefix;
+void log_set_prefix(const char *prefix) {
+    log_prefix = (char *)prefix;
 }
 
 void log_clear_prefix() {
-    log_prefix = (char*)NULL;
+    log_prefix = (char *)NULL;
 }

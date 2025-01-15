@@ -12,11 +12,12 @@ if [[ $1 == "exec" ]]; then
     fi
 
     SRC_DIR="firmware/src"
-    SEARCH_DIRS="$SRC_DIR/ledger/signer $SRC_DIR/ledger/ui $SRC_DIR/tcpsigner $SRC_DIR/common $SRC_DIR/hal"
+    SEARCH_DIRS="$SRC_DIR/ledger/signer $SRC_DIR/ledger/ui $SRC_DIR/tcpsigner $SRC_DIR/common $SRC_DIR/hal $SRC_DIR/sgx"
 
     find $SEARCH_DIRS -name "*.[ch]" | \
     egrep -v "(bigdigits|bigdtypes|keccak256)\.[ch]$" | \
     egrep -v "firmware/src/ledger/ui/src/glyphs.[ch]" | \
+    egrep -v "firmware/src/sgx/src/(trusted|untrusted)/hsm_([tu]|args).[ch]" | \
     xargs clang-format-10 --style=file $CLANG_ARGS
 else
     # Script directory

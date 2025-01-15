@@ -90,13 +90,13 @@ static unsigned int do_unlock(unsigned int rx) {
         SET_APDU_OP(1);
         return TX_NO_DATA();
     }
-    
+
     if (APDU_DATA_SIZE(rx) == 0) {
         THROW(ERR_INVALID_DATA_SIZE);
     }
 
-    SET_APDU_OP(
-        access_unlock((char*)APDU_DATA_PTR, APDU_DATA_SIZE(rx)) ? 1 : 0);
+    SET_APDU_OP(access_unlock((char*)APDU_DATA_PTR, APDU_DATA_SIZE(rx)) ? 1
+                                                                        : 0);
     return TX_NO_DATA();
 }
 
@@ -158,16 +158,17 @@ unsigned int system_process_apdu(unsigned int rx) {
     return hsm_process_apdu(rx);
 }
 
-bool system_init(unsigned char *msg_buffer, size_t msg_buffer_size) {
+bool system_init(unsigned char* msg_buffer, size_t msg_buffer_size) {
     // Setup the shared APDU buffer
     if (msg_buffer_size != EXPECTED_APDU_BUFFER_SIZE) {
         LOG("Expected APDU buffer size to be %u but got %lu\n",
-            EXPECTED_APDU_BUFFER_SIZE, msg_buffer_size);
+            EXPECTED_APDU_BUFFER_SIZE,
+            msg_buffer_size);
         return false;
     }
     apdu_buffer = msg_buffer;
     apdu_buffer_size = msg_buffer_size;
-    
+
     // Initialize modules
     LOG("Initializing modules...\n");
     if (!sest_init()) {
@@ -206,9 +207,8 @@ bool system_init(unsigned char *msg_buffer, size_t msg_buffer_size) {
     }
 
     nvmem_init();
-    if (!nvmem_register_block("bcstate",
-                              &N_bc_state_var,
-                              sizeof(N_bc_state_var))) {
+    if (!nvmem_register_block(
+            "bcstate", &N_bc_state_var, sizeof(N_bc_state_var))) {
         LOG("Error registering bcstate block\n");
         return false;
     }
