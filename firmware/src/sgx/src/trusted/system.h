@@ -27,7 +27,7 @@
 
 /**
  * @brief Initializes the system module
- * 
+ *
  * @param msg_buffer the APDU buffer to use
  * @param msg_buffer_size the size of the APDU buffer in bytes
  *
@@ -37,12 +37,11 @@ bool system_init(unsigned char *msg_buffer, size_t msg_buffer_size);
 
 /**
  * @brief Process an APDU message
- * 
+ *
  * @param rx number of received bytes
- * 
+ *
  * @returns number of bytes to transmit
  */
 unsigned int system_process_apdu(unsigned int rx);
-
 
 #endif // __TRUSTED_SYSTEM_H

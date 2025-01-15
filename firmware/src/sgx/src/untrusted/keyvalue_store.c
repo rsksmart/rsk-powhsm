@@ -30,10 +30,9 @@
 #define KVSTORE_SUFFIX ".dat"
 
 static char* filename_for(char* key) {
-    size_t filename_size = strlen(KVSTORE_PREFIX) + 
-                           strlen(KVSTORE_SUFFIX) + 
-                           strlen(key);
-    char* filename = malloc(filename_size+1);
+    size_t filename_size =
+        strlen(KVSTORE_PREFIX) + strlen(KVSTORE_SUFFIX) + strlen(key);
+    char* filename = malloc(filename_size + 1);
     strcpy(filename, "");
     strcat(filename, KVSTORE_PREFIX);
     strcat(filename, key);
@@ -45,7 +44,8 @@ static FILE* open_file_for(char* key, char* mode, size_t* file_size) {
     char* filename = filename_for(key);
     struct stat fst;
     stat(filename, &fst);
-    if (file_size) *file_size = fst.st_size;
+    if (file_size)
+        *file_size = fst.st_size;
     FILE* file = fopen(filename, mode);
     free(filename);
     return file;
@@ -64,10 +64,7 @@ bool kvstore_save(char* key, uint8_t* data, size_t data_size) {
         return false;
     }
 
-    if (fwrite(data,
-              sizeof(data[0]),
-              data_size,
-              file) != data_size) {
+    if (fwrite(data, sizeof(data[0]), data_size, file) != data_size) {
         LOG("Error writing secret payload for key <%s>\n", key);
         fclose(file);
         return false;
@@ -109,10 +106,7 @@ size_t kvstore_get(char* key, uint8_t* data_buf, size_t buffer_size) {
         return 0;
     }
 
-    if (fread(data_buf,
-              sizeof(data_buf[0]),
-              file_size,
-              file) != file_size) {
+    if (fread(data_buf, sizeof(data_buf[0]), file_size, file) != file_size) {
         LOG("Could not read payload for key <%s>\n", key);
         fclose(file);
         return 0;
@@ -125,7 +119,8 @@ size_t kvstore_get(char* key, uint8_t* data_buf, size_t buffer_size) {
 bool kvstore_remove(char* key) {
     char* filename = filename_for(key);
     int result = remove(filename);
-    if (result) LOG("Error removing file for key <%s>\n", key);
+    if (result)
+        LOG("Error removing file for key <%s>\n", key);
     free(filename);
     return !result;
 }
