@@ -50,6 +50,7 @@ echo -e "\e[33mBuilding SGX apps...\e[0m"
 # since we don't actually need it in our current scheme)
 $ROOT_DIR/firmware/build/build-sgx $CHECKPOINT $DIFFICULTY $NETWORK > /dev/null
 cp $ROOT_DIR/firmware/src/sgx/bin/hsmsgx $HSM_DIR/
+cp $ROOT_DIR/firmware/src/sgx/bin/hsmsgx_enclave $HSM_DIR/
 cp $ROOT_DIR/firmware/src/sgx/bin/hsmsgx_enclave.signed $HSM_DIR/
 
 HOST_HASH=$(sha256sum $ROOT_DIR/firmware/src/sgx/bin/hsmsgx | cut -d ' ' -f 1)

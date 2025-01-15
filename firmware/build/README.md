@@ -70,7 +70,7 @@ For example, to build host and enclave with checkpoint `0x00f06dcff26ec8b4d373fb
 ~/repo> firmware/build/build-sgx 0x00f06dcff26ec8b4d373fbd53ee770e9348d9bd6a247ad4c86e82ceb3c2130ac 0x7c50933098 testnet
 ```
 
-Once the build is complete, the binaries will be placed under `<HSM_PROJECT_ROOT>/firmware/src/sgx/bin` with the names `hsmsgx` for the host and `hsmsgx_enclave.signed` for the signed enclave.
+Once the build is complete, the binaries will be placed under `<HSM_PROJECT_ROOT>/firmware/src/sgx/bin` with the names `hsmsgx` for the host, `hsmsgx_enclave` and `hsmsgx_enclave.signed` for the unsigned and signed enclave binaries, respectively.
 
 ### Reproducible builds
 
