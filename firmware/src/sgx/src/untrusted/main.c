@@ -104,7 +104,7 @@ static void finalise_with(int exit_code) {
 }
 
 static void finalise(int signum) {
-    (void) signum; // Suppress unused parameter warning
+    (void)signum; // Suppress unused parameter warning
 
     finalise_with(0);
 }
