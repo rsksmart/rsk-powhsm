@@ -25,6 +25,9 @@
 #ifndef __KEYVALUE_STORE_H
 #define __KEYVALUE_STORE_H
 
+#include <stdbool.h>
+#include <stdint.h>
+
 /**
  * @brief Tell whether a given key currently exists
  *
