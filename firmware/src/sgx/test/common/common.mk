@@ -6,7 +6,8 @@ HALSGXSRCDIR = ../../../hal/sgx/src/trusted
 POWHSMSRCDIR = ../../../powhsm/src
 COMMONDIR = ../../../common/src
 
-CFLAGS  = -iquote $(TESTCOMMONDIR)
+CFLAGS = -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-function
+CFLAGS += -I $(TESTCOMMONDIR)
 CFLAGS += -iquote $(SGXTRUSTEDDIR)
 CFLAGS += -iquote $(SGXUNTRUSTEDDIR)
 CFLAGS += -iquote $(HALINCDIR)
