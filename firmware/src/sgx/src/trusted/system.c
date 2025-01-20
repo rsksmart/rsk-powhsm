@@ -1,4 +1,5 @@
 #include <string.h>
+#include <openenclave/enclave.h>
 
 #include "hal/constants.h"
 #include "hal/communication.h"
@@ -166,6 +167,14 @@ bool system_init(unsigned char* msg_buffer, size_t msg_buffer_size) {
             msg_buffer_size);
         return false;
     }
+
+    // Validate that the APDU buffer is entirely outside the enclave
+    // memory space
+    if (!oe_is_outside_enclave(msg_buffer, msg_buffer_size)) {
+        LOG("APDU buffer memory area not outside the enclave\n");
+        return false;
+    }
+
     apdu_buffer = msg_buffer;
     apdu_buffer_size = msg_buffer_size;
 
