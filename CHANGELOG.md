@@ -1,5 +1,18 @@
 # Changelog
 
+## [5.2.2] - 20/01/2025
+
+### Features/enhancements
+
+- Implemented OSSF scorecard on CI
+
+### Fixes
+
+- Fixed middleware docker image build
+- Fixed minor scorecard findings
+- Bumped debian, aflplusplus docker images
+- Bumpled GH actions codeql, upload-artifact
+
 ## [5.2.1] - 14/11/2024
 
 ### Fixes
