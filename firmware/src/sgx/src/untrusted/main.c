@@ -163,8 +163,7 @@ int main(int argc, char **argv) {
 
     while (true) {
         if (G_stop_requested) {
-            G_stop_requested = 0;
-            finalise_with(0);
+            break;
         }
 
         rx = io_exchange(tx);
@@ -174,9 +173,11 @@ int main(int argc, char **argv) {
         }
     }
 
-    LOG("Exited main loop unexpectedly\n");
+    finalise_with(0);
+    return 0;
 
 main_error:
+    LOG("Exited main loop unexpectedly\n");
     finalise_with(1);
     return 1;
 }
