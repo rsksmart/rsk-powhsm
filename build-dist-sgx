@@ -53,6 +53,14 @@ $ROOT_DIR/firmware/build/build-sgx $CHECKPOINT $DIFFICULTY $NETWORK > /dev/null
 cp $ROOT_DIR/firmware/src/sgx/bin/hsmsgx $HSM_DIR/
 cp $ROOT_DIR/firmware/src/sgx/bin/hsmsgx_enclave.signed $HSM_DIR/
 
+HOST_HASH=$(sha256sum $ROOT_DIR/firmware/src/sgx/bin/hsmsgx | cut -d ' ' -f 1)
+ENCLAVE_HASH=$($ROOT_DIR/firmware/build/extract-mrenclave $ROOT_DIR/firmware/src/sgx/bin/hsmsgx_enclave.signed)
+echo "$HSM_DIR/hsmsgx:"
+echo $HOST_HASH
+echo
+echo "$HSM_DIR/hsmsgx_enclave.signed"
+echo "$ENCLAVE_HASH"
+
 echo
 echo -e "\e[32mBuild complete.\e[0m"
 

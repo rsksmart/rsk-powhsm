@@ -34,24 +34,13 @@
 #include "btctx.h"
 #include "btcscript.h"
 #include "auth.h"
+#include "attestation.h"
 #include "heartbeat.h"
 
 // -----------------------------------------------------------------------
 // Global state for signing, blockchain bookkeeping, attestation and
 // heartbeat.
 // -----------------------------------------------------------------------
-
-// Maximum attestation message to sign size (prefix + public keys hash)
-#define MAX_ATT_MESSAGE_SIZE 50
-
-typedef struct att_s {
-    hash_sha256_ctx_t hash_ctx; // Attestation public keys hashing context
-    uint8_t msg[MAX_ATT_MESSAGE_SIZE]; // Attestation message
-
-    uint32_t path[BIP32_PATH_NUMPARTS];
-    uint8_t pubkey[PUBKEY_UNCMP_LENGTH];
-    uint8_t pubkey_length;
-} att_t;
 
 typedef union {
     struct {

@@ -72,6 +72,10 @@ For example, to build host and enclave with checkpoint `0x00f06dcff26ec8b4d373fb
 
 Once the build is complete, the binaries will be placed under `<HSM_PROJECT_ROOT>/firmware/src/sgx/bin` with the names `hsmsgx` for the host and `hsmsgx_enclave.signed` for the signed enclave.
 
+### Reproducible builds
+
+It is *very important* to mention that both the host and enclave builds are bitwise reproducible. That is, two independent builds of the same code will yield the exact same binary files (and thus, the same `sha256sum`s and `oesign` digests). As a consequence, two independent builds of the same enclave sources signed with the same private key and enclave configuration will also yield two enclave binaries with identical `MRENCLAVE` values. This is paramount for the [attestation process](../../docs/attestation.md).
+
 ### Simulation and debug builds
 
 There are also debug and simulation builds available for development and testing purposes. Just replace the use of the `build-sgx` script with either `build-sgx-debug` or `build-sgx-sim` to obtain a debug or simulation version. The debug version has got a slightly different OpenEnclave configuration file and logging settings, and the simulation version can be ran on non-SGX environments (this latter version extremely useful for local development and testing).

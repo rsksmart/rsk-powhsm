@@ -25,11 +25,13 @@ from argparse import ArgumentParser
 import logging
 from ledger.hsm2dongle import HSM2DongleError
 from comm.platform import Platform
-from admin.misc import not_implemented, info, AdminError
+from admin.misc import not_implemented, info, AdminError, DEFAULT_ATT_UD_SOURCE
 from admin.unlock import do_unlock
 from admin.onboard import do_onboard
 from admin.pubkeys import do_get_pubkeys
 from admin.changepin import do_changepin
+from admin.sgx_attestation import do_attestation
+from admin.verify_sgx_attestation import do_verify_attestation
 
 
 def main():
@@ -40,12 +42,14 @@ def main():
         "onboard": do_onboard,
         "pubkeys": do_get_pubkeys,
         "changepin": do_changepin,
+        "attestation": do_attestation,
+        "verify_attestation": do_verify_attestation,
     }
 
     parser = ArgumentParser(description="SGX powHSM Administrative tool")
     parser.add_argument("operation", choices=list(actions.keys()))
     parser.add_argument(
-        "-r",
+        "-p",
         "--port",
         dest="sgx_port",
         help="SGX powHSM listening port (default 7777)",
@@ -59,7 +63,7 @@ def main():
         help="SGX powHSM host. (default 'localhost')",
         default="localhost",
     )
-    parser.add_argument("-p", "--pin", dest="pin", help="PIN.")
+    parser.add_argument("-P", "--pin", dest="pin", help="PIN.")
     parser.add_argument(
         "-n",
         "--newpin",
@@ -79,7 +83,7 @@ def main():
         "-o",
         "--output",
         dest="output_file_path",
-        help="Output file (only valid for 'onboard' and 'pubkeys' "
+        help="Output file (only valid for 'onboard', 'pubkeys' and 'attestation' "
         "operations).",
     )
     parser.add_argument(
@@ -91,6 +95,35 @@ def main():
         "operations).",
         default=False,
         const=True,
+    )
+    parser.add_argument(
+        "--attudsource",
+        dest="attestation_ud_source",
+        default=DEFAULT_ATT_UD_SOURCE,
+        help="JSON-RPC endpoint used to retrieve the latest RSK block hash used "
+        "as the user defined value for the attestation (defaults to "
+        f"{DEFAULT_ATT_UD_SOURCE}). Can also specify a 32-byte hex string to use as"
+        " the value.",
+    )
+    parser.add_argument(
+        "-t",
+        "--attcert",
+        dest="attestation_certificate_file_path",
+        help="Attestation key certificate file (only valid for "
+        "'verify_attestation' operation).",
+    )
+    parser.add_argument(
+        "-r",
+        "--root",
+        dest="root_authority",
+        help="Root attestation authority (only valid for 'verify_attestation' "
+        "operation). Defaults to Intel SGX's root authority.",
+    )
+    parser.add_argument(
+        "-b",
+        "--pubkeys",
+        dest="pubkeys_file_path",
+        help="Public keys file (only valid for 'verify_attestation' operation).",
     )
     parser.add_argument(
         "-v",

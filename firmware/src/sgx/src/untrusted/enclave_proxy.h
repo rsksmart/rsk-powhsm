@@ -9,6 +9,11 @@
 bool eprx_system_init(unsigned char *msg_buffer, size_t msg_buffer_size);
 
 /**
+ * @brief See system_finalise in system.h within the trusted sources
+ */
+void eprx_system_finalise();
+
+/**
  * @brief See system_process_apdu in system.h within the trusted sources
  */
 unsigned int eprx_system_process_apdu(unsigned int rx);

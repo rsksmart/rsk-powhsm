@@ -29,6 +29,9 @@ from ledger.pin import BasePin
 from .dongle_admin import DongleAdmin
 from .dongle_eth import DongleEth
 from comm.platform import Platform
+from .utils import is_hex_string_of_length, normalize_hex_string
+from .rsk_client import RskClient, RskClientError
+
 
 PIN_ERROR_MESSAGE = ("Invalid pin given. It must be exactly 8 alphanumeric "
                      "characters with at least one alphabetic character.")
@@ -36,6 +39,9 @@ PIN_ERROR_MESSAGE_ANYCHARS = (
     "Invalid pin given. It must be composed only of alphanumeric characters.")
 
 SIGNER_WAIT_TIME = 3  # seconds
+
+ATTESTATION_UD_VALUE_LENGTH = 32  # bytes
+DEFAULT_ATT_UD_SOURCE = "https://public-node.rsk.co"
 
 
 class AdminError(RuntimeError):
@@ -127,3 +133,25 @@ def ask_for_pin(any_pin):
 
 def wait_for_reconnection():
     time.sleep(SIGNER_WAIT_TIME)
+
+
+def get_ud_value_for_attestation(user_provided_ud_source):
+    if is_hex_string_of_length(user_provided_ud_source,
+                               ATTESTATION_UD_VALUE_LENGTH,
+                               allow_prefix=True):
+        # Final value provided by user
+        ud_value = normalize_hex_string(user_provided_ud_source)
+    else:
+        # Final value taken from a specific Rootstock node
+        try:
+            rsk_client = RskClient(user_provided_ud_source)
+            best_block = rsk_client.get_block_by_number(
+                rsk_client.get_best_block_number())
+            ud_value = best_block["hash"][2:]
+            if not is_hex_string_of_length(ud_value, ATTESTATION_UD_VALUE_LENGTH):
+                raise ValueError("Got invalid best block from "
+                                 f"Rootstock server: {ud_value}")
+        except RskClientError as e:
+            raise AdminError(f"While fetching the best Rootstock block hash: {str(e)}")
+
+    return ud_value

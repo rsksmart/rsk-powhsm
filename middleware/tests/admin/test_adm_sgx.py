@@ -30,7 +30,7 @@ import logging
 logging.disable(logging.CRITICAL)
 
 
-class TestAdmLedger(TestCase):
+class TestAdmSgx(TestCase):
     def setUp(self):
         self.old_stdout = sys.stdout
         self.DEFAULT_OPTIONS = {
@@ -39,6 +39,10 @@ class TestAdmLedger(TestCase):
             "any_pin": False,
             "new_pin": None,
             "no_unlock": False,
+            "attestation_ud_source": "https://public-node.rsk.co",
+            "attestation_certificate_file_path": None,
+            "root_authority": None,
+            "pubkeys_file_path": None,
             "operation": None,
             "output_file_path": None,
             "pin": None,
@@ -60,7 +64,7 @@ class TestAdmLedger(TestCase):
             call(Namespace(**expected_options))
         ]
 
-        with patch('sys.argv', ['adm_sgx.py', '-p', 'a-pin', 'unlock']):
+        with patch('sys.argv', ['adm_sgx.py', '-P', 'a-pin', 'unlock']):
             with self.assertRaises(SystemExit) as e:
                 main()
         self.assertEqual(e.exception.code, 0)
@@ -88,7 +92,7 @@ class TestAdmLedger(TestCase):
         ]
 
         with patch('sys.argv',
-                   ['adm_sgx.py', '-p', 'a-pin', 'onboard']):
+                   ['adm_sgx.py', '-P', 'a-pin', 'onboard']):
             with self.assertRaises(SystemExit) as e:
                 main()
         self.assertEqual(e.exception.code, 0)
@@ -118,7 +122,7 @@ class TestAdmLedger(TestCase):
             call(Namespace(**expected_options))
         ]
 
-        with patch('sys.argv', ['adm_sgx.py', '-p', 'a-pin', '-o', 'a-path', '-u',
+        with patch('sys.argv', ['adm_sgx.py', '-P', 'a-pin', '-o', 'a-path', '-u',
                                 '-s', '1.2.3.4', 'pubkeys']):
             with self.assertRaises(SystemExit) as e:
                 main()
@@ -153,8 +157,8 @@ class TestAdmLedger(TestCase):
             call(Namespace(**expected_options))
         ]
 
-        with patch('sys.argv', ['adm_sgx.py', '-p', 'old-pin', '-n', 'new-pin',
-                                '-r', '4567', '-a', 'changepin']):
+        with patch('sys.argv', ['adm_sgx.py', '-P', 'old-pin', '-n', 'new-pin',
+                                '-p', '4567', '-a', 'changepin']):
             with self.assertRaises(SystemExit) as e:
                 main()
         self.assertEqual(e.exception.code, 0)
@@ -169,3 +173,40 @@ class TestAdmLedger(TestCase):
         self.assertTrue(do_changepin.called)
         self.assertEqual(do_changepin.call_count, 2)
         self.assertEqual(expected_call_args_list, do_changepin.call_args_list)
+
+    @patch("adm_sgx.do_attestation")
+    def test_attestation(self, do_attestation):
+        expected_options = {
+            **self.DEFAULT_OPTIONS,
+            'attestation_ud_source': 'user-defined-source',
+            'operation': 'attestation',
+            'output_file_path': 'out-path',
+            'pin': 'a-pin',
+        }
+        expected_call_args_list = [
+            call(Namespace(**expected_options)),
+            call(Namespace(**{**expected_options, "no_unlock": True}))
+        ]
+
+        with patch('sys.argv', ['adm_sgx.py',
+                                '-P', 'a-pin',
+                                '-o', 'out-path',
+                                '--attudsource', 'user-defined-source',
+                                'attestation']):
+            with self.assertRaises(SystemExit) as e:
+                main()
+        self.assertEqual(e.exception.code, 0)
+
+        with patch('sys.argv', ['adm_sgx.py',
+                                '--pin', 'a-pin',
+                                '--output', 'out-path',
+                                '--attudsource', 'user-defined-source',
+                                '--nounlock',
+                                'attestation']):
+            with self.assertRaises(SystemExit) as e:
+                main()
+        self.assertEqual(e.exception.code, 0)
+
+        self.assertTrue(do_attestation.called)
+        self.assertEqual(do_attestation.call_count, 2)
+        self.assertEqual(expected_call_args_list, do_attestation.call_args_list)

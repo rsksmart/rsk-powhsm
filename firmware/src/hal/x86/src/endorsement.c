@@ -171,6 +171,14 @@ bool endorsement_init(char* att_file_path) {
     return true;
 }
 
+uint8_t* endorsement_get_envelope() {
+    return NULL;
+}
+
+size_t endorsement_get_envelope_length() {
+    return 0;
+}
+
 bool endorsement_sign(uint8_t* msg,
                       size_t msg_size,
                       uint8_t* signature_out,

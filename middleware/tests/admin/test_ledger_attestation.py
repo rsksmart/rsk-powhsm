@@ -25,17 +25,16 @@ import json
 from types import SimpleNamespace
 from unittest import TestCase
 from unittest.mock import Mock, call, patch, mock_open
-from admin.attestation import do_attestation
+from admin.ledger_attestation import do_attestation
 from admin.certificate import HSMCertificate
 from admin.misc import AdminError
-from admin.rsk_client import RskClientError
 
 
 @patch("sys.stdout.write")
 @patch("time.sleep")
-@patch("admin.attestation.do_unlock")
-@patch("admin.attestation.get_hsm")
-@patch("admin.attestation.HSMCertificate.from_jsonfile")
+@patch("admin.ledger_attestation.do_unlock")
+@patch("admin.ledger_attestation.get_hsm")
+@patch("admin.ledger_attestation.HSMCertificate.from_jsonfile")
 class TestAttestation(TestCase):
     def setupMocks(self, from_jsonfile, get_hsm):
         from_jsonfile.return_value = HSMCertificate({
@@ -64,7 +63,8 @@ class TestAttestation(TestCase):
         })
         hsm.exit_menu = Mock()
         hsm.disconnect = Mock()
-        hsm.get_signer_attestation = Mock(return_value={
+        hsm.get_powhsm_attestation = Mock(return_value={
+            'envelope':   'dd' * 32,
             'message':   'dd' * 32,
             'signature': 'ee' * 32,
             'app_hash':  'ff' * 32
@@ -78,68 +78,11 @@ class TestAttestation(TestCase):
         options.attestation_ud_source = 'aa' * 32
         return options
 
-    @patch('admin.attestation.RskClient')
-    def test_attestation_ok_provided_ud_value(self,
-                                              RskClient,
-                                              from_jsonfile,
-                                              get_hsm,
-                                              *_):
+    @patch('admin.ledger_attestation.get_ud_value_for_attestation')
+    def test_attestation_ok(self, get_ud_value_for_attestation,
+                            from_jsonfile, get_hsm, *_):
         self.setupMocks(from_jsonfile, get_hsm)
-        options = self.setupDefaultOptions()
-        with patch('builtins.open', mock_open()) as file_mock:
-            do_attestation(options)
-
-        self.assertEqual([call(options.attestation_ud_source)],
-                         get_hsm.return_value.get_ui_attestation.call_args_list)
-        self.assertEqual([], RskClient.call_args_list)
-        self.assertEqual([call(options.attestation_certificate_file_path)],
-                         from_jsonfile.call_args_list)
-        self.assertEqual([call(options.verbose), call(options.verbose)],
-                         get_hsm.call_args_list)
-        self.assertEqual([call(options.output_file_path, 'w')], file_mock.call_args_list)
-        self.assertEqual([call("%s\n" % json.dumps({
-            'version': 1,
-            'targets': [
-                'ui',
-                'signer'
-            ],
-            'elements': [
-                {
-                    "name": "attestation",
-                    "message": '11' * 32,
-                    "signature": '22' * 32,
-                    "signed_by": "device"
-                },
-                {
-                    "name": "device",
-                    "message": '33' * 32,
-                    "signature": '44' * 32,
-                    "signed_by": "root"
-                },
-                {
-                    'name': 'ui',
-                    'message': 'aa' * 32,
-                    'signature': 'bb' * 32,
-                    'signed_by': 'attestation',
-                    'tweak': 'cc' * 32
-                },
-                {
-                    'name': 'signer',
-                    'message': 'dd' * 32,
-                    'signature': 'ee' * 32,
-                    'signed_by': 'attestation',
-                    'tweak': 'ff' * 32
-                }
-            ]
-        }, indent=2))],
-            file_mock.return_value.write.call_args_list)
-
-    @patch('admin.attestation.RskClient')
-    def test_attestation_ok_get_ud_value(self, RskClient, from_jsonfile, get_hsm, *_):
-        self.setupMocks(from_jsonfile, get_hsm)
-        RskClient.return_value = Mock()
-        rsk_client = RskClient.return_value
-        rsk_client.get_block_by_number = Mock(return_value={'hash': '0x' + 'bb' * 32})
+        get_ud_value_for_attestation.return_value = 'bb'*32
 
         options = self.setupDefaultOptions()
         options.attestation_ud_source = 'an-url'
@@ -148,8 +91,7 @@ class TestAttestation(TestCase):
 
         self.assertEqual([call(options.attestation_certificate_file_path)],
                          from_jsonfile.call_args_list)
-        self.assertEqual([call('an-url')], RskClient.call_args_list)
-        self.assertTrue(rsk_client.get_block_by_number.called)
+        self.assertEqual([call('an-url')], get_ud_value_for_attestation.call_args_list)
         self.assertNotEqual([call(options.attestation_ud_source)],
                             get_hsm.return_value.get_ui_attestation.call_args_list)
         self.assertEqual([call('bb' * 32)],
@@ -227,15 +169,19 @@ class TestAttestation(TestCase):
         self.assertFalse(get_hsm.called)
         self.assertFalse(file_mock.return_value.write.called)
 
-    @patch('admin.attestation.RskClient')
-    def test_attestation_rsk_client_error(self, RskClient, from_jsonfile, get_hsm, *_):
+    @patch('admin.ledger_attestation.get_ud_value_for_attestation')
+    def test_attestation_get_ud_value_for_attestation_error(self,
+                                                            get_ud_value_for_attestation,
+                                                            from_jsonfile, get_hsm, *_):
         self.setupMocks(from_jsonfile, get_hsm)
-        RskClient.side_effect = RskClientError('error-msg')
+        get_ud_value_for_attestation.side_effect = AdminError('error-msg')
         options = self.setupDefaultOptions()
-        options.attestation_ud_source = 'an-url'
+        options.attestation_ud_source = 'another-url'
         with patch('builtins.open', mock_open()) as file_mock:
             with self.assertRaises(AdminError):
                 do_attestation(options)
+        self.assertEqual([call('another-url')],
+                         get_ud_value_for_attestation.call_args_list)
         self.assertTrue(from_jsonfile.called)
         self.assertFalse(get_hsm.called)
         self.assertFalse(file_mock.return_value.write.called)
@@ -274,10 +220,10 @@ class TestAttestation(TestCase):
         self.assertTrue(get_hsm.called)
         self.assertFalse(file_mock.return_value.write.called)
 
-    def test_attestation_get_signer_attestation_error(self, from_jsonfile, get_hsm, *_):
+    def test_attestation_get_powhsm_attestation_error(self, from_jsonfile, get_hsm, *_):
         self.setupMocks(from_jsonfile, get_hsm)
         hsm = get_hsm.return_value
-        hsm.get_signer_attestation.side_effect = Exception()
+        hsm.get_powhsm_attestation.side_effect = Exception()
         options = self.setupDefaultOptions()
         with patch('builtins.open', mock_open()) as file_mock:
             with self.assertRaises(AdminError):
@@ -286,7 +232,21 @@ class TestAttestation(TestCase):
         self.assertTrue(get_hsm.called)
         self.assertFalse(file_mock.return_value.write.called)
 
-    @patch("admin.attestation.HSMCertificate.add_element")
+    def test_attestation_get_powhsm_attestation_envelope_msg_differ(self, from_jsonfile,
+                                                                    get_hsm, *_):
+        self.setupMocks(from_jsonfile, get_hsm)
+        hsm = get_hsm.return_value
+        hsm.get_powhsm_attestation.return_value["envelope"] = "11"*32
+        hsm.get_powhsm_attestation.return_value["message"] = "22"*32
+        options = self.setupDefaultOptions()
+        with patch('builtins.open', mock_open()) as file_mock:
+            with self.assertRaises(AdminError):
+                do_attestation(options)
+        self.assertTrue(from_jsonfile.called)
+        self.assertTrue(get_hsm.called)
+        self.assertFalse(file_mock.return_value.write.called)
+
+    @patch("admin.ledger_attestation.HSMCertificate.add_element")
     def test_attestation_add_element_error(self, add_element, from_jsonfile, get_hsm, *_):
         self.setupMocks(from_jsonfile, get_hsm)
         add_element.side_effect = Exception()
@@ -298,7 +258,7 @@ class TestAttestation(TestCase):
         self.assertTrue(get_hsm.called)
         self.assertFalse(file_mock.return_value.write.called)
 
-    @patch("admin.attestation.HSMCertificate.add_target")
+    @patch("admin.ledger_attestation.HSMCertificate.add_target")
     def test_attestation_add_target_error(self, add_target, from_jsonfile, get_hsm, *_):
         self.setupMocks(from_jsonfile, get_hsm)
         add_target.side_effect = ValueError()
@@ -310,7 +270,7 @@ class TestAttestation(TestCase):
         self.assertTrue(get_hsm.called)
         self.assertFalse(file_mock.return_value.write.called)
 
-    @patch("admin.attestation.HSMCertificate.save_to_jsonfile")
+    @patch("admin.ledger_attestation.HSMCertificate.save_to_jsonfile")
     def test_attestation_save_to_jsonfile_error(self,
                                                 save_to_jsonfile,
                                                 from_jsonfile,

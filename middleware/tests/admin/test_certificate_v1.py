@@ -26,10 +26,10 @@ import secp256k1 as ec
 
 from unittest import TestCase
 from unittest.mock import call, patch, mock_open
-from admin.certificate import HSMCertificate, HSMCertificateElement
+from admin.certificate import HSMCertificate, HSMCertificateRoot, HSMCertificateElement
 
 
-class TestCertificate(TestCase):
+class TestHSMCertificate(TestCase):
     def test_create_valid_certificate_ok(self):
         cert = HSMCertificate({
             "version": 1,
@@ -155,7 +155,7 @@ class TestCertificate(TestCase):
                 "targets": ["attestation", "device"]
             })
 
-    @patch('admin.certificate.HSMCertificateElement')
+    @patch('admin.certificate_v1.HSMCertificate.ELEMENT_FACTORY')
     def test_create_certificate_invalid_element(self, certElementMock):
         certElementMock.side_effect = ValueError()
         with self.assertRaises(ValueError):
@@ -240,6 +240,7 @@ class TestCertificate(TestCase):
     def test_validate_and_get_values_ok(self):
         root_privkey = ec.PrivateKey()
         root_pubkey = root_privkey.pubkey.serialize(compressed=False).hex()
+        root_of_trust = HSMCertificateRoot(root_pubkey)
         device_privkey = ec.PrivateKey()
         device_pubkey = device_privkey.pubkey.serialize(compressed=False).hex()
         att_pubkey = ec.PrivateKey().pubkey.serialize(compressed=False).hex()
@@ -273,48 +274,12 @@ class TestCertificate(TestCase):
         self.assertEqual({
             'attestation': (True, att_pubkey, None),
             'device': (True, device_pubkey, None)
-        }, cert.validate_and_get_values(root_pubkey))
-
-    def test_create_and_get_values_invalid_pubkey(self):
-        root_privkey = ec.PrivateKey()
-        device_privkey = ec.PrivateKey()
-        device_pubkey = device_privkey.pubkey.serialize(compressed=False).hex()
-        att_pubkey = ec.PrivateKey().pubkey.serialize(compressed=False).hex()
-
-        att_msg = 'ff' + att_pubkey
-        att_sig = device_privkey.ecdsa_serialize(
-            device_privkey.ecdsa_sign(bytes.fromhex(att_msg))).hex()
-
-        device_msg = os.urandom(16).hex() + device_pubkey
-        device_sig = root_privkey.ecdsa_serialize(
-            root_privkey.ecdsa_sign(bytes.fromhex(device_msg))).hex()
-
-        cert = HSMCertificate({
-            "version": 1,
-            "targets": ["attestation", "device"],
-            "elements": [
-                {
-                    "name": "attestation",
-                    "message": att_msg,
-                    "signature": att_sig,
-                    "signed_by": "device"
-                },
-                {
-                    "name": "device",
-                    "message": device_msg,
-                    "signature": device_sig,
-                    "signed_by": "root"
-                }]
-        })
-
-        self.assertEqual({
-            'attestation': (False, 'root'),
-            'device': (False, 'root')
-        }, cert.validate_and_get_values('invalid-pubkey'))
+        }, cert.validate_and_get_values(root_of_trust))
 
     def test_validate_and_get_values_invalid_element(self):
         root_privkey = ec.PrivateKey()
         root_pubkey = root_privkey.pubkey.serialize(compressed=False).hex()
+        root_of_trust = HSMCertificateRoot(root_pubkey)
         device_privkey = ec.PrivateKey()
         device_pubkey = device_privkey.pubkey.serialize(compressed=False).hex()
         att_pubkey = ec.PrivateKey().pubkey.serialize(compressed=False).hex()
@@ -347,7 +312,7 @@ class TestCertificate(TestCase):
         self.assertEqual({
             'attestation': (False, 'attestation'),
             'device': (True, device_pubkey, None)
-        }, cert.validate_and_get_values(root_pubkey))
+        }, cert.validate_and_get_values(root_of_trust))
 
     def test_validate_and_get_values_invalid_elements(self):
         att_privkey = ec.PrivateKey()

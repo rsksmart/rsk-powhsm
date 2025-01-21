@@ -20,19 +20,19 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import json
-import hashlib
-import secp256k1 as ec
 import re
 from .misc import info, head, AdminError
+from .attestation_utils import PowHsmAttestationMessage, load_pubkeys, \
+                               compute_pubkeys_hash, compute_pubkeys_output
 from .utils import is_nonempty_hex_string
-from .certificate import HSMCertificate
+from .certificate import HSMCertificate, HSMCertificateRoot
 
 
-UI_MESSAGE_HEADER_REGEX = re.compile(b"^HSM:UI:(5.[0-9])")
-SIGNER_MESSAGE_HEADER_REGEX = re.compile(b"^HSM:SIGNER:(5.[0-9])")
+UI_MESSAGE_HEADER_REGEX = re.compile(b"^HSM:UI:([2,3,4,5].[0-9])")
+SIGNER_LEGACY_MESSAGE_HEADER_REGEX = re.compile(b"^HSM:SIGNER:([2,3,4,5].[0-9])")
 UI_DERIVATION_PATH = "m/44'/0'/0'/0/0"
 UD_VALUE_LENGTH = 32
+PUBLIC_KEYS_HASH_LENGTH = 32
 PUBKEY_COMPRESSED_LENGTH = 33
 SIGNER_HASH_LENGTH = 32
 SIGNER_ITERATION_LENGTH = 2
@@ -44,14 +44,6 @@ SIGNER_ITERATION_LENGTH = 2
 DEFAULT_ROOT_AUTHORITY = "0490f5c9d15a0134bb019d2afd0bf297149738459706e7ac5be4abc350a1f8"\
                          "18057224fce12ec9a65de18ec34d6e8c24db927835ea1692b14c32e9836a75"\
                          "dad609"
-
-
-def match_ui_message_header(ui_message):
-    return UI_MESSAGE_HEADER_REGEX.match(ui_message)
-
-
-def match_signer_message_header(signer_message):
-    return SIGNER_MESSAGE_HEADER_REGEX.match(signer_message)
 
 
 def do_verify_attestation(options):
@@ -68,47 +60,24 @@ def do_verify_attestation(options):
         if not is_nonempty_hex_string(options.root_authority):
             raise AdminError("Invalid root authority")
         root_authority = options.root_authority
+    try:
+        root_authority = HSMCertificateRoot(root_authority)
+    except ValueError:
+        raise AdminError("Invalid root authority")
     info(f"Using {root_authority} as root authority")
 
-    # Load the given public keys and compute
-    # their hash (sha256sum of the uncompressed
-    # public keys in lexicographical path order)
-    # Also find and save the public key corresponding
-    # to the expected derivation path for the UI
-    # attestation
-    expected_ui_public_key = None
-    try:
-        with open(options.pubkeys_file_path, "r") as file:
-            pubkeys_map = json.loads(file.read())
+    # Load public keys, compute their hash and format them for output
+    pubkeys_map = load_pubkeys(options.pubkeys_file_path)
+    pubkeys_hash = compute_pubkeys_hash(pubkeys_map)
+    pubkeys_output = compute_pubkeys_output(pubkeys_map)
 
-        if type(pubkeys_map) != dict:
-            raise ValueError(
-                "Public keys file must contain an object as a top level element")
-
-        pubkeys_hash = hashlib.sha256()
-        pubkeys_output = []
-        path_name_padding = max(map(len, pubkeys_map.keys()))
-        for path in sorted(pubkeys_map.keys()):
-            pubkey = pubkeys_map[path]
-            if not is_nonempty_hex_string(pubkey):
-                raise AdminError(f"Invalid public key for path {path}: {pubkey}")
-            pubkey = ec.PublicKey(bytes.fromhex(pubkey), raw=True)
-            pubkeys_hash.update(pubkey.serialize(compressed=False))
-            pubkeys_output.append(
-                f"{(path + ':').ljust(path_name_padding+1)} "
-                f"{pubkey.serialize(compressed=True).hex()}"
-            )
-            if path == UI_DERIVATION_PATH:
-                expected_ui_public_key = pubkey.serialize(compressed=True).hex()
-        pubkeys_hash = pubkeys_hash.digest()
-
-    except (ValueError, json.JSONDecodeError) as e:
-        raise ValueError('Unable to read public keys from "%s": %s' %
-                         (options.pubkeys_file_path, str(e)))
-
+    # Find the expected UI public key
+    expected_ui_public_key = next(filter(
+        lambda pair: pair[0] == UI_DERIVATION_PATH, pubkeys_map.items()), (None, None))[1]
     if expected_ui_public_key is None:
         raise AdminError(
             f"Public key with path {UI_DERIVATION_PATH} not present in public key file")
+    expected_ui_public_key = expected_ui_public_key.serialize(compressed=True).hex()
 
     # Load the given attestation key certificate
     try:
@@ -130,7 +99,7 @@ def do_verify_attestation(options):
 
     ui_message = bytes.fromhex(ui_result[1])
     ui_hash = bytes.fromhex(ui_result[2])
-    mh_match = match_ui_message_header(ui_message)
+    mh_match = UI_MESSAGE_HEADER_REGEX.match(ui_message)
     if mh_match is None:
         raise AdminError(
             f"Invalid UI attestation message header: {ui_message.hex()}")
@@ -149,6 +118,10 @@ def do_verify_attestation(options):
                                   mh_len + UD_VALUE_LENGTH + PUBKEY_COMPRESSED_LENGTH +
                                   SIGNER_HASH_LENGTH + SIGNER_ITERATION_LENGTH]
     signer_iteration = int.from_bytes(signer_iteration, byteorder='big', signed=False)
+
+    if ui_public_key != expected_ui_public_key:
+        raise AdminError("Invalid UI attestation: unexpected public key reported. "
+                         f"Expected {expected_ui_public_key} but got {ui_public_key}")
 
     head(
         [
@@ -174,26 +147,55 @@ def do_verify_attestation(options):
 
     signer_message = bytes.fromhex(signer_result[1])
     signer_hash = bytes.fromhex(signer_result[2])
-    mh_match = match_signer_message_header(signer_message)
-    if mh_match is None:
+    lmh_match = SIGNER_LEGACY_MESSAGE_HEADER_REGEX.match(signer_message)
+    if lmh_match is None and not PowHsmAttestationMessage.is_header(signer_message):
         raise AdminError(
             f"Invalid Signer attestation message header: {signer_message.hex()}")
 
-    mh_len = len(mh_match.group(0))
-    if signer_message[mh_len:] != pubkeys_hash:
-        reported = signer_message[mh_len:].hex()
+    if lmh_match is not None:
+        # Legacy header
+        powhsm_message = None
+        hlen = len(lmh_match.group(0))
+        signer_version = lmh_match.group(1).decode()
+        offset = hlen
+        reported_pubkeys_hash = signer_message[offset:]
+        offset += PUBLIC_KEYS_HASH_LENGTH
+        if signer_message[offset:] != b'':
+            raise AdminError(f"Signer attestation message longer "
+                             f"than expected: {signer_message.hex()}")
+    else:
+        # New header
+        try:
+            powhsm_message = PowHsmAttestationMessage(signer_message, name="Signer")
+        except ValueError as e:
+            raise AdminError(str(e))
+        signer_version = powhsm_message.version
+        reported_pubkeys_hash = powhsm_message.public_keys_hash
+
+    # Validations on extracted values
+    if reported_pubkeys_hash != pubkeys_hash:
         raise AdminError(
             f"Signer attestation public keys hash mismatch: expected {pubkeys_hash.hex()}"
-            f" but attestation reports {reported}"
+            f" but attestation reports {reported_pubkeys_hash.hex()}"
         )
 
-    signer_version = mh_match.group(1)
+    signer_info = [
+        f"Hash: {pubkeys_hash.hex()}",
+        "",
+        f"Installed Signer hash: {signer_hash.hex()}",
+        f"Installed Signer version: {signer_version}",
+    ]
+
+    if powhsm_message is not None:
+        signer_info += [
+            f"Platform: {powhsm_message.platform}",
+            f"UD value: {powhsm_message.ud_value.hex()}",
+            f"Best block: {powhsm_message.best_block.hex()}",
+            f"Last transaction signed: {powhsm_message.last_signed_tx.hex()}",
+            f"Timestamp: {powhsm_message.timestamp}",
+        ]
+
     head(
-        ["Signer verified with public keys:"] + pubkeys_output + [
-            "",
-            f"Hash: {signer_message[mh_len:].hex()}",
-            f"Installed Signer hash: {signer_hash.hex()}",
-            f"Installed Signer version: {signer_version.decode()}",
-        ],
+        ["Signer verified with public keys:"] + pubkeys_output + signer_info,
         fill="-",
     )

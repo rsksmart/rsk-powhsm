@@ -28,7 +28,7 @@ import hid
 from .signature import HSM2DongleSignature
 from .version import HSM2FirmwareVersion
 from .parameters import HSM2FirmwareParameters
-from .hsm2dongle_cmds import HSM2SignerHeartbeat, HSM2UIHeartbeat
+from .hsm2dongle_cmds import HSM2SignerHeartbeat, HSM2UIHeartbeat, PowHsmAttestation
 from .block_utils import (
     rlp_mm_payload_size,
     remove_mm_fields_if_present,
@@ -63,7 +63,6 @@ class _Command(IntEnum):
     SEED = 0x44
     WIPE = 0x07
     UI_ATT = 0x50
-    SIGNER_ATT = 0x50
     SIGNER_AUTH = 0x51
     RETRIES = 0x45
 
@@ -118,13 +117,6 @@ class _UIAttestationOps(IntEnum):
     OP_APP_HASH = 0x04
 
 
-# Signer attestation OPs
-class _SignerAttestationOps(IntEnum):
-    OP_GET = 0x01
-    OP_GET_MESSAGE = 0x02
-    OP_APP_HASH = 0x03
-
-
 # Signer authorization OPs (and results)
 class _SignerAuthorizationOps(IntEnum):
     OP_SIGVER = 0x01
@@ -141,7 +133,6 @@ class _Ops:
     ADVANCE = _AdvanceOps
     UPD_ANCESTOR = _UpdateAncestorOps
     UI_ATT = _UIAttestationOps
-    SIGNER_ATT = _SignerAttestationOps
     SIGNER_AUTH = _SignerAuthorizationOps
 
 
@@ -251,11 +242,6 @@ class _UIAttestationError(IntEnum):
     INTERNAL = 0x6A99
 
 
-class _SignerAttestationError(IntEnum):
-    PROT_INVALID = 0x6B00
-    INTERNAL = 0x6B01
-
-
 class _SignerAuthorizationError(IntEnum):
     PROT_INVALID = 0x6A01
     INVALID_ITERATION = 0x6a03
@@ -271,7 +257,6 @@ class _Error:
     UPD_ANCESTOR = _AdvanceUpdateError
     UI = _UIError
     UI_ATT = _UIAttestationError
-    SIGNER_ATT = _SignerAttestationError
     SIGNER_AUTH = _SignerAuthorizationError
 
     # Whether a given code is in the
@@ -1111,27 +1096,8 @@ class HSM2Dongle:
             "signature": attestation.hex(),
         }
 
-    def get_signer_attestation(self):
-        # Get signer hash
-        signer_hash = self._send_command(
-            self.CMD.SIGNER_ATT, bytes([self.OP.SIGNER_ATT.OP_APP_HASH])
-        )[self.OFF.DATA:]
-
-        # Retrieve attestation
-        attestation = self._send_command(
-            self.CMD.SIGNER_ATT, bytes([self.OP.SIGNER_ATT.OP_GET])
-        )[self.OFF.DATA:]
-
-        # Retrieve message
-        message = self._send_command(
-            self.CMD.SIGNER_ATT, bytes([self.OP.SIGNER_ATT.OP_GET_MESSAGE])
-        )[self.OFF.DATA:]
-
-        return {
-            "app_hash": signer_hash.hex(),
-            "message": message.hex(),
-            "signature": attestation.hex(),
-        }
+    def get_powhsm_attestation(self, ud_value_hex):
+        return PowHsmAttestation(self).run(ud_value_hex)
 
     def get_signer_heartbeat(self, ud_value):
         return HSM2SignerHeartbeat(self).run(ud_value)

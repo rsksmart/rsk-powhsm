@@ -47,6 +47,7 @@
 
 // HAL includes
 #include "hal/communication.h"
+#include "hal/endorsement.h"
 
 // The interval between two subsequent ticker events in milliseconds. This is
 // assumed to be 100ms according to the nanos-secure-sdk documentation.
@@ -192,6 +193,7 @@ __attribute__((section(".boot"))) int main(int argc, char **argv) {
 
             // HAL modules initialization
             communication_init(G_io_apdu_buffer, sizeof(G_io_apdu_buffer));
+            endorsement_init();
 
             // HSM context initialization
             hsm_init();
