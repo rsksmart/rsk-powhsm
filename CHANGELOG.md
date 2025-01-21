@@ -1,36 +1,24 @@
 # Changelog
 
-## [5.3.2 ALPHA] - 04/12/2024
+## [5.2.2] - 20/01/2025
 
 ### Features/enhancements
 
-- SGX distribution: installing powHSM as a system service
+- Implemented OSSF scorecard on CI
 
 ### Fixes
 
-- Fixed code coverage report
+- Fixed middleware docker image build
+- Fixed minor scorecard findings
+- Bumped debian, aflplusplus docker images
+- Bumpled GH actions codeql, upload-artifact
 
-## [5.3.1 ALPHA] - 14/11/2024
-
-### Fixes
-
-- Fixed failing middleware docker image build
-
-## [5.3.0 ALPHA] - 23/10/2024
-
-### Features/enhancements
-
-- SGX powHSM inital implementation
-- SGX simulation build
-- SGX middleware manager
-- SGX middleware admin tooling
-- SGX distribution scripts
-- SGX tests
-- SGX documentation
+## [5.2.1] - 14/11/2024
 
 ### Fixes
 
 - Removed compilation products from repository
+- Fixed failing middleware docker image build
 
 ## [5.2.0] - 09/09/2024
 

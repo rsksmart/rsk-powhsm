@@ -1,0 +1,19 @@
+version: 2
+updates:
+  # Maintain dependencies for GitHub Actions
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: daily
+
+  # Maintain dependencies for Docker
+  - package-ecosystem: docker
+    directories:
+      - "docker/afl"
+      - "docker/ledger"
+      - "docker/mware"
+      - "docker/packer"
+      - "dist"
+      - "utils/tcpsigner-bundle/dist/"
+    schedule:
+      interval: daily
