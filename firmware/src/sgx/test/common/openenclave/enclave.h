@@ -22,45 +22,6 @@
  * IN THE SOFTWARE.
  */
 
-#include <stdio.h>
-#include <stdarg.h>
+#include <stdbool.h>
 
-#include "log.h"
-
-static char *log_prefix = (char *)NULL;
-
-void LOG(const char *format, ...) {
-    va_list args;
-    va_start(args, format);
-
-    if (log_prefix) {
-        printf("%s", log_prefix);
-    }
-    vprintf(format, args);
-
-    va_end(args);
-}
-
-void LOG_HEX(const char *prefix, const void *buffer, const size_t size) {
-    if (log_prefix) {
-        printf("%s", log_prefix);
-    }
-    printf("%s ", prefix);
-    if (size > 0) {
-        printf("0x");
-        for (unsigned int i = 0; i < size; i++) {
-            printf("%02x", ((unsigned char *)buffer)[i]);
-        }
-    } else {
-        printf("EMPTY");
-    }
-    printf("\n");
-}
-
-void log_set_prefix(const char *prefix) {
-    log_prefix = (char *)prefix;
-}
-
-void log_clear_prefix() {
-    log_prefix = (char *)NULL;
-}
+bool oe_is_outside_enclave(const void *ptr, size_t size);

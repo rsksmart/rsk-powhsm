@@ -45,8 +45,7 @@
 static struct argp_option options[] = {
     {"bind", 'b', "ADDRESS", 0, "Address to bind to", 0},
     {"port", 'p', "PORT", 0, "Port to listen on", 0},
-    {0}
-};
+    {0}};
 
 // Argument definitions for argp
 struct arguments {
@@ -91,7 +90,9 @@ static struct argp argp = {
     parse_opt,
     "ENCLAVE_PATH",
     "SGX powHSM",
-    NULL, NULL, NULL,
+    NULL,
+    NULL,
+    NULL,
 };
 
 static void finalise_with(int exit_code) {
@@ -102,7 +103,9 @@ static void finalise_with(int exit_code) {
     exit(exit_code);
 }
 
-static void finalise() {
+static void finalise(int signum) {
+    (void)signum; // Suppress unused parameter warning
+
     finalise_with(0);
 }
 

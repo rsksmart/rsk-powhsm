@@ -42,6 +42,12 @@ SCRIPTS_DIR=$ROOT_DIR/scripts
 # Directory where the finalized systemd service unit will be saved
 SERVICE_DIR=$ROOT_DIR/service
 
+# HSM scripts directory
+SCRIPTS_DIR=$ROOT_DIR/scripts
+
+# Directory where the finalized systemd service unit will be saved
+SERVICE_DIR=$ROOT_DIR/service
+
 function checkHsmBinaries() {
     # Check for HSM binary files
     FILES="$HSMBIN_DIR/hsmsgx $HSMBIN_DIR/hsmsgx_enclave.signed"

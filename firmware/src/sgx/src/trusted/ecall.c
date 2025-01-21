@@ -50,4 +50,3 @@ unsigned int ecall_system_process_apdu(unsigned int rx) {
     SYNC_RELEASE_LOCK();
     return result;
 }
-
