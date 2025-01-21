@@ -1,5 +1,15 @@
 # Changelog
 
+## [5.3.2 ALPHA] - 04/12/2024
+
+### Features/enhancements
+
+- SGX distribution: installing powHSM as a system service
+
+### Fixes
+
+- Fixed code coverage report
+
 ## [5.3.1 ALPHA] - 14/11/2024
 
 ### Fixes

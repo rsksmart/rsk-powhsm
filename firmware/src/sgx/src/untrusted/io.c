@@ -43,6 +43,13 @@ int serverfd;
 int connfd;
 struct sockaddr_in servaddr, cliaddr;
 
+static void close_and_reset_fd(int *fd) {
+    if (fd && (*fd != -1)) {
+        close(*fd);
+        *fd = -1;
+    }
+}
+
 static int start_server(int port, const char *host) {
     int sockfd;
     struct hostent *hostinfo;
@@ -50,14 +57,14 @@ static int start_server(int port, const char *host) {
 
     if (hostinfo == NULL) {
         LOG("Host not found.\n");
-        return 0;
+        return -1;
     }
 
     // socket create and verification
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd == -1) {
         LOG("Socket creation failed...\n");
-        return 0;
+        return -1;
     }
 
     explicit_bzero(&servaddr, sizeof(servaddr));
@@ -65,12 +72,12 @@ static int start_server(int port, const char *host) {
     if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) <
         0) {
         LOG("Socket option setting failed failed\n");
-        return 0;
+        return -1;
     }
 
     if (setsockopt(sockfd, SOL_TCP, TCP_NODELAY, &(int){1}, sizeof(int)) < 0) {
         LOG("Socket option setting failed failed\n");
-        return 0;
+        return -1;
     }
 
     // Set address and port
@@ -81,13 +88,13 @@ static int start_server(int port, const char *host) {
     // Binding newly created socket to given IP and verification
     if ((bind(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr))) != 0) {
         LOG("Socket bind failed...\n");
-        return 0;
+        return -1;
     }
 
     // Now server is ready to listen and verification
     if ((listen(sockfd, 5)) != 0) {
         LOG("Listen failed...\n");
-        return 0;
+        return -1;
     }
 
     LOG("Server listening...\n");
@@ -107,20 +114,14 @@ static bool accept_connection() {
 }
 
 bool io_init(int port, const char *host) {
-    connfd = 0;
+    connfd = -1;
     serverfd = start_server(port, host);
-    return serverfd;
+    return (serverfd != -1);
 }
 
 void io_finalise() {
-    if (connfd) {
-        close(connfd);
-        connfd = 0;
-    }
-    if (serverfd) {
-        close(serverfd);
-        serverfd = 0;
-    }
+    close_and_reset_fd(&connfd);
+    close_and_reset_fd(&serverfd);
 }
 
 unsigned short io_exchange(unsigned short tx) {
@@ -129,7 +130,7 @@ unsigned short io_exchange(unsigned short tx) {
     int readlen;
 
     while (true) {
-        if (!connfd) {
+        if (connfd == -1) {
             if (!accept_connection()) {
                 LOG("Error accepting client connection\n");
                 return 0;
@@ -146,13 +147,13 @@ unsigned short io_exchange(unsigned short tx) {
             tx_net = htonl(tx_net);
             if (send(connfd, &tx_net, sizeof(tx_net), MSG_NOSIGNAL) == -1) {
                 LOG("Connection closed by the client\n");
-                connfd = 0;
+                close_and_reset_fd(&connfd);
                 continue;
             }
             // Write APDU
             if (send(connfd, io_apdu_buffer, tx, MSG_NOSIGNAL) == -1) {
                 LOG("Connection closed by the client\n");
-                connfd = 0;
+                close_and_reset_fd(&connfd);
                 continue;
             }
             LOG_HEX("I/O =>", io_apdu_buffer, tx);
@@ -172,8 +173,7 @@ unsigned short io_exchange(unsigned short tx) {
                         "Disconnected\n",
                         readlen,
                         rx);
-                    close(connfd);
-                    connfd = 0;
+                    close_and_reset_fd(&connfd);
                     continue;
                 }
                 LOG_HEX("I/O <=", io_apdu_buffer, rx);
@@ -196,7 +196,6 @@ unsigned short io_exchange(unsigned short tx) {
                 readlen,
                 sizeof(rx_net));
         }
-        close(connfd);
-        connfd = 0;
+        close_and_reset_fd(&connfd);
     }
 }

@@ -65,6 +65,7 @@ typedef struct mock_calls_counter {
     int nvmem_init_count;
     int nvmem_register_block_count;
     int sest_init_count;
+    int oe_is_outside_enclave_count;
 } mock_calls_counter_t;
 
 typedef struct nvmem_register_block_args {
@@ -107,6 +108,7 @@ typedef struct mock_force_fail {
     bool endorsement_init;
     bool nvmem_register_block;
     bool sest_init;
+    bool oe_is_outside_enclave;
 } mock_force_fail_t;
 
 typedef struct mock_data {
@@ -167,6 +169,11 @@ try_context_t* G_try_last_open_context = &G_try_last_open_context_var;
 unsigned char G_io_apdu_buffer[IO_APDU_BUFFER_SIZE];
 
 // Mock implementation of dependencies
+bool oe_is_outside_enclave(const void* ptr, size_t size) {
+    MOCK_CALL(oe_is_outside_enclave);
+    return true;
+}
+
 void hsm_init() {
     NUM_CALLS(hsm_init)++;
 }
@@ -356,6 +363,7 @@ void test_init_success() {
     printf("Test system_init success...\n");
 
     assert(system_init(G_io_apdu_buffer, sizeof(G_io_apdu_buffer)));
+    assert(NUM_CALLS(oe_is_outside_enclave) == 1);
     assert(NUM_CALLS(sest_init) == 1);
     assert(NUM_CALLS(access_init) == 1);
     assert(NUM_CALLS(seed_init) == 1);
@@ -386,6 +394,23 @@ void test_init_fails_invalid_buf_size() {
     printf("Test system_init fails with invalid buffer size...\n");
 
     assert(!system_init(G_io_apdu_buffer, sizeof(G_io_apdu_buffer) - 1));
+    ASSERT_NOT_CALLED(oe_is_outside_enclave);
+    ASSERT_NOT_CALLED(sest_init);
+    ASSERT_NOT_CALLED(access_init);
+    ASSERT_NOT_CALLED(seed_init);
+    ASSERT_NOT_CALLED(communication_init);
+    ASSERT_NOT_CALLED(endorsement_init);
+    ASSERT_NOT_CALLED(nvmem_init);
+    teardown();
+}
+
+void test_init_fails_invalid_buf_memarea() {
+    setup();
+    printf("Test system_init fails with invalid buffer memory area...\n");
+
+    FORCE_FAIL(oe_is_outside_enclave, true);
+    assert(!system_init(G_io_apdu_buffer, sizeof(G_io_apdu_buffer)));
+    assert(NUM_CALLS(oe_is_outside_enclave) == 1);
     ASSERT_NOT_CALLED(sest_init);
     ASSERT_NOT_CALLED(access_init);
     ASSERT_NOT_CALLED(seed_init);
@@ -401,6 +426,7 @@ void test_init_fails_when_sest_init_fails() {
 
     FORCE_FAIL(sest_init, true);
     assert(!system_init(G_io_apdu_buffer, sizeof(G_io_apdu_buffer)));
+    assert(NUM_CALLS(oe_is_outside_enclave) == 1);
     assert(NUM_CALLS(sest_init) == 1);
     ASSERT_NOT_CALLED(access_init);
     ASSERT_NOT_CALLED(seed_init);
@@ -416,6 +442,7 @@ void test_init_fails_when_access_init_fails() {
 
     FORCE_FAIL(access_init, true);
     assert(!system_init(G_io_apdu_buffer, sizeof(G_io_apdu_buffer)));
+    assert(NUM_CALLS(oe_is_outside_enclave) == 1);
     assert(NUM_CALLS(sest_init) == 1);
     assert(NUM_CALLS(access_init) == 1);
     ASSERT_NOT_CALLED(seed_init);
@@ -431,6 +458,7 @@ void test_init_fails_when_seed_init_fails() {
 
     FORCE_FAIL(seed_init, true);
     assert(!system_init(G_io_apdu_buffer, sizeof(G_io_apdu_buffer)));
+    assert(NUM_CALLS(oe_is_outside_enclave) == 1);
     assert(NUM_CALLS(sest_init) == 1);
     assert(NUM_CALLS(access_init) == 1);
     assert(NUM_CALLS(seed_init) == 1);
@@ -446,6 +474,7 @@ void test_init_fails_when_communication_init_fails() {
 
     FORCE_FAIL(communication_init, true);
     assert(!system_init(G_io_apdu_buffer, sizeof(G_io_apdu_buffer)));
+    assert(NUM_CALLS(oe_is_outside_enclave) == 1);
     assert(NUM_CALLS(sest_init) == 1);
     assert(NUM_CALLS(access_init) == 1);
     assert(NUM_CALLS(seed_init) == 1);
@@ -461,6 +490,7 @@ void test_init_fails_when_endorsement_init_fails() {
 
     FORCE_FAIL(endorsement_init, true);
     assert(!system_init(G_io_apdu_buffer, sizeof(G_io_apdu_buffer)));
+    assert(NUM_CALLS(oe_is_outside_enclave) == 1);
     assert(NUM_CALLS(sest_init) == 1);
     assert(NUM_CALLS(access_init) == 1);
     assert(NUM_CALLS(seed_init) == 1);
@@ -476,7 +506,7 @@ void test_init_fails_when_nvmem_register_block_fails() {
 
     FORCE_NVMEM_FAIL_ON_KEY("bcstate");
     assert(!system_init(G_io_apdu_buffer, sizeof(G_io_apdu_buffer)));
-    assert(NUM_CALLS(sest_init) == 1);
+    assert(NUM_CALLS(oe_is_outside_enclave) == 1);
     assert(NUM_CALLS(sest_init) == 1);
     assert(NUM_CALLS(access_init) == 1);
     assert(NUM_CALLS(seed_init) == 1);
@@ -492,6 +522,8 @@ void test_init_fails_when_nvmem_register_block_fails() {
 
     FORCE_NVMEM_FAIL_ON_KEY("bcstate_updating");
     assert(!system_init(G_io_apdu_buffer, sizeof(G_io_apdu_buffer)));
+    assert(NUM_CALLS(oe_is_outside_enclave) == 2);
+    assert(NUM_CALLS(sest_init) == 2);
     assert(NUM_CALLS(access_init) == 2);
     assert(NUM_CALLS(seed_init) == 2);
     assert(NUM_CALLS(communication_init) == 2);
@@ -518,6 +550,7 @@ void test_init_fails_when_nvmem_load_fails() {
 
     FORCE_FAIL(nvmem_load, true);
     assert(!system_init(G_io_apdu_buffer, sizeof(G_io_apdu_buffer)));
+    assert(NUM_CALLS(oe_is_outside_enclave) == 1);
     assert(NUM_CALLS(sest_init) == 1);
     assert(NUM_CALLS(access_init) == 1);
     assert(NUM_CALLS(seed_init) == 1);
@@ -990,6 +1023,7 @@ void test_invalid_cmd_not_handled() {
 int main() {
     test_init_success();
     test_init_fails_invalid_buf_size();
+    test_init_fails_invalid_buf_memarea();
     test_init_fails_when_sest_init_fails();
     test_init_fails_when_access_init_fails();
     test_init_fails_when_seed_init_fails();

@@ -43,10 +43,10 @@ void LOG_HEX(const char *prefix, const void *buffer, const size_t size);
 
 /**
  * @brief Set a prefix for all logs
- * 
+ *
  * @param prefix the prefix to use for logs
  */
-void log_set_prefix(const char* prefix);
+void log_set_prefix(const char *prefix);
 
 /**
  * @brief Clear any prefix set for logs

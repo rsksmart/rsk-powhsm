@@ -25,42 +25,45 @@
 #ifndef __KEYVALUE_STORE_H
 #define __KEYVALUE_STORE_H
 
+#include <stdbool.h>
+#include <stdint.h>
+
 /**
  * @brief Tell whether a given key currently exists
- * 
+ *
  * @param key the key to check for
- * 
+ *
  * @returns whether the key exists
  */
 bool kvstore_exists(char* key);
 
 /**
  * @brief Save the given data to the given key
- * 
+ *
  * @param key the key to save the data to
  * @param data the buffer containing the data to write
  * @param data_size the data size in bytes
- * 
+ *
  * @returns whether saving succeeded
  */
 bool kvstore_save(char* key, uint8_t* data, size_t data_size);
 
 /**
  * @brief Read the given key into the given buffer
- * 
+ *
  * @param key the key to read from
  * @param data_buf the buffer to read the data to
  * @param buffer_size the buffer size in bytes
- * 
+ *
  * @returns the number of bytes read, or ZERO upon error
  */
 size_t kvstore_get(char* key, uint8_t* data_buf, size_t buffer_size);
 
 /**
  * @brief Remove any data associated with the given key
- * 
+ *
  * @param key the key to remove
- * 
+ *
  * @returns whether key removal was successful
  */
 bool kvstore_remove(char* key);

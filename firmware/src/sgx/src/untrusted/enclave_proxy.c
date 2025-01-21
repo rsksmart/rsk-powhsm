@@ -22,8 +22,8 @@
  * ECALLS
  */
 
-bool eprx_system_init(unsigned char *msg_buffer, size_t msg_buffer_size) {
-    oe_enclave_t *enclave = epro_get_enclave();
+bool eprx_system_init(unsigned char* msg_buffer, size_t msg_buffer_size) {
+    oe_enclave_t* enclave = epro_get_enclave();
     if (enclave == NULL) {
         LOG("Failed to retrieve the enclave. "
             "Unable to call system_init().\n");
@@ -31,14 +31,14 @@ bool eprx_system_init(unsigned char *msg_buffer, size_t msg_buffer_size) {
     }
 
     bool result;
-    oe_result_t oe_result = ecall_system_init(enclave, &result,
-                                              msg_buffer, msg_buffer_size);
+    oe_result_t oe_result =
+        ecall_system_init(enclave, &result, msg_buffer, msg_buffer_size);
     CHECK_ECALL_RESULT(oe_result, "Failed to call system_init()", false);
     return result;
 }
 
 void eprx_system_finalise() {
-    oe_enclave_t *enclave = epro_get_enclave();
+    oe_enclave_t* enclave = epro_get_enclave();
     if (enclave == NULL) {
         LOG("Failed to retrieve the enclave. "
             "Unable to call system_finalise().\n");
@@ -48,12 +48,13 @@ void eprx_system_finalise() {
     oe_result_t oe_result = ecall_system_finalise(enclave);
     if (OE_OK != oe_result) {
         LOG("Failed to call system_finalise(): oe_result=%u (%s)\n",
-            oe_result, oe_result_str(oe_result));
+            oe_result,
+            oe_result_str(oe_result));
     }
 }
 
 unsigned int eprx_system_process_apdu(unsigned int rx) {
-    oe_enclave_t *enclave = epro_get_enclave();
+    oe_enclave_t* enclave = epro_get_enclave();
     if (enclave == NULL) {
         LOG("Failed to retrieve the enclave. "
             "Unable to call system_process_command().\n");
@@ -63,7 +64,8 @@ unsigned int eprx_system_process_apdu(unsigned int rx) {
     unsigned int result;
     oe_result_t oe_result = ecall_system_process_apdu(enclave, &result, rx);
 
-    CHECK_ECALL_RESULT(oe_result, "Failed to call ecall_system_process_apdu()", false);
+    CHECK_ECALL_RESULT(
+        oe_result, "Failed to call ecall_system_process_apdu()", false);
     return result;
 }
 
@@ -100,4 +102,3 @@ bool ocall_kvstore_remove(char* key) {
     log_clear_prefix();
     return retval;
 }
-

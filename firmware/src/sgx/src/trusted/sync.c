@@ -28,7 +28,8 @@
 static bool G_locked = false;
 
 bool sync_try_aqcuire_lock() {
-    if (G_locked) return false;
+    if (G_locked)
+        return false;
     G_locked = true;
     return true;
 }
