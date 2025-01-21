@@ -29,16 +29,16 @@
 
 /**
  * @brief Initializes the enclave provider with the given enclave binary path
- * 
+ *
  * @returns Whether initialization succeeded
  */
 bool epro_init(char* enclave_path);
 
 /**
- * @brief Returns a pointer to the HSM enclave. This function should always 
- * return a valid pointer to the enclave, which can be used to perform 
+ * @brief Returns a pointer to the HSM enclave. This function should always
+ * return a valid pointer to the enclave, which can be used to perform
  * ecall operations.
- * 
+ *
  * @returns A valid pointer to the HSM enclave, or NULL if an error occurred
  */
 oe_enclave_t* epro_get_enclave();

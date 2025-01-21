@@ -34,12 +34,12 @@
 extern unsigned char io_apdu_buffer[APDU_BUFFER_SIZE];
 
 /**
- * @brief Initializes the I/O module. Starts a TCP server at the given host and 
+ * @brief Initializes the I/O module. Starts a TCP server at the given host and
  * port.
- * 
+ *
  * @param port the port on which to listen for connections
  * @param host the interface to bind to
- * 
+ *
  */
 bool io_init(int port, const char *host);
 

@@ -35,6 +35,7 @@ echo -e "\e[32mBuilding into \e[93m$DEST_DIR\e[32m with checkpoint \e[93m$CHECKP
 echo -e "\e[33mCopying files and creating directories...\e[0m"
 rm -rf $DEST_DIR
 cp -Rf $ROOT_DIR/dist/ledger $DEST_DIR
+rm $DEST_DIR/.gitignore
 
 rm -rf $FIRMWARE_DIR
 mkdir -p $FIRMWARE_DIR

@@ -23,20 +23,52 @@
  */
 
 #include <sys/stat.h>
-#include "hsm_u.h"
+#include <ctype.h>
+#include <stdio.h>
+#include <string.h>
 #include "log.h"
+#include "keyvalue_store.h"
 
 #define KVSTORE_PREFIX "./kvstore-"
 #define KVSTORE_SUFFIX ".dat"
+#define KVSTORE_MAX_KEY_LEN 150
+
+// Sanitizes a key by allowing only [a-zA-Z0-9]. If one or more invalid
+// characters are found, Replace them with a single hyphen.
+static void sanitize_key(char* key, char* sanitized_key) {
+    if (!key || !sanitized_key)
+        return;
+
+    size_t key_len = strlen(key);
+
+    // Truncate key if it's too long
+    if (key_len > KVSTORE_MAX_KEY_LEN) {
+        key_len = KVSTORE_MAX_KEY_LEN;
+    }
+
+    bool prev_char_valid = false;
+    size_t sanitized_key_len = 0;
+    for (size_t i = 0; i < key_len; i++) {
+        if (isalnum(key[i])) {
+            sanitized_key[sanitized_key_len++] = key[i];
+            prev_char_valid = true;
+        } else if (prev_char_valid) {
+            sanitized_key[sanitized_key_len++] = '-';
+            prev_char_valid = false;
+        }
+    }
+    sanitized_key[sanitized_key_len] = '\0';
+}
 
 static char* filename_for(char* key) {
-    size_t filename_size = strlen(KVSTORE_PREFIX) + 
-                           strlen(KVSTORE_SUFFIX) + 
-                           strlen(key);
-    char* filename = malloc(filename_size+1);
+    char sanitized_key[KVSTORE_MAX_KEY_LEN + 1];
+    sanitize_key(key, sanitized_key);
+    size_t filename_size =
+        strlen(KVSTORE_PREFIX) + strlen(KVSTORE_SUFFIX) + strlen(sanitized_key);
+    char* filename = malloc(filename_size + 1);
     strcpy(filename, "");
     strcat(filename, KVSTORE_PREFIX);
-    strcat(filename, key);
+    strcat(filename, sanitized_key);
     strcat(filename, KVSTORE_SUFFIX);
     return filename;
 }
@@ -45,7 +77,8 @@ static FILE* open_file_for(char* key, char* mode, size_t* file_size) {
     char* filename = filename_for(key);
     struct stat fst;
     stat(filename, &fst);
-    if (file_size) *file_size = fst.st_size;
+    if (file_size)
+        *file_size = fst.st_size;
     FILE* file = fopen(filename, mode);
     free(filename);
     return file;
@@ -64,10 +97,7 @@ bool kvstore_save(char* key, uint8_t* data, size_t data_size) {
         return false;
     }
 
-    if (fwrite(data,
-              sizeof(data[0]),
-              data_size,
-              file) != data_size) {
+    if (fwrite(data, sizeof(data[0]), data_size, file) != data_size) {
         LOG("Error writing secret payload for key <%s>\n", key);
         fclose(file);
         return false;
@@ -109,10 +139,7 @@ size_t kvstore_get(char* key, uint8_t* data_buf, size_t buffer_size) {
         return 0;
     }
 
-    if (fread(data_buf,
-              sizeof(data_buf[0]),
-              file_size,
-              file) != file_size) {
+    if (fread(data_buf, sizeof(data_buf[0]), file_size, file) != file_size) {
         LOG("Could not read payload for key <%s>\n", key);
         fclose(file);
         return 0;
@@ -125,7 +152,8 @@ size_t kvstore_get(char* key, uint8_t* data_buf, size_t buffer_size) {
 bool kvstore_remove(char* key) {
     char* filename = filename_for(key);
     int result = remove(filename);
-    if (result) LOG("Error removing file for key <%s>\n", key);
+    if (result)
+        LOG("Error removing file for key <%s>\n", key);
     free(filename);
     return !result;
 }
