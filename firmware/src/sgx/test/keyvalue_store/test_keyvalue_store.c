@@ -89,24 +89,23 @@ void test_save_retrieve() {
 
     struct {
         char* key;
-        uint8_t* data;
-    } input_data[] = {
-        {"a-key", (uint8_t*)"some piece of data"},
-        {"another-key", (uint8_t*)"another piece of data"},
-        {"yet-another-key", (uint8_t*)"yet another piece of data"},
-        {"the-last-key", (uint8_t*)"the last piece of data"}};
+        char* data;
+    } input_data[] = {{"a-key", "some piece of data"},
+                      {"another-key", "another piece of data"},
+                      {"yet-another-key", "yet another piece of data"},
+                      {"the-last-key", "the last piece of data"}};
     size_t num_inputs = sizeof(input_data) / sizeof(input_data[0]);
 
     for (size_t i = 0; i < num_inputs; i++) {
         save_and_assert_success(input_data[i].key,
-                                input_data[i].data,
-                                strlen((char*)input_data[i].data));
+                                (uint8_t*)input_data[i].data,
+                                strlen(input_data[i].data));
     }
 
     for (size_t i = 0; i < num_inputs; i++) {
         assert_key_value(input_data[i].key,
-                         input_data[i].data,
-                         strlen((char*)input_data[i].data));
+                         (uint8_t*)input_data[i].data,
+                         strlen(input_data[i].data));
     }
 }
 
@@ -116,11 +115,11 @@ void test_kvstore_exists() {
 
     struct {
         char* key;
-        uint8_t* data;
+        char* data;
     } existing_keys[] = {
-        {"first-key", (uint8_t*)"some piece of data"},
-        {"second-key", (uint8_t*)"another piece of data"},
-        {"third-key", (uint8_t*)"yet another piece of data"},
+        {"first-key", "some piece of data"},
+        {"second-key", "another piece of data"},
+        {"third-key", "yet another piece of data"},
     };
     size_t num_existing_keys = sizeof(existing_keys) / sizeof(existing_keys[0]);
 
@@ -134,8 +133,8 @@ void test_kvstore_exists() {
 
     for (size_t i = 0; i < num_existing_keys; i++) {
         save_and_assert_success(existing_keys[i].key,
-                                existing_keys[i].data,
-                                strlen((char*)existing_keys[i].data));
+                                (uint8_t*)existing_keys[i].data,
+                                strlen(existing_keys[i].data));
     }
 
     for (size_t i = 0; i < num_existing_keys; i++) {
@@ -153,23 +152,23 @@ void test_save_remove() {
 
     struct {
         char* key;
-        uint8_t* data;
+        char* data;
         bool remove;
     } input_data[] = {
-        {"first-key", (uint8_t*)"some piece of data", false},
-        {"second-key", (uint8_t*)"another piece of data", true},
-        {"third-key", (uint8_t*)"yet another piece of data", true},
-        {"fourth-key", (uint8_t*)"the last piece of data", false},
+        {"first-key", "some piece of data", false},
+        {"second-key", "another piece of data", true},
+        {"third-key", "yet another piece of data", true},
+        {"fourth-key", "the last piece of data", false},
     };
     size_t num_inputs = sizeof(input_data) / sizeof(input_data[0]);
 
     for (size_t i = 0; i < num_inputs; i++) {
         save_and_assert_success(input_data[i].key,
-                                input_data[i].data,
-                                strlen((char*)input_data[i].data));
+                                (uint8_t*)input_data[i].data,
+                                strlen(input_data[i].data));
         assert_key_value(input_data[i].key,
-                         input_data[i].data,
-                         strlen((char*)input_data[i].data));
+                         (uint8_t*)input_data[i].data,
+                         strlen(input_data[i].data));
     }
 
     // Remove selected keys
@@ -185,8 +184,8 @@ void test_save_remove() {
             assert_key_exists(input_data[i].key, false);
         } else {
             assert_key_value(input_data[i].key,
-                             input_data[i].data,
-                             strlen((char*)input_data[i].data));
+                             (uint8_t*)input_data[i].data,
+                             strlen(input_data[i].data));
         }
     }
 }
@@ -197,7 +196,7 @@ void test_filename() {
 
     struct {
         char* key;
-        uint8_t* data;
+        char* data;
         char* filename;
     } input_data[] = {
         {"first-key", "data for the first key", "kvstore-first-key.dat"},
@@ -232,7 +231,7 @@ void test_sanitize_key() {
     struct {
         char* key;
         char* filename;
-        uint8_t* data;
+        char* data;
     } input_data[] = {
         {"onlyletters", "kvstore-onlyletters.dat", "data1"},
         {"123456", "kvstore-123456.dat", "data2"},
@@ -257,18 +256,20 @@ void test_sanitize_key() {
     // Save data to each key and assert that the file name and contents are
     // correct
     for (size_t i = 0; i < num_inputs; i++) {
-        save_and_assert_success(
-            input_data[i].key, input_data[i].data, strlen(input_data[i].data));
+        save_and_assert_success(input_data[i].key,
+                                (uint8_t*)input_data[i].data,
+                                strlen(input_data[i].data));
         assert_file_exists(input_data[i].filename, true);
         assert_file_contents(input_data[i].filename,
-                             input_data[i].data,
+                             (uint8_t*)input_data[i].data,
                              strlen(input_data[i].data));
     }
 
     // Ensure data can be retrieved with the original key
     for (size_t i = 0; i < num_inputs; i++) {
-        assert_key_value(
-            input_data[i].key, input_data[i].data, strlen(input_data[i].data));
+        assert_key_value(input_data[i].key,
+                         (uint8_t*)input_data[i].data,
+                         strlen(input_data[i].data));
     }
 }
 
