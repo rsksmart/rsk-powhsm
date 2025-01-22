@@ -32,6 +32,7 @@
 #include <netinet/tcp.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/ioctl.h>
 
 #include "hal/log.h"
 #include "hsmsim_io.h"
@@ -238,22 +239,35 @@ static unsigned short io_exchange_server(unsigned short tx) {
 
         // Read APDU length
         // (encoded in 4 bytes network byte-order)
-        // (compatibility with LegerBlue commTCP.py)
+        // (compatibility with LedgerBlue commTCP.py)
         readlen = read(connfd, &rx_net, sizeof(rx_net));
         if (readlen == sizeof(rx_net)) {
             rx = ntohl(rx_net);
             if (rx > 0) {
                 // Read APDU from socket
                 readlen = read(connfd, io_apdu_buffer, sizeof(io_apdu_buffer));
-                if (readlen != rx) {
-                    LOG("Error reading APDU (got %d bytes != %d bytes). "
-                        "Disconnected\n",
-                        readlen,
-                        rx);
+                if (readlen < 0) {
+                    LOG("Error reading APDU. Disconnected\n");
                     connfd = 0;
                     continue;
+                } else if ((unsigned int)readlen != rx) {
+                    LOG("Warning: APDU read length mismatch "
+                        "(got %d bytes, expected %u bytes). "
+                        "Resetting request buffer\n",
+                        readlen,
+                        rx);
+                    // Empty the request buffer
+                    int bytes_available;
+                    char c;
+                    if (ioctl(connfd, FIONREAD, &bytes_available) < 0) {
+                        LOG("Error peeking APDU. Disconnected\n");
+                        connfd = 0;
+                        continue;
+                    }
+                    while (bytes_available--)
+                        read(connfd, &c, 1);
                 }
-                LOG_HEX("Dongle <=", io_apdu_buffer, rx);
+                LOG_HEX("Dongle <=", io_apdu_buffer, readlen);
             } else {
                 // Empty packet
                 LOG("Dongle <= <EMPTY MESSAGE>\n");

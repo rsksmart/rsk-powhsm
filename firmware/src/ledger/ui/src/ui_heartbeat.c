@@ -192,10 +192,10 @@ unsigned int ui_heartbeat_process_apdu(ui_heartbeat_t *ui_heartbeat_ctx,
                                        volatile unsigned int rx) {
     unsigned int tx = 0;
 
-    // no apdu received, well, reset the session, and reset the
-    // bootloader configuration
-    if (rx == 0) {
-        THROW(ERR_EMPTY_BUFFER);
+    // no apdu received, or bigger-than-apdu-buffer bytes received =>
+    // well, reset the session, and reset the heartbeat configuration
+    if (rx == 0 || rx > APDU_TOTAL_SIZE) {
+        THROW(ERR_INVALID_BUFFER);
     }
 
     if (APDU_CLA() != CLA) {

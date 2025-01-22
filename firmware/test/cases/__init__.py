@@ -35,3 +35,4 @@ from .reconnect import ReconnectDongle
 from .nvm_stats import NvmStats
 from .admin_is_onboarded import AdminIsOnboarded
 from .heartbeat import Heartbeat
+from .raw_command import RawCommand

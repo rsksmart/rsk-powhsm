@@ -1,0 +1,7 @@
+{
+    "name": "Empty APDU command fails",
+    "operation": "rawCommand",
+    "command": "",
+    "exception": "0x6982",
+    "runOn": "simulator"
+}

@@ -86,10 +86,10 @@ unsigned int bootloader_process_apdu(volatile unsigned int rx,
                                      bootloader_mode_t mode) {
     unsigned int tx = 0;
 
-    // no apdu received, well, reset the session, and reset the
-    // bootloader configuration
-    if (rx == 0) {
-        THROW(ERR_EMPTY_BUFFER);
+    // no apdu received, or bigger-than-apdu-buffer bytes received =>
+    // well, reset the session, and reset the bootloader configuration
+    if (rx == 0 || rx > APDU_TOTAL_SIZE) {
+        THROW(ERR_INVALID_BUFFER);
     }
 
     if (APDU_CLA() != CLA) {
