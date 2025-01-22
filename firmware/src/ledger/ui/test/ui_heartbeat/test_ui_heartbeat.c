@@ -68,7 +68,7 @@ static const unsigned char MOCK_SIGNER_HASH[] = {
 static sigaut_signer_t M_signer_info;
 
 unsigned int M_io_exchange_call_number;
-unsigned char M_apdu[sizeof(G_io_apdu_buffer)];
+unsigned char M_apdu[sizeof(G_io_apdu_buffer) * 2];
 unsigned short M_apdu_size;
 unsigned int M_txd;
 unsigned short M_last_exception;
@@ -147,7 +147,10 @@ unsigned short io_exchange(unsigned char channel_and_flags,
     assert(0 == channel_and_flags);
     assert(0 == tx_len);
 
-    memcpy(G_io_apdu_buffer, M_apdu, M_apdu_size);
+    memcpy(G_io_apdu_buffer,
+           M_apdu,
+           M_apdu_size > sizeof(G_io_apdu_buffer) ? sizeof(G_io_apdu_buffer)
+                                                  : M_apdu_size);
     return M_apdu_size;
 }
 
@@ -392,6 +395,23 @@ void test_empty_apdu() {
     assert_error(0x6982);
 }
 
+void test_apdu_too_big() {
+    printf("Test APDU too big...\n");
+
+    setup();
+
+    set_mock_apdu(
+        "\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99"
+        "\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99"
+        "\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99"
+        "\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99"
+        "\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99"
+        "\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99\x99");
+    ui_heartbeat_main(&M_wider_context.ui_heartbeat);
+
+    assert_error(0x6982);
+}
+
 void test_invalid_cla() {
     printf("Test invalid CLA...\n");
 
@@ -417,6 +437,7 @@ int main() {
     test_op_pubkey();
     test_op_invalid_op();
     test_empty_apdu();
+    test_apdu_too_big();
     test_invalid_cla();
     return 0;
 }

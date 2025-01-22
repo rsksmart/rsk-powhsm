@@ -593,10 +593,35 @@ void test_empty_buffer() {
     BEGIN_TRY {
         TRY {
             bootloader_process_apdu(rx, G_bootloader_mode);
-            // bootloader_process_apdu should throw ERR_EMPTY_BUFFER
+            // bootloader_process_apdu should throw ERR_INVALID_BUFFER
             ASSERT_FAIL();
         }
-        CATCH(ERR_EMPTY_BUFFER) {
+        CATCH(ERR_INVALID_BUFFER) {
+            return;
+        }
+        CATCH_OTHER(e) {
+            ASSERT_FAIL();
+        }
+        FINALLY {
+        }
+    }
+    END_TRY;
+}
+
+void test_buffer_too_big() {
+    printf("Test buffer too big...\n");
+
+    unsigned int rx;
+    reset_flags();
+    G_bootloader_mode = BOOTLOADER_MODE_DEFAULT;
+    rx = 1000;
+    BEGIN_TRY {
+        TRY {
+            bootloader_process_apdu(rx, G_bootloader_mode);
+            // bootloader_process_apdu should throw ERR_INVALID_BUFFER
+            ASSERT_FAIL();
+        }
+        CATCH(ERR_INVALID_BUFFER) {
             return;
         }
         CATCH_OTHER(e) {
@@ -690,6 +715,7 @@ int main() {
     test_end_nosig();
     test_invalid_command();
     test_empty_buffer();
+    test_buffer_too_big();
     test_no_cla();
     test_onboard_mode();
 

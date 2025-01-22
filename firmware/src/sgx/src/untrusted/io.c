@@ -27,6 +27,7 @@
 #include <unistd.h>
 #include <netdb.h>
 #include <netinet/tcp.h>
+#include <sys/ioctl.h>
 
 #include "io.h"
 #include "log.h"
@@ -168,15 +169,28 @@ unsigned short io_exchange(unsigned short tx) {
             if (rx > 0) {
                 // Read APDU from socket
                 readlen = read(connfd, io_apdu_buffer, sizeof(io_apdu_buffer));
-                if (readlen < 0 || (unsigned int)readlen != rx) {
-                    LOG("Error reading APDU (got %d bytes != %d bytes). "
-                        "Disconnected\n",
-                        readlen,
-                        rx);
+                if (readlen < 0) {
+                    LOG("Error reading APDU. Disconnected\n");
                     close_and_reset_fd(&connfd);
                     continue;
+                } else if ((unsigned int)readlen != rx) {
+                    LOG("Warning: APDU read length mismatch "
+                        "(got %d bytes, expected %u bytes). "
+                        "Resetting request buffer\n",
+                        readlen,
+                        rx);
+                    // Empty the request buffer
+                    int bytes_available;
+                    char c;
+                    if (ioctl(connfd, FIONREAD, &bytes_available) < 0) {
+                        LOG("Error peeking APDU. Disconnected\n");
+                        close_and_reset_fd(&connfd);
+                        continue;
+                    }
+                    while (bytes_available--)
+                        read(connfd, &c, 1);
                 }
-                LOG_HEX("I/O <=", io_apdu_buffer, rx);
+                LOG_HEX("I/O <=", io_apdu_buffer, readlen);
             } else {
                 // Empty packet
                 LOG("I/O <= <EMPTY MESSAGE>\n");

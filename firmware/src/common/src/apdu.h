@@ -88,7 +88,7 @@
 
 // Generic error codes used by both Signer and UI
 typedef enum {
-    ERR_EMPTY_BUFFER = 0x6982,
+    ERR_INVALID_BUFFER = 0x6982,
     ERR_INS_NOT_SUPPORTED = 0x6D00,
     APDU_OK = 0x9000,
 } err_code_generic_t;

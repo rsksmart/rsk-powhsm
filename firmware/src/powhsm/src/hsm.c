@@ -92,9 +92,9 @@ static unsigned int hsm_process_command(volatile unsigned int rx) {
     unsigned int tx = 0;
     uint8_t pubkey_length;
 
-    // No apdu received
-    if (rx == 0) {
-        THROW(ERR_EMPTY_BUFFER);
+    // No apdu received, or bigger-than-apdu-buffer bytes received
+    if (rx == 0 || rx > APDU_TOTAL_SIZE) {
+        THROW(ERR_INVALID_BUFFER);
     }
 
     // Zero out commonly read APDU buffer offsets,
