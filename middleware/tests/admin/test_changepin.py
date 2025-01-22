@@ -25,6 +25,7 @@ from unittest import TestCase
 from unittest.mock import Mock, call, patch
 from admin.changepin import do_changepin
 from admin.misc import AdminError
+from comm.platform import Platform
 from ledger.hsm2dongle import HSM2Dongle
 
 import logging
@@ -48,6 +49,7 @@ class TestChangepin(TestCase):
         }
         self.default_options = SimpleNamespace(**options)
         self.dongle = Mock()
+        Platform.set(Platform.LEDGER)
 
     @patch("admin.changepin.do_unlock")
     def test_changepin(self, do_unlock_mock, get_hsm, _):
@@ -77,7 +79,7 @@ class TestChangepin(TestCase):
         self.assertEqual('Failed to unlock device: unlock-error', str(e.exception))
 
     @patch("admin.changepin.do_unlock")
-    def test_changepin_invalid_mode(self, do_unlock_mock, get_hsm, _):
+    def test_changepin_invalid_mode_ledger(self, do_unlock_mock, get_hsm, _):
         get_hsm.return_value = self.dongle
         self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.SIGNER)
         self.dongle.is_onboarded = Mock(return_value=True)
@@ -89,6 +91,21 @@ class TestChangepin(TestCase):
         self.assertTrue(do_unlock_mock.called)
         self.assertTrue(str(e.exception).startswith('Device not in bootloader mode.'))
         self.assertFalse(self.dongle.new_pin.called)
+
+    @patch("admin.changepin.do_unlock")
+    def test_changepin_signer_mode_sgx(self, do_unlock_mock, get_hsm, _):
+        Platform.set(Platform.SGX)
+        get_hsm.return_value = self.dongle
+        self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.SIGNER)
+        self.dongle.is_onboarded = Mock(return_value=True)
+        self.dongle.new_pin = Mock(return_value=True)
+
+        do_changepin(self.default_options)
+
+        self.assertTrue(do_unlock_mock.called)
+        self.assertTrue(self.dongle.new_pin.called)
+        self.assertEqual([call(self.VALID_PIN.encode())],
+                         self.dongle.new_pin.call_args_list)
 
     def test_changepin_invalid_pin(self, get_hsm, _):
         get_hsm.return_value = self.dongle

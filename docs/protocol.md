@@ -356,6 +356,8 @@ This operation can return `0` and generic errors. See the error codes section fo
 
 **Error codes:**
 This operation can return `0`, `-301` and generic errors. See the error codes section for details.
+**Important:**
+Currently, this operation is unsupported for the SGX version of powHSM, returning error `-905` upon an otherwise correct invocation.
 
 ### UI heartbeat
 
@@ -390,6 +392,8 @@ This operation can return `0`, `-301` and generic errors. See the error codes se
 
 **Error codes:**
 This operation can return `0`, `-301` and generic errors. See the error codes section for details.
+**Important:**
+Currently, this operation is unsupported for the SGX version of powHSM, returning error `-905` upon an otherwise correct invocation.
 
 ### Error and success codes
 

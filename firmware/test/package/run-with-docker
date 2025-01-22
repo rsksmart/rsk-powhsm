@@ -1,0 +1,7 @@
+#!/bin/bash
+
+SCRIPT_DIR=$(realpath $(dirname $0))
+DOCKER_IMAGE=powhsm:tests
+
+docker build -t $DOCKER_IMAGE .
+docker run -ti --rm -v $SCRIPT_DIR:/tests --add-host=host.docker.internal:host-gateway -w /tests $DOCKER_IMAGE ./bin/run $@

@@ -20,19 +20,22 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-include ../common.mk
+include ../common/common.mk
 
 ifneq ($(DEBUG),)
 	CFLAGS += -DDEBUG_BIP32
 endif
 
+CFLAGS += -iquote ../common
+
 PROG = test.out
-OBJS = bip32.o test_bip32.o log.o
+OBJS = bip32.o hmac_sha512.o endian.o bigdigits.o bigdigits_helper.o
+OBJS += ../common/test_helpers.o test_bip32.o test_bip32_derivation.o log.o
 
 all: $(PROG)
 
 $(PROG): $(OBJS)
-	$(CC) $(COVFLAGS) -o $@ $^
+	$(CC) $(COVFLAGS) -o $@ $^ -lsecp256k1
 
 .PHONY: clean test
 clean:

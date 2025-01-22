@@ -26,6 +26,7 @@
 #include "hal/log.h"
 
 #include <string.h>
+#include <time.h>
 
 void platform_memmove(void *dst, const void *src, unsigned int length) {
     memmove(dst, src, length);
@@ -34,4 +35,12 @@ void platform_memmove(void *dst, const void *src, unsigned int length) {
 void platform_request_exit() {
     // Currently unsupported, just log the call
     LOG("platform_request_exit called\n");
+}
+
+const char *platform_get_id() {
+    return "x86";
+}
+
+uint64_t platform_get_timestamp() {
+    return (uint64_t)time(NULL);
 }

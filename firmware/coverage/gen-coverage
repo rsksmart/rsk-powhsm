@@ -10,11 +10,13 @@ if [[ $1 == "exec" ]]; then
     find $REPOROOT/firmware -name "*.gcno" -o -name "*.gcda" | xargs rm -f
 
     # Run unit tests with coverage generation
-    COVERAGE=y $REPOROOT/firmware/src/common/test/run-all.sh
-    COVERAGE=y $REPOROOT/firmware/src/powhsm/test/run-all.sh
-    COVERAGE=y $REPOROOT/firmware/src/ledger/ui/test/run-all.sh
-    COVERAGE=y $REPOROOT/firmware/src/ledger/signer/test/run-all.sh
-    COVERAGE=y $REPOROOT/firmware/src/tcpsigner/test/run-all.sh
+    # The `exec` argument is used for all scripts, since we are running them inside a docker container
+    COVERAGE=y $REPOROOT/firmware/src/common/test/run-all.sh exec
+    COVERAGE=y $REPOROOT/firmware/src/powhsm/test/run-all.sh exec
+    COVERAGE=y $REPOROOT/firmware/src/sgx/test/run-all.sh exec
+    COVERAGE=y $REPOROOT/firmware/src/ledger/ui/test/run-all.sh exec
+    COVERAGE=y $REPOROOT/firmware/src/ledger/signer/test/run-all.sh exec
+    COVERAGE=y $REPOROOT/firmware/src/hal/sgx/test/run-all.sh exec
 
     # Run tcpsigner test suite
     pushd $REPOROOT/firmware/src/tcpsigner > /dev/null
@@ -32,10 +34,11 @@ if [[ $1 == "exec" ]]; then
 
     # Capture coverage data
     lcov --capture --directory $SRCDIR --list-full-path --output-file $BASEDIR/coverage.info
-    # Remove unwanted coverage info (test files, tcpsigner, x86 HAL implementation)
+    # Remove unwanted coverage info (test files, tcpsigner, x86 HAL implementation, mock files)
     lcov --remove $BASEDIR/coverage.info "*/test_*.c" --output-file $BASEDIR/coverage.info
     lcov --remove $BASEDIR/coverage.info "*/tcpsigner/src/*" --output-file $BASEDIR/coverage.info
-    lcov --remove $BASEDIR/coverage.info "*/hal/src/x86/*" --output-file $BASEDIR/coverage.info
+    lcov --remove $BASEDIR/coverage.info "*/hal/x86/src/*" --output-file $BASEDIR/coverage.info
+    lcov --remove $BASEDIR/coverage.info "*/mock_*.c" --output-file $BASEDIR/coverage.info
     # Generate report and summary
     genhtml $BASEDIR/coverage.info --output $BASEDIR/output -p $SRCDIR -t "powHSM firmware"
     lcov --summary $BASEDIR/coverage.info | grep lines | sed -e "s/.\+lines.\+: \([[:digit:].]\+\).\+/\1/g" > $BASEDIR/output/total

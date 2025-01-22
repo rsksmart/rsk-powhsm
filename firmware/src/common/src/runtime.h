@@ -44,6 +44,19 @@
 
 #define NON_VOLATILE
 
+#define UNUSED(x) (void)(x)
+
+#elif defined(HSM_PLATFORM_SGX)
+
+#include "hal/platform.h"
+#include "hal/exceptions.h"
+
+#define PIC(x) (x)
+
+#define NON_VOLATILE
+
+#define UNUSED(x) (void)(x)
+
 #else
 #error "HSM Platform undefined"
 #endif

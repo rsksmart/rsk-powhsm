@@ -1,7 +1,7 @@
 {
     "name": "Sign with a basic segwit tx",
     "operation": "signAuthorized",
-    "runOn": "tcpsigner",
+    "runOn": "simulator",
     "expected": true,
     "fake_ancestor_receipts_root": "eabbc877b16f4f484beadb403a9a65e04a9c8c8a5cea57315f729ceedbc0d6a7",
     "txType": "segwit",

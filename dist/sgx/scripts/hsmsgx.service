@@ -1,0 +1,19 @@
+[Unit]
+Description=SGX powHSM
+Wants=network.target
+After=syslog.target network-online.target docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+WorkingDirectory=$HSM_INSTALL_DIR
+User=hsm
+Group=hsm
+ExecStart=$HSM_INSTALL_DIR/bin/start
+ExecStop=$HSM_INSTALL_DIR/bin/stop
+Restart=on-failure
+RestartSec=10
+KillMode=mixed
+
+[Install]
+WantedBy=multi-user.target

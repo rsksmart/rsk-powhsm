@@ -35,6 +35,11 @@
 
 #define ASSERT_MEMCMP(a, b, n) assert(0 == memcmp(a, b, n))
 
+#define ASSERT_ARRAY_VALUE(arr, value)         \
+    for (size_t i = 0; i < sizeof(arr); i++) { \
+        assert((arr)[i] == (value));           \
+    }
+
 #define ASSERT_ARRAY_CLEARED(arr) \
     assert(memcmp(arr, (char[sizeof(arr)]){0}, sizeof(arr)) == 0)
 

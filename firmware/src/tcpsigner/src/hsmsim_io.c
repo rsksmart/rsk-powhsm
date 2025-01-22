@@ -41,7 +41,7 @@
  * APDU buffer
  */
 #define IO_APDU_BUFFER_SIZE 85
-static unsigned char apdu_buffer[IO_APDU_BUFFER_SIZE];
+static unsigned char io_apdu_buffer[IO_APDU_BUFFER_SIZE];
 
 #define MAX_FUZZ_TRANSFER IO_APDU_BUFFER_SIZE
 
@@ -52,8 +52,8 @@ enum io_mode_e io_mode;
  * For the TCP server
  */
 int server;
-int socketfd;
-struct sockaddr_in servaddr, cli;
+int connfd;
+struct sockaddr_in servaddr, cliaddr;
 
 /**
  * For the file input mode
@@ -150,8 +150,8 @@ static int start_server(int port, const char *host) {
  * @returns connection file descriptor
  */
 static int accept_connection(int sockfd) {
-    int len = sizeof(cli);
-    int connfd = accept(sockfd, (struct sockaddr *)&cli, &len);
+    int len = sizeof(cliaddr);
+    int connfd = accept(sockfd, (struct sockaddr *)&cliaddr, &len);
     if (connfd < 0) {
         LOG("Client connection failed...\n");
         exit(1);
@@ -162,12 +162,12 @@ static int accept_connection(int sockfd) {
 }
 
 void hsmsim_io_init() {
-    communication_init(apdu_buffer, sizeof(apdu_buffer));
+    communication_init(io_apdu_buffer, sizeof(io_apdu_buffer));
 }
 
 void hsmsim_io_set_and_start_server(int port, const char *host) {
     server = start_server(port, host);
-    socketfd = 0;
+    connfd = 0;
     io_mode = IO_MODE_SERVER;
     io_exchange_write_only = false;
 }
@@ -187,8 +187,8 @@ void hsmsim_io_set_replica_file(FILE *_replica_file) {
  */
 void hsmsim_io_reply() {
     io_exchange_write_only = true;
-    apdu_buffer[0] = (APDU_OK & 0xff00) >> 8;
-    apdu_buffer[1] = APDU_OK & 0xff;
+    io_apdu_buffer[0] = (APDU_OK & 0xff00) >> 8;
+    io_apdu_buffer[1] = APDU_OK & 0xff;
     hsmsim_io_exchange(2);
 }
 
@@ -203,8 +203,8 @@ static unsigned short io_exchange_server(unsigned short tx) {
     int readlen;
 
     while (true) {
-        if (!socketfd) {
-            socketfd = accept_connection(server);
+        if (!connfd) {
+            connfd = accept_connection(server);
             tx = 0;
         }
 
@@ -216,18 +216,18 @@ static unsigned short io_exchange_server(unsigned short tx) {
             tx_net = tx - 2;
             tx_net = htonl(tx_net);
             size_t written;
-            if (send(socketfd, &tx_net, sizeof(tx_net), MSG_NOSIGNAL) == -1) {
+            if (send(connfd, &tx_net, sizeof(tx_net), MSG_NOSIGNAL) == -1) {
                 LOG("Connection closed by the client\n");
-                socketfd = 0;
+                connfd = 0;
                 continue;
             }
             // Write APDU
-            if (send(socketfd, apdu_buffer, tx, MSG_NOSIGNAL) == -1) {
+            if (send(connfd, io_apdu_buffer, tx, MSG_NOSIGNAL) == -1) {
                 LOG("Connection closed by the client\n");
-                socketfd = 0;
+                connfd = 0;
                 continue;
             }
-            LOG_HEX("Dongle =>", apdu_buffer, tx);
+            LOG_HEX("Dongle =>", io_apdu_buffer, tx);
         }
 
         // Only write? We're done
@@ -239,21 +239,21 @@ static unsigned short io_exchange_server(unsigned short tx) {
         // Read APDU length
         // (encoded in 4 bytes network byte-order)
         // (compatibility with LegerBlue commTCP.py)
-        readlen = read(socketfd, &rx_net, sizeof(rx_net));
+        readlen = read(connfd, &rx_net, sizeof(rx_net));
         if (readlen == sizeof(rx_net)) {
             rx = ntohl(rx_net);
             if (rx > 0) {
                 // Read APDU from socket
-                readlen = read(socketfd, apdu_buffer, sizeof(apdu_buffer));
+                readlen = read(connfd, io_apdu_buffer, sizeof(io_apdu_buffer));
                 if (readlen != rx) {
                     LOG("Error reading APDU (got %d bytes != %d bytes). "
                         "Disconnected\n",
                         readlen,
                         rx);
-                    socketfd = 0;
+                    connfd = 0;
                     continue;
                 }
-                LOG_HEX("Dongle <=", apdu_buffer, rx);
+                LOG_HEX("Dongle <=", io_apdu_buffer, rx);
             } else {
                 // Empty packet
                 LOG("Dongle <= <EMPTY MESSAGE>\n");
@@ -273,7 +273,7 @@ static unsigned short io_exchange_server(unsigned short tx) {
                 readlen,
                 sizeof(rx_net));
         }
-        socketfd = 0;
+        connfd = 0;
     }
 }
 
@@ -285,7 +285,7 @@ static unsigned short io_exchange_server(unsigned short tx) {
 static unsigned short io_exchange_file(unsigned char tx, FILE *input_file) {
     // File input format: |1 byte length| |len bytes data|
     static unsigned long file_index = 0;
-    LOG_HEX("Dongle => ", apdu_buffer, tx);
+    LOG_HEX("Dongle => ", io_apdu_buffer, tx);
 
     // Only write? We're done
     if (io_exchange_write_only) {
@@ -315,7 +315,8 @@ static unsigned short io_exchange_file(unsigned char tx, FILE *input_file) {
         capped_rx,
         announced_rx,
         file_index);
-    unsigned short rx = fread(apdu_buffer, sizeof(char), capped_rx, input_file);
+    unsigned short rx =
+        fread(io_apdu_buffer, sizeof(char), capped_rx, input_file);
 
     if (rx != capped_rx) {
         // if we reach EOF while reading the data portion it means
@@ -344,7 +345,7 @@ static unsigned short io_exchange_file(unsigned char tx, FILE *input_file) {
     }
 
     file_index += index_offset;
-    LOG_HEX("Dongle <= ", apdu_buffer, rx);
+    LOG_HEX("Dongle <= ", io_apdu_buffer, rx);
     return capped_rx;
 }
 
@@ -355,9 +356,9 @@ static unsigned short io_exchange_file(unsigned char tx, FILE *input_file) {
  */
 static unsigned int replicate_to_file(FILE *replica_file, unsigned short rx) {
     unsigned char rx_byte = rx;
-    LOG_HEX("Replica =>", apdu_buffer, rx_byte);
+    LOG_HEX("Replica =>", io_apdu_buffer, rx_byte);
     unsigned int written = fwrite(&rx_byte, sizeof(char), 1, replica_file);
-    written += fwrite(apdu_buffer, sizeof(char), rx_byte, replica_file);
+    written += fwrite(io_apdu_buffer, sizeof(char), rx_byte, replica_file);
 
     // XXX: This should not be necessary. We are correctly closing the file
     // at the end of the process. But for whatever reason, this does not seem

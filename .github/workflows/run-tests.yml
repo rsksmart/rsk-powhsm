@@ -26,14 +26,23 @@ jobs:
       - name: Firmware tests using TCPSigner
         run: firmware/test/test-all
 
-      - name: Firmware HAL's unit tests
+      - name: Firmware HAL's common unit tests
+        run: firmware/src/hal/common/test/run-all.sh
+
+      - name: Firmware HAL's x86 unit tests
         run: firmware/src/hal/x86/test/run-all.sh
+      
+      - name: Firmware HAL's SGX unit tests
+        run: firmware/src/hal/sgx/test/run-all.sh
 
       - name: Firmware common lib unit tests
         run: firmware/src/common/test/run-all.sh
 
       - name: Firmware PowHSM's unit tests
         run: firmware/src/powhsm/test/run-all.sh
+      
+      - name: Firmware SGX's unit tests
+        run: firmware/src/sgx/test/run-all.sh
 
       - name: Ledger UI's unit tests
         run: firmware/src/ledger/ui/test/run-all.sh
@@ -41,8 +50,8 @@ jobs:
       - name: Ledger Signer's unit tests
         run: firmware/src/ledger/signer/test/run-all.sh
 
-  run-integration-tests:
-    name: Integration tests
+  run-integration-tests-tcpsigner:
+    name: Integration tests for TCPSigner
     runs-on: ubuntu-20.04
 
     steps:
@@ -56,24 +65,75 @@ jobs:
         run: |
           docker/mware/build
           docker/packer/build
-          middleware/build/manager-tcp
+          middleware/build/manager_tcp
           firmware/build/build-tcpsigner
 
       - name: Checkout hsm-integration-test repo
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 #v4.2.2
         with:
           repository: rootstock/hsm-integration-test
-          ref: 5.1.0.plus
+          ref: 5.3.0.plus
           path: hsm-integration-test
           ssh-key: ${{ secrets.HSM_INTEGRATION_TEST_SSH_KEY }}
 
       - name: Copy required files
         run: |
-          mkdir hsm-integration-test/docker/manager/manager-tcp
-          tar -xzf rsk-powhsm/middleware/bin/manager-tcp.tgz \
-              -C hsm-integration-test/docker/manager/manager-tcp
+          mkdir hsm-integration-test/docker/manager/manager_tcp
+          tar -xzf rsk-powhsm/middleware/bin/manager_tcp.tgz \
+              -C hsm-integration-test/docker/manager/manager_tcp
           cp rsk-powhsm/firmware/src/tcpsigner/tcpsigner \
               hsm-integration-test/docker/tcpsigner/
+
+      - name: Run HSM integration tests
+        working-directory: hsm-integration-test
+        run: sh smoke-test.sh
+
+  run-integration-tests-sgx:
+    name: Integration tests for SGX simulator
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Checkout rsk-powhsm repo
+        uses: actions/checkout@v3
+        with:
+          path: rsk-powhsm
+
+      - name: Build required software
+        working-directory: rsk-powhsm
+        run: |
+          docker/mware/build
+          docker/packer/build
+          docker/sgx/build
+          middleware/build/manager_sgx
+          docker/sgx/do-notty /hsm2/firmware/src/sgx "make generate-private-key"
+          firmware/build/build-sgx-sim \
+              0xe108960a242ad7bd45c21aff9c7ed9c516789e9cffacdd895502727d8f460d2c \
+              0x6E regtest
+
+      - name: Checkout hsm-integration-test repo
+        uses: actions/checkout@v3
+        with:
+          repository: rootstock/hsm-integration-test
+          ref: 5.3.0.plus
+          path: hsm-integration-test
+          ssh-key: ${{ secrets.HSM_INTEGRATION_TEST_SSH_KEY }}
+
+      - name: Copy required files
+        run: |
+          mkdir hsm-integration-test/docker/manager/manager_sgx
+          tar -xzf rsk-powhsm/middleware/bin/manager_sgx.tgz \
+              -C hsm-integration-test/docker/manager/manager_sgx
+          cp rsk-powhsm/firmware/src/sgx/bin/hsmsgx \
+              hsm-integration-test/docker/sgx
+          cp rsk-powhsm/firmware/src/sgx/bin/hsmsgx_enclave.signed \
+              hsm-integration-test/docker/sgx
+          echo abcd1234 > hsm-integration-test/docker/manager/pin.txt
+          echo -n abcd1234 > hsm-integration-test/docker/sgx/kvstore-password.dat
+          echo -en "\x03" > hsm-integration-test/docker/sgx/kvstore-retries.dat
+          echo -en "\x03" > hsm-integration-test/docker/sgx/kvstore-retries.dat
+          dd if=/dev/urandom bs=1 count=32 \
+              of=hsm-integration-test/docker/sgx/kvstore-seed.dat
+          echo "SGX_SIM=yes" >> "$GITHUB_ENV"
 
       - name: Run HSM integration tests
         working-directory: hsm-integration-test

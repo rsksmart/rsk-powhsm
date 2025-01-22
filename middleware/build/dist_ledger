@@ -1,0 +1,16 @@
+#!/bin/bash
+
+BUILDDIR=$(dirname $0)
+BINDIR=$(realpath $BUILDDIR/../bin/)
+
+echo "Building Ledger distribution binaries..."
+
+QUIET=1 $BUILDDIR/manager_ledger && \
+QUIET=1 $BUILDDIR/adm_ledger && \
+QUIET=1 $BUILDDIR/lbutils && \
+QUIET=1 $BUILDDIR/signapp && \
+echo "" && \
+sha256sum $BINDIR/manager_ledger.tgz && \
+sha256sum $BINDIR/adm_ledger.tgz && \
+sha256sum $BINDIR/lbutils.tgz
+sha256sum $BINDIR/signapp.tgz

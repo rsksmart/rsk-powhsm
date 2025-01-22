@@ -25,16 +25,47 @@
 #ifndef __ATTESTATION_H
 #define __ATTESTATION_H
 
-#include "bc_hash.h"
-#include "mem.h"
-
-// -----------------------------------------------------------------------
-// Keys attestation
-// -----------------------------------------------------------------------
+#include "hal/hash.h"
 
 // Attestation message prefix
-#define ATT_MSG_PREFIX "HSM:SIGNER:5.2"
+#define ATT_MSG_PREFIX "POWHSM:5.4::"
 #define ATT_MSG_PREFIX_LENGTH (sizeof(ATT_MSG_PREFIX) - sizeof(""))
+
+// Attestation UD value size
+#define ATT_UD_VALUE_SIZE 32
+
+// Number of leading bytes of the last signed BTC tx
+// to include in the message
+#define ATT_LAST_SIGNED_TX_BYTES 8
+
+// Maximum attestation message to sign size
+// Prefix: 12 bytes
+// Platform: 3 bytes
+// UD value: 32 bytes
+// Public keys hash: 32 bytes
+// Current best block hash: 32 bytes
+// Head of latest authorised signed BTC transaction hash: 8 bytes
+// Timestamp: 8 bytes
+// TOTAL: 127 bytes
+#define MAX_ATT_MESSAGE_SIZE 130
+
+// Attestation SM states
+typedef enum {
+    STATE_ATTESTATION_WAIT_SIGN = 0,
+    STATE_ATTESTATION_READY,
+} state_attestation_t;
+
+typedef struct att_s {
+    state_attestation_t state;
+
+    hash_sha256_ctx_t hash_ctx; // Attestation public keys hashing context
+    uint8_t msg[MAX_ATT_MESSAGE_SIZE]; // Attestation message
+    uint8_t msg_length;
+
+    uint32_t path[BIP32_PATH_NUMPARTS];
+    uint8_t pubkey[PUBKEY_UNCMP_LENGTH];
+    uint8_t pubkey_length;
+} att_t;
 
 // -----------------------------------------------------------------------
 // Protocol
@@ -45,6 +76,7 @@ typedef enum {
     OP_ATT_GET = 0x01,
     OP_ATT_GET_MESSAGE = 0x02,
     OP_ATT_APP_HASH = 0x03,
+    OP_ATT_GET_ENVELOPE = 0x04,
 } op_code_attestation_t;
 
 // Error codes

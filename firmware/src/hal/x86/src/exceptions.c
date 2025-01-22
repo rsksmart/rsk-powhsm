@@ -44,10 +44,6 @@
  * (https://github.com/LedgerHQ/nanos-secure-sdk/blob/nanos-1314/include/os.h)
  */
 
-#ifndef HSM_PLATFORM_X86
-#define HSM_PLATFORM_X86
-#endif
-
 #include "hal/exceptions.h"
 
 static try_context_t G_try_last_open_context_var;

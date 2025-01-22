@@ -1,5 +1,15 @@
 # powHSM signer authorization and upgrade
 
+## Foreword
+
+Signer authorization and upgrading is a feature designed exclusively for the Ledger
+version of powHSM. Therefore, all the information contained herein must be interpreted as
+applying exclusively to this implementation.
+
+The only other implementation of powHSM, written for the Intel SGX platform, has currently
+got no support for upgrading, and thus an equivalent document to describe such a process
+does not exist.
+
 ## Abstract
 
 This document describes the mechanisms by which the Ledger Nano S UI application

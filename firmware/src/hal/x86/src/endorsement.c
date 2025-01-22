@@ -118,9 +118,9 @@ bool endorsement_init(char* att_file_path) {
             "random endorsement id (key and code hash pair)\n");
 
         // Init new random key and code hash
-        random_getrandom(attestation_id.key, sizeof(attestation_id.key), 0);
-        random_getrandom(
-            attestation_id.code_hash, sizeof(attestation_id.code_hash), 0);
+        random_getrandom(attestation_id.key, sizeof(attestation_id.key));
+        random_getrandom(attestation_id.code_hash,
+                         sizeof(attestation_id.code_hash));
 
         // Write attestation id to the file
         if (!write_attestation_id_file(att_file_path)) {
@@ -169,6 +169,14 @@ bool endorsement_init(char* att_file_path) {
     LOG("\n");
 
     return true;
+}
+
+uint8_t* endorsement_get_envelope() {
+    return NULL;
+}
+
+size_t endorsement_get_envelope_length() {
+    return 0;
 }
 
 bool endorsement_sign(uint8_t* msg,

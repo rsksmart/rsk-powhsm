@@ -1,3 +1,10 @@
 # Ignore compiled python modules and cache
 **/*.pyc
 **/__pycache__
+
+
+# Ignore package artifacts
+package/bin
+package/build
+package/run.spec
+package/bundle.tgz

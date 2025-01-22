@@ -53,7 +53,8 @@
 // 0x000001d5, 0, 0, 0, 0, 0, 0 };
 
 // Here we take it from an external definition (see Makefile for details)
-#if defined(HSM_PLATFORM_LEDGER) && defined(PARAM_MIN_REQUIRED_DIFFICULTY)
+#if (defined(HSM_PLATFORM_LEDGER) || defined(HSM_PLATFORM_SGX)) && \
+    defined(PARAM_MIN_REQUIRED_DIFFICULTY)
 static const DIGIT_T MIN_REQUIRED_DIFFICULTY[BIGINT_LEN] =
     PARAM_MIN_REQUIRED_DIFFICULTY;
 #elif defined(HSM_PLATFORM_X86)
@@ -1018,7 +1019,7 @@ static uint8_t dump_min_req_difficulty(int offset) {
     // Make sure the minimum required difficulty fits into the output buffer
     if (APDU_TOTAL_DATA_SIZE_OUT < sizeof(MIN_REQUIRED_DIFFICULTY) + offset)
         FAIL(BUFFER_OVERFLOW);
-    dump_bigint(APDU_DATA_PTR + offset, MIN_REQUIRED_DIFFICULTY, BIGINT_LEN);
+    dump_bigint_be(APDU_DATA_PTR + offset, MIN_REQUIRED_DIFFICULTY, BIGINT_LEN);
     return sizeof(MIN_REQUIRED_DIFFICULTY);
 }
 

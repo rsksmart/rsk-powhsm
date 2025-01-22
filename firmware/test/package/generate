@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# Directories and files
+PACKAGE_DIR=$(dirname $0)
+BIN_DIR=$PACKAGE_DIR/bin
+RUNNER_FILE=$BIN_DIR/run
+RESOURCES_DIR=$PACKAGE_DIR/../resources
+TARGET_DIR=$PACKAGE_DIR/bundle
+BUNDLE_FILE=$PACKAGE_DIR/bundle.tgz
+
+rm -rf $TARGET_DIR
+mkdir $TARGET_DIR
+$PACKAGE_DIR/build-runner
+mkdir $TARGET_DIR/bin
+cp $RUNNER_FILE $TARGET_DIR/bin
+echo "Copying files..."
+cp -R $RESOURCES_DIR $TARGET_DIR
+cp $PACKAGE_DIR/Dockerfile $TARGET_DIR
+cp $PACKAGE_DIR/run-with-docker $TARGET_DIR
+echo "Generating package..."
+tar -czf $BUNDLE_FILE -C $TARGET_DIR .
+echo "Cleaning up..."
+rm -rf $TARGET_DIR $BIN_DIR
+echo "Done."

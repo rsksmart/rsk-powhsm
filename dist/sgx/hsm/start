@@ -1,0 +1,32 @@
+#!/bin/bash
+
+BINDIR=$(realpath $(dirname $0))
+WORKDIR=$(realpath $BINDIR/..)
+DOCKER_IMAGE=powhsmsgx:runner
+
+source $BINDIR/.env
+
+QUIET=""
+echo -e "\e[96mBuilding docker image $DOCKER_IMAGE (this will take a few minutes)..."
+if [[ "$2" != "-v" ]]; then
+    QUIET="-q"
+    echo -e "Run with '-v' if you want to see progress detail\e[94m"
+fi
+docker build -t $DOCKER_IMAGE $BINDIR $QUIET
+echo -e "\e[96mDocker image build done.\e[0m"
+echo
+
+DOCKER_CNT=powhsmsgx-runner
+DOCKER_USER="$(id -u):$(id -g)"
+HOSTNAME="SGX"
+NETWORK=${NETWORK:-net_sgx}
+PORT=7777
+DOCKER_PORT="$PORT:$PORT"
+
+docker run --rm --name $DOCKER_CNT --user $DOCKER_USER -v $WORKDIR:/hsm \
+    --hostname $HOSTNAME --network $NETWORK \
+    --device=/dev/sgx_enclave:/dev/sgx_enclave \
+    --device=/dev/sgx_provision:/dev/sgx_provision \
+    -w /hsm -p$DOCKER_PORT $DOCKER_IMAGE \
+    bin/hsmsgx ./bin/hsmsgx_enclave.signed -p$PORT -b0.0.0.0
+    # TODO: We need to resolve binding so that not everyone can connect to the service!

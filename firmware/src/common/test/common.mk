@@ -26,3 +26,5 @@ CFLAGS = -iquote $(SRCDIR) -iquote .
 include ../../../../coverage/coverage.mk
 
 CFLAGS += $(COVFLAGS)
+
+VPATH += $(SRCDIR)

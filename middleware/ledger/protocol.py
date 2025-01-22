@@ -22,6 +22,7 @@
 
 import time
 from comm.protocol import HSM2Protocol, HSM2ProtocolError, HSM2ProtocolInterrupt
+from comm.platform import Platform
 from ledger.hsm2dongle import (
     HSM2Dongle,
     HSM2DongleBaseError,
@@ -37,8 +38,8 @@ from comm.bitcoin import get_unsigned_tx, get_tx_hash
 
 class HSM2ProtocolLedger(HSM2Protocol):
     # Current manager supported versions for HSM UI and HSM SIGNER (<=)
-    UI_VERSION = HSM2FirmwareVersion(5, 2, 2)
-    APP_VERSION = HSM2FirmwareVersion(5, 2, 2)
+    UI_VERSION = HSM2FirmwareVersion(5, 3, 2)
+    APP_VERSION = HSM2FirmwareVersion(5, 3, 2)
 
     # Amount of time to wait to make sure the app is opened
     OPEN_APP_WAIT = 1  # second
@@ -73,7 +74,7 @@ class HSM2ProtocolLedger(HSM2Protocol):
             self.logger.info(
                 "Could not determine onboarded status. If unlocked, "
                 + "please enter the signing app and rerun the manager. Otherwise,"
-                + "disconnect and reconnect the ledger nano and try again"
+                + f"{Platform.message("restart")} and try again"
             )
             raise HSM2ProtocolInterrupt()
 
@@ -196,14 +197,13 @@ class HSM2ProtocolLedger(HSM2Protocol):
                     raise Exception("Dongle reported fail to change pin. Pin invalid?")
                 self.pin.commit_change()
                 self.logger.info(
-                    "PIN changed. Please disconnect and reconnect the ledger nano"
+                    f"PIN changed. Please {Platform.message("restart")}"
                 )
             except Exception as e:
                 self.pin.abort_change()
                 self.logger.error(
-                    "Error changing PIN: %s. Please disconnect and "
-                    "reconnect the ledger nano and try again",
-                    format(e),
+                    f"Error changing PIN: %s. Please {Platform.message("restart")} "
+                    "and try again", format(e),
                 )
             finally:
                 raise HSM2ProtocolInterrupt()

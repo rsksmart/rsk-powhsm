@@ -1,0 +1,67 @@
+#!/bin/bash
+
+pushd $(dirname $0) > /dev/null
+ROOT_DIR=$(pwd)
+
+if [[ $# -lt 4 ]]; then
+    echo "Usage: $0 <destination path> <checkpoint> <minimum difficulty> <network>"
+    exit 1
+fi
+
+# Check docker images exist
+CHECK_IMAGE=$ROOT_DIR/docker/check-image
+
+for img in hsm:sgx hsm:mware hsm:packer; do
+    DOCKER_IMAGE=$img
+    source $CHECK_IMAGE
+done
+
+DEST_DIR=$1
+CHECKPOINT=$2
+DIFFICULTY=$3
+NETWORK=$4
+HSM_DIR=$DEST_DIR/hsm
+BIN_DIR=$DEST_DIR/bin
+SCRIPTS_DIR=$DEST_DIR/scripts
+
+if [[ -e $DEST_DIR ]]; then
+    echo -e "\e[31mDestination directory $DEST_DIR exists"
+    exit 1
+fi
+
+echo -e "\e[32mBuilding into \e[93m$DEST_DIR\e[32m with checkpoint \e[93m$CHECKPOINT\e[32m, minimum difficulty \e[93m$DIFFICULTY\e[32m, network \e[93m$NETWORK\e[32m and UI iteration \e[93m$UI_ITERATION\e[32m...\e[0m"
+echo -e "\e[33mCopying files and creating directories...\e[0m"
+rm -rf $DEST_DIR
+cp -Rf $ROOT_DIR/dist/sgx $DEST_DIR
+rm $DEST_DIR/.gitignore
+
+rm -rf $BIN_DIR
+mkdir -p $BIN_DIR
+
+echo
+echo -e "\e[33mBuilding middleware...\e[0m"
+$ROOT_DIR/middleware/build/dist_sgx
+cp $ROOT_DIR/middleware/bin/adm_sgx.tgz $BIN_DIR
+cp $ROOT_DIR/middleware/bin/manager_sgx.tgz $BIN_DIR
+echo
+
+echo -e "\e[33mBuilding SGX apps...\e[0m"
+# TODO: decide what to do with the enclave signing key 
+#(randomizing seems like a reasonable option
+# since we don't actually need it in our current scheme)
+$ROOT_DIR/firmware/build/build-sgx $CHECKPOINT $DIFFICULTY $NETWORK > /dev/null
+cp $ROOT_DIR/firmware/src/sgx/bin/hsmsgx $HSM_DIR/
+cp $ROOT_DIR/firmware/src/sgx/bin/hsmsgx_enclave.signed $HSM_DIR/
+
+HOST_HASH=$(sha256sum $ROOT_DIR/firmware/src/sgx/bin/hsmsgx | cut -d ' ' -f 1)
+ENCLAVE_HASH=$($ROOT_DIR/firmware/build/extract-mrenclave $ROOT_DIR/firmware/src/sgx/bin/hsmsgx_enclave.signed)
+echo "$HSM_DIR/hsmsgx:"
+echo $HOST_HASH
+echo
+echo "$HSM_DIR/hsmsgx_enclave.signed"
+echo "$ENCLAVE_HASH"
+
+echo
+echo -e "\e[32mBuild complete.\e[0m"
+
+popd > /dev/null

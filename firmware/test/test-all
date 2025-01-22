@@ -1,26 +1,35 @@
 #!/usr/bin/env bash
 
 # Run against a physical dongle?
-WITH_DONGLE="no"
+WITH_DEVICE="no"
 RUN_ARGS=""
 MANUAL_UNLOCK=""
 if [[ "$1" == "help" ]]; then
-    echo "Usage: $0 [dongle] [pin] [manual]"
+    echo "Usage: $0 [ledger [pin|manual] | sgx host port]"
     echo "Example (using tcpsigner):              $0"
-    echo "Example (using dongle - auto unlock):   $0 dongle 12345678"
-    echo "Example (using dongle - manual unlock): $0 dongle manual"
+    echo "Example (using ledger - auto unlock):   $0 ledger 12345678"
+    echo "Example (using ledger - manual unlock): $0 ledger manual"
+    echo "Example (using sgx): $0 sgx 123.40.55.67 6666"
     exit 1
-elif [[ "$1" == "dongle" ]]; then
+elif [[ "$1" == "ledger" ]]; then
     if [ "$#" -lt 2 ]; then
-        echo -e "\e[1;31mInvalid usage for 'dongle' option. Issue '$0 help' for help.\e[0m"
+        echo -e "\e[1;31mInvalid usage for 'ledger' option. Issue '$0 help' for help.\e[0m"
         exit 1
     fi
-    WITH_DONGLE="yes"
+    WITH_DEVICE="yes"
+    RUN_ARGS="-dledger"
     if [[ "$2" == "manual" ]]; then
-        RUN_ARGS="-m"
+        RUN_ARGS="$RUN_ARGS -m"
     else
-        RUN_ARGS="-P $2"
+        RUN_ARGS="$RUN_ARGS -P $2"
     fi
+elif [[ "$1" == "sgx" ]]; then
+    if [ "$#" -lt 3 ]; then
+        echo -e "\e[1;31mInvalid usage for 'sgx' option. Issue '$0 help' for help.\e[0m"
+        exit 1
+    fi
+    WITH_DEVICE="yes"
+    RUN_ARGS="-dsgx -s$2 -p$3"
 elif [[ "$1" != "" ]]; then
     echo -e "\e[1;31mInvalid or unknown option '$1'. Issue '$0 help' for help.\e[0m"
     exit 1
@@ -31,7 +40,7 @@ pushd $(dirname $0) > /dev/null
 TEST_ROOT=$(pwd)
 popd > /dev/null
 
-if [[ "$WITH_DONGLE" == "no" ]]; then
+if [[ "$WITH_DEVICE" == "no" ]]; then
     # Build and run tcp signer
     $TEST_ROOT/../build/build-tcpsigner
 
@@ -45,8 +54,8 @@ if [[ "$WITH_DONGLE" == "no" ]]; then
     # Kill (and remove) container
     docker kill hsm-mware-notty > /dev/null
 else
-    # Run tests against a dongle
-    $TEST_ROOT/../../docker/mware/do /hsm2/firmware/test "python run.py -d ${RUN_ARGS}"
+    # Run tests against a device
+    $TEST_ROOT/../../docker/mware/do /hsm2/firmware/test "python run.py ${RUN_ARGS}"
     err_code=$?
 fi
 

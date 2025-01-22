@@ -42,7 +42,42 @@ void LOG(const char *format, ...);
  * @param buffer the buffer containing the bytes to output as hex chars
  * @param size the size of buffer in bytes
  */
-void LOG_HEX(const char *prefix, void *buffer, size_t size);
+void LOG_HEX(const char *prefix, const void *buffer, const size_t size);
+
+#elif defined(HSM_PLATFORM_SGX)
+
+// #ifdef DEBUG_BUILD
+#if 1 // For now, we always output enclave logs
+
+#include <stdio.h>
+
+#define TRUSTED_LOG_PREFIX "[Enclave] "
+
+/**
+ * @brief Works just like printf, but prepends
+ * a prefix to every message
+ */
+#define LOG(...)                             \
+    {                                        \
+        fprintf(stderr, TRUSTED_LOG_PREFIX); \
+        fprintf(stderr, __VA_ARGS__);        \
+    }
+
+/**
+ * @brief Print buffer in hex format with prefix
+ *
+ * @param prefix the log prefix (the general log prefix will be prepended too)
+ * @param buffer the buffer containing the bytes to output as hex chars
+ * @param size the size of buffer in bytes
+ */
+void LOG_HEX(const char *prefix, const void *buffer, const size_t size);
+
+#else // DEBUG_BUILD
+
+#define LOG(...)
+#define LOG_HEX(...)
+
+#endif // DEBUG_BUILD
 
 #elif defined(HSM_PLATFORM_LEDGER)
 

@@ -51,6 +51,14 @@ typedef enum {
 
     // Exit
     INS_EXIT = 0xff,
+
+    // SGX-only (don't hurt to have them all here)
+    SGX_ONBOARD = 0xA0,
+    SGX_IS_LOCKED = 0xA1,
+    SGX_RETRIES = 0xA2,
+    SGX_UNLOCK = 0xA3,
+    SGX_ECHO = 0xA4,
+    SGX_CHANGE_PASSWORD = 0xA5,
 } apdu_instruction_t;
 
 #endif // __INSTRUCTIONS_H
