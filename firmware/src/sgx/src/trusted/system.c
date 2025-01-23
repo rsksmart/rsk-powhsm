@@ -170,8 +170,6 @@ unsigned int system_process_apdu(unsigned int rx) {
 }
 
 bool system_init(unsigned char* msg_buffer, size_t msg_buffer_size) {
-    // Setup the host APDU buffer
-
     // Validate that host and enclave APDU buffers have the same size
     if (msg_buffer_size != sizeof(apdu_buffer)) {
         LOG("Expected APDU buffer size to be %lu but got %lu\n",
