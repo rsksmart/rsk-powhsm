@@ -40,13 +40,13 @@ Enter the absolute path to the installation directory (empty directory name to a
 Make sure to provide the absolute path to an **unexisting** directory. The script will create the specified directory
 and will refuse to proceed in case it already exists.
 
-For this example, we will use `/opt/powHSM` as the installation directory, but any valid path can be used. The script
+For this example, we will use `/opt/powhsm` as the installation directory, but any valid path can be used. The script
 will then require that the path to the installation directory is confirmed:
 ```
 Welcome to the SGX powHSM Setup for RSK 
 Enter the absolute path to the installation directory (empty directory name to abort)
-> /opt/powHSM
-powHSM will be installed to /opt/powHSM
+> /opt/powhsm
+powHSM will be installed to /opt/powhsm
 Proceed? [Y/N]
 > Y
 
@@ -93,7 +93,7 @@ Onboarding done
 Onboarding complete.
 ```
 
-📌 Remember to keep the pin safe, as it will be required in the following steps and by design it will not be recorded at
+Remember to keep the pin safe, as it will be required in the following steps and by design it will not be recorded at
 any of the steps of the setup process.
 
 ### Attestation gathering
@@ -178,12 +178,12 @@ Timestamp: 0
 
 Stopping the powHSM...
 
-powHSM Setup complete. Find the installation in /opt/powHSM.
+powHSM Setup complete. Find the installation in /opt/powhsm.
 ```
 
 Once that step is finished, all the files required by the powHSM will be located in the installation directory:
 ```
-/opt/powHSM/
+/opt/powhsm/
 ├── bin
 │   ├── Dockerfile
 │   ├── hsmsgx
@@ -198,6 +198,7 @@ Once that step is finished, all the files required by the powHSM will be located
 ```
 
 ### powHSM service setup
+
 Once installation is complete, the script will proceed with the setup of the powHSM service. The powHSM application
 is installed as a `systemd` service. The last piece of information required by the script is the name of the docker
 network to which the container running the powHSM will be connected. The default value `net_sgx` is suitable for most
@@ -221,7 +222,7 @@ Creating net_sgx network...
 Setting permisions...
 Creating service...
 Enabling service...
-EStarting service...
+Starting service...
 Service started.
 To check the status of the service, run 'systemctl status hsmsgx.service'.
 HSM SGX setup done.
@@ -243,8 +244,8 @@ The output should be similar to:
       Tasks: 7 (limit: 9455)
      Memory: 12.7M
      CGroup: /system.slice/hsmsgx.service
-             ├─2011886 /bin/bash /opt/powHSM/bin/start
-             └─2011983 docker run --rm --name powhsmsgx-runner --user 996:996 -v /opt/powHSM:/hsm --hostname SGX --net>
+             ├─2011886 /bin/bash /opt/powhsm/bin/start
+             └─2011983 docker run --rm --name powhsmsgx-runner --user 996:996 -v /opt/powhsm:/hsm --hostname SGX --net>
 
 Jan 22 18:58:31 sgxhsm01 start[2011983]: [Enclave] Seed loaded
 Jan 22 18:58:31 sgxhsm01 start[2011983]: [Enclave] Attestation module initialized
@@ -268,5 +269,3 @@ journalctl -u hsmsgx.service
 ## What's next
 
 Once the powHSM service is installed and onboarded, it is ready to be used with the powHSM middleware.
-Please refer to the [powpeg-node-setup documentation](https://github.com/rootstock/powpeg-node-setup/blob/main/README.md)
-for further information on how to properly run the middleware along with the other services that compose the powPeg node.

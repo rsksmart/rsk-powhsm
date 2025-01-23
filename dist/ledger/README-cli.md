@@ -13,7 +13,8 @@ This can be used to setup a new device as well as to upgrade a device with powHS
 ### Setup a new device
 
 To setup a brand new device, first make sure the Ledger Nano S is connected to the machine via USB and in
-**Recovery Mode**. More information on how to do this can be found [here](https://github.com/rootstock/powpeg-node-setup#hsm-ledger-preparation).
+**Recovery Mode**. For more information on how to do this please refer to
+[Ledger Nano S User Manual](https://support.ledger.com/article/360007061974-zd).
 
 Then, to execute the setup process, within the `/path/to/dist` directory, issue:
 
@@ -231,6 +232,7 @@ Then, to execute the upgrade process, within the `/path/to/dist` directory, issu
 and follow the instructions:
 
 #### Connect the device
+
 First connect the Ledger Nano S device to the machine via USB normally (**NOT** in Recovery Mode). Once the device is connected, press `Enter` to proceed:
 
 ```
@@ -279,6 +281,7 @@ Press [Enter] to continue
 ```
 
 #### Gathering Attestation
+
 After disconnecting and reconnecting the device, just press `Enter` to proceed with the attestation gathering:
 
 ```
@@ -358,5 +361,3 @@ This concludes the upgrade process. The device is now ready to be used with the 
 ## What's next
 
 Once the powHSM device is properly setup and onboarded, it is ready to be used with the powHSM middleware.
-Please refer to the [powpeg-node-setup documentation](https://github.com/rootstock/powpeg-node-setup/blob/main/README.md)
-for further information on how to properly run the middleware along with the other services that compose the powPeg node.
