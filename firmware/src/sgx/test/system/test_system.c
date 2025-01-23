@@ -167,6 +167,7 @@ bc_state_updating_backup_t N_bc_state_updating_backup_var;
 static try_context_t G_try_last_open_context_var;
 try_context_t* G_try_last_open_context = &G_try_last_open_context_var;
 unsigned char G_io_apdu_buffer[IO_APDU_BUFFER_SIZE];
+unsigned char* G_communication_msg_buffer;
 
 // Mock implementation of dependencies
 bool oe_is_outside_enclave(const void* ptr, size_t size) {
@@ -212,12 +213,14 @@ bool access_set_password(char* password, uint8_t password_length) {
 }
 
 bool communication_init(unsigned char* msg_buffer, size_t msg_buffer_size) {
+    G_communication_msg_buffer = msg_buffer;
+    assert(msg_buffer_size == sizeof(G_io_apdu_buffer));
     MOCK_CALL(communication_init);
     return true;
 }
 
 unsigned char* communication_get_msg_buffer() {
-    return G_io_apdu_buffer;
+    return G_communication_msg_buffer;
 }
 
 uint8_t access_get_retries() {

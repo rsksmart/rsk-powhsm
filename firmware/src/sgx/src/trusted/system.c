@@ -20,11 +20,12 @@
 #include "bc_err.h"
 
 /**
- * APDU buffer
+ * APDU buffer (host pointer and local enclave copy)
  */
-#define EXPECTED_APDU_BUFFER_SIZE 85
-static unsigned char* apdu_buffer;
-static size_t apdu_buffer_size;
+#define APDU_BUFFER_SIZE 85
+
+static unsigned char* host_apdu_buffer;
+static unsigned char apdu_buffer[APDU_BUFFER_SIZE];
 
 static void wipe_system() {
     seed_wipe();
@@ -50,7 +51,7 @@ static unsigned int do_onboard(unsigned int rx) {
     }
 
     // Onboarding
-    uint8_t tmp_buffer[apdu_buffer_size];
+    uint8_t tmp_buffer[sizeof(apdu_buffer)];
     memcpy(tmp_buffer, APDU_DATA_PTR, SEED_LENGTH);
     if (!seed_generate(tmp_buffer, SEED_LENGTH)) {
         wipe_system();
@@ -75,7 +76,7 @@ static unsigned int do_change_password(unsigned int rx) {
     }
 
     // Password change
-    uint8_t tmp_buffer[apdu_buffer_size];
+    uint8_t tmp_buffer[sizeof(apdu_buffer)];
     size_t password_length = APDU_DATA_SIZE(rx);
     memcpy(tmp_buffer, APDU_DATA_PTR, password_length);
     if (!access_set_password((char*)tmp_buffer, password_length)) {
@@ -160,27 +161,32 @@ static external_processor_result_t system_do_process_apdu(unsigned int rx) {
 }
 
 unsigned int system_process_apdu(unsigned int rx) {
-    return hsm_process_apdu(rx);
+    // Copy host APDU => enclave APDU
+    memcpy(apdu_buffer, host_apdu_buffer, sizeof(apdu_buffer));
+    unsigned int tx = hsm_process_apdu(rx);
+    // Copy enclave APDU => host APDU
+    memcpy(host_apdu_buffer, apdu_buffer, sizeof(apdu_buffer));
+    return tx;
 }
 
 bool system_init(unsigned char* msg_buffer, size_t msg_buffer_size) {
-    // Setup the shared APDU buffer
-    if (msg_buffer_size != EXPECTED_APDU_BUFFER_SIZE) {
-        LOG("Expected APDU buffer size to be %u but got %lu\n",
-            EXPECTED_APDU_BUFFER_SIZE,
+    // Validate that host and enclave APDU buffers have the same size
+    if (msg_buffer_size != sizeof(apdu_buffer)) {
+        LOG("Expected APDU buffer size to be %lu but got %lu\n",
+            sizeof(apdu_buffer),
             msg_buffer_size);
         return false;
     }
 
-    // Validate that the APDU buffer is entirely outside the enclave
+    // Validate that the host APDU buffer is entirely outside the enclave
     // memory space
     if (!oe_is_outside_enclave(msg_buffer, msg_buffer_size)) {
         LOG("APDU buffer memory area not outside the enclave\n");
         return false;
     }
 
-    apdu_buffer = msg_buffer;
-    apdu_buffer_size = msg_buffer_size;
+    // Set the pointer to the host APDU buffer
+    host_apdu_buffer = msg_buffer;
 
     // Initialize modules
     LOG("Initializing modules...\n");
@@ -209,7 +215,7 @@ bool system_init(unsigned char* msg_buffer, size_t msg_buffer_size) {
         LOG("System wiped\n");
     }
 
-    if (!communication_init(apdu_buffer, apdu_buffer_size)) {
+    if (!communication_init(apdu_buffer, sizeof(apdu_buffer))) {
         LOG("Error initializing communication module\n");
         return false;
     }
