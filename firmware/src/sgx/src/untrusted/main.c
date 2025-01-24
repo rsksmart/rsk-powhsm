@@ -54,9 +54,6 @@ struct arguments {
     char *enclave_path;
 };
 
-// Global flag to indicate that the application should stop
-static sig_atomic_t G_stop_requested = 0;
-
 // Argp individual option parsing function
 static error_t parse_opt(int key, char *arg, struct argp_state *state) {
     struct arguments *arguments = state->input;
@@ -109,9 +106,7 @@ static void finalise_with(int exit_code) {
 static void finalise(int signum) {
     (void)signum; // Suppress unused parameter warning
 
-    // Note: Do not add any finalise logic directly here, just set the flag
-    // and let the main loop handle it
-    G_stop_requested = 1;
+    finalise_with(0);
 }
 
 static void set_signal_handlers() {
@@ -162,10 +157,6 @@ int main(int argc, char **argv) {
     unsigned int tx = 0;
 
     while (true) {
-        if (G_stop_requested) {
-            break;
-        }
-
         rx = io_exchange(tx);
 
         if (rx) {
@@ -173,11 +164,9 @@ int main(int argc, char **argv) {
         }
     }
 
-    finalise_with(0);
-    return 0;
+    LOG("Exited main loop unexpectedly\n");
 
 main_error:
-    LOG("Exited main loop unexpectedly\n");
     finalise_with(1);
     return 1;
 }
