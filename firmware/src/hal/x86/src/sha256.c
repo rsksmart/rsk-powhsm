@@ -1,1 +1,1 @@
-../../common/src/sha256.c
+../../common_linked/src/sha256.c
