@@ -1,1 +1,1 @@
-../../../x86/src/keccak256.c
+../../../common_linked/src/keccak256.c

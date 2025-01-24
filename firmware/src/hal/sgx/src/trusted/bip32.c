@@ -1,1 +1,1 @@
-../../../x86/src/bip32.c
+../../../common_linked/src/bip32.c

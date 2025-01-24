@@ -27,7 +27,7 @@ jobs:
         run: firmware/test/test-all
 
       - name: Firmware HAL's common unit tests
-        run: firmware/src/hal/common/test/run-all.sh
+        run: firmware/src/hal/common_linked/test/run-all.sh
 
       - name: Firmware HAL's x86 unit tests
         run: firmware/src/hal/x86/test/run-all.sh

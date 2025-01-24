@@ -1,1 +1,1 @@
-../../../x86/src/endian.c
+../../../common_linked/src/endian.c

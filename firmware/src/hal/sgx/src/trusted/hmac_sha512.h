@@ -1,1 +1,1 @@
-../../../x86/src/hmac_sha512.h
+../../../common_linked/src/hmac_sha512.h

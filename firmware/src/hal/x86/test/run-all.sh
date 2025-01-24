@@ -2,7 +2,7 @@
 
 if [[ $1 == "exec" ]]; then
     BASEDIR=$(realpath $(dirname $0))
-    TESTDIRS="bip32 endian hmac_sha256 hmac_sha512 keccak256"
+    TESTDIRS="hmac_sha256"
     for d in $TESTDIRS; do
         echo "******************************"
         echo "Testing $d..."
