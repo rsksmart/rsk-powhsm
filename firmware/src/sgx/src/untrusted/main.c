@@ -47,15 +47,15 @@ static struct argp_option options[] = {
     {"port", 'p', "PORT", 0, "Port to listen on", 0},
     {0}};
 
+// Global counter to avoid multiple calls to finalise_with
+static sig_atomic_t G_signal_counter = 0;
+
 // Argument definitions for argp
 struct arguments {
     char *bind;
     int port;
     char *enclave_path;
 };
-
-// Global flag to indicate that the application should stop
-static sig_atomic_t G_stop_requested = 0;
 
 // Argp individual option parsing function
 static error_t parse_opt(int key, char *arg, struct argp_state *state) {
@@ -106,19 +106,22 @@ static void finalise_with(int exit_code) {
     exit(exit_code);
 }
 
-static void finalise(int signum) {
+static void signal_handler(int signum) {
     (void)signum; // Suppress unused parameter warning
 
-    // Note: Do not add any finalise logic directly here, just set the flag
-    // and let the main loop handle it
-    G_stop_requested = 1;
+    if (G_signal_counter++ > 0) {
+        // Signal has already been handled
+        return;
+    }
+
+    finalise_with(0);
 }
 
 static void set_signal_handlers() {
-    signal(SIGINT, finalise);
-    signal(SIGTERM, finalise);
-    signal(SIGHUP, finalise);
-    signal(SIGABRT, finalise);
+    signal(SIGINT, signal_handler);
+    signal(SIGTERM, signal_handler);
+    signal(SIGHUP, signal_handler);
+    signal(SIGABRT, signal_handler);
 }
 
 int main(int argc, char **argv) {
@@ -162,10 +165,6 @@ int main(int argc, char **argv) {
     unsigned int tx = 0;
 
     while (true) {
-        if (G_stop_requested) {
-            break;
-        }
-
         rx = io_exchange(tx);
 
         if (rx) {
@@ -173,11 +172,9 @@ int main(int argc, char **argv) {
         }
     }
 
-    finalise_with(0);
-    return 0;
+    LOG("Exited main loop unexpectedly\n");
 
 main_error:
-    LOG("Exited main loop unexpectedly\n");
     finalise_with(1);
     return 1;
 }
