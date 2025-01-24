@@ -60,7 +60,7 @@ cp $SERVICE_UNIT /etc/systemd/system/hsmsgx.service
 systemctl daemon-reload || exit $?
 echo -e "\e[1;32mEnabling service...\e[0m"
 systemctl enable hsmsgx.service || exit $?
-echo -e "\e[1;32mEStarting service...\e[0m"
+echo -e "\e[1;32mStarting service...\e[0m"
 systemctl start hsmsgx.service || exit $?
 echo -e "\e[1;32mService started.\e[0m"
 echo -e "\e[1;32mTo check the status of the service, run 'systemctl status hsmsgx.service'.\e[0m"
