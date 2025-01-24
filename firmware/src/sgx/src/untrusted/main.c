@@ -47,6 +47,9 @@ static struct argp_option options[] = {
     {"port", 'p', "PORT", 0, "Port to listen on", 0},
     {0}};
 
+// Global counter to avoid multiple calls to finalise_with
+static sig_atomic_t G_signal_counter = 0;
+
 // Argument definitions for argp
 struct arguments {
     char *bind;
@@ -103,17 +106,22 @@ static void finalise_with(int exit_code) {
     exit(exit_code);
 }
 
-static void finalise(int signum) {
+static void signal_handler(int signum) {
     (void)signum; // Suppress unused parameter warning
+
+    if (G_signal_counter++ > 0) {
+        // Signal has already been handled
+        return;
+    }
 
     finalise_with(0);
 }
 
 static void set_signal_handlers() {
-    signal(SIGINT, finalise);
-    signal(SIGTERM, finalise);
-    signal(SIGHUP, finalise);
-    signal(SIGABRT, finalise);
+    signal(SIGINT, signal_handler);
+    signal(SIGTERM, signal_handler);
+    signal(SIGHUP, signal_handler);
+    signal(SIGABRT, signal_handler);
 }
 
 int main(int argc, char **argv) {
