@@ -206,7 +206,7 @@ void test_set_host_seed() {
                               0xfd, 0x4b, 0x6d, 0xcd, 0xc0, 0x62, 0x61, 0x53,
                               0x03, 0xf0, 0xef, 0x03, 0xce, 0x84, 0x15, 0xd3};
     unsigned int rx = 4;
-    for (int i = 0; i < strlen(host_seed); i++) {
+    for (int i = 0; i < sizeof(host_seed)/sizeof(host_seed[0]); i++) {
         SET_APDU_AT(2, i);
         SET_APDU_AT(3, host_seed[i]);
         assert(0 == set_host_seed(rx, &onboard_ctx));
