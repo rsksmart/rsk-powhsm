@@ -2,5 +2,5 @@
     "name": "Reset NVM stats",
     "operation": "nvmStats",
     "subop": "reset",
-    "runOn": "simulator"
+    "runOn": "tcpsigner"
 }

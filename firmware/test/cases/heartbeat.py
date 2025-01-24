@@ -62,8 +62,17 @@ class Heartbeat(TestCase):
 
             if not heartbeat[0]:
                 error_code = heartbeat[1]
-                raise TestCaseError("Expected success getting the heartbeat "
-                                    f"but got error code {error_code}")
+                error_code_desc = hex(error_code)
+
+                if type(self.expected) != int:
+                    raise TestCaseError("Expected successful heartbeat but got error "
+                                        f"code {error_code_desc}")
+                elif self.expected != error_code:
+                    raise TestCaseError(f"Expected error code {self.expected_desc} "
+                                        f"but got {error_code_desc}")
+                # All good, expected failure
+                return
+
             heartbeat = heartbeat[1]
 
             # Validate signature

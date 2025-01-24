@@ -28,9 +28,13 @@ class TestCase:
     OPERATION_KEY = "operation"
 
     RUN_ON_KEY = "runOn"
-    RUN_ON_VALUE_BOTH = "both"
-    RUN_ON_VALUE_SIMULATOR = "simulator"
-    RUN_ON_VALUE_DEVICE = "device"
+    RUN_ON_VALUE_ALL = "all"
+    RUN_ON_VALUE_LEDGER = "ledger"
+    RUN_ON_VALUE_SGX = "sgx"
+    RUN_ON_VALUE_TCPSIGNER = "tcpsigner"
+    RUN_ON_VALUES = [
+        RUN_ON_VALUE_ALL, RUN_ON_VALUE_LEDGER, RUN_ON_VALUE_SGX, RUN_ON_VALUE_TCPSIGNER
+    ]
 
     RUN_ARGS_PIN_KEY = "pin"
     RUN_ARGS_MANUAL_KEY = "manual"
@@ -66,7 +70,17 @@ class TestCase:
 
     def __init__(self, spec):
         self.name = spec["name"]
-        self.run_on = spec.get(self.RUN_ON_KEY, self.RUN_ON_VALUE_BOTH)
+        self.run_on = spec.get(self.RUN_ON_KEY, [self.RUN_ON_VALUE_ALL])
+
+        # Normalize run on value
+        if type(self.run_on) == str:
+            self.run_on = [self.run_on]
+
+        # Validate run on value
+        if type(self.run_on) != list or \
+           any(map(lambda ro: ro not in self.RUN_ON_VALUES, self.run_on)):
+            raise RuntimeError(f"Invalid run_on specified for test case {self.name}: "
+                               f"{self.run_on}")
 
         # Test case expectation
         self.expected = spec.get("expected", True)
@@ -85,7 +99,7 @@ class TestCase:
             self.paths = self.PATHS
 
     def runs_on(self, run_on):
-        return self.run_on == run_on or self.run_on == self.RUN_ON_VALUE_BOTH
+        return run_on in self.run_on or self.RUN_ON_VALUE_ALL in self.run_on
 
     def run(self, dongle, debug, run_args):
         raise RuntimeError(f"Unable to run generic test case {self.name}")

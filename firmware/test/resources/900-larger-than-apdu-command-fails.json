@@ -3,5 +3,5 @@
     "operation": "rawCommand",
     "command": "804300aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "exception": "0x6982",
-    "runOn": "simulator"
+    "runOn": ["tcpsigner", "sgx"]
 }
