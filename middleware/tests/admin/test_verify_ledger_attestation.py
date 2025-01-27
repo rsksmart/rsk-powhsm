@@ -36,7 +36,7 @@ logging.disable(logging.CRITICAL)
 EXPECTED_UI_DERIVATION_PATH = "m/44'/0'/0'/0/0"
 LEGACY_SIGNER_HEADER = b"HSM:SIGNER:5.3"
 POWHSM_HEADER = b"POWHSM:5.4::"
-UI_HEADER = b"HSM:UI:5.3"
+UI_HEADER = b"HSM:UI:5.4"
 
 
 @patch("sys.stdout.write")
@@ -125,7 +125,7 @@ class TestVerifyLedgerAttestation(TestCase):
                 f"Authorized signer hash: {'cc'*32}",
                 "Authorized signer iteration: 291",
                 f"Installed UI hash: {'ee'*32}",
-                "Installed UI version: 5.3",
+                "Installed UI version: 5.4",
             ],
             fill="-",
         )
@@ -169,7 +169,7 @@ class TestVerifyLedgerAttestation(TestCase):
                 f"Authorized signer hash: {'cc'*32}",
                 "Authorized signer iteration: 291",
                 f"Installed UI hash: {'ee'*32}",
-                "Installed UI version: 5.3",
+                "Installed UI version: 5.4",
             ],
             fill="-",
         )
