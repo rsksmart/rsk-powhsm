@@ -1,5 +1,28 @@
 # Changelog
 
+## [5.4.0] - 27/01/2025
+
+### Features/enhancements
+
+- Enhanced Ledger attestation scheme with additional information
+- SGX powHSM implementation
+- SGX middleware manager
+- SGX middleware admin tooling
+- SGX distribution scripts and installation as a service
+- SGX reproducible builds
+- SGX attestation gathering, saving and verification
+- SGX simulation build
+- SGX tests
+- SGX documentation
+- Enhanced distribution documentation
+
+### Fixes
+
+- Added max APDU buffer size checks
+- Common modules linking approach change to aid in ease of code auditing
+- Bumped actions/checkout from 3 to 4
+- Bumped github/codeql-action from 3.28.1 to 3.28.5
+
 ## [5.2.2] - 20/01/2025
 
 ### Features/enhancements
