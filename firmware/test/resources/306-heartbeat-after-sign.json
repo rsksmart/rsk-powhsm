@@ -5,5 +5,6 @@
     "expected": {
         "best_block": "b4d586b2c2f51d6dcb6e7870df329e780d8e4b85517b91a822dc52c04d801f4b",
         "last_tx": "f8281941928796ae"
-    }
+    },
+    "runOn": ["ledger", "tcpsigner"]
 }

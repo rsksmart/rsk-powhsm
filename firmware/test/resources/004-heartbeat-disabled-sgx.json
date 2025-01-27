@@ -1,0 +1,7 @@
+{
+    "name": "Heartbeat is disabled",
+    "operation": "heartbeat",
+    "udValue": "00112233445566778899aabbccddeeff",
+    "expected": "0x6d00",
+    "runOn": "sgx"
+}

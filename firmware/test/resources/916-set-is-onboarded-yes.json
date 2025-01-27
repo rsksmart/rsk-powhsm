@@ -2,5 +2,5 @@
     "name": "Set is onboarded to true",
     "operation": "adminIsOnboarded",
     "value": true,
-    "runOn": "simulator"
+    "runOn": "tcpsigner"
 }

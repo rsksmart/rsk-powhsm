@@ -263,7 +263,7 @@ class _Error:
     # user-defined (RSK firmware) specific error code range
     @staticmethod
     def is_user_defined_error(code):
-        return code >= 0x69A0 and code <= 0x6BFF
+        return (code >= 0x69A0 and code <= 0x6BFF) or code == 0x6D00
 
 
 # Sign command responses to the user

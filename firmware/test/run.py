@@ -56,19 +56,20 @@ if __name__ == "__main__":
             if not options.manual_unlock and \
                options.pin is None:
                 raise RuntimeError("Auto unlock requires 'pin' argument")
-            run_on = TestCase.RUN_ON_VALUE_DEVICE
             run_args[TestCase.RUN_ARGS_MANUAL_KEY] = options.manual_unlock
             run_args[TestCase.RUN_ARGS_PIN_KEY] = options.pin
 
         if options.device == "ledger":
             dongle = HSM2Dongle(options.dongle_verbose)
+            run_on = TestCase.RUN_ON_VALUE_LEDGER
             output.info("Running against a USB device", nl=True)
         elif options.device == "sgx":
             dongle = HSM2DongleSGX(options.host, options.port, options.dongle_verbose)
+            run_on = TestCase.RUN_ON_VALUE_SGX
             output.info("Running against an SGX device", nl=True)
         else:
             dongle = HSM2DongleTCP(options.host, options.port, options.dongle_verbose)
-            run_on = TestCase.RUN_ON_VALUE_SIMULATOR
+            run_on = TestCase.RUN_ON_VALUE_TCPSIGNER
             output.info("Running against a TCP device", nl=True)
 
         output.info(f"Loading test cases from {options.tests_path}")

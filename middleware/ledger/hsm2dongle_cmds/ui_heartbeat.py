@@ -39,6 +39,8 @@ class HSM2UIHeartbeat(HSM2DongleCommand):
     Command = 0x60
 
     def run(self, ud_value):
+        error_code = None
+
         try:
             # Send user-defined value
             self.send(Op.UD_VALUE, bytes.fromhex(ud_value))
@@ -62,7 +64,10 @@ class HSM2UIHeartbeat(HSM2DongleCommand):
                 "tweak": ui_hash.hex(),
             })
         except self.ErrorResult as e:
+            error_code = e.error_code
             self.logger.error("UI heartbeat returned: %s", hex(e.error_code))
-            # All possible error results from this operation are unexpected
+            # All possible error results from this operation (except not supported
+            # for SGX) are unexpected
             # No need for specific error code mappings or special cases
-            return (False, )
+
+        return (False, error_code)

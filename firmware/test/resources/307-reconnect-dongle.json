@@ -2,5 +2,5 @@
     "name": "Reconnect dongle",
     "operation": "reconnectDongle",
     "exitSigner": true,
-    "runOn": "device"
+    "runOn": ["ledger", "sgx"]
 }

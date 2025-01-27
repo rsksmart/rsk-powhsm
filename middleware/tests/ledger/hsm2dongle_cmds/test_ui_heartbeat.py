@@ -66,7 +66,8 @@ class TestHSM2UIHeartbeat(TestHSM2DongleBase):
             CommException("an-error-result", 0x6b01)
         ]
 
-        self.assertEqual((False,), self.hsm2dongle.get_ui_heartbeat("1133557799aa"))
+        self.assertEqual((False, 0x6b01),
+                         self.hsm2dongle.get_ui_heartbeat("1133557799aa"))
 
         self.assert_exchange([
             bytes.fromhex("60011133557799aa"),
