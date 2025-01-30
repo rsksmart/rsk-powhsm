@@ -22,27 +22,21 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __HAL_BIP32_H
-#define __HAL_BIP32_H
-
 #include <stdint.h>
-#include <stdbool.h>
+#include <stdlib.h>
+
+#include "hal/constants.h"
+
+#define BIP32_PATH_PART_LENGTH (sizeof(uint32_t))
+#define BIP32_PATH_LENGTH (1 + BIP32_PATH_NUMPARTS * BIP32_PATH_PART_LENGTH)
 
 /**
- * @brief Derive a private key from the given seed and bip32 path
+ * @brief Parse the given string representation of a bip32 path
+ *        into binary format
  *
- * @param out the destination buffer for the derived key
- * @param seed the seed to use for derivation
- * @param seed_length the seed length in bytes
- * @param path the bip32 path
- * @param path_length the bip32 path length in derivation steps
+ * @param path the bip32 path as string
+ * @param out the destination buffer for the parsed path
  *
- * @returns whether derivation succeeded
+ * @returns the size of the parsed path in bytes, or zero in case of error
  */
-bool bip32_derive_private(uint8_t* out,
-                          const uint8_t* seed,
-                          const unsigned int seed_length,
-                          const uint32_t* path,
-                          const unsigned int path_length);
-
-#endif // __HAL_BIP32_H
+size_t bip32_parse_path(const char* path, uint8_t* out);

@@ -26,16 +26,13 @@ ifneq ($(DEBUG),)
 	CFLAGS += -DDEBUG_BIP32
 endif
 
-CFLAGS += -iquote ../common
-
 PROG = test.out
-OBJS = bip32.o hmac_sha512.o endian.o bigdigits.o bigdigits_helper.o
-OBJS += ../common/test_helpers.o test_bip32.o log.o
+OBJS = bip32_path.o test_bip32_path.o log.o
 
 all: $(PROG)
 
 $(PROG): $(OBJS)
-	$(CC) $(COVFLAGS) -o $@ $^ -lsecp256k1
+	$(CC) $(COVFLAGS) -o $@ $^
 
 .PHONY: clean test
 clean:

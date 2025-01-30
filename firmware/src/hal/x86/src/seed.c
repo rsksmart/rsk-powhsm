@@ -34,7 +34,7 @@
 #include "random.h"
 
 #include "json.h"
-#include "bip32.h"
+#include "bip32_path.h"
 #include "cJSON.h"
 #include "hex_reader.h"
 
