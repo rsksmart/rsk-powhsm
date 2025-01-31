@@ -118,9 +118,14 @@ bool seed_generate(uint8_t* client_seed, uint8_t client_seed_size) {
 
 static bool derive_privkey(uint32_t* path,
                            uint8_t path_length,
-                           uint8_t* privkey_out) {
-    if (!bip32_derive_private(
-            privkey_out, G_seed, sizeof(G_seed), path, path_length)) {
+                           uint8_t* privkey_out,
+                           size_t privkey_out_size) {
+    if (!bip32_derive_private(privkey_out,
+                              privkey_out_size,
+                              G_seed,
+                              sizeof(G_seed),
+                              path,
+                              path_length)) {
         return false;
     }
 
@@ -141,7 +146,8 @@ bool seed_derive_pubkey(uint32_t* path,
     LOG("Deriving public key for path...\n");
 
     // Derive the private key
-    if (!derive_privkey(path, path_length, derived_privkey)) {
+    if (!derive_privkey(
+            path, path_length, derived_privkey, sizeof(derived_privkey))) {
         LOG("Error deriving private key for public key gathering\n");
         return false;
     }
@@ -190,7 +196,8 @@ bool seed_sign(uint32_t* path,
     LOG_HEX("Signing hash:", hash32, HASH_LENGTH);
 
     // Derive the private key
-    if (!derive_privkey(path, path_length, derived_privkey)) {
+    if (!derive_privkey(
+            path, path_length, derived_privkey, sizeof(derived_privkey))) {
         LOG("Error deriving private key for signing\n");
         return false;
     }

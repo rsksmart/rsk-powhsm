@@ -80,6 +80,7 @@ bool G_force_derive_private_success = false;
 
 // Mock implementations
 bool bip32_derive_private(uint8_t *out,
+                          const size_t out_size,
                           const uint8_t *seed,
                           const unsigned int seed_length,
                           const uint32_t *path,

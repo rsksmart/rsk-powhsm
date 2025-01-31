@@ -31,6 +31,7 @@
 #include "bigdigits_helper.h"
 
 #include <stdint.h>
+#include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
 #include <secp256k1.h>
@@ -85,6 +86,7 @@ static secp256k1_context* sp_ctx = NULL;
 */
 
 #define PRIVATE_KEY_DIGITS (PRIVATE_KEY_LENGTH / sizeof(DIGIT_T))
+#define NODE_PART_LENGTH PRIVATE_KEY_LENGTH
 
 static void seed_to_node(uint8_t* master_node,
                          const uint8_t* seed,
@@ -94,6 +96,7 @@ static void seed_to_node(uint8_t* master_node,
 }
 
 bool bip32_derive_private(uint8_t* out,
+                          const size_t out_size,
                           const uint8_t* seed,
                           const unsigned int seed_length,
                           const uint32_t* path,
@@ -104,9 +107,15 @@ bool bip32_derive_private(uint8_t* out,
         tempbig_b[PRIVATE_KEY_DIGITS + 1];
     DIGIT_T tempbig_c[PRIVATE_KEY_DIGITS + 1],
         tempbig_d[PRIVATE_KEY_DIGITS + 1];
-    uint8_t hmac_data[1 + 32 + 4]; // prefix + private key + i
+    uint8_t hmac_data[1 + NODE_PART_LENGTH + 4]; // prefix + private key + i
     secp256k1_pubkey pubkey;
     size_t pubkey_serialised_size;
+
+    // Make sure private key fits in the output buffer
+    if (out_size < PRIVATE_KEY_LENGTH) {
+        DEBUG_LOG("Output buffer too small for private key\n");
+        return false;
+    }
 
     // Init the secp256k1 context
     if (!sp_ctx)
@@ -119,7 +128,7 @@ bool bip32_derive_private(uint8_t* out,
         if (path[i] & 0x80000000) {
             // Hardened derivation.
             hmac_data[0] = 0x00;
-            memcpy(&hmac_data[1], current_node, 32);
+            memcpy(&hmac_data[1], current_node, NODE_PART_LENGTH);
         } else {
             // Non-hardened derivation.
             if (!secp256k1_ec_pubkey_create(sp_ctx, &pubkey, current_node)) {
@@ -139,11 +148,15 @@ bool bip32_derive_private(uint8_t* out,
                 return false;
             }
         }
-        write_uint32_be(&hmac_data[33], path[i]);
+        write_uint32_be(&hmac_data[PUBKEY_CMP_LENGTH], path[i]);
 
         // Need to write to temp here (instead of current_node) because part of
         // current_node is used as the key.
-        hmac_sha512(temp, &current_node[32], 32, hmac_data, sizeof(hmac_data));
+        hmac_sha512(temp,
+                    &current_node[NODE_PART_LENGTH],
+                    NODE_PART_LENGTH,
+                    hmac_data,
+                    sizeof(hmac_data));
 
         // First 32 bytes of temp = I_L. Compute k_i
         if (!secp256k1_ec_seckey_verify(sp_ctx, temp)) {
@@ -151,17 +164,22 @@ bool bip32_derive_private(uint8_t* out,
                 "Overflow during derivation, use a different one (I_L)\n");
             return false;
         }
-        parse_bigint_be(temp, 32, tempbig_a, PRIVATE_KEY_DIGITS + 1);
+        parse_bigint_be(
+            temp, NODE_PART_LENGTH, tempbig_a, PRIVATE_KEY_DIGITS + 1);
 
         if (!secp256k1_ec_seckey_verify(sp_ctx, current_node)) {
             DEBUG_LOG("Invalid key during derivation, use a different path "
                       "(invalid k_par)\n");
             return false;
         }
-        parse_bigint_be(current_node, 32, tempbig_b, PRIVATE_KEY_DIGITS + 1);
+        parse_bigint_be(
+            current_node, NODE_PART_LENGTH, tempbig_b, PRIVATE_KEY_DIGITS + 1);
 
         mpAdd(tempbig_a, tempbig_a, tempbig_b, PRIVATE_KEY_DIGITS + 1);
-        parse_bigint_be(secp256k1_order, 32, tempbig_b, PRIVATE_KEY_DIGITS + 1);
+        parse_bigint_be(secp256k1_order,
+                        PRIVATE_KEY_LENGTH,
+                        tempbig_b,
+                        PRIVATE_KEY_DIGITS + 1);
         mpDivide(tempbig_d,
                  tempbig_c,
                  tempbig_a,
@@ -176,8 +194,10 @@ bool bip32_derive_private(uint8_t* out,
         }
 
         // Last 32 bytes = I_R = c_i
-        memcpy(&current_node[32], &temp[32], 32);
+        memcpy(&current_node[NODE_PART_LENGTH],
+               &temp[NODE_PART_LENGTH],
+               NODE_PART_LENGTH);
     }
-    memcpy(out, current_node, 32);
+    memcpy(out, current_node, PRIVATE_KEY_LENGTH);
     return true; // success
 }

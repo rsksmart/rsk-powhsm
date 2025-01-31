@@ -353,6 +353,7 @@ void test_derivation() {
     uint8_t out[32 + CANARY_LENGTH];
     unsigned int i;
 
+    printf("Testing derivation is ok...\n");
     init_tests(__FILE__);
 
     for (i = 0; i < (sizeof(test_cases) / sizeof(struct BIP32TestVector));
@@ -360,6 +361,7 @@ void test_derivation() {
         fill_with_random(canary, sizeof(canary));
         memcpy(&(out[32]), canary, sizeof(canary));
         if (!bip32_derive_private(out,
+                                  sizeof(out),
                                   test_cases[i].master,
                                   test_cases[i].master_length,
                                   test_cases[i].path,
@@ -392,8 +394,32 @@ void test_derivation() {
     assert(!tests_failed());
 }
 
+void test_derivation_fails_if_output_buffer_too_small() {
+    uint8_t out_ok[32];
+    uint8_t out_error[31];
+
+    printf("Testing derivation fails if output buffer is too small...\n");
+
+    const struct BIP32TestVector *test_case = &test_cases[0];
+
+    assert(bip32_derive_private(out_ok,
+                                sizeof(out_ok),
+                                test_case->master,
+                                test_case->master_length,
+                                test_case->path,
+                                test_case->path_length));
+
+    assert(!bip32_derive_private(out_error,
+                                 sizeof(out_error),
+                                 test_case->master,
+                                 test_case->master_length,
+                                 test_case->path,
+                                 test_case->path_length));
+}
+
 int main() {
     test_derivation();
+    test_derivation_fails_if_output_buffer_too_small();
 
     return 0;
 }
