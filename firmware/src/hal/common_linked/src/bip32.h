@@ -26,6 +26,7 @@
 #define __HAL_BIP32_H
 
 #include <stdint.h>
+#include <stdlib.h>
 #include <stdbool.h>
 
 /**
@@ -40,6 +41,7 @@
  * @returns whether derivation succeeded
  */
 bool bip32_derive_private(uint8_t* out,
+                          const size_t out_size,
                           const uint8_t* seed,
                           const unsigned int seed_length,
                           const uint32_t* path,
