@@ -40,6 +40,31 @@
 #define MAX_BLOB_SIZE (1024 * 1024)
 // Utility macro that converts a plaintext secret into the sealed version
 #define SEALED(str) ("SEALED - " str)
+// The sha256 hash of the key "key"
+#define KEY_HASH                               \
+    "\x2c\x70\xe1\x2b\x7a\x06\x46\xf9\x22\x79" \
+    "\xf4\x27\xc7\xb3\x8e\x73\x34\xd8\xe5\x38" \
+    "\x9c\xff\x16\x7a\x1d\xc3\x0e\x73\xf8\x26" \
+    "\xb6\x83"
+
+// Used to store a plaintext secret and the expected sealed and
+// unsealed versions
+typedef struct {
+    // The original plaintext secret
+    uint8_t* plaintext;
+    // The size of the plaintext secret
+    size_t plaintext_size;
+    // The unsealed secret, which is the plaintext secret prepended with the
+    // sha256 hash of the key
+    uint8_t* unsealed_secret;
+    // The size of the unsealed secret
+    size_t unsealed_size;
+    // The sealed secret, which is the unsealed secret prepended with the string
+    // "SEALED - "
+    uint8_t* sealed_secret;
+    // The size of the sealed secret
+    size_t sealed_size;
+} secret_t;
 
 // Hand over the seal API calls to the mock implementation
 oe_result_t oe_seal(const void* plugin_id,
@@ -100,10 +125,42 @@ oe_result_t ocall_kvstore_remove(bool* _retval, char* key) {
 }
 
 // Helper functions
+
+// Initializes the secret struct with the expected sealed and unsealed versions
+// of the given plaintext secret
+static void init_secret(secret_t* secret, const char* plaintext) {
+    const uint8_t key_hash[32] = KEY_HASH;
+    const char sealed_prefix[] = "SEALED - ";
+
+    secret->plaintext_size = strlen(plaintext);
+    secret->unsealed_size = secret->plaintext_size + 32;
+    secret->sealed_size = secret->unsealed_size + strlen(sealed_prefix);
+
+    secret->plaintext = (uint8_t*)malloc(secret->plaintext_size + 1);
+    secret->unsealed_secret = (uint8_t*)malloc(secret->unsealed_size + 1);
+    secret->sealed_secret = (uint8_t*)malloc(secret->sealed_size + 1);
+
+    memcpy(secret->plaintext, plaintext, secret->plaintext_size);
+    memcpy(secret->unsealed_secret, key_hash, sizeof(key_hash));
+    memcpy(secret->unsealed_secret + sizeof(key_hash),
+           plaintext,
+           secret->plaintext_size);
+    memcpy(secret->sealed_secret, sealed_prefix, strlen(sealed_prefix));
+    memcpy(secret->sealed_secret + strlen(sealed_prefix),
+           secret->unsealed_secret,
+           secret->unsealed_size);
+}
+
+static void free_secret(secret_t* secret) {
+    free(secret->plaintext);
+    free(secret->unsealed_secret);
+    free(secret->sealed_secret);
+}
+
 void save_to_mock_kvstore(char* key, uint8_t* value, size_t value_size) {
     bool save_success = false;
     mock_ocall_kvstore_save(&save_success, key, value, value_size);
-    mock_ocall_kstore_assert_value(key, value);
+    mock_ocall_kstore_assert_value(key, value, value_size);
     assert(save_success);
 }
 
@@ -119,23 +176,25 @@ void test_secret_exists_after_write() {
     printf("Test secret exists after write...\n");
 
     char* key = "key";
-    uint8_t secret[] = "secret";
-    uint8_t sealed_secret[] = SEALED("secret");
+    secret_t secret;
+    init_secret(&secret, "secret");
     // Ensure the secret doesn't exist before the write
     assert(!sest_exists(key));
     assert(!mock_ocall_kstore_key_exists(key));
     // Write the secret and ensure it now exists
-    assert(sest_write(key, secret, sizeof(secret)));
+    assert(sest_write(key, secret.plaintext, secret.plaintext_size));
     assert_oe_seal_called_with(
         NULL,
         (const oe_seal_setting_t[]){OE_SEAL_SET_POLICY(1)},
         1,
-        secret,
-        sizeof(secret),
+        secret.unsealed_secret,
+        secret.unsealed_size,
         NULL,
         0);
-    mock_ocall_kstore_assert_value(key, sealed_secret);
+    mock_ocall_kstore_assert_value(
+        key, secret.sealed_secret, secret.sealed_size);
     assert(sest_exists(key));
+    free_secret(&secret);
 }
 
 void test_write_and_retrieve_secret() {
@@ -143,27 +202,30 @@ void test_write_and_retrieve_secret() {
     printf("Test write and retrieve secret...\n");
 
     char* key = "key";
-    uint8_t secret[] = "secret";
-    uint8_t sealed_secret[] = SEALED("secret");
+    secret_t secret;
+    init_secret(&secret, "secret");
     // Write the secret and make sure the seal API is called with the correct
     // arguments
-    assert(sest_write(key, secret, sizeof(secret)));
+    assert(sest_write(key, secret.plaintext, secret.plaintext_size));
     assert_oe_seal_called_with(
         NULL,
         (const oe_seal_setting_t[]){OE_SEAL_SET_POLICY(1)},
         1,
-        secret,
-        sizeof(secret),
+        secret.unsealed_secret,
+        secret.unsealed_size,
         NULL,
         0);
-    mock_ocall_kstore_assert_value(key, sealed_secret);
+    mock_ocall_kstore_assert_value(
+        key, secret.sealed_secret, secret.sealed_size);
     // Retrieve the secret and make sure the unseal API is called with the
     // correct arguments
     uint8_t retrieved[MAX_SEST_READ_SIZE];
     uint8_t retrieved_length = sest_read(key, retrieved, sizeof(retrieved));
-    assert_oe_unseal_called_with(sealed_secret, sizeof(sealed_secret), NULL, 0);
-    assert(retrieved_length == sizeof(secret));
-    ASSERT_MEMCMP(retrieved, secret, retrieved_length);
+    assert_oe_unseal_called_with(
+        secret.sealed_secret, secret.sealed_size, NULL, 0);
+    assert(retrieved_length == secret.plaintext_size);
+    ASSERT_MEMCMP(retrieved, secret.plaintext, secret.plaintext_size);
+    free_secret(&secret);
 }
 
 void test_write_and_remove_secret() {
@@ -171,22 +233,24 @@ void test_write_and_remove_secret() {
     printf("Test write and remove secret...\n");
 
     char* key = "key";
-    uint8_t secret[] = "secret";
-    uint8_t sealed_secret[] = SEALED("secret");
-    assert(sest_write(key, secret, sizeof(secret)));
+    secret_t secret;
+    init_secret(&secret, "secret");
+    assert(sest_write(key, secret.plaintext, secret.plaintext_size));
     assert_oe_seal_called_with(
         NULL,
         (const oe_seal_setting_t[]){OE_SEAL_SET_POLICY(1)},
         1,
-        secret,
-        sizeof(secret),
+        secret.unsealed_secret,
+        secret.unsealed_size,
         NULL,
         0);
-    mock_ocall_kstore_assert_value(key, sealed_secret);
+    mock_ocall_kstore_assert_value(
+        key, secret.sealed_secret, secret.sealed_size);
     assert(sest_exists(key));
     assert(sest_remove(key));
     assert(!sest_exists(key));
     assert(!mock_ocall_kstore_key_exists(key));
+    free_secret(&secret);
 }
 
 void test_exists_fails_when_kvstore_exists_fails() {
@@ -195,13 +259,15 @@ void test_exists_fails_when_kvstore_exists_fails() {
 
     // Write a valid secret to the kvstore and ensure it exists
     char* key = "key";
-    uint8_t sealed_secret[] = SEALED("secret");
-    save_to_mock_kvstore(key, sealed_secret, sizeof(sealed_secret));
+    secret_t secret;
+    init_secret(&secret, "secret");
+    save_to_mock_kvstore(key, secret.sealed_secret, secret.sealed_size);
     assert(sest_exists(key));
 
     // Force the next call to ocall_kvstore_exists to fail
     mock_ocall_kvstore_fail_next(KVSTORE_FAILURE_OE_FAILURE);
     assert(!sest_exists(key));
+    free_secret(&secret);
 }
 
 void test_read_fails_when_oe_unseal_fails() {
@@ -210,8 +276,9 @@ void test_read_fails_when_oe_unseal_fails() {
 
     // Write a valid secret to the kvstore and ensure it exists
     char* key = "key";
-    uint8_t sealed_secret[] = SEALED("secret");
-    save_to_mock_kvstore(key, sealed_secret, sizeof(sealed_secret));
+    secret_t secret;
+    init_secret(&secret, "secret");
+    save_to_mock_kvstore(key, secret.sealed_secret, secret.sealed_size);
     assert(sest_exists(key));
 
     // Force the next call to oe_unseal to fail with OE_FAILURE
@@ -219,9 +286,11 @@ void test_read_fails_when_oe_unseal_fails() {
     uint8_t retrieved[MAX_SEST_READ_SIZE];
     memset(retrieved, 0, sizeof(retrieved));
     uint8_t retrieved_length = sest_read(key, retrieved, sizeof(retrieved));
-    assert_oe_unseal_called_with(sealed_secret, sizeof(sealed_secret), NULL, 0);
+    assert_oe_unseal_called_with(
+        secret.sealed_secret, secret.sealed_size, NULL, 0);
     assert(retrieved_length == SEST_ERROR);
     ASSERT_ARRAY_CLEARED(retrieved);
+    free_secret(&secret);
 }
 
 void test_read_fails_when_plaintext_is_too_large() {
@@ -230,17 +299,19 @@ void test_read_fails_when_plaintext_is_too_large() {
 
     // Write a valid secret to the kvstore and ensure it exists
     char* key = "key";
-    uint8_t secret[] = "secret";
-    uint8_t sealed_secret[] = SEALED("secret");
-    save_to_mock_kvstore(key, sealed_secret, sizeof(sealed_secret));
+    secret_t secret;
+    init_secret(&secret, "secret");
+    save_to_mock_kvstore(key, secret.sealed_secret, secret.sealed_size);
     assert(sest_exists(key));
     // The retrieved buffer is one byte too short to fit the original secret
-    uint8_t retrieved[sizeof(secret) - 1];
+    uint8_t retrieved[secret.plaintext_size - 1];
     memset(retrieved, 0, sizeof(retrieved));
     uint8_t retrieved_length = sest_read(key, retrieved, sizeof(retrieved));
-    assert_oe_unseal_called_with(sealed_secret, sizeof(sealed_secret), NULL, 0);
+    assert_oe_unseal_called_with(
+        secret.sealed_secret, secret.sealed_size, NULL, 0);
     assert(retrieved_length == SEST_ERROR);
-    ASSERT_ARRAY_CLEARED(retrieved);
+    assert(retrieved[0] == 0);
+    free_secret(&secret);
 }
 
 void test_write_zero_length_secret_fails() {
@@ -266,19 +337,21 @@ void test_write_fails_when_oe_seal_fails() {
     // Force the next call to oe_seal to fail
     mock_seal_fail_next();
     char* key = "key";
-    uint8_t secret[] = "secret";
+    secret_t secret;
+    init_secret(&secret, "secret");
     assert(!sest_exists(key));
-    assert(!sest_write(key, secret, sizeof(secret)));
+    assert(!sest_write(key, secret.plaintext, secret.plaintext_size));
     assert_oe_seal_called_with(
         NULL,
         (const oe_seal_setting_t[]){OE_SEAL_SET_POLICY(1)},
         1,
-        secret,
-        sizeof(secret),
+        secret.unsealed_secret,
+        secret.unsealed_size,
         NULL,
         0);
     assert(!sest_exists(key));
     assert(!mock_ocall_kstore_key_exists(key));
+    free_secret(&secret);
 }
 
 void test_write_fails_when_kvstore_save_fails() {
@@ -286,21 +359,23 @@ void test_write_fails_when_kvstore_save_fails() {
     printf("Test write fails when ocall_kvstore_save fails...\n");
 
     char* key = "key";
-    uint8_t secret[] = "secret";
+    secret_t secret;
+    init_secret(&secret, "secret");
     assert(!sest_exists(key));
     // Force the next call to ocall_kvstore_save to fail
     mock_ocall_kvstore_fail_next(KVSTORE_FAILURE_SAVE);
-    assert(!sest_write(key, secret, sizeof(secret)));
+    assert(!sest_write(key, secret.plaintext, secret.plaintext_size));
     assert_oe_seal_called_with(
         NULL,
         (const oe_seal_setting_t[]){OE_SEAL_SET_POLICY(1)},
         1,
-        secret,
-        sizeof(secret),
+        secret.unsealed_secret,
+        secret.unsealed_size,
         NULL,
         0);
     assert(!sest_exists(key));
     assert(!mock_ocall_kstore_key_exists(key));
+    free_secret(&secret);
 }
 
 void test_write_fails_when_kvstore_save_fails_oe_failure() {
@@ -308,21 +383,23 @@ void test_write_fails_when_kvstore_save_fails_oe_failure() {
     printf("Test write fails when ocall_kvstore_save fails (OE_FAILURE)...\n");
 
     char* key = "key";
-    uint8_t secret[] = "secret";
+    secret_t secret;
+    init_secret(&secret, "secret");
     assert(!sest_exists(key));
     // Force the next call to ocall_kvstore_save to fail with OE_FAILURE
     mock_ocall_kvstore_fail_next(KVSTORE_FAILURE_OE_FAILURE);
-    assert(!sest_write(key, secret, sizeof(secret)));
+    assert(!sest_write(key, secret.plaintext, secret.plaintext_size));
     assert_oe_seal_called_with(
         NULL,
         (const oe_seal_setting_t[]){OE_SEAL_SET_POLICY(1)},
         1,
-        secret,
-        sizeof(secret),
+        secret.unsealed_secret,
+        secret.unsealed_size,
         NULL,
         0);
     assert(!sest_exists(key));
     assert(!mock_ocall_kstore_key_exists(key));
+    free_secret(&secret);
 }
 
 void test_write_fails_when_secret_too_large() {
@@ -332,19 +409,23 @@ void test_write_fails_when_secret_too_large() {
     // Attempt to write a secret that is too large
     char* key = "key";
     size_t secret_size = MAX_BLOB_SIZE + 1;
-    uint8_t secret[secret_size];
+    char plaintext[secret_size];
+    memset(plaintext, 0xaa, sizeof(plaintext));
+    secret_t secret;
+    init_secret(&secret, plaintext);
     assert(!sest_exists(key));
-    assert(!sest_write(key, secret, secret_size));
+    assert(!sest_write(key, secret.plaintext, secret.plaintext_size));
     assert_oe_seal_called_with(
         NULL,
         (const oe_seal_setting_t[]){OE_SEAL_SET_POLICY(1)},
         1,
-        secret,
-        secret_size,
+        secret.unsealed_secret,
+        secret.unsealed_size,
         NULL,
         0);
     assert(!sest_exists(key));
     assert(!mock_ocall_kstore_key_exists(key));
+    free_secret(&secret);
 }
 
 void test_read_with_invalid_key_fails() {
@@ -353,8 +434,10 @@ void test_read_with_invalid_key_fails() {
 
     // Write a valid secret to the kvstore and ensure it exists
     char* valid_key = "valid key";
-    uint8_t sealed_secret[] = SEALED("secret");
-    save_to_mock_kvstore(valid_key, sealed_secret, sizeof(sealed_secret));
+    secret_t secret;
+    init_secret(&secret, "secret");
+    save_to_mock_kvstore(
+        valid_key, secret.unsealed_secret, secret.unsealed_size);
     assert(sest_exists(valid_key));
 
     char* invalid_key = "invalid key";
@@ -363,6 +446,7 @@ void test_read_with_invalid_key_fails() {
         sest_read(invalid_key, retrieved, sizeof(retrieved));
     assert_oe_unseal_not_called();
     assert(retrieved_length == SEST_ERROR);
+    free_secret(&secret);
 }
 
 void test_read_fails_when_kvstore_get_fails() {
@@ -371,8 +455,9 @@ void test_read_fails_when_kvstore_get_fails() {
 
     // Write a valid secret to the kvstore and ensure it exists
     char* key = "key";
-    uint8_t sealed_secret[] = SEALED("secret");
-    save_to_mock_kvstore(key, sealed_secret, sizeof(sealed_secret));
+    secret_t secret;
+    init_secret(&secret, "secret");
+    save_to_mock_kvstore(key, secret.unsealed_secret, secret.unsealed_size);
     assert(sest_exists(key));
 
     // Force OE_FAILURE on the next call to ocall_kvstore_get
@@ -383,6 +468,7 @@ void test_read_fails_when_kvstore_get_fails() {
     assert_oe_unseal_not_called();
     assert(retrieved_length == SEST_ERROR);
     ASSERT_ARRAY_CLEARED(retrieved);
+    free_secret(&secret);
 }
 
 void test_read_fails_when_blob_is_too_large() {
@@ -409,15 +495,18 @@ void test_remove_with_invalid_key_fails() {
     printf("Test remove invalid key fails...\n");
 
     char* valid_key = "valid key";
-    uint8_t sealed_secret[] = SEALED("secret");
-    save_to_mock_kvstore(valid_key, sealed_secret, sizeof(sealed_secret));
+    secret_t secret;
+    init_secret(&secret, "secret");
+    save_to_mock_kvstore(valid_key, secret.sealed_secret, secret.sealed_size);
     assert(sest_exists(valid_key));
 
     char* invalid_key = "invalid key";
     assert(!sest_remove(invalid_key));
     // Make sure the valid key still exists
     assert(sest_exists(valid_key));
-    mock_ocall_kstore_assert_value(valid_key, sealed_secret);
+    mock_ocall_kstore_assert_value(
+        valid_key, secret.sealed_secret, secret.sealed_size);
+    free_secret(&secret);
 }
 
 void test_remove_fails_when_kvstore_remove_fails() {
@@ -425,14 +514,17 @@ void test_remove_fails_when_kvstore_remove_fails() {
     printf("Test remove fails when ocall_kvstore_remove fails...\n");
 
     char* key = "key";
-    uint8_t sealed_secret[] = SEALED("secret");
-    save_to_mock_kvstore(key, sealed_secret, sizeof(sealed_secret));
+    secret_t secret;
+    init_secret(&secret, "secret");
+    save_to_mock_kvstore(key, secret.sealed_secret, secret.sealed_size);
     assert(sest_exists(key));
     // Force the next call to ocall_kvstore_remove to fail
     mock_ocall_kvstore_fail_next(KVSTORE_FAILURE_OE_FAILURE);
     assert(!sest_remove(key));
     assert(sest_exists(key));
-    mock_ocall_kstore_assert_value(key, sealed_secret);
+    mock_ocall_kstore_assert_value(
+        key, secret.sealed_secret, secret.sealed_size);
+    free_secret(&secret);
 }
 
 int main() {

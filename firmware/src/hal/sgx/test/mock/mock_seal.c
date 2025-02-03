@@ -128,8 +128,8 @@ void assert_oe_seal_called_with(const void* plugin_id,
                                 size_t additional_data_size) {
     assert(G_oe_seal_args.plugin_id == plugin_id &&
            memcmp(&G_oe_seal_args.settings, settings, sizeof(*settings)) == 0 &&
+           memcmp(G_oe_seal_args.plaintext, plaintext, plaintext_size) == 0 &&
            G_oe_seal_args.settings_count == settings_count &&
-           G_oe_seal_args.plaintext == plaintext &&
            G_oe_seal_args.plaintext_size == plaintext_size &&
            G_oe_seal_args.additional_data == additional_data &&
            G_oe_seal_args.additional_data_size == additional_data_size);

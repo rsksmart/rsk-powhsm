@@ -25,6 +25,7 @@
 #ifndef __MOCK_OE_STDLIB_H
 #define __MOCK_OE_STDLIB_H
 
+#define oe_malloc(size) malloc(size)
 #define oe_free(ptr) free(ptr)
 
 #endif // #ifndef __MOCK_OE_STDLIB_H
