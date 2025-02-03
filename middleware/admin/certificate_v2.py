@@ -39,12 +39,12 @@ class HSMCertificateV2Element:
         raise NotImplementedError("Cannot instantiate a HSMCertificateV2Element")
 
     @classmethod
-    def from_dict(kls, element_map):
-        if element_map.get("type") not in kls.TYPE_MAPPING:
+    def from_dict(cls, element_map):
+        if element_map.get("type") not in cls.TYPE_MAPPING:
             raise ValueError("Invalid or missing element type for "
                              f"element {element_map.get("name")}")
 
-        return kls.TYPE_MAPPING[element_map["type"]](element_map)
+        return cls.TYPE_MAPPING[element_map["type"]](element_map)
 
     def _init_with_map(self, element_map):
         if "name" not in element_map:
@@ -217,16 +217,16 @@ class HSMCertificateV2ElementX509(HSMCertificateV2Element):
     HEADER_END = "-----END CERTIFICATE-----"
 
     @classmethod
-    def from_pemfile(kls, pem_path, name, signed_by):
-        return kls.from_pem(Path(pem_path).read_text(), name, signed_by)
+    def from_pemfile(cls, pem_path, name, signed_by):
+        return cls.from_pem(Path(pem_path).read_text(), name, signed_by)
 
     @classmethod
-    def from_pem(kls, pem_str, name, signed_by):
-        return kls({
+    def from_pem(cls, pem_str, name, signed_by):
+        return cls({
             "name": name,
             "message": re.sub(r"[\s\n\r]+", " ", pem_str)
-                         .replace(kls.HEADER_END, "")
-                         .replace(kls.HEADER_BEGIN, "")
+                         .replace(cls.HEADER_END, "")
+                         .replace(cls.HEADER_BEGIN, "")
                          .strip().encode(),
             "signed_by": signed_by,
         })

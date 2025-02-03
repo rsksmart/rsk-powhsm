@@ -179,14 +179,14 @@ class TestVerifyLedgerAttestation(TestCase):
             ["Signer verified with public keys:"] + self.expected_pubkeys_output + [
                 f"Hash: {self.pubkeys_hash.hex()}",
                 "",
-                "Installed Signer hash: ffffffffffffffffffffffffffffffffffffffffffffffff"
-                "ffffffffffffffff",
+                "Installed Signer hash: ffffffffffffffffffffffffffffffffffffffffffff" +
+                "ffffffffffffffffffff",
                 "Installed Signer version: 5.4",
                 "Platform: plf",
-                "UD value: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-                "aaa",
-                "Best block: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
-                "bbbbb",
+                "UD value: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" +
+                "aaaaaaa",
+                "Best block: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" +
+                "bbbbbbbbb",
                 "Last transaction signed: cccccccccccccccc",
                 "Timestamp: 171",
             ],

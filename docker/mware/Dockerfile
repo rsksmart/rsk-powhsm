@@ -21,4 +21,5 @@ RUN pip install -r requirements.txt --require-hashes
 RUN rm -f requirements.txt
 
 # Hidapi wrapper with hid_exit support
-RUN pip install --use-pep517 git+https://github.com/rsksmart/cython-hidapi@0.10.1.post2
+# https://github.com/rsksmart/cython-hidapi/releases/tag/0.10.1.post2 pinned by hash
+RUN pip install --use-pep517 git+https://github.com/rsksmart/cython-hidapi@56d87e287e4da8fc379e3b96573f5ac93e02e613

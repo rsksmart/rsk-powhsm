@@ -31,3 +31,10 @@ HSMCertificate.VERSION_MAPPING = {
     1: HSMCertificate,
     2: HSMCertificateV2,
 }
+
+# Exports
+__all__ = (
+    HSMCertificate, HSMCertificateRoot, HSMCertificateElement, HSMCertificateV2,
+    HSMCertificateV2ElementSGXQuote, HSMCertificateV2ElementSGXAttestationKey,
+    HSMCertificateV2ElementX509,
+)
