@@ -42,24 +42,24 @@ class Platform:
     _options = None
 
     @classmethod
-    def set(klass, plf, options={}):
-        if plf not in klass.VALID_PLATFORMS:
+    def set(cls, plf, options={}):
+        if plf not in cls.VALID_PLATFORMS:
             raise RuntimeError("Invalid platform given")
-        klass._platform = plf
-        klass._options = options
+        cls._platform = plf
+        cls._options = options
 
     @classmethod
-    def is_ledger(klass):
-        return klass._platform == Platform.LEDGER
+    def is_ledger(cls):
+        return cls._platform == Platform.LEDGER
 
     @classmethod
-    def is_sgx(klass):
-        return klass._platform == Platform.SGX
+    def is_sgx(cls):
+        return cls._platform == Platform.SGX
 
     @classmethod
-    def options(klass, key):
-        return klass._options[key]
+    def options(cls, key):
+        return cls._options[key]
 
     @classmethod
-    def message(klass, key):
-        return klass.MESSAGES[klass._platform][key]
+    def message(cls, key):
+        return cls.MESSAGES[cls._platform][key]

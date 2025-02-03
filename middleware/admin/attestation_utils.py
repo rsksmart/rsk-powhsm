@@ -46,8 +46,8 @@ class PowHsmAttestationMessage(CStruct):
     HEADER_REGEX = re.compile(b"^POWHSM:(5.[0-9])::")
 
     @classmethod
-    def is_header(kls, value):
-        return kls.HEADER_REGEX.match(value) is not None
+    def is_header(cls, value):
+        return cls.HEADER_REGEX.match(value) is not None
 
     def __init__(self, value, offset=0, little=True, name="powHSM"):
         self.name = name

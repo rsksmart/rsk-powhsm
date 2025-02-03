@@ -150,7 +150,7 @@ class HSMCertificate:
     ELEMENT_FACTORY = HSMCertificateElement
 
     @classmethod
-    def from_jsonfile(kls, path):
+    def from_jsonfile(cls, path):
         try:
             with open(path, "r") as file:
                 certificate_map = json.loads(file.read())
@@ -160,12 +160,12 @@ class HSMCertificate:
                     "Certificate file must contain an object as a top level element")
 
             version = certificate_map.get("version")
-            if version not in kls.VERSION_MAPPING:
+            if version not in cls.VERSION_MAPPING:
                 raise ValueError("Invalid or unsupported HSM certificate "
                                  f"version {version} (supported versions are "
-                                 f"{", ".join(kls.VERSION_MAPPING.keys())})")
+                                 f"{", ".join(cls.VERSION_MAPPING.keys())})")
 
-            return kls.VERSION_MAPPING[version](certificate_map)
+            return cls.VERSION_MAPPING[version](certificate_map)
         except (ValueError, json.JSONDecodeError) as e:
             raise ValueError('Unable to read HSM certificate from "%s": %s' %
                              (path, str(e)))

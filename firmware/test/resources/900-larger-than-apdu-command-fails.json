@@ -2,6 +2,6 @@
     "name": "Larger than APDU command fails",
     "operation": "rawCommand",
     "command": "804300aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    "exception": "0x6982",
+    "expected": "0x6982",
     "runOn": ["tcpsigner", "sgx"]
 }
