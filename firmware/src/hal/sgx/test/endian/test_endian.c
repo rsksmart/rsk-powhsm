@@ -34,7 +34,7 @@ void assert_write_uint32_be(const uint32_t n, const uint8_t exp[]) {
     memset(dest, 0, sizeof(dest));
     write_uint32_be(dest, n);
 
-    for (int i = 0; i < sizeof(dest); i++) {
+    for (unsigned long i = 0; i < sizeof(dest); i++) {
         assert(dest[i] == exp[i]);
     }
 }
