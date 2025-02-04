@@ -22,29 +22,39 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __HAL_BIP32_H
-#define __HAL_BIP32_H
+#include <stdio.h>
+#include <assert.h>
+#include <string.h>
 
-#include <stdint.h>
-#include <stdlib.h>
-#include <stdbool.h>
+#include "endian.h"
 
-/**
- * @brief Derive a private key from the given seed and bip32 path
- *
- * @param out the destination buffer for the derived key
- * @param seed the seed to use for derivation
- * @param seed_length the seed length in bytes
- * @param path the bip32 path
- * @param path_length the bip32 path length in derivation steps
- *
- * @returns whether derivation succeeded
- */
-bool bip32_derive_private(uint8_t* out,
-                          const size_t out_size,
-                          const uint8_t* seed,
-                          const unsigned int seed_length,
-                          const uint32_t* path,
-                          const unsigned int path_length);
+void assert_write_uint32_be(const uint32_t n, const uint8_t exp[]) {
+    uint8_t dest[sizeof(uint32_t)];
 
-#endif // __HAL_BIP32_H
+    memset(dest, 0, sizeof(dest));
+    write_uint32_be(dest, n);
+
+    for (unsigned long i = 0; i < sizeof(dest); i++) {
+        assert(dest[i] == exp[i]);
+    }
+}
+
+void test_write_uint32_be() {
+    printf("Testing write_uint32_be... ");
+
+    assert_write_uint32_be(0xaabbccdd,
+                           (const uint8_t[]){0xaa, 0xbb, 0xcc, 0xdd});
+
+    assert_write_uint32_be(0x44, (const uint8_t[]){0x0, 0x0, 0x0, 0x44});
+
+    assert_write_uint32_be(0x4455, (const uint8_t[]){0x0, 0x0, 0x44, 0x55});
+
+    assert_write_uint32_be(0x445566, (const uint8_t[]){0x0, 0x44, 0x55, 0x66});
+
+    printf("OK\n");
+}
+
+int main() {
+    test_write_uint32_be();
+    return 0;
+}

@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-include ../common.mk
+include ../common/common.mk
 
 PROG = test.out
 OBJS = sha256.o test_sha256.o
