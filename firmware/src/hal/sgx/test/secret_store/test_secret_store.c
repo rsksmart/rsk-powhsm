@@ -527,6 +527,47 @@ void test_remove_fails_when_kvstore_remove_fails() {
     free_secret(&secret);
 }
 
+void test_read_fails_invalid_header() {
+    setup();
+    printf("Test read fails when the secret header is invalid...\n");
+
+    char* key = "key";
+    secret_t secret;
+    init_secret(&secret, "secret");
+    // Write the secret and make sure the seal API is called with the correct
+    // arguments
+    assert(sest_write(key, secret.plaintext, secret.plaintext_size));
+    assert_oe_seal_called_with(
+        NULL,
+        (const oe_seal_setting_t[]){OE_SEAL_SET_POLICY(1)},
+        1,
+        secret.unsealed_secret,
+        secret.unsealed_size,
+        NULL,
+        0);
+    mock_ocall_kstore_assert_value(
+        key, secret.sealed_secret, secret.sealed_size);
+
+    // Tamper the secret with an invalid header
+    // This emulates a situation where the files representing
+    // the sealed secrets are swapped or corrupted
+    memcpy(secret.sealed_secret + strlen("SEALED - "), "\x01\x02\x03\x04", 4);
+    save_to_mock_kvstore(key, secret.sealed_secret, secret.sealed_size);
+    assert(sest_exists(key));
+    mock_ocall_kstore_assert_value(
+        key, secret.sealed_secret, secret.sealed_size);
+
+    uint8_t retrieved[MAX_SEST_READ_SIZE] = {0};
+    uint8_t retrieved_length = sest_read(key, retrieved, sizeof(retrieved));
+    assert(retrieved_length == SEST_ERROR);
+    ASSERT_ARRAY_CLEARED(retrieved);
+
+    assert_oe_unseal_called_with(
+        secret.sealed_secret, secret.sealed_size, NULL, 0);
+
+    free_secret(&secret);
+}
+
 int main() {
     test_secret_exists_after_write();
     test_write_and_retrieve_secret();
@@ -544,4 +585,5 @@ int main() {
     test_exists_fails_when_kvstore_exists_fails();
     test_remove_with_invalid_key_fails();
     test_remove_fails_when_kvstore_remove_fails();
+    test_read_fails_invalid_header();
 }
