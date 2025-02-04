@@ -32,12 +32,16 @@
 // This is just to keep things simple and easily distinguishable.
 #define SEALED_PREFIX "SEALED - "
 
+// The maximum size of the plaintext that can be sealed
+// This limit is set on secret_store.c
+#define MAX_PLAINTEXT_SIZE (1024 * 1024)
+
 // Captures the arguments passed to oe_seal
 typedef struct oe_seal_args {
     const void* plugin_id;
     oe_seal_setting_t settings;
     size_t settings_count;
-    const uint8_t* plaintext;
+    uint8_t plaintext[MAX_PLAINTEXT_SIZE];
     size_t plaintext_size;
     const uint8_t* additional_data;
     size_t additional_data_size;
@@ -75,7 +79,7 @@ oe_result_t mock_oe_seal(const void* plugin_id,
     G_oe_seal_args.plugin_id = plugin_id;
     memcpy(&G_oe_seal_args.settings, settings, sizeof(oe_seal_setting_t));
     G_oe_seal_args.settings_count = settings_count;
-    G_oe_seal_args.plaintext = plaintext;
+    memcpy(G_oe_seal_args.plaintext, plaintext, plaintext_size);
     G_oe_seal_args.plaintext_size = plaintext_size;
     G_oe_seal_args.additional_data = additional_data;
     G_oe_seal_args.additional_data_size = additional_data_size;
@@ -126,23 +130,23 @@ void assert_oe_seal_called_with(const void* plugin_id,
                                 size_t plaintext_size,
                                 const uint8_t* additional_data,
                                 size_t additional_data_size) {
-    assert(G_oe_seal_args.plugin_id == plugin_id &&
-           memcmp(&G_oe_seal_args.settings, settings, sizeof(*settings)) == 0 &&
-           memcmp(G_oe_seal_args.plaintext, plaintext, plaintext_size) == 0 &&
-           G_oe_seal_args.settings_count == settings_count &&
-           G_oe_seal_args.plaintext_size == plaintext_size &&
-           G_oe_seal_args.additional_data == additional_data &&
-           G_oe_seal_args.additional_data_size == additional_data_size);
+    assert(G_oe_seal_args.plugin_id == plugin_id);
+    assert(memcmp(&G_oe_seal_args.settings, settings, sizeof(*settings)) == 0);
+    assert(memcmp(G_oe_seal_args.plaintext, plaintext, plaintext_size) == 0);
+    assert(G_oe_seal_args.settings_count == settings_count);
+    assert(G_oe_seal_args.plaintext_size == plaintext_size);
+    assert(G_oe_seal_args.additional_data == additional_data);
+    assert(G_oe_seal_args.additional_data_size == additional_data_size);
 }
 
 void assert_oe_unseal_called_with(const uint8_t* blob,
                                   size_t blob_size,
                                   const uint8_t* additional_data,
                                   size_t additional_data_size) {
-    assert((memcmp(blob, G_oe_unseal_args.blob, blob_size) == 0) &&
-           G_oe_unseal_args.blob_size == blob_size &&
-           G_oe_unseal_args.additional_data == additional_data &&
-           G_oe_unseal_args.additional_data_size == additional_data_size);
+    assert(memcmp(blob, G_oe_unseal_args.blob, blob_size) == 0);
+    assert(G_oe_unseal_args.blob_size == blob_size);
+    assert(G_oe_unseal_args.additional_data == additional_data);
+    assert(G_oe_unseal_args.additional_data_size == additional_data_size);
 }
 
 void assert_oe_unseal_not_called() {
@@ -156,7 +160,7 @@ void assert_oe_seal_not_called() {
     assert(G_oe_seal_args.plugin_id == NULL);
     assert(G_oe_seal_args.settings.policy == 0);
     assert(G_oe_seal_args.settings_count == 0);
-    assert(G_oe_seal_args.plaintext == NULL);
+    ASSERT_ARRAY_CLEARED(G_oe_seal_args.plaintext);
     assert(G_oe_seal_args.plaintext_size == 0);
     assert(G_oe_seal_args.additional_data == NULL);
     assert(G_oe_seal_args.additional_data_size == 0);
