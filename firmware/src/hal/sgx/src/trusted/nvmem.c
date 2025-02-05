@@ -90,6 +90,7 @@ bool nvmem_load() {
                 LOG("Error loading NVM block <%s>\n", nvm_blocks[i].key);
                 clear_blocks();
                 free(key);
+                free(tmp);
                 return false;
             }
             free(tmp);
