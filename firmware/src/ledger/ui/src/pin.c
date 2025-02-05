@@ -28,15 +28,9 @@
 #include "os.h"
 #include "ui_err.h"
 #include "pin.h"
+#include "pin_policy.h"
 
-// Helper macros for pin validation
-#define IS_IN_RANGE(c, begin, end) (((c) >= (begin)) && ((c) <= (end)))
-#define IS_ALPHA(c) (IS_IN_RANGE(c, 'a', 'z') || IS_IN_RANGE(c, 'A', 'Z'))
-#define IS_NUM(c) IS_IN_RANGE(c, '0', '9')
-#define IS_ALPHANUM(c) (IS_ALPHA(c) || IS_NUM(c))
-
-#define PIN_LENGTH 8
-#define PIN_BUFFER_LENGTH (PIN_LENGTH + 2)
+#define PIN_BUFFER_LENGTH (MAX_PIN_LENGTH + 2)
 // Internal PIN buffer used for authenticated operations
 unsigned char G_pin_buffer[PIN_BUFFER_LENGTH];
 // Helper macros for pin manipulation when prepended length is used
@@ -59,7 +53,7 @@ unsigned int update_pin_buffer(volatile unsigned int rx) {
     }
 
     unsigned char index = APDU_OP();
-    if ((index >= 0) && (index <= PIN_LENGTH)) {
+    if ((index >= 0) && (index <= MAX_PIN_LENGTH)) {
         G_pin_buffer[index] = APDU_AT(DATA);
         G_pin_buffer[index + 1] = 0;
     }
@@ -92,28 +86,14 @@ unsigned int set_pin() {
 }
 
 /*
- * Validates that the pin curently saved to the internal buffer has exactly
- * PIN_LENGTH alphanumeric characters with at least one alphabetic character.
+ * Validates that the pin curently saved to the internal buffer
+ * is valid according to the current pin policy
+ * (see pin_policy for details)
  *
- * @ret     true if pin is valid, false otherwise
+ * @returns true if pin is valid, false otherwise
  */
 bool is_pin_valid() {
-    // PIN_LENGTH is the only length accepted
-    if (GET_PIN_LENGTH() != PIN_LENGTH) {
-        return false;
-    }
-    // Check if PIN is alphanumeric
-    bool hasAlpha = false;
-    for (int i = 0; i < PIN_LENGTH; i++) {
-        if (!IS_ALPHANUM(GET_PIN()[i])) {
-            return false;
-        }
-        if (hasAlpha || IS_ALPHA(GET_PIN()[i])) {
-            hasAlpha = true;
-        }
-    }
-
-    return hasAlpha;
+    return pin_policy_is_valid_pin((const char *)GET_PIN(), GET_PIN_LENGTH());
 }
 
 /*

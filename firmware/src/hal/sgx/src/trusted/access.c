@@ -30,9 +30,8 @@
 #include "hal/log.h"
 
 #include "secret_store.h"
+#include "pin_policy.h"
 
-#define MIN_PASSWORD_LENGTH 4
-#define MAX_PASSWORD_LENGTH 10
 #define MAX_RETRIES 3
 
 #define SEST_PASSWORD_KEY "password"
@@ -42,7 +41,7 @@
 static bool G_wiped;
 static bool G_locked;
 static uint8_t G_available_retries;
-static char G_password[MAX_PASSWORD_LENGTH];
+static char G_password[MAX_PIN_LENGTH];
 static uint8_t G_password_length;
 static access_wiped_callback_t G_wiped_callback;
 
@@ -64,8 +63,7 @@ bool access_init(access_wiped_callback_t wiped_callback) {
     }
 
     // Make sure password is sound
-    if (G_password_length < MIN_PASSWORD_LENGTH ||
-        G_password_length > MAX_PASSWORD_LENGTH) {
+    if (!pin_policy_is_valid_pin(G_password, G_password_length)) {
         LOG("Detected invalid password\n");
         return false;
     }
@@ -153,8 +151,7 @@ bool access_set_password(char* password, uint8_t password_length) {
         return false;
     }
 
-    if (password_length < MIN_PASSWORD_LENGTH ||
-        password_length > MAX_PASSWORD_LENGTH) {
+    if (!pin_policy_is_valid_pin(password, password_length)) {
         LOG("Invalid password\n");
         return false;
     }
