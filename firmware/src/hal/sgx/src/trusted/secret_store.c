@@ -32,6 +32,8 @@
 
 #include "hal/platform.h"
 #include "hal/log.h"
+#include "hal/constants.h"
+#include "sha256.h"
 #include "secret_store.h"
 #include "hsm_t.h"
 
@@ -48,10 +50,14 @@
 
 #define MAX_BLOB_SIZE (1024 * 1024)
 
-// To avoid performing dynamic memory allocation whenever we need to read a
-// secret, we use this static buffer to temporarily store the sealed blobs we
-// read from the untrusted modules.
-static uint8_t G_secrets_buffer[MAX_BLOB_SIZE];
+// To avoid performing dynamic memory allocation whenever we need to manipulate
+// data, we use these static buffers to store the sealed and unsealed data,
+// respectively.
+static uint8_t G_sealed_buffer[MAX_BLOB_SIZE];
+static uint8_t G_unsealed_buffer[MAX_BLOB_SIZE];
+
+// The sha256 context used for hash operations.
+static SHA256_CTX G_sha256_ctx;
 
 // The file format of the sealed secrets. This is the format we use to read and
 // write sealed the data to disk.
@@ -59,6 +65,63 @@ typedef struct {
     size_t blob_size;
     uint8_t* blob;
 } sealed_secret_t;
+
+/**
+ * @brief Adds a header to the given input data.
+ * The header is composed of the sha256 hash of the key.
+ * The resulting data is stored in the destination buffer.
+ *
+ * @param key The key to hash and set the header for.
+ * @param src The input data to prepend the key hash to.
+ * @param src_size The size of the input data.
+ * @param dest The destination buffer for generated data.
+ * @param dest_size The size of the destination buffer.
+ *
+ * @returns The number of bytes written to the destination buffer, or SEST_ERROR
+ * upon error.
+ */
+static size_t add_header(const char* key,
+                         const uint8_t* src,
+                         size_t src_size,
+                         uint8_t* dest,
+                         size_t dest_size) {
+    if (dest_size < HASH_LENGTH + src_size) {
+        LOG("Failed to add header - destination buffer is too small\n");
+        return SEST_ERROR;
+    }
+
+    sha256_init(&G_sha256_ctx);
+    sha256_update(&G_sha256_ctx, (const uint8_t*)key, strlen(key));
+    sha256_final(&G_sha256_ctx, dest);
+
+    if (src_size)
+        platform_memmove(dest + HASH_LENGTH, src, src_size);
+
+    return HASH_LENGTH + src_size;
+}
+
+/**
+ * @brief Checks if the data buffer contains the correct header for the given
+ * key.
+ *
+ * @param key The key to validate the header against.
+ * @param data The buffer containing the data to validate.
+ * @param data_length The length of the data buffer.
+ *
+ * @returns true if the header is valid, false otherwise.
+ */
+static bool is_header_valid(const char* key,
+                            const uint8_t* data,
+                            size_t data_length) {
+    if (data_length < HASH_LENGTH) {
+        return false;
+    }
+
+    uint8_t expected_header[HASH_LENGTH];
+    add_header(key, NULL, 0, expected_header, HASH_LENGTH);
+
+    return memcmp(expected_header, data, HASH_LENGTH) == 0;
+}
 
 /**
  * @brief Obtains the plaintext data from a sealed secret.
@@ -171,7 +234,8 @@ static bool seal_data(uint8_t* data,
 
 // Public API
 bool sest_init() {
-    explicit_bzero(G_secrets_buffer, sizeof(G_secrets_buffer));
+    explicit_bzero(G_sealed_buffer, sizeof(G_sealed_buffer));
+    explicit_bzero(G_unsealed_buffer, sizeof(G_unsealed_buffer));
     return true;
 }
 
@@ -196,42 +260,64 @@ uint8_t sest_read(char* key, uint8_t* dest, size_t dest_length) {
 
     size_t blob_size = 0;
     oe_result_t oe_result = ocall_kvstore_get(
-        &blob_size, key, G_secrets_buffer, sizeof(G_secrets_buffer));
+        &blob_size, key, G_sealed_buffer, sizeof(G_sealed_buffer));
     if (oe_result != OE_OK) {
         LOG("Key-value store read failed with result=%u (%s)\n",
             oe_result,
             oe_result_str(oe_result));
-        return SEST_ERROR;
+        goto sest_read_error;
     }
 
     if (!blob_size) {
         LOG("No secret found for key <%s>\n", key);
-        return SEST_ERROR;
+        goto sest_read_error;
     }
 
     // This is just an extra sanity check, this can never happen in
     // practice since the ocall will fail if the blob size
     // is too large for the buffer.
-    if (blob_size > sizeof(G_secrets_buffer)) {
+    if (blob_size > sizeof(G_sealed_buffer)) {
         LOG("Sealed blob too large\n");
-        return SEST_ERROR;
+        goto sest_read_error;
     }
 
     sealed_secret_t sealed_secret = {
         .blob_size = blob_size,
-        .blob = G_secrets_buffer,
+        .blob = G_sealed_buffer,
     };
 
-    uint8_t plaintext_length = unseal_data(&sealed_secret, dest, dest_length);
-    if (plaintext_length == SEST_ERROR) {
+    uint8_t unsealed_length = unseal_data(
+        &sealed_secret, G_unsealed_buffer, sizeof(G_unsealed_buffer));
+    if (unsealed_length == SEST_ERROR) {
         LOG("Unable to read secret stored in key <%s>\n", key);
-        return SEST_ERROR;
+        goto sest_read_error;
     }
 
-    // Clean up the buffer just in case.
-    explicit_bzero(G_secrets_buffer, sizeof(G_secrets_buffer));
+    if (!is_header_valid(key, G_unsealed_buffer, unsealed_length)) {
+        LOG("Secret header validation failed for key <%s>\n", key);
+        goto sest_read_error;
+    }
 
-    return plaintext_length;
+    // Skip the header and copy the plaintext data to the destination buffer.
+    uint8_t* plaintext = G_unsealed_buffer + HASH_LENGTH;
+    size_t plaintext_size = unsealed_length - HASH_LENGTH;
+
+    if (plaintext_size > dest_length) {
+        LOG("Unsealed data is too large\n");
+        goto sest_read_error;
+    }
+    platform_memmove(dest, plaintext, plaintext_size);
+
+    // Clean up the buffers used to store the sealed and unsealed data.
+    explicit_bzero(G_sealed_buffer, sizeof(G_sealed_buffer));
+    explicit_bzero(G_unsealed_buffer, sizeof(G_unsealed_buffer));
+
+    return plaintext_size;
+
+sest_read_error:
+    explicit_bzero(G_sealed_buffer, sizeof(G_sealed_buffer));
+    explicit_bzero(G_unsealed_buffer, sizeof(G_unsealed_buffer));
+    return SEST_ERROR;
 }
 
 bool sest_write(char* key, uint8_t* secret, size_t secret_length) {
@@ -246,9 +332,19 @@ bool sest_write(char* key, uint8_t* secret, size_t secret_length) {
         .blob = NULL,
     };
 
-    if (!seal_data(secret, secret_length, &sealed_secret)) {
+    size_t unsealed_size = add_header(key,
+                                      secret,
+                                      secret_length,
+                                      G_unsealed_buffer,
+                                      sizeof(G_unsealed_buffer));
+    if (unsealed_size == SEST_ERROR) {
+        LOG("Error adding header to secret\n");
+        goto sest_write_error;
+    }
+
+    if (!seal_data(G_unsealed_buffer, unsealed_size, &sealed_secret)) {
         LOG("Error sealing secret for key <%s>\n", key);
-        return false;
+        goto sest_write_error;
     }
 
     if (sealed_secret.blob_size > MAX_BLOB_SIZE) {
@@ -275,6 +371,7 @@ bool sest_write(char* key, uint8_t* secret, size_t secret_length) {
     return true;
 
 sest_write_error:
+    explicit_bzero(G_unsealed_buffer, sizeof(G_unsealed_buffer));
     if (sealed_secret.blob)
         oe_free(sealed_secret.blob);
     return false;

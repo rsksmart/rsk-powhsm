@@ -23,7 +23,7 @@
 include ../common/common.mk
 
 PROG = test.out
-OBJS = secret_store.o test_secret_store.o platform.o mock_seal.o mock_ocall.o
+OBJS = secret_store.o test_secret_store.o platform.o mock_seal.o mock_ocall.o sha256.o
 
 all: $(PROG)
 

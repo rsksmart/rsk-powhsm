@@ -75,7 +75,9 @@ oe_result_t mock_ocall_kvstore_remove(bool* _retval, char* key);
  */
 void mock_ocall_kvstore_fail_next(mock_kvstore_failure_type_t failure);
 
-void mock_ocall_kstore_assert_value(char* key, const uint8_t* value);
+void mock_ocall_kstore_assert_value(char* key,
+                                    const uint8_t* value,
+                                    size_t length);
 
 bool mock_ocall_kstore_key_exists(char* key);
 
