@@ -106,10 +106,17 @@ static size_t add_header(const char* key,
  *
  * @param key The key to validate the header against.
  * @param data The buffer containing the data to validate.
+ * @param data_length The length of the data buffer.
  *
  * @returns true if the header is valid, false otherwise.
  */
-static bool is_header_valid(const char* key, const uint8_t* data) {
+static bool is_header_valid(const char* key,
+                            const uint8_t* data,
+                            size_t data_length) {
+    if (data_length < HASH_LENGTH) {
+        return false;
+    }
+
     uint8_t expected_header[HASH_LENGTH];
     add_header(key, NULL, 0, expected_header, HASH_LENGTH);
 
@@ -286,7 +293,7 @@ uint8_t sest_read(char* key, uint8_t* dest, size_t dest_length) {
         goto sest_read_error;
     }
 
-    if (!is_header_valid(key, G_unsealed_buffer)) {
+    if (!is_header_valid(key, G_unsealed_buffer, unsealed_length)) {
         LOG("Secret header validation failed for key <%s>\n", key);
         goto sest_read_error;
     }
