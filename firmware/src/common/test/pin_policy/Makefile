@@ -20,10 +20,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-include ../mock/common.mk
+include ../common.mk
 
 PROG = test.out
-OBJS = mock.o pin.o test_pin.o pin_policy.o
+OBJS = pin_policy.o test_pin_policy.o
 
 all: $(PROG)
 

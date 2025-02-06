@@ -2,7 +2,7 @@
 
 if [[ $1 == "exec" ]]; then
     BASEDIR=$(realpath $(dirname $0))
-    TESTDIRS="bigdigits_helper ints memutil"
+    TESTDIRS="bigdigits_helper ints memutil pin_policy"
     for d in $TESTDIRS; do
         echo "******************************"
         echo "Testing $d..."

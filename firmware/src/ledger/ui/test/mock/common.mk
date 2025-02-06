@@ -30,4 +30,6 @@ CFLAGS  = -iquote $(THISMOCKDIR) -iquote $(COMMONDIR) -iquote $(MOCKDIR)
 CFLAGS += -iquote $(SRCDIR) -iquote $(HALINCDIR) -iquote $(HALSRCDIR)
 CFLAGS += -DHSM_PLATFORM_X86
 
+VPATH += $(SRCDIR):$(MOCKDIR):$(COMMONDIR)
+
 include ../../../../../coverage/coverage.mk
