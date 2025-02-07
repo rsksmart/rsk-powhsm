@@ -1,5 +1,31 @@
 # Changelog
 
+## [5.4.1] - 07/02/2025
+
+### Features/enhancements
+
+- Unified pin/password policy across platforms
+- Disabled CapturePFGPExceptions on non-debug and non-simulator builds
+- Added key-based headers and header checks to secrets
+- Moved bip32_derive_private and dependent libraries to SGX's HAL only
+- Moved bip32_parse_path to x86 only
+
+### Fixes
+
+- Increased pip install socket timeout for middleware Dockerfile
+- Fixed potential memory leak on SGX's NVmem module
+- Pinned all actions/checkout by hash
+- Pinned SGX Dockerfile base image by hash
+- Pinned firmware test package Dockerfile base image by hash
+- Pinned middleware's docker cython-hidapi package by commit hash
+- Removed self.expected overwriting from RawCommand test command
+- Using cls for class variable name in all class methods
+- Fixed unused import warnings
+- Removed unwanted comma from regexp in attestation verification
+- Made string concatenation explicit in lists
+- Added output buffer size validation in bip32_derive_private
+- Bumped aws-actions/configure-aws-credentials, github/codeql-action
+
 ## [5.4.0] - 27/01/2025
 
 ### Features/enhancements
