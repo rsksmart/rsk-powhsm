@@ -24,7 +24,17 @@
 
 #include <stddef.h>
 #include "os_io_seproxyhal.h"
+#include "defs.h"
 #include "signer_ux.h"
+
+// This 2-step expansion is necessary to force the preprocessor to expand the
+// numeric macros before stringifying them
+#define STRINGIFY(x) #x
+#define INT2STR(x) STRINGIFY(x)
+
+#define SIGNER_VERSION_STRING \
+    INT2STR(VERSION_MAJOR)    \
+    "." INT2STR(VERSION_MINOR) "." INT2STR(VERSION_PATCH)
 
 // clang-format off
 static const bagl_element_t bagl_ui_info_nanos[] = {
@@ -43,6 +53,17 @@ static const bagl_element_t bagl_ui_info_nanos[] = {
         {BAGL_LABELINE, 0x02, 0, 12, 128, 11, 0, 0, 0, 0xFFFFFF, 0x000000,
          BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
         "Signer running...",
+        0,
+        0,
+        0,
+        NULL,
+        NULL,
+        NULL,
+    },
+    {
+        {BAGL_LABELINE, 0x03, 0, 26, 128, 11, 0, 0, 0, 0xFFFFFF, 0x000000,
+         BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+        "Version: " SIGNER_VERSION_STRING,
         0,
         0,
         0,

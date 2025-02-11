@@ -22,9 +22,11 @@
 
 SRCDIR = ../../src
 COMMONDIR = ../../../../common/src
+POWHSMDIR = ../../../../powhsm/src
+HALINCDIR = ../../../../hal/include
 MOCKDIR = ../mock
 THISMOCKDIR = ./mock
-CFLAGS  = -iquote $(THISMOCKDIR) -iquote $(MOCKDIR)
+CFLAGS  = -iquote $(THISMOCKDIR) -iquote $(MOCKDIR) -iquote $(POWHSMDIR) -iquote $(HALINCDIR)
 CFLAGS += -iquote $(SRCDIR)
 
 include ../../../../../coverage/coverage.mk

@@ -29,8 +29,8 @@
 #include "apdu.h"
 
 // Version and patchlevel
-#define VERSION_MAJOR 0x05
-#define VERSION_MINOR 0x04
-#define VERSION_PATCH 0x01
+#define VERSION_MAJOR 5
+#define VERSION_MINOR 4
+#define VERSION_PATCH 1
 
 #endif // __DEFS_H
