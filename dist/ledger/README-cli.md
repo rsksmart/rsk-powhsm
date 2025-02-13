@@ -361,3 +361,146 @@ This concludes the upgrade process. The device is now ready to be used with the 
 ## What's next
 
 Once the powHSM device is properly setup and onboarded, it is ready to be used with the powHSM middleware.
+
+## Troubleshooting
+
+This section lists some common issues that might arise during the setup and onboarding
+process and provides guidance on how to solve them.
+
+### Ledger Nano S screen is too dim
+
+Unfortunately, it is well a known problem that after a long time of usage, the
+Nano S screen might start dimming, eventually reaching a point where it is
+har to read the on-screen instructions. This is a hardware problem and there are
+some workarounds offered both by [Ledger](https://support.ledger.com/article/360021124674-zd)
+and [third-party websites](https://symetronix.com/ledger-nano-s-screen-not-working-comprehensive-guide-to-fix-the-issue/). 
+In any case, it is still possible to perform the process described in this document,
+even if the screen is completely unreadable. This section lists detailed steps so
+that the onboarding can be performed even without the capability of reading any
+of the on-screen instructions.
+
+For the update process, there's no need to boot the device on Recovery Mode.
+This means that the update can be performed just by reading the instructions
+on the terminal.
+
+#### Detailed steps for onboarding a new device
+
+This step is needed to onboard a new device. To access the Recovery Mode, follow
+the steps below:
+
+1. Press and hold the Right button on the Nano S. This is the button furthest
+   from the USB port. Keep it pressed while you connect the USB cable to the
+   device.
+
+2. Connect the USB cable to the device while holding the Right button pressed.
+   Keep it pressed for the next 5 seconds after the cable is connected, and then
+   release it. Wait for another 5 seconds before proceeding to the next step.
+
+> Now there are two ways to proceed, depending on whether the device was already
+  onboarded and has the Signer app installed. If the device is new, skip to step
+  4, otherwise, proceed to step 3.
+
+3. If the device was already onboarded and has the Signer app installed, the
+   first thing to do is to perform a factory reset. To do this, follow the exact
+   sequence of button presses below:
+
+   - Press the Right button once.
+   - Press both buttons at the same time.
+   - Press both buttons at the same time again.
+   - Press the Right button once.
+   - Press both buttons at the same time.
+   - Press the Right button once.
+
+   After this sequence, the device will reboot and we have to access the Recovery
+   Mode again. Repeat steps 1 and 2.
+
+4. After the device is in Recovery Mode, it is ready for the onboarding process.
+   To start the onboarding, issue the following command in the terminal:
+
+   ```bash
+   /path/to/dist> ./setup-new-device
+   ```
+
+   You will see the output:
+
+   ```
+   Welcome to the Ledger Nano S powHSM Setup for RSK 
+
+   Connect your ledger into recovery mode:
+   Connect it while keeping the right button pressed until you see a Recovery message, then
+   release the right button and wait until the menu appears.
+   Press [Enter] to continue
+   ```
+
+5. Press `Enter` to proceed with the onboarding process. You will now notice that
+   the script will stop at this point waiting for user confirmation:
+
+   ```
+   Removing the Bitcoin App...
+   The Ledger will prompt for 'Allow Unknown Manager'. Please accept it.
+   If the Ledger prompts for 'Remove app' followed by the app name and identifier, then please accept it.
+   ```
+
+6. Press the Right button once to confirm allow access to the manager. The script
+   will continue with the onboarding process and will stop again at the following
+   step:
+
+   ```
+   Removing the Ethereum App...
+   If the Ledger prompts for 'Remove app' followed by the app name and identifier, then please accept it.
+   Removing the Fido App...
+   If the Ledger prompts for 'Remove app' followed by the app name and identifier, then please accept it.
+   Removing the existing certification authority (if any)...
+   If the Ledger prompts for 'Revoke certificate' followed by the certificate name and its public key, then please accept it.
+
+   Setting up the RSK certification authority...
+   The Ledger will prompt for 'Trust certificate' followed by the certificate name and its public key. Please accept it.
+   ```
+
+7. Press the Right button once to confirm that the certificate should be trusted.
+   The script will continue installing the apps and should only stop at the
+   following step:
+
+   ```
+   Installing the RSK Signer App...
+   Installing the RSK UI...
+
+   App installation complete. Please disconnect and reconnect the device.
+   You should see a white screen upon restart.
+   Press [Enter] to continue
+   ```
+
+8. After this point, all the information required to perform the onboarding is
+   provided by the script. The following steps are listed in the [Onboard the device](#onboard-the-device)
+   section of this document.
+
+### powHSM manager fails to start after finishing the onboarding process
+
+There are a few reasons why the powHSM manager might fail to start after the
+onboarding process. The detailed error messages can be found in the terminal,
+and the user is encouraged to read them carefully to understand the root cause
+of the problem. This section lists some errors and provides guidance on how to
+solve them.
+
+#### Error in device initialization: Unable to unlock: PIN mismatch
+
+A pin is needed before any interaction with the device. This needs to be the same
+pin that was set during the onboarding process. There are two mechanisms to provide
+the pin to the powHSM Manager:
+- Setting an environment variable `PIN` with the pin value.
+- Providing a text file containing the pin value.
+
+To solve this issue, please ensure that the pin is set correctly and that it
+matches the one set during the onboarding process. Depending on your setup, it
+is possible that a file containing the pin is already present in the file system
+containing a pin value that was set during the previous onboarding process. If
+that's the case, please remove the file or update its content with the correct
+pin value.
+
+#### Available number of pin retries (1) not enough to attempt a device unlock
+
+This error happens when the maximum number of attempts to unlock the device has
+been reached. The powHSM manager will refuse to try to unlock the device one
+more time, since failing to provide the correct pin one more time would result
+in a full reset of the device. To solve this issue, the device must be reonboarded
+by following the steps described in the [Setup a new device](#setup-a-new-device).
