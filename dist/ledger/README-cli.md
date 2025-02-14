@@ -392,13 +392,14 @@ the steps below:
    After connecting the cable, keep the button pressed for another 5 seconds, and then
    release it. Wait for another 5 seconds before proceeding to the next step.
 
-> Now there are two ways to proceed, depending on whether or not the device has
-  a pin set. Devices that have been onboarded and are currently in use have a pin
-  set, so move on to step 2. Devices that have been onboarded, but have been wiped
-  (i.e., the wrong pin was entered three times in a row) do not have a pin set,
-  so skip to step 3. Brand new devices also do not have a pin set, so skip to step 3.
+   The next step to be performed depends on whether or not the device has a pin set:
 
-2. Note: this is step is only required for devices that have already been onboarded
+   - If the target device has already been onboarded, and has a pin set, proceed to step 2.
+   - If the target device has already been onboarded, but has been wiped (i.e.,
+   the wrong pin was entered three times in a row), skip step 2 and proceed directly to step 3.
+   - If the target device is brand new, skip step 2 and proceed directly to step 3.
+
+2. Note: this step is only required for devices that have already been onboarded
    and have a pin set. If this is not the case, skip to step 3 (see note above).
    To wipe the device, we need to provide the wrong pin three times in a row. To
    do this, follow the exact sequence of button presses below:
