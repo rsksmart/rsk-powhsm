@@ -361,3 +361,140 @@ This concludes the upgrade process. The device is now ready to be used with the 
 ## What's next
 
 Once the powHSM device is properly setup and onboarded, it is ready to be used with the powHSM middleware.
+
+## Troubleshooting
+
+This section lists some common issues that might arise during the setup and onboarding
+process and provides guidance on how to solve them.
+
+### Ledger Nano S screen is too dim
+
+Unfortunately, it is a well known problem that after a long time of usage, the
+Nano S screen might start dimming, eventually reaching a point where it is
+nearly impossible to read the on-screen instructions. This is a hardware problem and there are
+some workarounds offered both by [Ledger](https://support.ledger.com/article/360021124674-zd)
+and [third-party websites](https://symetronix.com/ledger-nano-s-screen-not-working-comprehensive-guide-to-fix-the-issue/). 
+In any case, it is still possible to perform the process described in this document,
+even if the screen is completely unreadable. This section lists detailed steps so
+that the onboarding can be performed even without the possibility of reading any
+of the on-screen instructions.
+
+For the update process, there's no need for the user to do anything besides plugging
+and unplugging the device when prompted.
+
+#### Detailed steps for onboarding a new device
+
+This step is needed to onboard a new device. To access the Recovery Mode, follow
+the steps below:
+
+1. Press and hold the Right button on the Nano S. This is the button furthest
+   from the USB port. Keep it pressed while you connect the USB cable to the computer.
+   After connecting the cable, keep the button pressed for another 5 seconds, and then
+   release it. Wait for another 5 seconds before proceeding to the next step.
+
+   The next step to be performed depends on whether or not the device has a pin set:
+
+   - If the target device has already been onboarded, and has a pin set, proceed to step 2.
+   - If the target device has already been onboarded, but has been wiped (i.e.,
+   the wrong pin was entered three times in a row), skip step 2 and proceed directly to step 3.
+   - If the target device is brand new, skip step 2 and proceed directly to step 3.
+
+2. Note: this step is only required for devices that have already been onboarded
+   and have a pin set. If this is not the case, skip to step 3 (see note above).
+   To wipe the device, we need to provide the wrong pin three times in a row. To
+   do this, follow the exact sequence of button presses below:
+
+   - Press both buttons at the same time, do this 7 times in sequence.
+   - Repeat the sequence above on more time, i.e., press both buttons at the same
+     time 7 times in sequence.
+   - Now press both buttons at the same time exactly 12 times in sequence.
+
+   The device will now be wiped and in Recovery Mode. **Do not unplug the device**
+   and proceed to step 3.
+
+3. After the device is in Recovery Mode, it is ready for the onboarding process.
+   To start the onboarding, issue the following command in the terminal:
+
+   ```bash
+   /path/to/dist> ./setup-new-device
+   ```
+
+   You will see the output:
+
+   ```
+   Welcome to the Ledger Nano S powHSM Setup for RSK 
+
+   Connect your ledger into recovery mode:
+   Connect it while keeping the right button pressed until you see a Recovery message, then
+   release the right button and wait until the menu appears.
+   Press [Enter] to continue
+   ```
+
+4. Press `Enter` to proceed with the onboarding process. The next steps of the
+   onboarding will require the user to interact with the device. At any point
+   that the script stops and requests the user to Accept an action, the user
+   must press the Right button once to confirm the action.
+
+   The first confirmation required is to allow the powHSM manager to access the
+   device. The script will stop at this point and the following message will be
+   displayed:
+
+   ```
+   Removing the Bitcoin App...
+   The Ledger will prompt for 'Allow Unknown Manager'. Please accept it.
+   If the Ledger prompts for 'Remove app' followed by the app name and identifier, then please accept it.
+   ```
+
+   Press the Right button once to confirm access to the manager. If new messages
+   are displayed in the console, proceed to step 5. Otherwise, it means you need
+   to confirm the removal of the Bitcoin app. In this case, press the Right button
+   once more to confirm the removal.
+
+5. The next confirmations will depend on the apps that are currently installed on
+   the device. The script will guide you through the process. All the steps below
+   will be performed automatically if there's no action needed from the user. At any
+   point that the script stops and requests the user to Accept an action, just press
+   the Right button once to confirm:
+
+   ```
+   Removing the Ethereum App...
+   If the Ledger prompts for 'Remove app' followed by the app name and identifier, then please accept it.
+   Removing the Fido App...
+   If the Ledger prompts for 'Remove app' followed by the app name and identifier, then please accept it.
+   Removing the RSK Signer App...
+   If the Ledger prompts for 'Remove app' followed by the app name and identifier, then please accept it.
+   Removing the RSK UI...
+   If the Ledger prompts for 'Remove app' followed by the app name and identifier, then please accept it.
+   ```
+
+6. Finally, the script will set up the RSK certification authority. The user will
+   be prompted to confirm that the existing certificate should be removed, and then
+   to trust the new certificate. In both cases, just press the Right button once to
+   confirm:
+
+   ```
+   Removing the existing certification authority (if any)...
+   If the Ledger prompts for 'Revoke certificate' followed by the certificate name and its public key, then please accept it.
+
+   Setting up the RSK certification authority...
+   The Ledger will prompt for 'Trust certificate' followed by the certificate name and its public key. Please accept it.
+   ```
+
+   Press the Right button once for each of the confirmations requested.
+
+7. The script will continue installing the apps and should only stop at the
+   following step:
+
+   ```
+   Installing the RSK Signer App...
+   Installing the RSK UI...
+
+   App installation complete. Please disconnect and reconnect the device.
+   You should see a white screen upon restart.
+   Press [Enter] to continue
+   ```
+
+8. After this point, all the information required to perform the onboarding is
+   provided by the script. The following steps are listed in the [Onboard the device](#onboard-the-device)
+   section of this document.
+
