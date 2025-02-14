@@ -369,7 +369,7 @@ process and provides guidance on how to solve them.
 
 ### Ledger Nano S screen is too dim
 
-Unfortunately, it is well a known problem that after a long time of usage, the
+Unfortunately, it is a well known problem that after a long time of usage, the
 Nano S screen might start dimming, eventually reaching a point where it is
 nearly impossible to read the on-screen instructions. This is a hardware problem and there are
 some workarounds offered both by [Ledger](https://support.ledger.com/article/360021124674-zd)
@@ -389,19 +389,17 @@ the steps below:
 
 1. Press and hold the Right button on the Nano S. This is the button furthest
    from the USB port. Keep it pressed while you connect the USB cable to the computer.
-
-2. Connect the USB cable to the computer while holding the Right button pressed.
-   Keep it pressed for the next 5 seconds after the cable is connected, and then
+   After connecting the cable, keep the button pressed for another 5 seconds, and then
    release it. Wait for another 5 seconds before proceeding to the next step.
 
 > Now there are two ways to proceed, depending on whether or not the device has
   a pin set. Devices that have been onboarded and are currently in use have a pin
-  set, so move on to step 3. Devices that have been onboarded, but have been wiped
+  set, so move on to step 2. Devices that have been onboarded, but have been wiped
   (i.e., the wrong pin was entered three times in a row) do not have a pin set,
-  so skip to step 4. Brand new devices also do not have a pin set, so skip to step 4.
+  so skip to step 3. Brand new devices also do not have a pin set, so skip to step 3.
 
-3. Note: this is step is only required for devices that have already been onboarded
-   and have a pin set. If this is not the case, skip to step 4 (see note above).
+2. Note: this is step is only required for devices that have already been onboarded
+   and have a pin set. If this is not the case, skip to step 3 (see note above).
    To wipe the device, we need to provide the wrong pin three times in a row. To
    do this, follow the exact sequence of button presses below:
 
@@ -411,9 +409,9 @@ the steps below:
    - Now press both buttons at the same time exactly 12 times in sequence.
 
    The device will now be wiped and in Recovery Mode. **Do not unplug the device**
-   and proceed to step 4.
+   and proceed to step 3.
 
-4. After the device is in Recovery Mode, it is ready for the onboarding process.
+3. After the device is in Recovery Mode, it is ready for the onboarding process.
    To start the onboarding, issue the following command in the terminal:
 
    ```bash
@@ -431,7 +429,7 @@ the steps below:
    Press [Enter] to continue
    ```
 
-5. Press `Enter` to proceed with the onboarding process. The next steps of the
+4. Press `Enter` to proceed with the onboarding process. The next steps of the
    onboarding will require the user to interact with the device. At any point
    that the script stops and requests the user to Accept an action, the user
    must press the Right button once to confirm the action.
@@ -446,9 +444,12 @@ the steps below:
    If the Ledger prompts for 'Remove app' followed by the app name and identifier, then please accept it.
    ```
 
-   Press the Right button once to accept.
+   Press the Right button once to confirm access to the manager. If new messages
+   are displayed in the console, proceed to step 5. Otherwise, it means you need
+   to confirm the removal of the Bitcoin app. In this case, press the Right button
+   once more to confirm the removal.
 
-6. The next confirmations will depend on the apps that are currently installed on
+5. The next confirmations will depend on the apps that are currently installed on
    the device. The script will guide you through the process. All the steps below
    will be performed automatically if there's no action needed from the user. At any
    point that the script stops and requests the user to Accept an action, just press
@@ -465,7 +466,7 @@ the steps below:
    If the Ledger prompts for 'Remove app' followed by the app name and identifier, then please accept it.
    ```
 
-7. Finally, the script will set up the RSK certification authority. The user will
+6. Finally, the script will set up the RSK certification authority. The user will
    be prompted to confirm that the existing certificate should be removed, and then
    to trust the new certificate. In both cases, just press the Right button once to
    confirm:
@@ -480,7 +481,7 @@ the steps below:
 
    Press the Right button once for each of the confirmations requested.
 
-8. The script will continue installing the apps and should only stop at the
+7. The script will continue installing the apps and should only stop at the
    following step:
 
    ```
@@ -492,7 +493,7 @@ the steps below:
    Press [Enter] to continue
    ```
 
-9. After this point, all the information required to perform the onboarding is
+8. After this point, all the information required to perform the onboarding is
    provided by the script. The following steps are listed in the [Onboard the device](#onboard-the-device)
    section of this document.
 
