@@ -2,7 +2,7 @@ name: "Code coverage"
 
 on:
   push:
-    branches: [ "master", "feature/sgx" ]
+    branches: [ "master" ]
 
 # Declare default permissions as read only.
 permissions: read-all
@@ -10,7 +10,7 @@ permissions: read-all
 jobs:
   coverage:
     name: Run tests and generate coverage reports
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout this repo

@@ -11,7 +11,7 @@ permissions: read-all
 jobs:
   run-unit-tests:
     name: Unit tests
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout this repo
@@ -52,7 +52,7 @@ jobs:
 
   run-integration-tests-tcpsigner:
     name: Integration tests for TCPSigner
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout rsk-powhsm repo
@@ -90,7 +90,7 @@ jobs:
 
   run-integration-tests-sgx:
     name: Integration tests for SGX simulator
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout rsk-powhsm repo
