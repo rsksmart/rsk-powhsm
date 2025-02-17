@@ -2,7 +2,7 @@ name: "Static analysis"
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "develop-5.4" ]
 
 # Declare default permissions as read only.
 permissions: read-all
