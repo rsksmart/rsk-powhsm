@@ -11,7 +11,7 @@ permissions: read-all
 jobs:
   run-unit-tests:
     name: Unit tests
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout this repo
@@ -43,7 +43,7 @@ jobs:
 
   run-integration-tests:
     name: Integration tests
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout rsk-powhsm repo

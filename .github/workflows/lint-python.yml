@@ -8,7 +8,7 @@ permissions: read-all
 jobs:
   run-python-linter:
     name: Run Python linter
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout this repo
