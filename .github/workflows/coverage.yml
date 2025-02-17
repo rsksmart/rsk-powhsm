@@ -2,7 +2,7 @@ name: "Code coverage"
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "master", "develop-5.2", "develop-5.4" ]
 
 # Declare default permissions as read only.
 permissions: read-all
@@ -37,7 +37,7 @@ jobs:
         run: |
           aws s3 sync \
             middleware/coverage/ \
-            s3://${{ secrets.CODECOVERAGE_S3_BUCKET }}/powhsm_5.4.x/middleware_coverage_report \
+            s3://${{ secrets.CODECOVERAGE_S3_BUCKET }}/powhsm_head/middleware_coverage_report \
             --sse aws:kms --sse-kms-key-id ${{ secrets.CODECOVERAGE_KMS_KEY_ID }} \
             --no-progress --follow-symlinks --delete --only-show-errors
 
@@ -52,7 +52,7 @@ jobs:
         run: |
           aws s3 sync \
             firmware/coverage/output/ \
-            s3://${{ secrets.CODECOVERAGE_S3_BUCKET }}/powhsm_5.4.x/firmware_coverage_report \
+            s3://${{ secrets.CODECOVERAGE_S3_BUCKET }}/powhsm_head/firmware_coverage_report \
             --sse aws:kms --sse-kms-key-id ${{ secrets.CODECOVERAGE_KMS_KEY_ID }} \
             --no-progress --follow-symlinks --delete --only-show-errors
 
