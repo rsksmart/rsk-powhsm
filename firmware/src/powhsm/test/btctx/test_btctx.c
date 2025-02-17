@@ -54,9 +54,12 @@ int read_hex_file(const char* file_name, unsigned char** buffer, size_t* len) {
         fread(tmp, 2, 1, f);
         read_hex(tmp, 2, *buffer + off);
     }
-    fclose(f);
-
+    
     if (ferror(f)) {
+        return -1;
+    }
+
+    if (fclose(f)) {
         return -1;
     }
 

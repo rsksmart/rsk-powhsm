@@ -204,9 +204,12 @@ int read_block_file(const char* file_name, char** buffer, size_t* len) {
 
     *buffer = malloc(*len);
     fread(*buffer, *len, 1, f);
-    fclose(f);
 
     if (ferror(f)) {
+        return -1;
+    }
+
+    if (fclose(f)) {
         return -1;
     }
 
