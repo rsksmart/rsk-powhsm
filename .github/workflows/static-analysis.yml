@@ -10,7 +10,7 @@ permissions: read-all
 jobs:
   static-analysis:
     name: Run ledger static analysis
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout this repo
