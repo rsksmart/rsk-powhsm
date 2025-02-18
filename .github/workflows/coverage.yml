@@ -2,7 +2,7 @@ name: "Code coverage"
 
 on:
   push:
-    branches: [ "master", "feature/sgx" ]
+    branches: [ "develop-5.4" ]
 
 # Declare default permissions as read only.
 permissions: read-all
