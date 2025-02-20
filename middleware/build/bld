@@ -7,7 +7,7 @@ fi
 
 HIDDENIMPORTS="--hiddenimport _cffi_backend"
 if [[ "$1" == "lbutils" ]]; then
-    HIDDENIMPORTS="--hiddenimport ledgerblue.loadApp --hiddenimport ledgerblue.deleteApp --hiddenimport ledgerblue.setupCustomCA --hiddenimport ledgerblue.resetCustomCA --hiddenimport ledgerblue.genCAPair"
+    HIDDENIMPORTS="--hiddenimport ledgerblue.loadApp --hiddenimport ledgerblue.deleteApp --hiddenimport ledgerblue.setupCustomCA --hiddenimport ledgerblue.resetCustomCA --hiddenimport ledgerblue.genCAPair --hiddenimport ledgerblue.listApps"
 fi
 
 # Main script name to build (no extension)

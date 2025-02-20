@@ -32,6 +32,7 @@ def main():
         "setupCA": "setupCustomCA",
         "resetCA": "resetCustomCA",
         "genCA": "genCAPair",
+        "listApps": "listApps",
     }
 
     if len(sys.argv) < 2 or sys.argv[1] not in utilities:
