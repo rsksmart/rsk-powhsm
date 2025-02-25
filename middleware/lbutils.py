@@ -20,19 +20,40 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import ast
+import contextlib
+import io
 import sys
+
+
+def post_process_list_apps(raw_output):
+    app_list = []
+    for line in raw_output.splitlines():
+        line = line.strip()
+        if line.startswith("[{") and line.endswith("}]"):
+            data = ast.literal_eval(line)
+            if isinstance(data, list) and all(
+                    isinstance(app_dict, dict) for app_dict in data):
+                for app_dict in data:
+                    app_list.append(app_dict["name"])
+                break
+    if app_list:
+        return "\n".join([f"Installed app: {app}" for app
+                          in app_list])
+    else:
+        return "No apps installed"
 
 
 def main():
     import runpy
 
     utilities = {
-        "load": "loadApp",
-        "delete": "deleteApp",
-        "setupCA": "setupCustomCA",
-        "resetCA": "resetCustomCA",
-        "genCA": "genCAPair",
-        "listApps": "listApps",
+        "load": {"module": "loadApp", "post_process": None},
+        "delete": {"module": "deleteApp", "post_process": None},
+        "setupCA": {"module": "setupCustomCA", "post_process": None},
+        "resetCA": {"module": "resetCustomCA", "post_process": None},
+        "genCA": {"module": "genCAPair", "post_process": None},
+        "listApps": {"module": "listApps", "post_process": post_process_list_apps},
     }
 
     if len(sys.argv) < 2 or sys.argv[1] not in utilities:
@@ -42,9 +63,21 @@ def main():
         sys.exit(99)
 
     try:
-        module = f"ledgerblue.{utilities[sys.argv[1]]}"
-        sys.argv = [f"{sys.argv[0]} {sys.argv[1]}"] + sys.argv[2:]
-        runpy.run_module(module, run_name="__main__")
+        command = sys.argv[1]
+        sys.argv = [f"{sys.argv[0]} {command}"] + sys.argv[2:]
+        module = f"ledgerblue.{utilities[command]["module"]}"
+        post_process = utilities[command]["post_process"]
+
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            with contextlib.suppress(UnicodeDecodeError):
+                runpy.run_module(module, run_name="__main__")
+        output = buffer.getvalue()
+        buffer.close()
+        if post_process:
+            output = post_process(output)
+        if output:
+            print(output)
         sys.exit(0)
     except Exception as e:
         print(f"Error: {str(e)}")
