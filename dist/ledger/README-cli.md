@@ -40,12 +40,11 @@ Press [Enter] to continue
 
 Pressing `Enter` will proceed with the installation. Pay attention to the instructions both on the terminal and on the device's screen, since a few confirmations are required.
 ```
-Removing the Bitcoin App...
+Removing the existing installed apps (if any)...
 The Ledger will prompt for 'Allow Unknown Manager'. Please accept it.
+Removing the UX App...
 If the Ledger prompts for 'Remove app' followed by the app name and identifier, then please accept it.
-Removing the Ethereum App...
-If the Ledger prompts for 'Remove app' followed by the app name and identifier, then please accept it.
-Removing the Fido App...
+Removing the RSK Sign App...
 If the Ledger prompts for 'Remove app' followed by the app name and identifier, then please accept it.
 Removing the existing certification authority (if any)...
 If the Ledger prompts for 'Revoke certificate' followed by the certificate name and its public key, then please accept it.
@@ -440,31 +439,29 @@ the steps below:
    displayed:
 
    ```
-   Removing the Bitcoin App...
+   Removing the existing installed apps (if any)...
    The Ledger will prompt for 'Allow Unknown Manager'. Please accept it.
-   If the Ledger prompts for 'Remove app' followed by the app name and identifier, then please accept it.
    ```
 
-   Press the Right button once to confirm access to the manager. If new messages
-   are displayed in the console, proceed to step 5. Otherwise, it means you need
-   to confirm the removal of the Bitcoin app. In this case, press the Right button
-   once more to confirm the removal.
+   Press the Right button once to confirm access to the manager.
 
 5. The next confirmations will depend on the apps that are currently installed on
-   the device. The script will guide you through the process. All the steps below
-   will be performed automatically if there's no action needed from the user. At any
-   point that the script stops and requests the user to Accept an action, just press
-   the Right button once to confirm:
+   the device. The script will guide you through the process. For each app that
+   is currently installed, the script will stop and display a message similar to
+   the ones below:
 
    ```
-   Removing the Ethereum App...
+   Removing the UX App...
    If the Ledger prompts for 'Remove app' followed by the app name and identifier, then please accept it.
-   Removing the Fido App...
+   Removing the RSK Sign App...
    If the Ledger prompts for 'Remove app' followed by the app name and identifier, then please accept it.
-   Removing the RSK Signer App...
-   If the Ledger prompts for 'Remove app' followed by the app name and identifier, then please accept it.
-   Removing the RSK UI...
-   If the Ledger prompts for 'Remove app' followed by the app name and identifier, then please accept it.
+   ```
+
+   Press the Right button once for each of the confirmations requested.
+
+   If no apps are currently installed, the following message is displayed and no confirmation is required:
+   ```
+   No apps to remove.
    ```
 
 6. Finally, the script will set up the RSK certification authority. The user will
