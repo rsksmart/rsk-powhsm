@@ -80,3 +80,61 @@ class TestLbutils(TestCase):
         self.assertEqual([call('ledgerblue.genCAPair', run_name='__main__')],
                          run_module.call_args_list)
         self.assertEqual(e.exception.code, 0)
+
+    def test_list_apps_no_apps(self, run_module):
+        def run_module_mock(module, run_name):
+            print("Generated random root public key : b'123456789'")
+            print("Using test master key b'123456789'")
+            print("Using ephemeral key b'987654321'")
+            print("Broken certificate chain - loading from user key")
+
+        run_module.side_effect = run_module_mock
+
+        with patch('sys.argv', ['lbutils.py', 'listApps']):
+            with patch('sys.stdout.write') as stdout_mock:
+                with self.assertRaises(SystemExit) as e:
+                    main()
+                self.assertFalse(stdout_mock.called)
+
+        self.assertTrue(run_module.called)
+        self.assertEqual([call('ledgerblue.listApps', run_name='__main__')],
+                         run_module.call_args_list)
+        self.assertEqual(e.exception.code, 0)
+
+    def test_list_apps_with_apps(self, run_module):
+        def run_module_mock(module, run_name):
+            print("Generated random root public key : b'123456789'")
+            print("Using test master key b'123456789'")
+            print("Using ephemeral key b'987654321'")
+            print("Broken certificate chain - loading from user key")
+            print("[{'name': 'first app name', 'flags': 1234, 'hash': '01020304'},"
+                  " {'name': 'second app name', 'flags': 1234, 'hash': '05060708'}]")
+
+        run_module.side_effect = run_module_mock
+
+        with patch('sys.argv', ['lbutils.py', 'listApps']):
+            with patch('sys.stdout.write') as stdout_mock:
+                with self.assertRaises(SystemExit) as e:
+                    main()
+                self.assertEqual([call('first app name\nsecond app name'), call('\n')],
+                                 stdout_mock.call_args_list)
+
+        self.assertTrue(run_module.called)
+        self.assertEqual([call('ledgerblue.listApps', run_name='__main__')],
+                         run_module.call_args_list)
+        self.assertEqual(e.exception.code, 0)
+
+    def test_list_apps_error(self, run_module):
+        run_module.side_effect = Exception('error-msg')
+
+        with patch('sys.argv', ['lbutils.py', 'listApps']):
+            with patch('sys.stdout.write') as stdout_mock:
+                with self.assertRaises(SystemExit) as e:
+                    main()
+                    self.assertEqual([call('Error: error-msg'), call('\n')],
+                                     stdout_mock.call_args_list)
+
+        self.assertTrue(run_module.called)
+        self.assertEqual([call('ledgerblue.listApps', run_name='__main__')],
+                         run_module.call_args_list)
+        self.assertEqual(e.exception.code, 1)

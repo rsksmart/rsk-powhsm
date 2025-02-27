@@ -79,31 +79,6 @@ function checkForPinFile() {
     fi
 }
 
-function removeBitcoinApp() {
-    $LBUTILS delete --appName "Bitcoin" --targetId $TARGET_ID --rootPrivateKey $ROOTKEY > /dev/null 2> /dev/null
-    error
-}
-
-function removeEthereumApp() {
-    $LBUTILS delete --appName "Ethereum" --targetId $TARGET_ID --rootPrivateKey $ROOTKEY > /dev/null 2> /dev/null
-    error
-}
-
-function removeFidoApp() {
-    $LBUTILS delete --appName "Fido U2F" --targetId $TARGET_ID --rootPrivateKey $ROOTKEY > /dev/null 2> /dev/null
-    error
-}
-
-function removeSignerApp() {
-    $LBUTILS delete --appName "RSK Sign" --targetId $TARGET_ID --rootPrivateKey $ROOTKEY > /dev/null 2> /dev/null
-    error
-}
-
-function removeUIApp() {
-    $LBUTILS delete --appName "UX" --targetId $TARGET_ID --rootPrivateKey $ROOTKEY > /dev/null 2> /dev/null
-    error
-}
-
 function promptRemoveAppWarning() {
     echo -e "\e[1;33mIf the Ledger prompts for 'Remove app' followed by the app name and identifier, then please accept it.\e[0m"
 }
@@ -116,6 +91,23 @@ function setupCA() {
     $LBUTILS setupCA --public $RSK_CA --name "RSK" --targetId $TARGET_ID --rootPrivateKey $ROOTKEY > /dev/null 2> /dev/null
     error
 }
+
+function removeAllApps() {
+    APPS=$($LBUTILS listApps --targetId $TARGET_ID --rootPrivateKey $ROOTKEY --scp)
+    error
+    if [ -z "$APPS" ]; then
+        echo -e "\e[1;32mNo apps to remove.\e[0m"
+        return
+    fi
+
+    echo "$APPS" | while IFS= read -r app; do
+        echo -e "\e[1;32mRemoving the $app App...\e[0m"
+        promptRemoveAppWarning
+        $LBUTILS delete --appName "$app" --targetId $TARGET_ID --rootPrivateKey $ROOTKEY > /dev/null 2> /dev/null
+        error
+    done
+}
+
 
 function installSigner() {
     ICON="$(cat $FIRMWARE_DIR/signer.icon.hex)"
@@ -179,23 +171,9 @@ echo -e "\e[1;33mConnect it while keeping the right button pressed until you see
 echo -e "\e[1;33mrelease the right button and wait until the menu appears.\e[0m"
 echo -e "Press [Enter] to continue"
 read continue
-echo
-echo -e "\e[1;32mRemoving the Bitcoin App...\e[0m"
+echo -e "\e[1;32mRemoving the existing installed apps (if any)...\e[0m"
 echo -e "\e[1;33mThe Ledger will prompt for 'Allow Unknown Manager'. Please accept it.\e[0m"
-promptRemoveAppWarning
-removeBitcoinApp
-echo -e "\e[1;32mRemoving the Ethereum App...\e[0m"
-promptRemoveAppWarning
-removeEthereumApp
-echo -e "\e[1;32mRemoving the Fido App...\e[0m"
-promptRemoveAppWarning
-removeFidoApp
-echo -e "\e[1;32mRemoving the RSK Signer App...\e[0m"
-promptRemoveAppWarning
-removeSignerApp
-echo -e "\e[1;32mRemoving the RSK UI...\e[0m"
-promptRemoveAppWarning
-removeUIApp
+removeAllApps
 echo -e "\e[1;32mRemoving the existing certification authority (if any)...\e[0m"
 echo -e "\e[1;33mIf the Ledger prompts for 'Revoke certificate' followed by the certificate name and its public key, then please accept it.\e[0m"
 resetCA
