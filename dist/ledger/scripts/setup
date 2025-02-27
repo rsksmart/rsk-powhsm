@@ -93,7 +93,8 @@ function setupCA() {
 }
 
 function removeAllApps() {
-    APPS=$($LBUTILS listApps --targetId $TARGET_ID --rootPrivateKey $ROOTKEY --scp | grep 'Installed app' | sed 's/Installed app: //g')
+    APPS=$($LBUTILS listApps --targetId $TARGET_ID --rootPrivateKey $ROOTKEY --scp)
+    error
     if [ -z "$APPS" ]; then
         echo -e "\e[1;32mNo apps to remove.\e[0m"
         return

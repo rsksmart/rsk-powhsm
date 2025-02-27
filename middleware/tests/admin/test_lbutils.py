@@ -94,8 +94,7 @@ class TestLbutils(TestCase):
             with patch('sys.stdout.write') as stdout_mock:
                 with self.assertRaises(SystemExit) as e:
                     main()
-                self.assertEqual([call('No apps installed'), call('\n')],
-                                 stdout_mock.call_args_list)
+                self.assertFalse(stdout_mock.called)
 
         self.assertTrue(run_module.called)
         self.assertEqual([call('ledgerblue.listApps', run_name='__main__')],
@@ -117,12 +116,25 @@ class TestLbutils(TestCase):
             with patch('sys.stdout.write') as stdout_mock:
                 with self.assertRaises(SystemExit) as e:
                     main()
-                self.assertEqual([
-                    call('Installed app: first app name\nInstalled app: second app name'),
-                    call('\n')],
-                    stdout_mock.call_args_list)
+                self.assertEqual([call('first app name\nsecond app name'), call('\n')],
+                                 stdout_mock.call_args_list)
 
         self.assertTrue(run_module.called)
         self.assertEqual([call('ledgerblue.listApps', run_name='__main__')],
                          run_module.call_args_list)
         self.assertEqual(e.exception.code, 0)
+
+    def test_list_apps_error(self, run_module):
+        run_module.side_effect = Exception('error-msg')
+
+        with patch('sys.argv', ['lbutils.py', 'listApps']):
+            with patch('sys.stdout.write') as stdout_mock:
+                with self.assertRaises(SystemExit) as e:
+                    main()
+                    self.assertEqual([call('Error: error-msg'), call('\n')],
+                                     stdout_mock.call_args_list)
+
+        self.assertTrue(run_module.called)
+        self.assertEqual([call('ledgerblue.listApps', run_name='__main__')],
+                         run_module.call_args_list)
+        self.assertEqual(e.exception.code, 1)

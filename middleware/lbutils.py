@@ -28,6 +28,7 @@ import sys
 
 def post_process_list_apps(raw_output):
     app_list = []
+    processed_output = ""
     for line in raw_output.splitlines():
         line = line.strip()
         if line.startswith("[{") and line.endswith("}]"):
@@ -38,10 +39,8 @@ def post_process_list_apps(raw_output):
                     app_list.append(app_dict["name"])
                 break
     if app_list:
-        return "\n".join([f"Installed app: {app}" for app
-                          in app_list])
-    else:
-        return "No apps installed"
+        processed_output = "\n".join(app_list)
+    return processed_output
 
 
 def main():
