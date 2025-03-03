@@ -46,8 +46,10 @@ static size_t der_encode_uint(uint8_t* dest, uint8_t* src, size_t len) {
 }
 
 uint8_t der_encode_signature(uint8_t* dest, sgx_ecdsa256_signature_t* sig) {
-    uint8_t r_encoded[sizeof(sig->r) + 2],
-        s_encoded[sizeof(sig->s) + 2]; // Temporary buffers for R and S
+    // Temporary buffers for R and S with
+    // space for TLV with potential leading zero
+    uint8_t r_encoded[sizeof(sig->r) + 3];
+    uint8_t s_encoded[sizeof(sig->r) + 3];
     uint8_t r_len = (uint8_t)der_encode_uint(r_encoded, sig->r, sizeof(sig->r));
     uint8_t s_len = (uint8_t)der_encode_uint(s_encoded, sig->s, sizeof(sig->s));
 
