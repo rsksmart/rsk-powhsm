@@ -90,7 +90,7 @@ jobs:
 
   run-integration-tests-sgx:
     name: Integration tests for SGX simulator
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout rsk-powhsm repo
