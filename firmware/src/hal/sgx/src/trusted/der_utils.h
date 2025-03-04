@@ -25,4 +25,15 @@
 #include <stdint.h>
 #include <openenclave/bits/sgx/sgxtypes.h>
 
-uint8_t der_encode_signature(uint8_t* dest, sgx_ecdsa256_signature_t* sig);
+/**
+ * DER-encode the given ecdsa256 signature
+ *
+ * @param dest      destination buffer
+ * @param dest_size destination buffer size
+ * @param sig       signature to encode
+ *
+ * @returns the signature length or ZERO upon error
+ */
+uint8_t der_encode_signature(uint8_t* dest,
+                             size_t dest_size,
+                             sgx_ecdsa256_signature_t* sig);
