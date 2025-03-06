@@ -33,7 +33,6 @@ mock_config_t G_mock_config;
 #define MOCK_RESULT(fn) return G_mock_config.result_##fn ? OE_OK : OE_FAILURE
 
 uint8_t mock_format_id[] = {11, 22, 33};
-uint8_t mock_format_settings[] = {44, 55, 66, 77};
 uint8_t mock_evidence[] = MOCK_EVIDENCE;
 
 uint8_t der_encode_signature(uint8_t* dest,
@@ -63,20 +62,6 @@ oe_result_t oe_attester_select_format(const oe_uuid_t* format_ids,
     MOCK_RESULT(oe_attester_select_format);
 }
 
-oe_result_t oe_verifier_get_format_settings(const oe_uuid_t* format_id,
-                                            uint8_t** settings,
-                                            size_t* settings_size) {
-
-    const uint8_t expected_format_id[] = {11, 22, 33};
-    assert(
-        !memcmp(format_id->b, expected_format_id, sizeof(expected_format_id)));
-    assert(settings_size != NULL);
-    *settings = mock_format_settings;
-    *settings_size = sizeof(mock_format_settings);
-
-    MOCK_RESULT(oe_verifier_get_format_settings);
-}
-
 oe_result_t oe_get_evidence(const oe_uuid_t* format_id,
                             uint32_t flags,
                             const void* custom_claims_buffer,
@@ -91,10 +76,8 @@ oe_result_t oe_get_evidence(const oe_uuid_t* format_id,
     // Test parameters
     assert(flags == 0);
     assert(!memcmp(format_id, mock_format_id, sizeof(mock_format_id)));
-    assert(!memcmp(optional_parameters,
-                   mock_format_settings,
-                   sizeof(mock_format_settings)));
-    assert(optional_parameters_size == sizeof(mock_format_settings));
+    assert(optional_parameters == NULL);
+    assert(optional_parameters_size == 0);
     assert(endorsements_buffer == NULL);
     assert(endorsements_buffer_size == NULL);
 
@@ -129,12 +112,4 @@ oe_result_t oe_free_evidence(uint8_t* evidence_buffer) {
 
 oe_result_t oe_attester_shutdown(void) {
     MOCK_RESULT(oe_attester_shutdown);
-}
-
-oe_result_t oe_verifier_initialize(void) {
-    MOCK_RESULT(oe_verifier_initialize);
-}
-
-oe_result_t oe_verifier_shutdown(void) {
-    MOCK_RESULT(oe_verifier_shutdown);
 }

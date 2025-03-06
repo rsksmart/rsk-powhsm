@@ -44,11 +44,6 @@ static struct {
     // The format ID used for attestation.
     // See openenclave/attestation/sgx/evidence.h for supported formats.
     oe_uuid_t format_id;
-    // The format settings buffer for the selected format.
-    // This is returned by oe_verifier_get_format_settings.
-    uint8_t* format_settings;
-    // The size of the format settings buffer.
-    size_t format_settings_size;
     // Current envelope
     struct {
         uint8_t raw[RAW_ENVELOPE_BUFFER_SIZE];
@@ -91,12 +86,13 @@ static bool generate_envelope(uint8_t* msg, size_t msg_size) {
     oe_result_t result = OE_FAILURE;
     uint8_t* evidence_buffer = NULL;
     size_t evidence_buffer_size = 0;
+
     result = oe_get_evidence(&G_endorsement_ctx.format_id,
                              0,
                              msg,
                              msg_size,
-                             G_endorsement_ctx.format_settings,
-                             G_endorsement_ctx.format_settings_size,
+                             NULL,
+                             0,
                              &evidence_buffer,
                              &evidence_buffer_size,
                              NULL,
@@ -194,21 +190,12 @@ bool endorsement_init() {
     // Initialize modules
     result = oe_attester_initialize();
     ENDORSEMENT_CHECK(result, "Failed to initialize attester");
-    result = oe_verifier_initialize();
-    ENDORSEMENT_CHECK(result, "Failed to initialize verifier");
 
-    // Make sure the desired format is supported and
-    // get the corresponding settings
+    // Make sure the desired format is supported by selecting it
     const oe_uuid_t format_id = {ENDORSEMENT_FORMAT};
     result =
         oe_attester_select_format(&format_id, 1, &G_endorsement_ctx.format_id);
     ENDORSEMENT_CHECK(result, "Failed to select attestation format");
-
-    result = oe_verifier_get_format_settings(
-        &G_endorsement_ctx.format_id,
-        &G_endorsement_ctx.format_settings,
-        &G_endorsement_ctx.format_settings_size);
-    ENDORSEMENT_CHECK(result, "Format is not supported by verifier");
 
     G_endorsement_ctx.initialised = true;
     LOG("Attestation module initialized\n");
@@ -216,7 +203,6 @@ bool endorsement_init() {
 }
 
 void endorsement_finalise() {
-    oe_verifier_shutdown();
     oe_attester_shutdown();
 }
 
