@@ -4,10 +4,28 @@
 #       other scripts
 #
 
-txtred=$(tput setaf 1)    # Red
-txtgrn=$(tput setaf 2)    # Green
-txtylw=$(tput setaf 3)    # Yellow
-txtrst=$(tput sgr0)       # Text reset
+if command -v tput >/dev/null 2>&1; then
+    # tput is available, check if terminal supports colors
+    if [ -n "$TERM" ] && [ "$TERM" != "dumb" ] && tput colors >/dev/null 2>&1; then
+        # Terminal supports colors
+        txtred=$(tput setaf 1)    # Red
+        txtgrn=$(tput setaf 2)    # Green
+        txtylw=$(tput setaf 3)    # Yellow
+        txtrst=$(tput sgr0)       # Text reset
+    else
+        # Terminal does not support colors
+        txtred=""
+        txtgrn=""
+        txtylw=""
+        txtrst=""
+    fi
+else
+    # tput is not available
+    txtred=""
+    txtgrn=""
+    txtylw=""
+    txtrst=""
+fi
 
 function print_info() {
     echo "${txtgrn}$1${txtrst}"
