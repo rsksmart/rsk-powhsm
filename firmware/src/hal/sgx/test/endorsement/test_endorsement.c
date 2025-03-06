@@ -47,9 +47,7 @@ void setup_no_init() {
     endorsement_init();
 
     G_mock_config.result_oe_attester_initialize = true;
-    G_mock_config.result_oe_verifier_initialize = true;
     G_mock_config.result_oe_attester_select_format = true;
-    G_mock_config.result_oe_verifier_get_format_settings = true;
     G_mock_config.result_oe_get_evidence = true;
     G_mock_config.oe_get_evidence_buffer_freed = false;
 
@@ -83,21 +81,9 @@ void test_endorsement_init_err_attinit() {
     assert(endorsement_init() == false);
 }
 
-void test_endorsement_init_err_verinit() {
-    setup_no_init();
-    G_mock_config.result_oe_verifier_initialize = false;
-    assert(endorsement_init() == false);
-}
-
 void test_endorsement_init_err_selfmt() {
     setup_no_init();
     G_mock_config.result_oe_attester_select_format = false;
-    assert(endorsement_init() == false);
-}
-
-void test_endorsement_init_err_getfmt() {
-    setup_no_init();
-    G_mock_config.result_oe_verifier_get_format_settings = false;
     assert(endorsement_init() == false);
 }
 
@@ -270,9 +256,7 @@ int main() {
     printf("Testing endorsement_init()...\n");
     test_endorsement_init_ok();
     test_endorsement_init_err_attinit();
-    test_endorsement_init_err_verinit();
     test_endorsement_init_err_selfmt();
-    test_endorsement_init_err_getfmt();
 
     printf("Testing endorsement_sign()...\n");
     test_signature_ok();

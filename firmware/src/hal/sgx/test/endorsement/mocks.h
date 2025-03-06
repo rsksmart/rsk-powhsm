@@ -30,10 +30,7 @@
 typedef struct {
     bool result_oe_attester_initialize;
     bool result_oe_attester_shutdown;
-    bool result_oe_verifier_initialize;
-    bool result_oe_verifier_shutdown;
     bool result_oe_free_evidence;
-    bool result_oe_verifier_get_format_settings;
     bool result_oe_get_evidence;
     bool result_oe_attester_select_format;
 
