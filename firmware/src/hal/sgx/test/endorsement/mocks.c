@@ -36,7 +36,10 @@ uint8_t mock_format_id[] = {11, 22, 33};
 uint8_t mock_format_settings[] = {44, 55, 66, 77};
 uint8_t mock_evidence[] = MOCK_EVIDENCE;
 
-uint8_t der_encode_signature(uint8_t* dest, sgx_ecdsa256_signature_t* sig) {
+uint8_t der_encode_signature(uint8_t* dest,
+                             size_t dest_size,
+                             sgx_ecdsa256_signature_t* sig) {
+    assert(dest_size >= sizeof(sig->r) + sizeof(sig->s));
     memcpy(dest, sig->r, sizeof(sig->r));
     memcpy(dest + sizeof(sig->r), sig->s, sizeof(sig->s));
     return sizeof(sig->r) + sizeof(sig->s);
