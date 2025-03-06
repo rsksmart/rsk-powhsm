@@ -1,0 +1,17 @@
+#
+# Utility functions for standardizing terminal output across setup scripts
+# Note: this script is not meant to be executed directly, but sourced by
+#       other scripts
+#
+
+function print_info() {
+    echo -e "\e[1;32m$1\e[0m"
+}
+
+function print_warning() {
+    echo -e "\e[1;33m$1\e[0m"
+}
+
+function print_error() {
+    echo -e "\e[1;31m$1\e[0m"
+}
