@@ -31,10 +31,17 @@ void test_der_encode(const sgx_ecdsa256_signature_t* sig,
                      const uint8_t* expected,
                      int expected_len) {
     uint8_t dest[72]; // Buffer large enough for DER-encoded signature
-    int len = der_encode_signature(dest, (sgx_ecdsa256_signature_t*)sig);
+    uint8_t small_dest[expected_len - 1];
+    int len = der_encode_signature(
+        dest, sizeof(dest), (sgx_ecdsa256_signature_t*)sig);
 
     assert(len == expected_len);
     assert(memcmp(dest, expected, expected_len) == 0);
+
+    // Test what happens if we pass in a buffer that's not big enough
+    assert(0 == der_encode_signature(small_dest,
+                                     sizeof(small_dest),
+                                     (sgx_ecdsa256_signature_t*)sig));
 }
 
 int main() {

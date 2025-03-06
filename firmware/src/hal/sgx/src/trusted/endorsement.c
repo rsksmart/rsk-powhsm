@@ -243,7 +243,13 @@ bool endorsement_sign(uint8_t* msg,
     // Output signature in DER format
     sgx_ecdsa256_signature_t* sig =
         &G_endorsement_ctx.envelope.quote_auth_data->signature;
-    *signature_out_length = der_encode_signature(signature_out, sig);
+    *signature_out_length =
+        der_encode_signature(signature_out, *signature_out_length, sig);
+
+    if (*signature_out_length == 0) {
+        LOG("Error encoding envelope signature\n");
+        goto endorsement_sign_fail;
+    }
 
     return true;
 
