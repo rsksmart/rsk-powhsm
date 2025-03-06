@@ -231,14 +231,4 @@ oe_result_t oe_free_evidence(uint8_t* evidence_buffer);
 
 oe_result_t oe_attester_shutdown(void);
 
-// Taken from OpenEnclave's include/openenclave/attestation/verifier.h
-
-oe_result_t oe_verifier_initialize(void);
-
-oe_result_t oe_verifier_get_format_settings(const oe_uuid_t* format_id,
-                                            uint8_t** settings,
-                                            size_t* settings_size);
-
-oe_result_t oe_verifier_shutdown(void);
-
 #endif // #ifndef __MOCK_OE_COMMON_H
