@@ -1,8 +1,11 @@
 #!/bin/bash
 
-pushd $(dirname $0)/.. > /dev/null
+SCRIPT_DIR=$(realpath $(dirname $0))
+pushd $SCRIPT_DIR/.. > /dev/null
 ROOT_DIR="$(pwd)"
 popd > /dev/null
+
+source $SCRIPT_DIR/print_utils
 
 # Firmware directory
 FIRMWARE_DIR=$ROOT_DIR/firmware
@@ -56,7 +59,7 @@ function checkFirmware() {
     FILES="$FIRMWARE_DIR/signer.hex $FIRMWARE_DIR/signer.icon.hex $FIRMWARE_DIR/ui.hex $FIRMWARE_DIR/ui.icon.hex $FIRMWARE_DIR/ui.hex.sig"
     for f in ${FILES}; do
         if [[ ! -e $f ]]; then
-            echo -e "\e[1;31m Firmware file '$(basename $f)' does not exist. \e[0m"
+            print_error "Firmware file '$(basename $f)' does not exist."
             cleanBinaries
             exit 1
         fi
@@ -65,7 +68,7 @@ function checkFirmware() {
 
 function error() {
     if [ $? -ne 0 ]; then
-        echo -e "\e[1;31m Error comunicating with the dongle. Please check connection and restart the process. \e[0m"
+        print_error "Error comunicating with the dongle. Please check connection and restart the process."
         cleanBinaries
         exit 1
     fi
@@ -73,14 +76,14 @@ function error() {
 
 function checkForPinFile() {
     if [[ -e $PIN_FILE ]]; then
-        echo -e "\e[1;31m Legacy pin file '$(basename $PIN_FILE)' found. Please backup and remove before continuing. \e[0m"
+        print_error "Legacy pin file '$(basename $PIN_FILE)' found. Please backup and remove before continuing."
         cleanBinaries
         exit 1
     fi
 }
 
 function promptRemoveAppWarning() {
-    echo -e "\e[1;33mIf the Ledger prompts for 'Remove app' followed by the app name and identifier, then please accept it.\e[0m"
+    print_warning "If the Ledger prompts for 'Remove app' followed by the app name and identifier, then please accept it."
 }
 
 function resetCA() {
@@ -96,12 +99,12 @@ function removeAllApps() {
     APPS=$($LBUTILS listApps --targetId $TARGET_ID --rootPrivateKey $ROOTKEY --scp)
     error
     if [ -z "$APPS" ]; then
-        echo -e "\e[1;32mNo apps to remove.\e[0m"
+        print_info "No apps to remove."
         return
     fi
 
     echo "$APPS" | while IFS= read -r app; do
-        echo -e "\e[1;32mRemoving the $app App...\e[0m"
+        print_info "Removing the $app App..."
         promptRemoveAppWarning
         $LBUTILS delete --appName "$app" --targetId $TARGET_ID --rootPrivateKey $ROOTKEY > /dev/null 2> /dev/null
         error
@@ -162,56 +165,56 @@ function verify_attestation() {
     error
 }
 
-echo -e "\e[1;32mWelcome to the Ledger Nano S powHSM Setup for RSK \e[0m"
+print_info "Welcome to the Ledger Nano S powHSM Setup for RSK"
 echo
 checkForPinFile
 checkFirmware
-echo -e "\e[1;33mConnect your ledger into recovery mode:\e[0m"
-echo -e "\e[1;33mConnect it while keeping the right button pressed until you see a Recovery message, then\e[0m"
-echo -e "\e[1;33mrelease the right button and wait until the menu appears.\e[0m"
+print_warning "Connect your ledger into recovery mode:"
+print_warning "Connect it while keeping the right button pressed until you see a Recovery message, then"
+print_warning "release the right button and wait until the menu appears."
 echo -e "Press [Enter] to continue"
 read continue
-echo -e "\e[1;32mRemoving the existing installed apps (if any)...\e[0m"
-echo -e "\e[1;33mThe Ledger will prompt for 'Allow Unknown Manager'. Please accept it.\e[0m"
+print_info "Removing the existing installed apps (if any)..."
+print_warning "The Ledger will prompt for 'Allow Unknown Manager'. Please accept it."
 removeAllApps
-echo -e "\e[1;32mRemoving the existing certification authority (if any)...\e[0m"
-echo -e "\e[1;33mIf the Ledger prompts for 'Revoke certificate' followed by the certificate name and its public key, then please accept it.\e[0m"
+print_info "Removing the existing certification authority (if any)..."
+print_warning "If the Ledger prompts for 'Revoke certificate' followed by the certificate name and its public key, then please accept it."
 resetCA
 echo
-echo -e "\e[1;32mSetting up the RSK certification authority...\e[0m"
-echo -e "\e[1;33mThe Ledger will prompt for 'Trust certificate' followed by the certificate name and its public key. Please accept it.\e[0m"
+print_info "Setting up the RSK certification authority..."
+print_warning "The Ledger will prompt for 'Trust certificate' followed by the certificate name and its public key. Please accept it."
 setupCA
 echo
-echo -e "\e[1;32mInstalling the RSK Signer App...\e[0m"
+print_info "Installing the RSK Signer App..."
 installSigner
-echo -e "\e[1;32mInstalling the RSK UI...\e[0m"
+print_info "Installing the RSK UI..."
 installUI
 echo
-echo -e "\e[1;33mApp installation complete. Please disconnect and reconnect the device.\e[0m"
-echo -e "\e[1;33mYou should see a white screen upon restart.\e[0m"
+print_warning "App installation complete. Please disconnect and reconnect the device."
+print_warning "You should see a white screen upon restart."
 echo -e "Press [Enter] to continue"
 read continue
 echo
-echo -e "\e[1;33mOnboarding the device... \e[0m"
+print_warning "Onboarding the device..."
 createOutputDir
 onboard
 echo
-echo -e "\e[1;33mOnboarding complete. Please disconnect and reconnect the device.\e[0m"
+print_warning "Onboarding complete. Please disconnect and reconnect the device."
 echo -e "Press [Enter] to continue"
 read continue
 sleep 2
 echo
-echo -e "\e[1;32mGathering attestation\e[0m"
+print_info "Gathering attestation"
 attestation
 echo
-echo -e "\e[1;32mGathering public keys\e[0m"
+print_info "Gathering public keys"
 keys
 echo
-echo -e "\e[1;32mVerifying attestation\e[0m"
+print_info "Verifying attestation"
 verify_attestation
 echo
-echo -e "\e[1;32mpowHSM Setup complete.\e[0m"
-echo -e "\e[1;33mPlease disconnect the device.\e[0m"
+print_info "powHSM Setup complete."
+print_warning "Please disconnect the device."
 echo
 cleanBinaries
 exit 0
