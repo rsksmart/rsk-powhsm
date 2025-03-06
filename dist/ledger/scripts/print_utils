@@ -4,14 +4,19 @@
 #       other scripts
 #
 
+txtred=$(tput setaf 1)    # Red
+txtgrn=$(tput setaf 2)    # Green
+txtylw=$(tput setaf 3)    # Yellow
+txtrst=$(tput sgr0)       # Text reset
+
 function print_info() {
-    echo -e "\e[1;32m$1\e[0m"
+    echo "${txtgrn}$1${txtrst}"
 }
 
 function print_warning() {
-    echo -e "\e[1;33m$1\e[0m"
+    echo "${txtylw}$1${txtrst}"
 }
 
 function print_error() {
-    echo -e "\e[1;31m$1\e[0m"
+    echo "${txtred}$1${txtrst}"
 }
