@@ -17,7 +17,7 @@ if [[ $1 == "exec" ]]; then
     find $SEARCH_DIRS -name "*.[ch]" | \
     egrep -v "(bigdigits|bigdtypes|keccak256)\.[ch]$" | \
     egrep -v "firmware/src/ledger/ui/src/glyphs.[ch]" | \
-    egrep -v "firmware/src/sgx/src/(trusted|untrusted)/hsm_([tu]|args).[ch]" | \
+    egrep -v "firmware/src/sgx/src/(trusted|untrusted)/generated/hsm_([tu]|args).[ch]" | \
     xargs clang-format-10 --style=file $CLANG_ARGS
 else
     # Script directory
