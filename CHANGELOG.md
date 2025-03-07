@@ -1,5 +1,20 @@
 # Changelog
 
+## [5.4.2] - 07/03/2025
+
+### Features/enhancements
+
+- Updated ubuntu image on GH workflows due to planned defunct
+- Added 5.4.x development branch to code coverage, static analysis, and codeQL workflows
+- Added destination size check in der_encode_signature
+- Removed unnecessary use of OE verifier module for endorsement generation
+
+### Fixes
+
+- Fixed potential buffer overflow in der_encode_uint
+- Fixed SGX reproducibility builds by moving oeedger8r generated sources to their own directory
+- Minor C linting configuration fixes
+
 ## [5.4.1] - 07/02/2025
 
 ### Features/enhancements
