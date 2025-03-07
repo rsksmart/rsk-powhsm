@@ -2,10 +2,10 @@
 private.pem
 
 # OE generated files
-src/trusted/hsm_args.h
-src/trusted/hsm_t.c
-src/trusted/hsm_t.h
-src/untrusted/hsm_args.h
-src/untrusted/hsm_u.c
-src/untrusted/hsm_u.h
+src/trusted/generated/hsm_args.h
+src/trusted/generated/hsm_t.c
+src/trusted/generated/hsm_t.h
+src/untrusted/generated/hsm_args.h
+src/untrusted/generated/hsm_u.c
+src/untrusted/generated/hsm_u.h
 

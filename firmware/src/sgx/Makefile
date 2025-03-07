@@ -70,16 +70,18 @@ TRUSTED_OBJS =  $(patsubst $(POWHSM_SRC_DIR)/%.c, $(OBJ_TRUSTED_POWHSM_DIR)/%.o,
 
 ## Files generated automatically by the open enclave SDK (and their objects)
 # Files used by trusted code
-TRUSTED_GENERATED = $(addprefix $(SGX_TRUSTED_SRC_DIR)/$(ENCLAVE_NAME), _t.c _t.h _args.h)
+TRUSTED_GENERATED_DIR = $(SGX_TRUSTED_SRC_DIR)/generated
+TRUSTED_GENERATED = $(addprefix $(TRUSTED_GENERATED_DIR)/$(ENCLAVE_NAME), _t.c _t.h _args.h)
 TRUSTED_GENERATED_OBJ = $(OBJ_TRUSTED_SGX_DIR)/$(ENCLAVE_NAME)_t.o
 # Files used by untrusted code
-UNTRUSTED_GENERATED = $(addprefix $(SGX_UNTRUSTED_SRC_DIR)/$(ENCLAVE_NAME), _u.c _u.h _args.h)
+UNTRUSTED_GENERATED_DIR = $(SGX_UNTRUSTED_SRC_DIR)/generated
+UNTRUSTED_GENERATED = $(addprefix $(UNTRUSTED_GENERATED_DIR)/$(ENCLAVE_NAME), _u.c _u.h _args.h)
 UNTRUSTED_GENERATED_OBJ = $(OBJ_UNTRUSTED_DIR)/$(ENCLAVE_NAME)_u.o
 
 ## Trusted and untrusted flags and include directories
 CFLAGS_COMMON = -Wall -Wextra -Werror -DHSM_PLATFORM_SGX
 
-INCLUDE_TRUSTED =  -iquote $(HAL_INCLUDE_DIR) -iquote $(SGX_TRUSTED_SRC_DIR)
+INCLUDE_TRUSTED =  -iquote $(HAL_INCLUDE_DIR) -iquote $(SGX_TRUSTED_SRC_DIR) -iquote $(TRUSTED_GENERATED_DIR)
 INCLUDE_TRUSTED += -iquote $(HAL_TRUSTED_SRC_DIR) -iquote $(COMMON_SRC_DIR)
 INCLUDE_TRUSTED += -iquote $(POWHSM_SRC_DIR) -I$(SGX_SECP256K1)/include 
 CFLAGS_TRUSTED =  $(CFLAGS_COMMON) $(INCLUDE_TRUSTED)
@@ -89,7 +91,7 @@ UTIL_DIR = ../util
 include $(UTIL_DIR)/signer.mk
 CFLAGS_TRUSTED += $(SIGNER_FLAGS)
 
-INCLUDE_UNTRUSTED = -I$(OE_INCDIR) -iquote $(SGX_UNTRUSTED_SRC_DIR)
+INCLUDE_UNTRUSTED = -I$(OE_INCDIR) -iquote $(SGX_UNTRUSTED_SRC_DIR) -iquote $(UNTRUSTED_GENERATED_DIR)
 CFLAGS_UNTRUSTED = $(CFLAGS_COMMON) $(INCLUDE_UNTRUSTED)
 
 # The seal plugin is what implements the oe_seal APIs. It needs to be linked against the 
@@ -182,4 +184,4 @@ $(UNTRUSTED_GENERATED): $(EDL_FILE)
 		--untrusted-dir $(shell dirname $@)
 
 clean:
-	rm -rf $(BIN_DIR) $(OBJ_DIR) $(DEP_DIR) $(TRUSTED_GENERATED) $(UNTRUSTED_GENERATED)
+	rm -rf $(BIN_DIR) $(OBJ_DIR) $(DEP_DIR) $(TRUSTED_GENERATED_DIR) $(UNTRUSTED_GENERATED_DIR)
