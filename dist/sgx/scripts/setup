@@ -42,18 +42,6 @@ SCRIPTS_DIR=$ROOT_DIR/scripts
 # Directory where the finalized systemd service unit will be saved
 SERVICE_DIR=$ROOT_DIR/service
 
-# HSM scripts directory
-SCRIPTS_DIR=$ROOT_DIR/scripts
-
-# Directory where the finalized systemd service unit will be saved
-SERVICE_DIR=$ROOT_DIR/service
-
-# HSM scripts directory
-SCRIPTS_DIR=$ROOT_DIR/scripts
-
-# Directory where the finalized systemd service unit will be saved
-SERVICE_DIR=$ROOT_DIR/service
-
 source $SCRIPTS_DIR/print_utils
 
 function checkHsmBinaries() {
