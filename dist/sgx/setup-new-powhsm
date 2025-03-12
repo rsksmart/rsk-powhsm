@@ -1,21 +1,23 @@
 #!/bin/bash
 
+ROOT_DIR=$(realpath $(dirname $0))
+source $ROOT_DIR/scripts/print_utils
+
 # Require superuser, since we need to install a service in the host
 if ! [ "$(id -u)" == "0" ]; then
-    echo -e "\e[1;32mPlease run with sudo.\e[0m"
+    print_info "Please run with sudo."
     exit 1
 fi
 
-ROOT_DIR=$(realpath $(dirname $0))
 $ROOT_DIR/scripts/run_with_docker ./scripts/setup $1
 if [ $? -ne 0 ]; then
-	echo -e "\e[1;31m Error during the powhsm setup, aborting \e[0m"
+	print_error "Error during the powhsm setup, aborting"
 	exit 1
 fi
 
 $ROOT_DIR/scripts/install_service $ROOT_DIR/service/hsmsgx.service
 if [ $? -ne 0 ]; then
-	echo -e "\e[1;31m Error during the powhsm service installation, aborting \e[0m"
+	print_error "Error during the powhsm service installation, aborting"
 	exit 1
 fi
-echo -e "\e[1;32mHSM SGX setup done.\e[0m"
+print_info "HSM SGX setup done."

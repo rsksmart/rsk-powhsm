@@ -42,24 +42,14 @@ SCRIPTS_DIR=$ROOT_DIR/scripts
 # Directory where the finalized systemd service unit will be saved
 SERVICE_DIR=$ROOT_DIR/service
 
-# HSM scripts directory
-SCRIPTS_DIR=$ROOT_DIR/scripts
-
-# Directory where the finalized systemd service unit will be saved
-SERVICE_DIR=$ROOT_DIR/service
-
-# HSM scripts directory
-SCRIPTS_DIR=$ROOT_DIR/scripts
-
-# Directory where the finalized systemd service unit will be saved
-SERVICE_DIR=$ROOT_DIR/service
+source $SCRIPTS_DIR/print_utils
 
 function checkHsmBinaries() {
     # Check for HSM binary files
     FILES="$HSMBIN_DIR/hsmsgx $HSMBIN_DIR/hsmsgx_enclave.signed"
     for f in ${FILES}; do
         if [[ ! -e $f ]]; then
-            echo -e "\e[1;31m HSM binary file '$(basename $f)' does not exist. \e[0m"
+            print_error "HSM binary file '$(basename $f)' does not exist."
             cleanBinaries
             exit 1
         fi
@@ -68,7 +58,7 @@ function checkHsmBinaries() {
 
 function error() {
     if [ $? -ne 0 ]; then
-        echo -e "\e[1;31m Error comunicating with the dongle. Please check connection and restart the process. \e[0m"
+        print_error "Error comunicating with the dongle. Please check connection and restart the process."
         cleanBinaries
         exit 1
     fi
@@ -76,7 +66,7 @@ function error() {
 
 function checkForPinFile() {
     if [[ -e $PIN_FILE ]]; then
-        echo -e "\e[1;31m Legacy pin file '$(basename $PIN_FILE)' found. Please backup and remove before continuing. \e[0m"
+        print_error "Legacy pin file '$(basename $PIN_FILE)' found. Please backup and remove before continuing."
         cleanBinaries
         exit 1
     fi
@@ -84,28 +74,28 @@ function checkForPinFile() {
 
 function selectInstallationDir() {
     while true; do
-        echo -e "\e[1;32mEnter the absolute path to the installation directory (empty directory name to abort)\e[0m"
+        print_info "Enter the absolute path to the installation directory (empty directory name to abort)"
         while true; do
             read -p "> " INSTALL_DIR
             if [[ "$INSTALL_DIR" == "" ]]; then
-                echo -e "\e[1;31mAborted.\e[0m"
+                print_error "Aborted."
                 exit 1
             fi
             REAL_INSTALL_DIR=$(realpath /fs/$INSTALL_DIR)
             INSTALL_DIR=/$(realpath $REAL_INSTALL_DIR --relative-to=/fs/)
 
             if [ -d "$REAL_INSTALL_DIR" ]; then
-                echo -e "\e[1;31mDirectory exists: $INSTALL_DIR. Try again or enter empty directory name to abort.\e[0m"
+                print_error "Directory exists: $INSTALL_DIR. Try again or enter empty directory name to abort."
             else
                 if ! mkdir "$REAL_INSTALL_DIR"; then
-                    echo -e "\e[1;31mCould not create directory: $INSTALL_DIR. Try again or enter empty directory name to abort.\e[0m"
+                    print_error "Could not create directory: $INSTALL_DIR. Try again or enter empty directory name to abort."
                 else
-                    echo -e "\e[1;33mpowHSM will be installed to $INSTALL_DIR\e[0m"
+                    print_warning "powHSM will be installed to $INSTALL_DIR"
                     break
                 fi
             fi
         done
-        echo -e "\e[1;32mProceed? [Y/N]\e[0m"
+        print_info "Proceed? [Y/N]"
         read -p "> " proceed
         if [[ "Y" == "$proceed" ]] || [[ "y" == "$proceed" ]]; then
             break;
@@ -167,36 +157,36 @@ function verify_attestation() {
 }
 
 
-echo -e "\e[1;32mWelcome to the SGX powHSM Setup for RSK \e[0m"
+print_info "Welcome to the SGX powHSM Setup for RSK"
 checkForPinFile
 checkHsmBinaries
 expandBinaries
 selectInstallationDir
 createServiceUnit
 echo
-echo -e "\e[1;32mInstalling the powHSM...\e[0m"
+print_info "Installing the powHSM..."
 installPowHsm
 echo
-echo -e "\e[1;32mStarting the powHSM...\e[0m"
+print_info "Starting the powHSM..."
 startPowHsm
 echo
-echo -e "\e[1;33mOnboarding the powHSM... \e[0m"
+print_warning "Onboarding the powHSM..."
 onboard
-echo -e "\e[1;33mOnboarding complete.\e[0m"
+print_warning "Onboarding complete."
 echo
-echo -e "\e[1;32mGathering attestation\e[0m"
+print_info "Gathering attestation"
 createOutputDir
 attestation
 echo
-echo -e "\e[1;32mGathering public keys\e[0m"
+print_info "Gathering public keys"
 keys
 echo
-echo -e "\e[1;32mVerifying attestation\e[0m"
+print_info "Verifying attestation"
 verify_attestation
 echo
-echo -e "\e[1;32mStopping the powHSM...\e[0m"
+print_info "Stopping the powHSM..."
 stopPowHsm
 cleanBinaries
 echo
-echo -e "\e[1;32mpowHSM Setup complete. Find the installation in $INSTALL_DIR.\e[0m"
+print_info "powHSM Setup complete. Find the installation in $INSTALL_DIR."
 exit 0
