@@ -46,9 +46,9 @@ const char att_msg_prefix[ATT_MSG_PREFIX_LENGTH] = ATT_MSG_PREFIX;
 // byte (first byte of the response), which is used to indicate
 // whether there is a next page or not.
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
-#define PAGESIZE (APDU_TOTAL_DATA_SIZE_OUT - 1)
-#define PAGECOUNT(itemcount) (((itemcount) + PAGESIZE - 1) / PAGESIZE)
-#define CURPAGESIZE(itemcount, page) (MIN(PAGESIZE, (itemcount) - ((page) * PAGESIZE)))
+#define MAX_PAGESIZE (APDU_TOTAL_DATA_SIZE_OUT - 1)
+#define PAGECOUNT(itemcount) (((itemcount) + MAX_PAGESIZE - 1) / MAX_PAGESIZE)
+#define CURPAGESIZE(itemcount, page) (MIN(MAX_PAGESIZE, (itemcount) - ((page) * MAX_PAGESIZE)))
 
 static void reset_attestation(att_t* att_ctx) {
     explicit_bzero(att_ctx, sizeof(att_t));
@@ -263,7 +263,7 @@ unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx) {
                      1,
                      buf,
                      buf_length,
-                     APDU_DATA_PTR[0] * PAGESIZE,
+                     APDU_DATA_PTR[0] * MAX_PAGESIZE,
                      CURPAGESIZE(buf_length, page),
                      THROW(ERR_ATT_INTERNAL));
         APDU_DATA_PTR[0] = page < (PAGECOUNT(buf_length) - 1);
