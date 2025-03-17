@@ -26,11 +26,12 @@ CFLAGS += -iquote ../common
 
 PROG = test.out
 OBJS = hmac_sha512.o endian.o test_hmac_sha512.o ../common/test_helpers.o
+LIBS = -lmbedcrypto
 
 all: $(PROG)
 
 $(PROG): $(OBJS)
-	$(CC) $(COVFLAGS) -o $@ $^
+	$(CC) $(COVFLAGS) -o $@ $^ $(LIBS)
 
 .PHONY: clean test
 clean:

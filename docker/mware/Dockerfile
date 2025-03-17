@@ -8,7 +8,8 @@ RUN apt-get update && \
     apt-get install -y apt-utils vim procps && \
     apt-get install -y build-essential=12.9 && \
     apt-get install -y git && \
-    apt-get install -y lcov
+    apt-get install -y lcov && \
+    apt-get install -y libmbedtls-dev=2.28.3-1
 
 # Python package prerequisites
 RUN apt-get install -y \
