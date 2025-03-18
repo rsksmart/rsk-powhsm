@@ -1,5 +1,16 @@
 # Changelog
 
+## [5.2.3] - 18/03/2025
+
+### Features/enhancements
+
+- Updated ubuntu image on GH workflows due to planned defunct
+- Added 5.2.x development branch to code coverage, static analysis, and codeQL workflows
+
+### Fixes
+
+- Fixed middleware docker image build
+
 ## [5.2.2] - 20/01/2025
 
 ### Features/enhancements
