@@ -54,8 +54,9 @@ class _RequestHandler:
             self.logger.info(
                 "<= [%s]: invalid encoding input - 0x%s", client_address, line.hex()
             )
-            self.logger.info("=> [%s]: %s", client_address, output)
-            self._reply(wfile, output)
+            success = self._reply(wfile, output)
+            if success:
+                self.logger.info("=> [%s]: %s", client_address, output)
             return
 
         self.logger.info("<= [%s]: %s", client_address, data)
@@ -81,15 +82,20 @@ class _RequestHandler:
             raise RequestHandlerError(message)
         finally:
             output = json.dumps(response, sort_keys=True)
-            self.logger.info("=> [%s]: %s", client_address, output)
-            self._reply(wfile, output)
+            success = self._reply(wfile, output)
+            if success:
+                self.logger.info("=> [%s]: %s", client_address, output)
 
     def _reply(self, wfile, output):
+        success = False
         try:
             wfile.write(output.encode(self.ENCODING))
             wfile.write("\n".encode(self.ENCODING))
+            success = True
         except Exception as e:
             self.logger.warning("Error replying: %s", str(e))
+        finally:
+            return success
 
 
 class _TCPServerRequestHandler(socketserver.StreamRequestHandler):
