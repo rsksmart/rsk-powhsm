@@ -30,6 +30,6 @@
 // Version and patchlevel
 #define VERSION_MAJOR 0x05
 #define VERSION_MINOR 0x02
-#define VERSION_PATCH 0x02
+#define VERSION_PATCH 0x03
 
 #endif // __DEFS_H
