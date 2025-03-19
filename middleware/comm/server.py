@@ -87,15 +87,13 @@ class _RequestHandler:
                 self.logger.info("=> [%s]: %s", client_address, output)
 
     def _reply(self, wfile, output):
-        success = False
         try:
             wfile.write(output.encode(self.ENCODING))
             wfile.write("\n".encode(self.ENCODING))
-            success = True
+            return True
         except Exception as e:
             self.logger.warning("Error replying: %s", str(e))
-        finally:
-            return success
+            return False
 
 
 class _TCPServerRequestHandler(socketserver.StreamRequestHandler):
