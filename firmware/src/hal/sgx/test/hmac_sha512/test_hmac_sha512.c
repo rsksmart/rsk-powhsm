@@ -156,7 +156,11 @@ http://csrc.nist.gov/groups/STM/cavp/index.html#07",
         }
         skip_whitespace(f);
         // Calculate HMAC-SHA512 and compare.
-        hmac_sha512(actual_result, key, key_length, message, message_length);
+        if (!hmac_sha512(
+                actual_result, key, key_length, message, message_length)) {
+            printf("HMAC-SHA512 failed\n");
+            exit(1);
+        }
         compare_length = MIN(result_length, sizeof(actual_result));
         if (!memcmp(actual_result, expected_result, compare_length)) {
             report_success();

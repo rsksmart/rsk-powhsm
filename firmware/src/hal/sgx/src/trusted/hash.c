@@ -30,6 +30,7 @@ bool hash_sha256_init(hash_sha256_ctx_t* ctx) {
     mbedtls_sha256_init(ctx);
     if (mbedtls_sha256_starts_ret(ctx, 0) != 0) {
         LOG("Error initializing SHA256 context\n");
+        mbedtls_sha256_free(ctx);
         return false;
     }
     return true;

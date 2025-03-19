@@ -28,7 +28,7 @@
 
 #include <mbedtls/md.h>
 
-void hmac_sha512(uint8_t *out,
+bool hmac_sha512(uint8_t *out,
                  const uint8_t *key,
                  const unsigned int key_length,
                  const uint8_t *text,
@@ -38,12 +38,12 @@ void hmac_sha512(uint8_t *out,
     const mbedtls_md_info_t *md_info;
 
     mbedtls_md_init(&ctx);
-    if (!mbedtls_md_info_from_type(MBEDTLS_MD_SHA512)) {
+    md_info = mbedtls_md_info_from_type(MBEDTLS_MD_SHA512);
+    if (!md_info) {
         LOG("Error: SHA-512 not supported\n");
-        return;
+        goto hmac_sha512_error;
     }
 
-    md_info = mbedtls_md_info_from_type(MBEDTLS_MD_SHA512);
     use_hmac = 1;
     if (mbedtls_md_setup(&ctx, md_info, use_hmac) != 0) {
         goto hmac_sha512_error;
@@ -62,10 +62,10 @@ void hmac_sha512(uint8_t *out,
     }
 
     mbedtls_md_free(&ctx);
-    return;
+    return true;
 
 hmac_sha512_error:
     LOG("Error: failed to compute HMAC-SHA512\n");
     mbedtls_md_free(&ctx);
-    return;
+    return false;
 }

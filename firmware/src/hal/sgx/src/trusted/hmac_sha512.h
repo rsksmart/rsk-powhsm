@@ -63,6 +63,7 @@
 #ifndef __HMAC_SHA512_H
 #define __HMAC_SHA512_H
 
+#include <stdbool.h>
 #include <stdint.h>
 
 /** Number of bytes a SHA-512 hash requires. */
@@ -80,8 +81,10 @@
  * @param text A byte array containing the message to use in the HMAC-SHA512
  *             calculation. The message can be of any length.
  * @param text_length The length, in bytes, of the message.
+ *
+ * @returns whether the HMAC-SHA512 calculation succeeded.
  */
-void hmac_sha512(uint8_t *out,
+bool hmac_sha512(uint8_t *out,
                  const uint8_t *key,
                  const unsigned int key_length,
                  const uint8_t *text,
