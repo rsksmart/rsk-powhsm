@@ -63,15 +63,31 @@
 #ifndef __HMAC_SHA512_H
 #define __HMAC_SHA512_H
 
+#include <stdbool.h>
 #include <stdint.h>
 
 /** Number of bytes a SHA-512 hash requires. */
 #define SHA512_HASH_LENGTH 64
 
-extern void hmac_sha512(uint8_t *out,
-                        const uint8_t *key,
-                        const unsigned int key_length,
-                        const uint8_t *text,
-                        const unsigned int text_length);
+/**
+ * @brief Calculate a 64 byte HMAC of an arbitrary message and key using
+ * SHA-512 as the hash function.
+ *
+ * @param out A byte array where the HMAC-SHA512 hash value will be written.
+ *            This must have space for SHA512_HASH_LENGTH bytes.
+ * @param key A byte array containing the key to use in the HMAC-SHA512
+ *            calculation. The key can be of any length.
+ * @param key_length The length, in bytes, of the key.
+ * @param text A byte array containing the message to use in the HMAC-SHA512
+ *             calculation. The message can be of any length.
+ * @param text_length The length, in bytes, of the message.
+ *
+ * @returns whether the HMAC-SHA512 calculation succeeded.
+ */
+bool hmac_sha512(uint8_t *out,
+                 const uint8_t *key,
+                 const unsigned int key_length,
+                 const uint8_t *text,
+                 const unsigned int text_length);
 
 #endif // #ifndef __HMAC_SHA512_H

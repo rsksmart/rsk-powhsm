@@ -41,11 +41,20 @@ typedef cx_sha256_t hash_sha256_ctx_t;
 typedef cx_sha3_t hash_keccak256_ctx_t;
 typedef SHA256_CTX hash_sha256_ms_ctx_t;
 
-#elif defined(HSM_PLATFORM_X86) || defined(HSM_PLATFORM_SGX)
+#elif defined(HSM_PLATFORM_X86)
 
 #include "keccak256.h"
 
 typedef SHA256_CTX hash_sha256_ctx_t;
+typedef SHA3_CTX hash_keccak256_ctx_t;
+typedef SHA256_CTX hash_sha256_ms_ctx_t;
+
+#elif defined(HSM_PLATFORM_SGX)
+
+#include <mbedtls/sha256.h>
+#include "keccak256.h"
+
+typedef mbedtls_sha256_context hash_sha256_ctx_t;
 typedef SHA3_CTX hash_keccak256_ctx_t;
 typedef SHA256_CTX hash_sha256_ms_ctx_t;
 

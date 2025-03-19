@@ -24,7 +24,7 @@ include ../common/common.mk
 
 PROG = test.out
 OBJS = seed.o test_seed.o mock_secret_store.o log.o
-LIBS = -lsecp256k1
+LIBS = -lsecp256k1 -lmbedcrypto
 
 all: $(PROG)
 
