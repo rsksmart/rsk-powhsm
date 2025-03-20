@@ -66,6 +66,8 @@ typedef struct mock_calls_counter {
     int nvmem_register_block_count;
     int sest_init_count;
     int oe_is_outside_enclave_count;
+    int upgrade_init_count;
+    int do_upgrade_count;
 } mock_calls_counter_t;
 
 typedef struct nvmem_register_block_args {
@@ -316,6 +318,16 @@ unsigned int hsm_process_apdu(unsigned int rx) {
     return G_mock_data.last_result.tx;
 }
 
+void upgrade_init() {
+    NUM_CALLS(upgrade_init)++;
+}
+
+unsigned int do_upgrade(volatile unsigned int rx) {
+    NUM_CALLS(do_upgrade)++;
+    SET_APDU_OP(APDU_OP() * 3);
+    return 3;
+}
+
 // Helper functions
 static void setup() {
     memset(&G_mock_data, 0, sizeof(G_mock_data));
@@ -388,6 +400,7 @@ void test_init_success() {
     assert(NUM_CALLS(nvmem_load) == 1);
     assert(NUM_CALLS(hsm_init) == 1);
     assert(NUM_CALLS(hsm_set_external_processor) == 1);
+    assert(NUM_CALLS(upgrade_init) == 1);
 
     teardown();
 }
@@ -404,6 +417,7 @@ void test_init_fails_invalid_buf_size() {
     ASSERT_NOT_CALLED(communication_init);
     ASSERT_NOT_CALLED(endorsement_init);
     ASSERT_NOT_CALLED(nvmem_init);
+    ASSERT_NOT_CALLED(upgrade_init);
     teardown();
 }
 
@@ -420,6 +434,7 @@ void test_init_fails_invalid_buf_memarea() {
     ASSERT_NOT_CALLED(communication_init);
     ASSERT_NOT_CALLED(endorsement_init);
     ASSERT_NOT_CALLED(nvmem_init);
+    ASSERT_NOT_CALLED(upgrade_init);
     teardown();
 }
 
@@ -436,6 +451,7 @@ void test_init_fails_when_sest_init_fails() {
     ASSERT_NOT_CALLED(communication_init);
     ASSERT_NOT_CALLED(endorsement_init);
     ASSERT_NOT_CALLED(nvmem_init);
+    ASSERT_NOT_CALLED(upgrade_init);
     teardown();
 }
 
@@ -452,6 +468,7 @@ void test_init_fails_when_access_init_fails() {
     ASSERT_NOT_CALLED(communication_init);
     ASSERT_NOT_CALLED(endorsement_init);
     ASSERT_NOT_CALLED(nvmem_init);
+    ASSERT_NOT_CALLED(upgrade_init);
     teardown();
 }
 
@@ -468,6 +485,7 @@ void test_init_fails_when_seed_init_fails() {
     ASSERT_NOT_CALLED(communication_init);
     ASSERT_NOT_CALLED(endorsement_init);
     ASSERT_NOT_CALLED(nvmem_init);
+    ASSERT_NOT_CALLED(upgrade_init);
     teardown();
 }
 
@@ -484,6 +502,7 @@ void test_init_fails_when_communication_init_fails() {
     assert(NUM_CALLS(communication_init) == 1);
     ASSERT_NOT_CALLED(endorsement_init);
     ASSERT_NOT_CALLED(nvmem_init);
+    ASSERT_NOT_CALLED(upgrade_init);
     teardown();
 }
 
@@ -500,6 +519,7 @@ void test_init_fails_when_endorsement_init_fails() {
     assert(NUM_CALLS(communication_init) == 1);
     assert(NUM_CALLS(endorsement_init) == 1);
     ASSERT_NOT_CALLED(nvmem_init);
+    ASSERT_NOT_CALLED(upgrade_init);
     teardown();
 }
 
@@ -522,6 +542,7 @@ void test_init_fails_when_nvmem_register_block_fails() {
                        "bcstate",
                        &N_bc_state_var,
                        sizeof(N_bc_state_var));
+    ASSERT_NOT_CALLED(upgrade_init);
 
     FORCE_NVMEM_FAIL_ON_KEY("bcstate_updating");
     assert(!system_init(G_io_apdu_buffer, sizeof(G_io_apdu_buffer)));
@@ -543,6 +564,7 @@ void test_init_fails_when_nvmem_register_block_fails() {
                        "bcstate_updating",
                        &N_bc_state_updating_backup_var,
                        sizeof(N_bc_state_updating_backup_var));
+    ASSERT_NOT_CALLED(upgrade_init);
 
     teardown();
 }
@@ -572,6 +594,8 @@ void test_init_fails_when_nvmem_load_fails() {
                        "bcstate_updating",
                        &N_bc_state_updating_backup_var,
                        sizeof(N_bc_state_updating_backup_var));
+    ASSERT_NOT_CALLED(upgrade_init);
+
     teardown();
 }
 
@@ -981,6 +1005,19 @@ void test_retries_cmd_handled() {
     ASSERT_APDU("\x80\xA2\x03");
 }
 
+void test_upgrade_cmd_handled() {
+    setup();
+    printf("Test upgrade command success...\n");
+
+    system_init(G_io_apdu_buffer, sizeof(G_io_apdu_buffer));
+    unsigned int rx = 0;
+    SET_APDU("\x80\xA6\x05", rx); // SGX_UPGRADE
+    assert(3 == system_process_apdu(rx));
+    ASSERT_HANDLED();
+    ASSERT_APDU("\x80\xA6\x0F");
+    assert(NUM_CALLS(do_upgrade) == 1);
+}
+
 void test_heartbeat_cmd_throws_unsupported() {
     setup();
     printf("Test heartbeat command throws unsupported instruction...\n");
@@ -1052,6 +1089,7 @@ int main() {
     test_is_locked_cmd_handled();
     test_retries_cmd_handled();
     test_heartbeat_cmd_throws_unsupported();
+    test_upgrade_cmd_handled();
     test_invalid_cmd_not_handled();
 
     return 0;

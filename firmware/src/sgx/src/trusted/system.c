@@ -18,6 +18,7 @@
 #include "bc_state.h"
 #include "err.h"
 #include "bc_err.h"
+#include "upgrade.h"
 
 /**
  * APDU buffer (host pointer and local enclave copy)
@@ -149,6 +150,9 @@ static external_processor_result_t system_do_process_apdu(unsigned int rx) {
         REQUIRE_UNLOCKED();
         result.tx = do_change_password(rx);
         break;
+    case SGX_UPGRADE:
+        result.tx = do_upgrade(rx);
+        break;
     case INS_HEARTBEAT:
         // For now, we don't support heartbeat in SGX
         THROW(ERR_INS_NOT_SUPPORTED);
@@ -242,6 +246,8 @@ bool system_init(unsigned char* msg_buffer, size_t msg_buffer_size) {
         LOG("Error loading nvmem\n");
         return false;
     }
+
+    upgrade_init();
 
     LOG("Modules initialized\n");
 
