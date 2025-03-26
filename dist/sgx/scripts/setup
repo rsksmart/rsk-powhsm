@@ -4,17 +4,28 @@ pushd $(dirname $0)/.. > /dev/null
 ROOT_DIR="$(pwd)"
 popd > /dev/null
 
-# HSM binaries directory
-HSMBIN_DIR=$ROOT_DIR/hsm
-
-# HSM binaries
-HSMSGX_BINARY=hsmsgx
-HSMSGX_ENCLAVE_BINARY=hsmsgx_enclave.signed
+# HSM scripts directory
+SCRIPTS_DIR=$ROOT_DIR/scripts
 
 # Middleware binaries
 ADMIN_DIR="$ROOT_DIR/bin/adm_sgx"
 ADMIN_BUNDLE="$ADMIN_DIR.tgz"
-ADMIN="$ADMIN_DIR/adm_sgx"
+ADMIN_BIN="$ADMIN_DIR/adm_sgx"
+
+# The admin command used to interact with the powhsmsgx service
+ADMIN_CMD="$ADMIN_BIN --host SGX"
+
+# Potentially existing file with an existing pin
+PIN_FILE="$ROOT_DIR/pin.txt"
+
+# Directory where public keys will be saved after onboarding is done
+EXPORT_DIR="$ROOT_DIR/export"
+PUBLIC_KEY_FILE="$EXPORT_DIR/public-keys.txt"
+PUBLIC_KEY_FILE_JSON="$EXPORT_DIR/public-keys.json"
+ATTESTATION_FILE="$EXPORT_DIR/attestation.json"
+
+
+source $SCRIPTS_DIR/print_utils
 
 function cleanBinaries() {
     rm -rf $ADMIN_DIR
@@ -27,38 +38,9 @@ function expandBinaries() {
     tar -xzmf $ADMIN_BUNDLE -C $ADMIN_DIR
 }
 
-# Potentially existing file with an existing pin
-PIN_FILE="$ROOT_DIR/pin.txt"
-
-# Directory where public keys will be saved after onboarding is done
-EXPORT_DIR="$ROOT_DIR/export"
-PUBLIC_KEY_FILE="$EXPORT_DIR/public-keys.txt"
-PUBLIC_KEY_FILE_JSON="$EXPORT_DIR/public-keys.json"
-ATTESTATION_FILE="$EXPORT_DIR/attestation.json"
-
-# HSM scripts directory
-SCRIPTS_DIR=$ROOT_DIR/scripts
-
-# Directory where the finalized systemd service unit will be saved
-SERVICE_DIR=$ROOT_DIR/service
-
-source $SCRIPTS_DIR/print_utils
-
-function checkHsmBinaries() {
-    # Check for HSM binary files
-    FILES="$HSMBIN_DIR/hsmsgx $HSMBIN_DIR/hsmsgx_enclave.signed"
-    for f in ${FILES}; do
-        if [[ ! -e $f ]]; then
-            print_error "HSM binary file '$(basename $f)' does not exist."
-            cleanBinaries
-            exit 1
-        fi
-    done
-}
-
 function error() {
     if [ $? -ne 0 ]; then
-        print_error "Error comunicating with the dongle. Please check connection and restart the process."
+        print_error "Error comunicating with the pwhsm service. Please restart the process."
         cleanBinaries
         exit 1
     fi
@@ -72,121 +54,49 @@ function checkForPinFile() {
     fi
 }
 
-function selectInstallationDir() {
-    while true; do
-        print_info "Enter the absolute path to the installation directory (empty directory name to abort)"
-        while true; do
-            read -p "> " INSTALL_DIR
-            if [[ "$INSTALL_DIR" == "" ]]; then
-                print_error "Aborted."
-                exit 1
-            fi
-            REAL_INSTALL_DIR=$(realpath /fs/$INSTALL_DIR)
-            INSTALL_DIR=/$(realpath $REAL_INSTALL_DIR --relative-to=/fs/)
-
-            if [ -d "$REAL_INSTALL_DIR" ]; then
-                print_error "Directory exists: $INSTALL_DIR. Try again or enter empty directory name to abort."
-            else
-                if ! mkdir "$REAL_INSTALL_DIR"; then
-                    print_error "Could not create directory: $INSTALL_DIR. Try again or enter empty directory name to abort."
-                else
-                    print_warning "powHSM will be installed to $INSTALL_DIR"
-                    break
-                fi
-            fi
-        done
-        print_info "Proceed? [Y/N]"
-        read -p "> " proceed
-        if [[ "Y" == "$proceed" ]] || [[ "y" == "$proceed" ]]; then
-            break;
-        else
-            rmdir $REAL_INSTALL_DIR
-        fi
-    done
-}
-
-function createServiceUnit() {
-    rm -rf $SERVICE_DIR
-    mkdir $SERVICE_DIR
-
-    cp $SCRIPTS_DIR/hsmsgx.service $SERVICE_DIR
-    # Replace the $HSM_INSTALL_DIR token in the script with the actual installation directory
-    sed -i "s|\$HSM_INSTALL_DIR|$INSTALL_DIR|g" $SERVICE_DIR/hsmsgx.service
-}
-
-function installPowHsm() {
-    mkdir $REAL_INSTALL_DIR/bin
-    cp -R $HSMBIN_DIR/* $REAL_INSTALL_DIR/bin
-    cp -R $ROOT_DIR/Dockerfile $REAL_INSTALL_DIR/bin
-}
-
-function startPowHsm() {
-    pushd $REAL_INSTALL_DIR > /dev/null
-    bin/$HSMSGX_BINARY bin/$HSMSGX_ENCLAVE_BINARY > /dev/null 2> /dev/null &
-    HSMSGX_PID=$!
-    popd > /dev/null
-}
-
-function stopPowHsm() {
-    kill $HSMSGX_PID
-}
-
 function createOutputDir() {
     rm -rf $EXPORT_DIR
     mkdir -p $EXPORT_DIR
 }
 
 function onboard() {
-    $ADMIN onboard
+    $ADMIN_CMD onboard
     error
 }
 
 function keys() {
-    $ADMIN pubkeys -uo $PUBLIC_KEY_FILE
+    $ADMIN_CMD pubkeys -uo $PUBLIC_KEY_FILE
     error
 }
 
 function attestation() {
-    $ADMIN attestation -o $ATTESTATION_FILE
+    $ADMIN_CMD attestation -o $ATTESTATION_FILE
     error
 }
 
 function verify_attestation() {
-    $ADMIN verify_attestation -t $ATTESTATION_FILE -b $PUBLIC_KEY_FILE_JSON
+    $ADMIN_CMD verify_attestation -t $ATTESTATION_FILE -b $PUBLIC_KEY_FILE_JSON
     error
 }
 
-
-print_info "Welcome to the SGX powHSM Setup for RSK"
+print_warning "Checking for required files..."
 checkForPinFile
-checkHsmBinaries
 expandBinaries
-selectInstallationDir
-createServiceUnit
-echo
-print_info "Installing the powHSM..."
-installPowHsm
-echo
-print_info "Starting the powHSM..."
-startPowHsm
-echo
 print_warning "Onboarding the powHSM..."
 onboard
-print_warning "Onboarding complete."
+print_info "Onboarding complete."
 echo
-print_info "Gathering attestation"
+print_warning "Gathering attestation"
 createOutputDir
 attestation
 echo
-print_info "Gathering public keys"
+print_warning "Gathering public keys"
 keys
 echo
-print_info "Verifying attestation"
+print_warning "Verifying attestation"
 verify_attestation
 echo
-print_info "Stopping the powHSM..."
-stopPowHsm
 cleanBinaries
 echo
-print_info "powHSM Setup complete. Find the installation in $INSTALL_DIR."
+print_info "powHSM Setup complete."
 exit 0

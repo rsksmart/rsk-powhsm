@@ -19,7 +19,7 @@ echo
 DOCKER_CNT=powhsmsgx-runner
 DOCKER_USER="$(id -u):$(id -g)"
 HOSTNAME="SGX"
-NETWORK=${NETWORK:-net_sgx}
+NETWORK=${NETWORK:-powhsmsgx_net}
 PORT=7777
 DOCKER_PORT="$PORT:$PORT"
 

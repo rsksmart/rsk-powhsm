@@ -3,10 +3,21 @@
 ROOT_DIR=$(realpath $(dirname $0))
 source $ROOT_DIR/scripts/print_utils
 
+SERVICE_NAME=powhsmsgx
+
 # Require superuser, since we need to install a service in the host
 if ! [ "$(id -u)" == "0" ]; then
     print_info "Please run with sudo."
     exit 1
+fi
+
+print_info "Welcome to the SGX powHSM Setup for RSK"
+echo
+
+$ROOT_DIR/scripts/install_service
+if [ $? -ne 0 ]; then
+	print_error "Error during the powhsm service installation, aborting"
+	exit 1
 fi
 
 $ROOT_DIR/scripts/run_with_docker ./scripts/setup $1
@@ -15,9 +26,14 @@ if [ $? -ne 0 ]; then
 	exit 1
 fi
 
-$ROOT_DIR/scripts/install_service $ROOT_DIR/service/hsmsgx.service
+print_warning "Restarting the service..."
+systemctl restart $SERVICE_NAME
 if [ $? -ne 0 ]; then
-	print_error "Error during the powhsm service installation, aborting"
+	print_error "Error restarting the service, please check the logs"
 	exit 1
 fi
+
 print_info "HSM SGX setup done."
+echo
+print_info "To check the status of the service, run 'systemctl status $SERVICE_NAME'."
+print_info "To follow the logs, run 'journalctl -u $SERVICE_NAME -f'."

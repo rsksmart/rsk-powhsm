@@ -1,67 +1,197 @@
 #!/bin/bash
 
+pushd $(dirname $0)/.. > /dev/null
+ROOT_DIR="$(pwd)"
+popd > /dev/null
+
+# HSM scripts directory
+SCRIPTS_DIR=$ROOT_DIR/scripts
+
+# HSM binaries directory
+HSMBIN_DIR=$ROOT_DIR/hsm
+
+# Directory where the finalized systemd service unit will be saved
+SERVICE_DIR=$ROOT_DIR/service
+
+# The name of the service unit that will be installed
+SERVICE_NAME=powhsmsgx.service
+
+# The service unit file
+SERVICE_UNIT=$SCRIPTS_DIR/$SERVICE_NAME
+
+source $SCRIPTS_DIR/print_utils
+
+function cleanUp() {
+    rm -rf $SERVICE_DIR
+    if [ -d "$INSTALL_DIR" ]; then
+        rmdir $INSTALL_DIR
+    fi
+}
+
+function error() {
+    if [ $? -ne 0 ]; then
+        cleanUp
+        print_error $1
+        exit 1
+    fi
+}
+
+function checkHsmBinaries() {
+    # Check for HSM binary files
+    FILES="$HSMBIN_DIR/hsmsgx $HSMBIN_DIR/hsmsgx_enclave.signed"
+    for f in ${FILES}; do
+        if [[ ! -e $f ]]; then
+            print_error "HSM binary file '$(basename $f)' does not exist."
+            exit 1
+        fi
+    done
+}
+
+function failIfServiceExists() {
+    # Check if a service with the same name is currently installed
+    if systemctl list-units --full --all | grep -Fq $SERVICE_NAME; then
+        print_error "Service $SERVICE_NAME is already installed. Please uninstall it first."
+        exit 1
+    fi
+}
+
+function selectInstallationDir() {
+    while true; do
+        print_info "Enter the absolute path to the installation directory (empty directory name to abort)"
+        while true; do
+            read -p "> " INSTALL_DIR
+            if [[ "$INSTALL_DIR" == "" ]]; then
+                print_error "Aborted."
+                exit 1
+            fi
+            INSTALL_DIR=$(realpath $INSTALL_DIR)
+
+            if [ -d "$INSTALL_DIR" ]; then
+                print_error "Directory exists: $INSTALL_DIR. Try again or enter empty directory name to abort."
+            else
+                if ! mkdir "$INSTALL_DIR"; then
+                    print_error "Could not create directory: $INSTALL_DIR. Try again or enter empty directory name to abort."
+                else
+                    print_warning "powHSM will be installed to $INSTALL_DIR"
+                    break
+                fi
+            fi
+        done
+        print_info "Proceed? [Y/N]"
+        read -p "> " proceed
+        if [[ "Y" == "$proceed" ]] || [[ "y" == "$proceed" ]]; then
+            break;
+        else
+            rmdir $INSTALL_DIR
+        fi
+    done
+}
+
+function createServiceUnit() {
+    rm -rf $SERVICE_DIR
+    mkdir $SERVICE_DIR
+
+    cp $SERVICE_UNIT $SERVICE_DIR
+    # Replace the $HSM_INSTALL_DIR token in the script with the actual installation directory
+    sed -i "s|\$HSM_INSTALL_DIR|$INSTALL_DIR|g" $SERVICE_DIR/$SERVICE_NAME
+    error "Could not replace the installation directory in the service unit file."
+}
+
+function installPowHsm() {
+    mkdir $INSTALL_DIR/bin
+    error "Could not create the installation directory."
+    cp -R $HSMBIN_DIR/* $INSTALL_DIR/bin
+    error "Could not copy the powHSM binaries to the installation directory."
+    cp -R $ROOT_DIR/Dockerfile $INSTALL_DIR/bin
+    error "Could not copy the Dockerfile to the installation directory."
+    cp $SCRIPTS_DIR/.env $INSTALL_DIR/bin
+    error "Could not copy the .env file to the installation directory."
+}
+
+function startPowHsm() {
+    systemctl start $SERVICE_NAME
+	error "Failed to start the service."
+}
+
+function createHsmUser() {
+    if ! id -u hsm >/dev/null 2>&1; then
+        useradd -rm -s /bin/bash hsm
+        error
+        usermod -aG docker hsm || exit $?
+        error
+    else
+        print_warning "User 'hsm' already exists. Skipping user creation."
+    fi
+}
+
+function createNetwork() {
+    local network_basename=powhsmsgx_net
+    NETWORK=$network_basename
+    # If a docker network with that name already exists, append a random suffix
+    while docker network ls | grep -q $NETWORK; do
+        suffix=$(tr -dc 'a-z' < /dev/urandom | head -c 3)
+        NETWORK=${network_basename}_${suffix}
+    done
+
+    docker network create $NETWORK &> /dev/null
+    error "Could not create docker network: $NETWORK"
+
+    echo "NETWORK=$NETWORK" > $SCRIPTS_DIR/.env || exit $?
+}
+
+function setupPermissions() {
+    chown -R hsm:hsm $INSTALL_DIR
+    error "Could not set the owner of the installation directory."
+    chmod 664 $INSTALL_DIR/bin/.env
+    error "Could not set the permissions of the .env file."
+}
+
+function installService() {
+    cp $SERVICE_DIR/$SERVICE_NAME /etc/systemd/system/$SERVICE_NAME
+    error "Could not copy the service unit file to /etc/systemd/system."
+
+    systemctl daemon-reload
+    error "Could not reload systemd."
+
+    systemctl enable $SERVICE_NAME
+    error "Could not enable the service."
+}
+
 # Require superuser
 if ! [ "$(id -u)" == "0" ]; then
     echo -e "\e[1;31mPlease run with sudo.\e[0m"
     exit 1
 fi
 
-if [ -z "$1" ]; then
-	echo -e "\e[1;31mUsage: $0 <service-file>\e[0m"
-	exit 1
-fi
 
-SERVICE_UNIT=$(realpath $1)
-if [ ! -f "$SERVICE_UNIT" ]; then
-	echo "\e[1;31mService file not found: $SERVICE_UNIT\e[0m"
-	exit 1
-fi
-
-# Extract the installation directory from the service file
-INSTALL_DIR=$(grep -oP 'WorkingDirectory=\K.*' $SERVICE_UNIT)
-if [ -z "$INSTALL_DIR" ]; then
-	echo -e "\e[1;31mCould not extract installation directory from service file.\e[0m"
-	exit 1
-fi
-
-echo -e "\e[1;32mCreating hsm user and group...\e[0m"
-if ! id -u hsm >/dev/null 2>&1; then
-    useradd -rm -s /bin/bash hsm || exit $?
-	usermod -aG docker hsm || exit $?
-else
-    echo -e "\e[1;33mUser 'hsm' already exists. Skipping user creation.\e[0m"
-fi
-
-DEFAULT_NETWORK="net_sgx"
-while true; do
-	echo -e "\e[1;32mEnter the name of the docker network to be created: [$DEFAULT_NETWORK]\e[0m"
-	read -p "> " NETWORK
-	if [ -z "$NETWORK" ]; then
-		NETWORK=$DEFAULT_NETWORK
-	fi
-	echo -e "\e[1;33mThe docker network will be named '$NETWORK'. Proceed? [Y/n]\e[0m"
-	read -p "> " proceed
-	if [[ "Y" == "$proceed" ]] || [[ "y" == "$proceed" ]] || [ -z "$proceed" ]; then
-		break
-	fi
-done
-
-echo -e "\e[1;32mCreating $NETWORK network...\e[0m"
-docker network rm $NETWORK 2> /dev/null
-docker network create $NETWORK &> /dev/null
-echo "NETWORK=$NETWORK" >> $INSTALL_DIR/.env || exit $?
-
-echo -e "\e[1;32mSetting permisions...\e[0m"
-chown -R root:hsm $INSTALL_DIR || exit $?
-chmod 664 $INSTALL_DIR/*.dat $INSTALL_DIR/.env || exit $?
-
-echo -e "\e[1;32mCreating service...\e[0m"
-cp $SERVICE_UNIT /etc/systemd/system/hsmsgx.service
-systemctl daemon-reload || exit $?
-echo -e "\e[1;32mEnabling service...\e[0m"
-systemctl enable hsmsgx.service || exit $?
-echo -e "\e[1;32mStarting service...\e[0m"
-systemctl start hsmsgx.service || exit $?
-echo -e "\e[1;32mService started.\e[0m"
-echo -e "\e[1;32mTo check the status of the service, run 'systemctl status hsmsgx.service'.\e[0m"
+print_info "Installing the SGX powHSM service..."
+echo
+failIfServiceExists
+checkHsmBinaries
+selectInstallationDir
+createServiceUnit
+echo
+print_warning "Creating docker network..."
+createNetwork
+print_info "Created docker network: $NETWORK"
+echo
+print_warning "Creating hsm user and group..."
+createHsmUser
+print_info "Created hsm user and group."
+echo
+print_warning "Installing the powHSM..."
+installPowHsm
+print_info "powHSM installed to $INSTALL_DIR."
+echo
+print_warning "Setting permisions..."
+setupPermissions
+print_info "Permissions set."
+echo
+print_warning "Installing service..."
+installService
+print_info "Service installed."
+echo
+print_warning "Starting the powHSM..."
+startPowHsm
+print_info "Service started."
 exit 0
