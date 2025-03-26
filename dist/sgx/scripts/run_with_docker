@@ -5,6 +5,14 @@ DIST_DIR=$(pwd)
 popd > /dev/null
 DOCKER_IMAGE=powhsmsgx:setup
 
+# HSM scripts directory
+SCRIPTS_DIR=$DIST_DIR/scripts
+
+
+# We need the network name that was sellected during the service installation
+source $SCRIPTS_DIR/.env
+SGX_NETWORK=${NETWORK:-powhsmsgx_net}
+
 QUIET=""
 echo -e "\e[96mBuilding docker image $DOCKER_IMAGE (this will take a few minutes)..."
 if [[ "$2" != "-v" ]]; then
@@ -20,5 +28,6 @@ DOCKER_USER="$(id -u):$(id -g)"
 docker run -ti --rm --user $DOCKER_USER \
     --device=/dev/sgx_enclave:/dev/sgx_enclave \
     --device=/dev/sgx_provision:/dev/sgx_provision \
+    --network $SGX_NETWORK \
     -v $DIST_DIR:/setup -v /:/fs -w /setup \
     $DOCKER_IMAGE $1
