@@ -142,6 +142,26 @@ bool seed_wipe();
  */
 bool seed_generate(uint8_t* client_seed, uint8_t client_seed_size);
 
+/**
+ * @brief Writes the seed to the given buffer
+ *
+ * @param out               output buffer
+ * @param out_size [in/out] output buffer size
+ *
+ * @return whether the output succeeded
+ */
+bool seed_output_USE_FROM_EXPORT_ONLY(uint8_t* out, size_t* out_size);
+
+/**
+ * @brief Sets the seed from the given buffer
+ *
+ * @param in        input buffer
+ * @param in_size   input buffer size
+ *
+ * @return whether the setting of the seed succeeded
+ */
+bool seed_set_USE_FROM_EXPORT_ONLY(uint8_t* in, size_t in_size);
+
 #endif
 // END of platform-dependent code
 

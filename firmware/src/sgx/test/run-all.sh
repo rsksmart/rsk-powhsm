@@ -2,7 +2,7 @@
 
 if [[ $1 == "exec" ]]; then
     BASEDIR=$(realpath $(dirname $0))
-    TESTDIRS="upgrade system keyvalue_store"
+    TESTDIRS="keyvalue_store migrate upgrade system"
     for d in $TESTDIRS; do
         echo "******************************"
         echo "Testing $d..."

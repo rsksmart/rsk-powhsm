@@ -77,6 +77,7 @@ bool G_getrandom_fail_next = false;
 // Forces the next call to bip32_derive_private to return success, even if the
 // derived private key is invalid
 bool G_force_derive_private_success = false;
+bool G_mock_oe_is_within_enclave;
 
 // Mock implementations
 bool bip32_derive_private(uint8_t *out,
@@ -134,6 +135,10 @@ bool sest_write(char *key, uint8_t *secret, size_t secret_length) {
 
 bool sest_remove(char *key) {
     return mock_sest_remove(key);
+}
+
+bool oe_is_within_enclave(const void *ptr, size_t size) {
+    return G_mock_oe_is_within_enclave;
 }
 
 // Helper functions
@@ -402,24 +407,170 @@ void test_seed_sign_fails_when_bip32_derive_fails() {
     teardown();
 }
 
+void test_seed_output_USE_FROM_EXPORT_ONLY_success() {
+    setup();
+    printf("Test seed_output_USE_FROM_EXPORT_ONLY success...\n");
+
+    init_with_valid_seed();
+    G_mock_oe_is_within_enclave = true;
+    uint8_t out[SEED_LENGTH + 10];
+    size_t out_size = sizeof(out);
+    assert(seed_output_USE_FROM_EXPORT_ONLY(out, &out_size));
+    assert(SEED_LENGTH == out_size);
+    assert(!memcmp(G_valid_seed, out, out_size));
+
+    teardown();
+}
+
+void test_seed_output_USE_FROM_EXPORT_ONLY_fails_when_no_valid_seed() {
+    setup();
+    printf("Test seed_output_USE_FROM_EXPORT_ONLY fails when seed is not "
+           "available...\n");
+
+    init_wiped();
+    G_mock_oe_is_within_enclave = true;
+    uint8_t out[SEED_LENGTH + 10];
+    size_t out_size = sizeof(out);
+    assert(!seed_output_USE_FROM_EXPORT_ONLY(out, &out_size));
+
+    teardown();
+}
+
+void test_seed_output_USE_FROM_EXPORT_ONLY_fails_when_buffer_too_small() {
+    setup();
+    printf("Test seed_output_USE_FROM_EXPORT_ONLY fails when output buffer is "
+           "too small...\n");
+
+    init_with_valid_seed();
+    G_mock_oe_is_within_enclave = true;
+    uint8_t out[SEED_LENGTH - 10];
+    size_t out_size = sizeof(out);
+    assert(!seed_output_USE_FROM_EXPORT_ONLY(out, &out_size));
+
+    teardown();
+}
+
+void test_seed_output_USE_FROM_EXPORT_ONLY_fails_when_output_is_outside_enclave() {
+    setup();
+    printf("Test seed_output_USE_FROM_EXPORT_ONLY fails when output buffer is "
+           "outside enclave...\n");
+
+    init_with_valid_seed();
+    G_mock_oe_is_within_enclave = false;
+    uint8_t out[SEED_LENGTH + 10];
+    size_t out_size = sizeof(out);
+    assert(!seed_output_USE_FROM_EXPORT_ONLY(out, &out_size));
+
+    teardown();
+}
+
+void test_seed_set_USE_FROM_EXPORT_ONLY_success() {
+    setup();
+    printf("Test seed_set_USE_FROM_EXPORT_ONLY success...\n");
+
+    init_wiped();
+    G_mock_oe_is_within_enclave = true;
+    uint8_t in[] = "01234567890123456789012345678912";
+    assert(seed_set_USE_FROM_EXPORT_ONLY(in, sizeof(in)));
+
+    assert(mock_sest_exists(SEST_SEED_KEY));
+    uint8_t seed[SEED_LENGTH];
+    mock_sest_read(SEST_SEED_KEY, seed, sizeof(seed));
+    ASSERT_MEMCMP(seed, "01234567890123456789012345678912", SEED_LENGTH);
+    assert(seed_available());
+
+    teardown();
+}
+
+void test_seed_set_USE_FROM_EXPORT_ONLY_fails_when_seed_available() {
+    setup();
+    printf("Test seed_set_USE_FROM_EXPORT_ONLY fails when seed available...\n");
+
+    init_with_valid_seed();
+    G_mock_oe_is_within_enclave = true;
+    uint8_t in[] = "01234567890123456789012345678912";
+    assert(!seed_set_USE_FROM_EXPORT_ONLY(in, sizeof(in)));
+    assert_seed_valid();
+
+    teardown();
+}
+
+void test_seed_set_USE_FROM_EXPORT_ONLY_fails_when_input_buffer_too_small() {
+    setup();
+    printf("Test seed_set_USE_FROM_EXPORT_ONLY fails when input buffer too "
+           "small...\n");
+
+    init_wiped();
+    G_mock_oe_is_within_enclave = true;
+    uint8_t in[] = "too-small";
+    assert(!seed_set_USE_FROM_EXPORT_ONLY(in, sizeof(in)));
+    assert(!seed_available());
+
+    teardown();
+}
+
+void test_seed_set_USE_FROM_EXPORT_ONLY_fails_when_input_buffer_outside_enclave() {
+    setup();
+    printf("Test seed_set_USE_FROM_EXPORT_ONLY fails when input buffer is "
+           "outside the enclave...\n");
+
+    init_wiped();
+    G_mock_oe_is_within_enclave = false;
+    uint8_t in[] = "01234567890123456789012345678912";
+    assert(!seed_set_USE_FROM_EXPORT_ONLY(in, sizeof(in)));
+    assert(!seed_available());
+
+    teardown();
+}
+
+void test_seed_set_USE_FROM_EXPORT_ONLY_fails_when_secret_store_writing_fails() {
+    setup();
+    printf("Test seed_set_USE_FROM_EXPORT_ONLY fails when secret store writing "
+           "fails...\n");
+
+    init_wiped();
+    G_mock_oe_is_within_enclave = true;
+    mock_sest_fail_next_write(true);
+    uint8_t in[] = "01234567890123456789012345678912";
+    assert(!seed_set_USE_FROM_EXPORT_ONLY(in, sizeof(in)));
+    assert(!seed_available());
+
+    teardown();
+}
+
 int main() {
     test_seed_init_success();
     test_seed_init_fails_when_sest_read_fails();
     test_seed_init_fails_when_seed_is_invalid();
+
     test_seed_wipe_succeedes_when_seed_present();
     test_seed_wipe_fails_when_seed_already_wiped();
+
     test_seed_generate_sucess();
     test_seed_generate_fails_when_seed_available();
     test_seed_generate_fails_when_getrandom_fails();
     test_seed_generate_fails_when_client_seed_invalid();
     test_seed_generate_fails_when_sest_write_fails();
+
     test_seed_derive_pubkey_success();
     test_seed_derive_pubkey_fails_when_bip32_derive_fails();
     test_seed_derive_pubkey_fails_when_privkey_is_invalid();
     test_seed_derive_pubkey_fails_when_pubkey_buf_too_small();
+
     test_seed_sign_success();
     test_seed_sign_fails_when_sig_buffer_too_small();
     test_seed_sign_fails_when_bip32_derive_fails();
+
+    test_seed_output_USE_FROM_EXPORT_ONLY_success();
+    test_seed_output_USE_FROM_EXPORT_ONLY_fails_when_no_valid_seed();
+    test_seed_output_USE_FROM_EXPORT_ONLY_fails_when_buffer_too_small();
+    test_seed_output_USE_FROM_EXPORT_ONLY_fails_when_output_is_outside_enclave();
+
+    test_seed_set_USE_FROM_EXPORT_ONLY_success();
+    test_seed_set_USE_FROM_EXPORT_ONLY_fails_when_seed_available();
+    test_seed_set_USE_FROM_EXPORT_ONLY_fails_when_input_buffer_too_small();
+    test_seed_set_USE_FROM_EXPORT_ONLY_fails_when_input_buffer_outside_enclave();
+    test_seed_set_USE_FROM_EXPORT_ONLY_fails_when_secret_store_writing_fails();
 
     return 0;
 }

@@ -27,6 +27,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 // Taken from OpenEnclave's include/openenclave/bits/defs.h
 
@@ -230,5 +231,9 @@ oe_result_t oe_get_evidence(const oe_uuid_t* format_id,
 oe_result_t oe_free_evidence(uint8_t* evidence_buffer);
 
 oe_result_t oe_attester_shutdown(void);
+
+// Taken from OpenEnclave's include/openenclave/enclave.h
+
+bool oe_is_within_enclave(const void* ptr, size_t size);
 
 #endif // #ifndef __MOCK_OE_COMMON_H
