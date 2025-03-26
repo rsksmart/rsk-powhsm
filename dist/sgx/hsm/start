@@ -22,8 +22,10 @@ HOSTNAME="SGX"
 NETWORK=${NETWORK:-powhsmsgx_net}
 PORT=7777
 DOCKER_PORT="$PORT:$PORT"
+SGX_PRV_GID=$(getent group sgx_prv | cut -d: -f3)
 
 docker run --rm --name $DOCKER_CNT --user $DOCKER_USER -v $WORKDIR:/hsm \
+    --group-add $SGX_PRV_GID \
     --hostname $HOSTNAME --network $NETWORK \
     --device=/dev/sgx_enclave:/dev/sgx_enclave \
     --device=/dev/sgx_provision:/dev/sgx_provision \
