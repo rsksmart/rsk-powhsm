@@ -238,7 +238,7 @@ The output should be similar to:
      Memory: 12.7M
      CGroup: /system.slice/powhsmsgx.service
              ├─2011886 /bin/bash /opt/powhsm/bin/start
-             └─2011983 docker run --rm --name powhsmsgx-runner --user 996:996 -v /opt/powhsm:/hsm --hostname SGX --net>
+             └─2011983 docker run --rm --name powhsmsgx-runner --user 996:996 -v /opt/powhsm:/hsm --hostname powhsmsgx --net>
 
 Jan 22 18:58:31 sgxhsm01 start[2011983]: [Enclave] Seed loaded
 Jan 22 18:58:31 sgxhsm01 start[2011983]: [Enclave] Attestation module initialized

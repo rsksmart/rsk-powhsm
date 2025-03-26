@@ -114,13 +114,14 @@ function startPowHsm() {
 }
 
 function createHsmUser() {
-    if ! id -u hsm >/dev/null 2>&1; then
-        useradd -rm -s /bin/bash hsm
+    if ! id -u powhsm >/dev/null 2>&1; then
+        useradd -rm -s /bin/bash powhsm
         error
-        usermod -aG docker hsm || exit $?
+        usermod -aG docker powhsm || exit $?
         error
     else
-        print_warning "User 'hsm' already exists. Skipping user creation."
+        print_error "User powhsm already exists. Aborting..."
+        exit 1
     fi
 }
 
@@ -140,7 +141,7 @@ function createNetwork() {
 }
 
 function setupPermissions() {
-    chown -R hsm:hsm $INSTALL_DIR
+    chown -R powhsm:powhsm $INSTALL_DIR
     error "Could not set the owner of the installation directory."
     chmod 664 $INSTALL_DIR/bin/.env
     error "Could not set the permissions of the .env file."
@@ -175,9 +176,9 @@ print_warning "Creating docker network..."
 createNetwork
 print_info "Created docker network: $NETWORK"
 echo
-print_warning "Creating hsm user and group..."
+print_warning "Creating powhsm user and group..."
 createHsmUser
-print_info "Created hsm user and group."
+print_info "Created powhsm user and group."
 echo
 print_warning "Installing the powHSM..."
 installPowHsm

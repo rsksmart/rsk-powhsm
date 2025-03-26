@@ -13,7 +13,7 @@ ADMIN_BUNDLE="$ADMIN_DIR.tgz"
 ADMIN_BIN="$ADMIN_DIR/adm_sgx"
 
 # The admin command used to interact with the powhsmsgx service
-ADMIN_CMD="$ADMIN_BIN --host SGX"
+ADMIN_CMD="$ADMIN_BIN --host powhsmsgx"
 
 # Potentially existing file with an existing pin
 PIN_FILE="$ROOT_DIR/pin.txt"
@@ -40,7 +40,7 @@ function expandBinaries() {
 
 function error() {
     if [ $? -ne 0 ]; then
-        print_error "Error comunicating with the pwhsm service. Please restart the process."
+        print_error "Error comunicating with the powhsm service. Please restart the process."
         cleanBinaries
         exit 1
     fi
