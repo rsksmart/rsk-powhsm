@@ -27,7 +27,7 @@ source $SCRIPTS_DIR/print_utils
 function cleanUp() {
     rm -rf $SERVICE_DIR
     if [ -d "$INSTALL_DIR" ]; then
-        rmdir $INSTALL_DIR
+        rm -rf $INSTALL_DIR
     fi
 }
 
