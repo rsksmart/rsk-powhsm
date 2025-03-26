@@ -19,6 +19,9 @@ SERVICE_NAME=powhsmsgx.service
 # The service unit file
 SERVICE_UNIT=$SCRIPTS_DIR/$SERVICE_NAME
 
+# The internal network name for the powHSM service
+NETWORK=powhsmsgx_net
+
 source $SCRIPTS_DIR/print_utils
 
 function cleanUp() {
@@ -51,6 +54,14 @@ function failIfServiceExists() {
     # Check if a service with the same name is currently installed
     if systemctl list-units --full --all | grep -Fq $SERVICE_NAME; then
         print_error "Service $SERVICE_NAME is already installed. Please uninstall it first."
+        exit 1
+    fi
+}
+
+function failIfNetworkExists() {
+    # Check if the network already exists
+    if docker network ls | grep -q $NETWORK; then
+        print_error "Docker network $NETWORK already exists. Aborting..."
         exit 1
     fi
 }
@@ -104,8 +115,6 @@ function installPowHsm() {
     error "Could not copy the powHSM binaries to the installation directory."
     cp -R $ROOT_DIR/Dockerfile $INSTALL_DIR/bin
     error "Could not copy the Dockerfile to the installation directory."
-    cp $SCRIPTS_DIR/.env $INSTALL_DIR/bin
-    error "Could not copy the .env file to the installation directory."
 }
 
 function startPowHsm() {
@@ -126,25 +135,13 @@ function createHsmUser() {
 }
 
 function createNetwork() {
-    local network_basename=powhsmsgx_net
-    NETWORK=$network_basename
-    # If a docker network with that name already exists, append a random suffix
-    while docker network ls | grep -q $NETWORK; do
-        suffix=$(tr -dc 'a-z' < /dev/urandom | head -c 3)
-        NETWORK=${network_basename}_${suffix}
-    done
-
     docker network create $NETWORK &> /dev/null
     error "Could not create docker network: $NETWORK"
-
-    echo "NETWORK=$NETWORK" > $SCRIPTS_DIR/.env || exit $?
 }
 
 function setupPermissions() {
     chown -R powhsm:powhsm $INSTALL_DIR
     error "Could not set the owner of the installation directory."
-    chmod 664 $INSTALL_DIR/bin/.env
-    error "Could not set the permissions of the .env file."
 }
 
 function installService() {
@@ -168,6 +165,7 @@ fi
 print_info "Installing the SGX powHSM service..."
 echo
 failIfServiceExists
+failIfNetworkExists
 checkHsmBinaries
 selectInstallationDir
 createServiceUnit
