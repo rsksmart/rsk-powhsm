@@ -5,10 +5,6 @@ DIST_DIR=$(pwd)
 popd > /dev/null
 DOCKER_IMAGE=powhsmsgx:setup
 
-# HSM scripts directory
-SCRIPTS_DIR=$DIST_DIR/scripts
-
-
 # The internal network name for the powHSM service
 SGX_NETWORK=powhsmsgx_net
 
