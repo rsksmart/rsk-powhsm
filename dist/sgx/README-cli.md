@@ -58,7 +58,7 @@ Once the installation directory is confirmed, the script will proceed with the s
 application is installed as a `systemd` service. No user intervention is required at this step:
 ```
 Creating docker network...
-Created docker network: powhsmsgx_net_axp
+Created docker network: powhsmsgx_net
 
 Creating hsm user and group...
 User 'hsm' already exists. Skipping user creation.
