@@ -88,6 +88,17 @@ bool access_wipe();
  */
 bool access_set_password(char* password, uint8_t password_length);
 
+/**
+ * @brief Writes the password to the given buffer
+ *
+ * @param out               output buffer
+ * @param out_size [in/out] output buffer size
+ *
+ * @return whether the output succeeded
+ */
+bool access_output_password_USE_FROM_EXPORT_ONLY(uint8_t* out,
+                                                 size_t* out_size);
+
 #endif
 // END of platform-dependent code
 

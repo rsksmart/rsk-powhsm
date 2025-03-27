@@ -96,10 +96,16 @@ unsigned char G_io_apdu_buffer[IO_APDU_BUFFER_SIZE];
 struct {
     bool seed_available;
     bool access_is_locked;
+    bool migrate_export;
+    bool migrate_import;
 } G_mocks;
 
 unsigned char* communication_get_msg_buffer() {
     return G_io_apdu_buffer;
+}
+
+size_t communication_get_msg_buffer_size() {
+    return sizeof(G_io_apdu_buffer);
 }
 
 bool seed_available() {
@@ -108,6 +114,22 @@ bool seed_available() {
 
 bool access_is_locked() {
     return G_mocks.access_is_locked;
+}
+
+bool migrate_export(uint8_t* out, size_t* out_size) {
+    if (!G_mocks.migrate_export)
+        return false;
+    *out_size = sizeof("data_export_result") - 1;
+    memcpy(out, "data_export_result", *out_size);
+    return true;
+}
+
+bool migrate_import(uint8_t* in, size_t in_size) {
+    if (!G_mocks.migrate_import)
+        return false;
+    assert(in_size == sizeof("doto_import_result") - 1);
+    assert(!memcmp(in, "doto_import_result", in_size));
+    return true;
 }
 
 // Unit tests
@@ -125,6 +147,7 @@ void test_do_upgrade_export_ok() {
 
     G_mocks.seed_available = true;
     G_mocks.access_is_locked = false;
+    G_mocks.migrate_export = true;
 
     ASSERT_DOESNT_THROW({
         // Start export
@@ -220,6 +243,33 @@ void test_do_upgrade_export_invalid_peer_id() {
         0x6A02);
 }
 
+void test_do_upgrade_export_migrate_fails() {
+    unsigned int rx;
+
+    setup();
+    printf("Test exporting...\n");
+
+    G_mocks.seed_available = true;
+    G_mocks.access_is_locked = false;
+    G_mocks.migrate_export = false;
+
+    ASSERT_THROWS(
+        {
+            // Start export
+            SET_APDU("\x80\xA6\x01" SRC_MRE DST_MRE, rx);
+            assert(3 == do_upgrade(rx));
+            // Identify peer
+            SET_APDU("\x80\xA6\x03"
+                     "peer-id:" DST_MRE,
+                     rx);
+            assert(3 == do_upgrade(rx));
+            // Process data
+            SET_APDU("\x80\xA6\x04", rx);
+            do_upgrade(rx);
+        },
+        0x6A03);
+}
+
 // Importing
 void test_do_upgrade_import_ok() {
     unsigned int rx;
@@ -228,6 +278,7 @@ void test_do_upgrade_import_ok() {
     printf("Test importing...\n");
 
     G_mocks.seed_available = false;
+    G_mocks.migrate_import = true;
 
     ASSERT_DOESNT_THROW({
         // Start import
@@ -253,6 +304,7 @@ void test_do_upgrade_import_onboarded() {
     printf("Test importing when onboarded...\n");
 
     G_mocks.seed_available = true;
+    G_mocks.migrate_import = true;
 
     ASSERT_THROWS(
         {
@@ -270,6 +322,7 @@ void test_do_upgrade_import_invalid_spec() {
     printf("Test importing when invalid spec given...\n");
 
     G_mocks.seed_available = false;
+    G_mocks.migrate_import = true;
 
     ASSERT_THROWS(
         {
@@ -289,6 +342,7 @@ void test_do_upgrade_import_invalid_peer_id() {
     printf("Test importing when invalid peer id given...\n");
 
     G_mocks.seed_available = false;
+    G_mocks.migrate_import = true;
 
     ASSERT_THROWS(
         {
@@ -303,25 +357,28 @@ void test_do_upgrade_import_invalid_peer_id() {
         0x6A02);
 }
 
-void test_do_upgrade_import_invalid_data() {
+void test_do_upgrade_import_migrate_fails() {
     unsigned int rx;
 
     setup();
-    printf("Test importing when invalid data given...\n");
+    printf("Test importing when migration fails...\n");
 
     G_mocks.seed_available = false;
+    G_mocks.migrate_import = false;
 
     ASSERT_THROWS(
         {
             // Start import
             SET_APDU("\x80\xA6\x02" SRC_MRE DST_MRE, rx);
             assert(3 == do_upgrade(rx));
+            // Identify peer
             SET_APDU("\x80\xA6\x03"
                      "peer-id:" SRC_MRE,
                      rx);
             assert(3 == do_upgrade(rx));
+            // Process data
             SET_APDU("\x80\xA6\x04"
-                     "invalid data",
+                     "doto_import_result",
                      rx);
             do_upgrade(rx);
         },
@@ -333,8 +390,6 @@ void test_do_upgrade_invalid_op() {
 
     setup();
     printf("Test when feeding invalid OP...\n");
-
-    G_mocks.seed_available = false;
 
     ASSERT_THROWS(
         {
@@ -351,12 +406,13 @@ int main() {
     test_do_upgrade_export_not_unlocked();
     test_do_upgrade_export_invalid_spec();
     test_do_upgrade_export_invalid_peer_id();
+    test_do_upgrade_export_migrate_fails();
 
     test_do_upgrade_import_ok();
     test_do_upgrade_import_onboarded();
     test_do_upgrade_import_invalid_spec();
     test_do_upgrade_import_invalid_peer_id();
-    test_do_upgrade_import_invalid_data();
+    test_do_upgrade_import_migrate_fails();
 
     test_do_upgrade_invalid_op();
 

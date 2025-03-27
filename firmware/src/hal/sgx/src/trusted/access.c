@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+#include <openenclave/enclave.h>
 
 #include "hal/access.h"
 #include "hal/log.h"
@@ -170,5 +171,29 @@ bool access_set_password(char* password, uint8_t password_length) {
                sizeof(G_available_retries));
     G_locked = true;
     LOG("Password set, access locked\n");
+    return true;
+}
+
+bool access_output_password_USE_FROM_EXPORT_ONLY(uint8_t* out,
+                                                 size_t* out_size) {
+    // We need a password
+    if (access_is_wiped()) {
+        LOG("Access: no password available to output\n");
+        return false;
+    }
+
+    // Output buffer validations
+    if (*out_size < sizeof(G_password)) {
+        LOG("Access: output buffer to small to write password\n");
+        return false;
+    }
+    if (!oe_is_within_enclave(out, *out_size)) {
+        LOG("Access: output buffer not strictly within the enclave\n");
+        return false;
+    }
+
+    // Write seed
+    memcpy(out, G_password, sizeof(G_password));
+    *out_size = sizeof(G_password);
     return true;
 }

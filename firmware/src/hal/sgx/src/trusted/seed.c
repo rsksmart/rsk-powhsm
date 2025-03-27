@@ -26,6 +26,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <secp256k1.h>
+#include <openenclave/enclave.h>
 
 #include "hal/hash.h"
 #include "hal/seed.h"
@@ -215,5 +216,59 @@ bool seed_sign(uint32_t* path,
 
     LOG_HEX("Signature is: ", sig_out, *sig_out_length);
 
+    return true;
+}
+
+bool seed_output_USE_FROM_EXPORT_ONLY(uint8_t* out, size_t* out_size) {
+    // We need a seed
+    if (!G_seed_available) {
+        LOG("Seed: no seed available to output\n");
+        return false;
+    }
+
+    // Output buffer validations
+    if (*out_size < sizeof(G_seed)) {
+        LOG("Seed: output buffer to small to write seed\n");
+        return false;
+    }
+    if (!oe_is_within_enclave(out, *out_size)) {
+        LOG("Seed: output buffer not strictly within the enclave\n");
+        return false;
+    }
+
+    // Write seed
+    memcpy(out, G_seed, sizeof(G_seed));
+    *out_size = sizeof(G_seed);
+    return true;
+}
+
+bool seed_set_USE_FROM_EXPORT_ONLY(uint8_t* in, size_t in_size) {
+    // We need no seed
+    if (G_seed_available) {
+        LOG("Seed: already set\n");
+        return false;
+    }
+
+    // Input buffer validations
+    if (in_size < sizeof(G_seed)) {
+        LOG("Seed: input buffer too small to set seed\n");
+        return false;
+    }
+    if (!oe_is_within_enclave(in, in_size)) {
+        LOG("Seed: input buffer not strictly within the enclave\n");
+        return false;
+    }
+
+    // Set seed
+    G_seed_available = false;
+    memcpy(G_seed, in, sizeof(G_seed));
+    if (!sest_write(SEST_SEED_KEY, G_seed, SEED_LENGTH)) {
+        LOG("Seed: error persisting given seed\n");
+        memset(G_seed, 0, sizeof(G_seed));
+        return false;
+    }
+
+    G_seed_available = true;
+    printf("Seed set\n");
     return true;
 }

@@ -31,6 +31,7 @@
 #include "defs.h"
 #include "apdu.h"
 #include "hsm.h"
+#include "migrate.h"
 
 // Operation selectors
 typedef enum {
@@ -127,11 +128,9 @@ void upgrade_init() {
 #define DUMMY_PEER_ID "peer-id:"
 #define DUMMY_PEER_ID_LEN (sizeof(DUMMY_PEER_ID) - 1)
 
-#define DUMMY_DATA "data_export_result"
-#define DUMMY_DATA_LEN (sizeof("data_export_result") - 1)
-
 unsigned int do_upgrade(volatile unsigned int rx) {
     uint8_t* expected_mre = NULL;
+    size_t sz = 0;
 
     switch (APDU_OP()) {
     case OP_UPGRADE_START_EXPORT:
@@ -187,22 +186,26 @@ unsigned int do_upgrade(volatile unsigned int rx) {
         check_state(upgrade_state_ready_for_xchg);
         switch (upgrade_ctx.operation) {
         case upgrade_operation_export:
-            memcpy(APDU_DATA_PTR, DUMMY_DATA, DUMMY_DATA_LEN);
-            LOG("Data export complete\n");
-            reset_upgrade();
-            return TX_FOR_DATA_SIZE(DUMMY_DATA_LEN);
-        case upgrade_operation_import:
-            if (APDU_DATA_SIZE(rx) != DUMMY_DATA_LEN) {
+            LOG("Exporting data...\n");
+            sz = APDU_TOTAL_DATA_SIZE_OUT;
+            if (!migrate_export(APDU_DATA_PTR, &sz) || sz != (sz & 0xFF)) {
                 reset_upgrade();
                 THROW(ERR_UPGRADE_DATA_PROCESSING);
             }
-            LOG("Importing data\n");
-            LOG_HEX("From:",
-                    upgrade_ctx.spec.mrenclave_from,
-                    UPGRADE_MRENCLAVE_SIZE);
-            LOG_HEX(
-                "To:", upgrade_ctx.spec.mrenclave_to, UPGRADE_MRENCLAVE_SIZE);
-            LOG_HEX("Imported data:", APDU_DATA_PTR, APDU_DATA_SIZE(rx));
+            LOG("Data export complete\n");
+            reset_upgrade();
+            return TX_FOR_DATA_SIZE((uint8_t)sz);
+        case upgrade_operation_import:
+            LOG("Importing data...\n");
+            if (APDU_DATA_SIZE(rx) == 0) {
+                reset_upgrade();
+                THROW(ERR_UPGRADE_DATA_PROCESSING);
+            }
+            if (!migrate_import(APDU_DATA_PTR, APDU_DATA_SIZE(rx))) {
+                reset_upgrade();
+                THROW(ERR_UPGRADE_DATA_PROCESSING);
+            }
+            LOG("Data import complete\n");
             reset_upgrade();
             return TX_NO_DATA();
         default:
