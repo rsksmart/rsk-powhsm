@@ -49,13 +49,34 @@ Enter the absolute path to the installation directory (empty directory name to a
 powHSM will be installed to /opt/powhsm
 Proceed? [Y/N]
 > Y
-
-Installing the powHSM...
-
-Starting the powHSM...
 ```
 Reply with `Y` if the directory is correct and you wish to proceed with the installation. In case the path is incorrect
 or you wish to abort the installation, feel free to reply with `N` and start over.
+
+### powHSM service setup
+Once the installation directory is confirmed, the script will proceed with the setup of the powHSM service. The powHSM
+application is installed as a `systemd` service. No user intervention is required at this step:
+```
+Creating docker network...
+Created docker network: powhsmsgx_net
+
+Creating hsm user and group...
+User 'hsm' already exists. Skipping user creation.
+Created hsm user and group.
+
+Installing the powHSM...
+powHSM installed to /opt/powhsm.
+
+Setting permisions...
+Permissions set.
+
+Installing service...
+Created symlink /etc/systemd/system/multi-user.target.wants/powhsmsgx.service → /etc/systemd/system/powhsmsgx.service.
+Service installed.
+
+Starting the powHSM...
+Service started.
+```
 
 ### Onboarding the powHSM
 
@@ -176,9 +197,12 @@ Last transaction signed: 0000000000000000
 Timestamp: 0
 --------------------------------------------------------------------------------------------
 
-Stopping the powHSM...
+powHSM Setup complete.
+Restarting the service...
+HSM SGX setup done.
 
-powHSM Setup complete. Find the installation in /opt/powhsm.
+To check the status of the service, run 'systemctl status powhsmsgx'.
+To follow the logs, run 'journalctl -u powhsmsgx -f'.
 ```
 
 Once that step is finished, all the files required by the powHSM will be located in the installation directory:
@@ -197,55 +221,24 @@ Once that step is finished, all the files required by the powHSM will be located
 └── kvstore-seed.dat
 ```
 
-### powHSM service setup
-
-Once installation is complete, the script will proceed with the setup of the powHSM service. The powHSM application
-is installed as a `systemd` service. The last piece of information required by the script is the name of the docker
-network to which the container running the powHSM will be connected. The default value `net_sgx` is suitable for most
-cases, but the user is free to choose a different name. Just pressing `Enter` will use the default value:
-```
-Creating hsm user and group...
-Enter the name of the docker network to be created: [net_sgx]
->
-```
-
-The user will be required to confirm the creation of the docker network:
-```
-The docker network will be named 'net_sgx'. Proceed? [Y/n]
-> Y
-```
-
-After confirming the creation of the docker network, the script will proceed with the setup of the powHSM service. All
-the following steps are automated and require no user intervention:
-```
-Creating net_sgx network...
-Setting permisions...
-Creating service...
-Enabling service...
-Starting service...
-Service started.
-To check the status of the service, run 'systemctl status hsmsgx.service'.
-HSM SGX setup done.
-```
-
 ### Verifying the service status
 
 Once the service is properly set up, the user can verify its status by running:
 ```
-systemctl status hsmsgx.service
+systemctl status powhsmsgx.service
 ```
 
 The output should be similar to:
 ```
-● hsmsgx.service - SGX powHSM
-     Loaded: loaded (/etc/systemd/system/hsmsgx.service; enabled; vendor preset: enabled)
+● powhsmsgx.service - SGX powHSM
+     Loaded: loaded (/etc/systemd/system/powhsmsgx.service; enabled; vendor preset: enabled)
      Active: active (running) since Wed 2025-01-22 18:58:29 UTC; 6min ago
    Main PID: 2011886 (start)
       Tasks: 7 (limit: 9455)
      Memory: 12.7M
-     CGroup: /system.slice/hsmsgx.service
+     CGroup: /system.slice/powhsmsgx.service
              ├─2011886 /bin/bash /opt/powhsm/bin/start
-             └─2011983 docker run --rm --name powhsmsgx-runner --user 996:996 -v /opt/powhsm:/hsm --hostname SGX --net>
+             └─2011983 docker run --rm --name powhsmsgx-runner --user 996:996 -v /opt/powhsm:/hsm --hostname powhsmsgx --net>
 
 Jan 22 18:58:31 sgxhsm01 start[2011983]: [Enclave] Seed loaded
 Jan 22 18:58:31 sgxhsm01 start[2011983]: [Enclave] Attestation module initialized
@@ -263,7 +256,7 @@ Jan 22 18:58:31 sgxhsm01 start[2011983]: [Enclave] powHSM initialized
 
 At any time, the logs of the powHSM service can be accessed by running:
 ```
-journalctl -u hsmsgx.service
+journalctl -u powhsmsgx.service
 ```
 
 ## What's next

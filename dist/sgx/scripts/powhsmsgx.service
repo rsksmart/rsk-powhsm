@@ -7,8 +7,8 @@ Requires=docker.service
 [Service]
 Type=simple
 WorkingDirectory=$HSM_INSTALL_DIR
-User=hsm
-Group=hsm
+User=powhsm
+Group=powhsm
 ExecStart=$HSM_INSTALL_DIR/bin/start
 ExecStop=$HSM_INSTALL_DIR/bin/stop
 Restart=on-failure
