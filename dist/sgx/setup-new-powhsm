@@ -26,7 +26,7 @@ if [ $? -ne 0 ]; then
 	exit 1
 fi
 
-print_warning "Restarting the service..."
+print_info "Restarting the service..."
 systemctl restart $SERVICE_NAME
 if [ $? -ne 0 ]; then
 	print_error "Error restarting the service, please check the logs"

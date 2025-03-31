@@ -201,7 +201,7 @@ print_info "Setting permisions..."
 setupPermissions
 print_info "Permissions set."
 echo
-print_warning "Installing service..."
+print_info "Installing service..."
 installService
 print_info "Service installed."
 echo
