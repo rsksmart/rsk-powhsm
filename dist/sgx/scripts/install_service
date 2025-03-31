@@ -74,7 +74,7 @@ function failIfPinFileExists() {
     fi
 }
 
-function checkBinaries() {
+function failIfBinariesMissing() {
     # Check for HSM binary files
     FILES="$HSMBIN_DIR/hsmsgx $HSMBIN_DIR/hsmsgx_enclave.signed"
     for f in ${FILES}; do
@@ -181,7 +181,7 @@ failIfServiceExists
 failIfNetworkExists
 failIfUserExists
 failIfPinFileExists
-checkBinaries
+failIfBinariesMissing
 selectInstallationDir
 createServiceUnit
 echo
