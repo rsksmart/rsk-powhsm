@@ -29,4 +29,3 @@ docker run --rm --name $DOCKER_CNT --user $DOCKER_USER -v $WORKDIR:/hsm \
     --device=/dev/sgx_provision:/dev/sgx_provision \
     -w /hsm -p$DOCKER_PORT $DOCKER_IMAGE \
     bin/hsmsgx ./bin/hsmsgx_enclave.signed -p$PORT -b0.0.0.0
-    # TODO: We need to resolve binding so that not everyone can connect to the service!
