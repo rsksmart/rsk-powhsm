@@ -22,6 +22,9 @@ SERVICE_UNIT=$SCRIPTS_DIR/$SERVICE_NAME
 # The internal network name for the powHSM service
 NETWORK=powhsmsgx_net
 
+# Potentially existing file with an existing pin
+PIN_FILE="$ROOT_DIR/pin.txt"
+
 source $SCRIPTS_DIR/print_utils
 
 function cleanUp() {
@@ -59,6 +62,14 @@ function failIfUserExists() {
     # Check if the user already exists
     if id -u powhsm >/dev/null 2>&1; then
         print_error "User powhsm already exists. Aborting..."
+        exit 1
+    fi
+}
+
+function failIfPinFileExists() {
+    # Check if the pin file already exists
+    if [[ -e $PIN_FILE ]]; then
+        print_error "Legacy pin file '$(basename $PIN_FILE)' found. Please backup and remove before continuing."
         exit 1
     fi
 }
@@ -169,6 +180,7 @@ echo
 failIfServiceExists
 failIfNetworkExists
 failIfUserExists
+failIfPinFileExists
 checkBinaries
 selectInstallationDir
 createServiceUnit

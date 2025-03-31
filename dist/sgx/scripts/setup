@@ -15,9 +15,6 @@ ADMIN_BIN="$ADMIN_DIR/adm_sgx"
 # The admin command used to interact with the powhsmsgx service
 ADMIN_CMD="$ADMIN_BIN --host powhsmsgx"
 
-# Potentially existing file with an existing pin
-PIN_FILE="$ROOT_DIR/pin.txt"
-
 # Directory where public keys will be saved after onboarding is done
 EXPORT_DIR="$ROOT_DIR/export"
 PUBLIC_KEY_FILE="$EXPORT_DIR/public-keys.txt"
@@ -34,14 +31,6 @@ function cleanBinaries() {
 function error() {
     if [ $? -ne 0 ]; then
         print_error "Error comunicating with the powhsm service. Please restart the process."
-        cleanBinaries
-        exit 1
-    fi
-}
-
-function checkForPinFile() {
-    if [[ -e $PIN_FILE ]]; then
-        print_error "Legacy pin file '$(basename $PIN_FILE)' found. Please backup and remove before continuing."
         cleanBinaries
         exit 1
     fi
@@ -79,8 +68,6 @@ function verify_attestation() {
     error
 }
 
-print_info "Checking for required files..."
-checkForPinFile
 expandBinaries
 print_warning "Onboarding the powHSM..."
 onboard
