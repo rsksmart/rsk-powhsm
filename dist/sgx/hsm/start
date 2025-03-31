@@ -4,8 +4,6 @@ BINDIR=$(realpath $(dirname $0))
 WORKDIR=$(realpath $BINDIR/..)
 DOCKER_IMAGE=powhsmsgx:runner
 
-source $BINDIR/.env
-
 QUIET=""
 echo -e "\e[96mBuilding docker image $DOCKER_IMAGE (this will take a few minutes)..."
 if [[ "$2" != "-v" ]]; then
@@ -18,15 +16,16 @@ echo
 
 DOCKER_CNT=powhsmsgx-runner
 DOCKER_USER="$(id -u):$(id -g)"
-HOSTNAME="SGX"
-NETWORK=${NETWORK:-net_sgx}
+HOSTNAME="powhsmsgx"
+NETWORK=powhsmsgx_net
 PORT=7777
 DOCKER_PORT="$PORT:$PORT"
+SGX_PRV_GID=$(getent group sgx_prv | cut -d: -f3)
 
 docker run --rm --name $DOCKER_CNT --user $DOCKER_USER -v $WORKDIR:/hsm \
+    --group-add $SGX_PRV_GID \
     --hostname $HOSTNAME --network $NETWORK \
     --device=/dev/sgx_enclave:/dev/sgx_enclave \
     --device=/dev/sgx_provision:/dev/sgx_provision \
     -w /hsm -p$DOCKER_PORT $DOCKER_IMAGE \
     bin/hsmsgx ./bin/hsmsgx_enclave.signed -p$PORT -b0.0.0.0
-    # TODO: We need to resolve binding so that not everyone can connect to the service!

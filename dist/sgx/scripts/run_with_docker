@@ -5,6 +5,9 @@ DIST_DIR=$(pwd)
 popd > /dev/null
 DOCKER_IMAGE=powhsmsgx:setup
 
+# The internal network name for the powHSM service
+SGX_NETWORK=powhsmsgx_net
+
 QUIET=""
 echo -e "\e[96mBuilding docker image $DOCKER_IMAGE (this will take a few minutes)..."
 if [[ "$2" != "-v" ]]; then
@@ -18,7 +21,6 @@ echo
 DOCKER_USER="$(id -u):$(id -g)"
 
 docker run -ti --rm --user $DOCKER_USER \
-    --device=/dev/sgx_enclave:/dev/sgx_enclave \
-    --device=/dev/sgx_provision:/dev/sgx_provision \
-    -v $DIST_DIR:/setup -v /:/fs -w /setup \
+    --network $SGX_NETWORK \
+    -v $DIST_DIR:/setup -w /setup \
     $DOCKER_IMAGE $1
