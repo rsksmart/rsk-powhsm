@@ -173,19 +173,19 @@ checkBinaries
 selectInstallationDir
 createServiceUnit
 echo
-print_warning "Creating docker network..."
+print_info "Creating docker network..."
 createNetwork
 print_info "Created docker network: $NETWORK"
 echo
-print_warning "Creating powhsm user and group..."
+print_info "Creating powhsm user and group..."
 createUser
 print_info "Created powhsm user and group."
 echo
-print_warning "Installing the powHSM..."
+print_info "Installing the powHSM..."
 installBinaries
 print_info "powHSM installed to $INSTALL_DIR."
 echo
-print_warning "Setting permisions..."
+print_info "Setting permisions..."
 setupPermissions
 print_info "Permissions set."
 echo
@@ -193,7 +193,7 @@ print_warning "Installing service..."
 installService
 print_info "Service installed."
 echo
-print_warning "Starting the powHSM..."
+print_info "Starting the powHSM..."
 startService
 print_info "Service started."
 exit 0

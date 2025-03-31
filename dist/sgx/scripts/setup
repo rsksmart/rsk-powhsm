@@ -79,21 +79,21 @@ function verify_attestation() {
     error
 }
 
-print_warning "Checking for required files..."
+print_info "Checking for required files..."
 checkForPinFile
 expandBinaries
 print_warning "Onboarding the powHSM..."
 onboard
-print_info "Onboarding complete."
+print_warning "Onboarding complete."
 echo
-print_warning "Gathering attestation"
+print_info "Gathering attestation"
 createOutputDir
 attestation
 echo
-print_warning "Gathering public keys"
+print_info "Gathering public keys"
 keys
 echo
-print_warning "Verifying attestation"
+print_info "Verifying attestation"
 verify_attestation
 echo
 cleanBinaries
