@@ -31,13 +31,6 @@ function cleanBinaries() {
     rm -rf $ADMIN_DIR
 }
 
-function expandBinaries() {
-    cleanBinaries
-
-    mkdir -p $ADMIN_DIR
-    tar -xzmf $ADMIN_BUNDLE -C $ADMIN_DIR
-}
-
 function error() {
     if [ $? -ne 0 ]; then
         print_error "Error comunicating with the powhsm service. Please restart the process."
@@ -54,9 +47,11 @@ function checkForPinFile() {
     fi
 }
 
-function createOutputDir() {
-    rm -rf $EXPORT_DIR
-    mkdir -p $EXPORT_DIR
+function expandBinaries() {
+    cleanBinaries
+
+    mkdir -p $ADMIN_DIR
+    tar -xzmf $ADMIN_BUNDLE -C $ADMIN_DIR
 }
 
 function onboard() {
@@ -64,13 +59,18 @@ function onboard() {
     error
 }
 
-function keys() {
-    $ADMIN_CMD pubkeys -uo $PUBLIC_KEY_FILE
-    error
+function createOutputDir() {
+    rm -rf $EXPORT_DIR
+    mkdir -p $EXPORT_DIR
 }
 
 function attestation() {
     $ADMIN_CMD attestation -o $ATTESTATION_FILE
+    error
+}
+
+function keys() {
+    $ADMIN_CMD pubkeys -uo $PUBLIC_KEY_FILE
     error
 }
 

@@ -39,17 +39,6 @@ function error() {
     fi
 }
 
-function checkHsmBinaries() {
-    # Check for HSM binary files
-    FILES="$HSMBIN_DIR/hsmsgx $HSMBIN_DIR/hsmsgx_enclave.signed"
-    for f in ${FILES}; do
-        if [[ ! -e $f ]]; then
-            print_error "HSM binary file '$(basename $f)' does not exist."
-            exit 1
-        fi
-    done
-}
-
 function failIfServiceExists() {
     # Check if a service with the same name is currently installed
     if systemctl list-units --full --all | grep -Fq $SERVICE_NAME; then
@@ -64,6 +53,25 @@ function failIfNetworkExists() {
         print_error "Docker network $NETWORK already exists. Aborting..."
         exit 1
     fi
+}
+
+function failIfUserExists() {
+    # Check if the user already exists
+    if id -u powhsm >/dev/null 2>&1; then
+        print_error "User powhsm already exists. Aborting..."
+        exit 1
+    fi
+}
+
+function checkBinaries() {
+    # Check for HSM binary files
+    FILES="$HSMBIN_DIR/hsmsgx $HSMBIN_DIR/hsmsgx_enclave.signed"
+    for f in ${FILES}; do
+        if [[ ! -e $f ]]; then
+            print_error "HSM binary file '$(basename $f)' does not exist."
+            exit 1
+        fi
+    done
 }
 
 function selectInstallationDir() {
@@ -108,35 +116,25 @@ function createServiceUnit() {
     error "Could not replace the installation directory in the service unit file."
 }
 
-function installPowHsm() {
+function createNetwork() {
+    docker network create $NETWORK &> /dev/null
+    error "Could not create docker network: $NETWORK"
+}
+
+function createUser() {
+    useradd -rm -s /bin/bash powhsm &> /dev/null
+    error
+    usermod -aG docker powhsm &> /dev/null
+    error
+}
+
+function installBinaries() {
     mkdir $INSTALL_DIR/bin
     error "Could not create the installation directory."
     cp -R $HSMBIN_DIR/* $INSTALL_DIR/bin
     error "Could not copy the powHSM binaries to the installation directory."
     cp -R $ROOT_DIR/Dockerfile $INSTALL_DIR/bin
     error "Could not copy the Dockerfile to the installation directory."
-}
-
-function startPowHsm() {
-    systemctl start $SERVICE_NAME
-	error "Failed to start the service."
-}
-
-function createHsmUser() {
-    if ! id -u powhsm >/dev/null 2>&1; then
-        useradd -rm -s /bin/bash powhsm
-        error
-        usermod -aG docker powhsm || exit $?
-        error
-    else
-        print_error "User powhsm already exists. Aborting..."
-        exit 1
-    fi
-}
-
-function createNetwork() {
-    docker network create $NETWORK &> /dev/null
-    error "Could not create docker network: $NETWORK"
 }
 
 function setupPermissions() {
@@ -155,18 +153,23 @@ function installService() {
     error "Could not enable the service."
 }
 
+function startService() {
+    systemctl start $SERVICE_NAME
+	error "Failed to start the service."
+}
+
 # Require superuser
 if ! [ "$(id -u)" == "0" ]; then
     echo -e "\e[1;31mPlease run with sudo.\e[0m"
     exit 1
 fi
 
-
 print_info "Installing the SGX powHSM service..."
 echo
 failIfServiceExists
 failIfNetworkExists
-checkHsmBinaries
+failIfUserExists
+checkBinaries
 selectInstallationDir
 createServiceUnit
 echo
@@ -175,11 +178,11 @@ createNetwork
 print_info "Created docker network: $NETWORK"
 echo
 print_warning "Creating powhsm user and group..."
-createHsmUser
+createUser
 print_info "Created powhsm user and group."
 echo
 print_warning "Installing the powHSM..."
-installPowHsm
+installBinaries
 print_info "powHSM installed to $INSTALL_DIR."
 echo
 print_warning "Setting permisions..."
@@ -191,6 +194,6 @@ installService
 print_info "Service installed."
 echo
 print_warning "Starting the powHSM..."
-startPowHsm
+startService
 print_info "Service started."
 exit 0
