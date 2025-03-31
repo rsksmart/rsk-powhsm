@@ -21,8 +21,6 @@ echo
 DOCKER_USER="$(id -u):$(id -g)"
 
 docker run -ti --rm --user $DOCKER_USER \
-    --device=/dev/sgx_enclave:/dev/sgx_enclave \
-    --device=/dev/sgx_provision:/dev/sgx_provision \
     --network $SGX_NETWORK \
-    -v $DIST_DIR:/setup -v /:/fs -w /setup \
+    -v $DIST_DIR:/setup -w /setup \
     $DOCKER_IMAGE $1
