@@ -22,38 +22,59 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __TRUSTED_MIGRATE_H
-#define __TRUSTED_MIGRATE_H
+#ifndef __TRUSTED_AES_GCM_H
+#define __TRUSTED_AES_GCM_H
 
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
 
 /**
- * @brief Exports the DB
+ * @brief Gets the size of encrypted content for
+ * the given cleartext size
+ *
+ * @param cleartext_size the cleartext size
+ *
+ * @returns the size of the corresponding encrypted content
+ */
+size_t aes_gcm_get_encrypted_size(size_t cleartext_size);
+
+/**
+ * @brief Encrypts the contents of the given buffer
  *
  * @param key       encryption key
  * @param key_size  encryption key size
- * @param out output buffer
- * @param out_size [in/out] output buffer size
+ * @param in        input buffer
+ * @param in_size   input buffer size
+ * @param out       output buffer
+ * @param out_size  [in/out] output buffer size
  *
- * @returns whether export succeeded
+ * @returns whether decrypting succeeded
  */
-bool migrate_export(uint8_t* key,
-                    size_t key_size,
-                    uint8_t* out,
-                    size_t* out_size);
+bool aes_gcm_encrypt(uint8_t* key,
+                     size_t key_size,
+                     uint8_t* in,
+                     size_t in_size,
+                     uint8_t* out,
+                     size_t* out_size);
 
 /**
- * @brief Imports the given DB to the local store
+ * @brief Decrypts the contents of the given buffer
  *
  * @param key       decryption key
  * @param key_size  decryption key size
- * @param in input buffer
- * @param in_size input buffer size
+ * @param in        input buffer
+ * @param in_size   input buffer size
+ * @param out       output buffer
+ * @param out_size  [in/out] output buffer size
  *
- * @returns whether the import succeeded
+ * @returns whether decrypting succeeded
  */
-bool migrate_import(uint8_t* key, size_t key_size, uint8_t* in, size_t in_size);
+bool aes_gcm_decrypt(uint8_t* key,
+                     size_t key_size,
+                     uint8_t* in,
+                     size_t in_size,
+                     uint8_t* out,
+                     size_t* out_size);
 
-#endif // __TRUSTED_MIGRATE_H
+#endif // __TRUSTED_AES_GCM_H

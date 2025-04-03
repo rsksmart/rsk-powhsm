@@ -269,6 +269,6 @@ bool seed_set_USE_FROM_EXPORT_ONLY(uint8_t* in, size_t in_size) {
     }
 
     G_seed_available = true;
-    printf("Seed set\n");
+    LOG("Seed set\n");
     return true;
 }
