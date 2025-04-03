@@ -116,17 +116,37 @@ bool access_is_locked() {
     return G_mocks.access_is_locked;
 }
 
-bool migrate_export(uint8_t* out, size_t* out_size) {
+bool migrate_export(uint8_t* key,
+                    size_t key_size,
+                    uint8_t* out,
+                    size_t* out_size) {
     if (!G_mocks.migrate_export)
         return false;
+    assert(32 == key_size);
+    assert(!memcmp("\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11"
+                   "\x22\x22\x22\x22\x22\x22\x22\x22\x22\x22"
+                   "\x33\x33\x33\x33\x33\x33\x33\x33\x33\x33"
+                   "\x44\x44",
+                   key,
+                   key_size));
     *out_size = sizeof("data_export_result") - 1;
     memcpy(out, "data_export_result", *out_size);
     return true;
 }
 
-bool migrate_import(uint8_t* in, size_t in_size) {
+bool migrate_import(uint8_t* key,
+                    size_t key_size,
+                    uint8_t* in,
+                    size_t in_size) {
     if (!G_mocks.migrate_import)
         return false;
+    assert(32 == key_size);
+    assert(!memcmp("\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11"
+                   "\x22\x22\x22\x22\x22\x22\x22\x22\x22\x22"
+                   "\x33\x33\x33\x33\x33\x33\x33\x33\x33\x33"
+                   "\x44\x44",
+                   key,
+                   key_size));
     assert(in_size == sizeof("doto_import_result") - 1);
     assert(!memcmp(in, "doto_import_result", in_size));
     return true;

@@ -20,28 +20,19 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-TESTCOMMONDIR = ../common
-TESTLOCALMOCKSDIR = ./mocks
-SGXTRUSTEDDIR = ../../src/trusted
-SGXUNTRUSTEDDIR = ../../src/untrusted
-HALINCDIR = ../../../hal/include
-HALSGXSRCDIR = ../../../hal/sgx/src/trusted
-POWHSMSRCDIR = ../../../powhsm/src
-COMMONDIR = ../../../common/src
+include ../common/common.mk
 
-CFLAGS = -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-function
-CFLAGS += -I $(TESTCOMMONDIR)
-CFLAGS += -I $(TESTLOCALMOCKSDIR)
-CFLAGS += -iquote $(SGXTRUSTEDDIR)
-CFLAGS += -iquote $(SGXUNTRUSTEDDIR)
-CFLAGS += -iquote $(HALINCDIR)
-CFLAGS += -iquote $(HALSGXSRCDIR)
-CFLAGS += -iquote $(POWHSMSRCDIR)
-CFLAGS += -iquote $(COMMONDIR)
-CFLAGS += -DHSM_PLATFORM_SGX
+PROG = test.out
+OBJS = aes_gcm.o test_aes_gcm.o
 
-VPATH += $(SGXTRUSTEDDIR):$(SGXUNTRUSTEDDIR):$(COMMONDIR)
+all: $(PROG)
 
-include ../../../../coverage/coverage.mk
+$(PROG): $(OBJS)
+	$(CC) $(COVFLAGS) -o $@ $^
 
-CFLAGS += $(COVFLAGS)
+.PHONY: clean test
+clean:
+	rm -f $(PROG) *.o $(COVFILES)
+
+test: all
+	./$(PROG)

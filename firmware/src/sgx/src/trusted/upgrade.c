@@ -128,9 +128,17 @@ void upgrade_init() {
 #define DUMMY_PEER_ID "peer-id:"
 #define DUMMY_PEER_ID_LEN (sizeof(DUMMY_PEER_ID) - 1)
 
+#define DUMMY_KEY                                                             \
+    {                                                                         \
+        0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x22,     \
+            0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x33, 0x33, \
+            0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x44, 0x44,       \
+    }
+
 unsigned int do_upgrade(volatile unsigned int rx) {
     uint8_t* expected_mre = NULL;
     size_t sz = 0;
+    uint8_t key[] = DUMMY_KEY;
 
     switch (APDU_OP()) {
     case OP_UPGRADE_START_EXPORT:
@@ -188,7 +196,8 @@ unsigned int do_upgrade(volatile unsigned int rx) {
         case upgrade_operation_export:
             LOG("Exporting data...\n");
             sz = APDU_TOTAL_DATA_SIZE_OUT;
-            if (!migrate_export(APDU_DATA_PTR, &sz) || sz != (sz & 0xFF)) {
+            if (!migrate_export(key, sizeof(key), APDU_DATA_PTR, &sz) ||
+                sz != (sz & 0xFF)) {
                 reset_upgrade();
                 THROW(ERR_UPGRADE_DATA_PROCESSING);
             }
@@ -201,7 +210,8 @@ unsigned int do_upgrade(volatile unsigned int rx) {
                 reset_upgrade();
                 THROW(ERR_UPGRADE_DATA_PROCESSING);
             }
-            if (!migrate_import(APDU_DATA_PTR, APDU_DATA_SIZE(rx))) {
+            if (!migrate_import(
+                    key, sizeof(key), APDU_DATA_PTR, APDU_DATA_SIZE(rx))) {
                 reset_upgrade();
                 THROW(ERR_UPGRADE_DATA_PROCESSING);
             }

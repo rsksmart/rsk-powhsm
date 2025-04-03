@@ -38,6 +38,8 @@ struct {
     bool access_wipe;
     bool access_output_password_USE_FROM_EXPORT_ONLY;
     bool inconsistent_mocks;
+    bool aes_gcm_encrypt;
+    bool aes_gcm_decrypt;
 } G_mocks;
 
 struct {
@@ -90,20 +92,59 @@ bool access_output_password_USE_FROM_EXPORT_ONLY(uint8_t* out,
     return G_mocks.access_output_password_USE_FROM_EXPORT_ONLY;
 }
 
+size_t aes_gcm_get_encrypted_size(size_t cleartext_size) {
+    return cleartext_size + 10;
+}
+
+bool aes_gcm_encrypt(uint8_t* key,
+                     size_t key_size,
+                     uint8_t* in,
+                     size_t in_size,
+                     uint8_t* out,
+                     size_t* out_size) {
+    assert(32 == key_size);
+    assert(!memcmp("0123ABCDEF0123ABCDEF0123ABCDEF55", key, key_size));
+
+    *out_size = in_size + 10;
+    memcpy(out, "encrypted:", 10);
+    memcpy(out + 10, in, in_size);
+
+    return G_mocks.aes_gcm_encrypt;
+}
+
+bool aes_gcm_decrypt(uint8_t* key,
+                     size_t key_size,
+                     uint8_t* in,
+                     size_t in_size,
+                     uint8_t* out,
+                     size_t* out_size) {
+    assert(32 == key_size);
+    assert(!memcmp("0123ABCDEF0123ABCDEF0123ABCDEF55", key, key_size));
+
+    *out_size = in_size - 10;
+    memcpy(out, in + 10, *out_size);
+
+    return G_mocks.aes_gcm_decrypt;
+}
+
 // Test output buffer and size
-#define IMPORT_EXPORT_SIZE 40 // Seed + max pasword length
+#define IMPORT_EXPORT_SIZE 50 // Seed + max pasword length + encrypted OH
 uint8_t G_out[IMPORT_EXPORT_SIZE];
 size_t G_out_size;
 
 // Test input buffer
 uint8_t G_in[IMPORT_EXPORT_SIZE];
 
+// Mock key
+uint8_t G_key[32] = "0123ABCDEF0123ABCDEF0123ABCDEF55";
+
 // Unit tests
 void setup() {
     explicit_bzero(&G_mocks, sizeof(G_mocks));
     explicit_bzero(&G_called, sizeof(G_called));
-    memcpy(
-        G_in, "abcdefabcdefabcdefabcdef12345678ABCDEF12", IMPORT_EXPORT_SIZE);
+    memcpy(G_in,
+           "encrypted:abcdefabcdefabcdefabcdef12345678ABCDEF12",
+           IMPORT_EXPORT_SIZE);
 }
 
 // Exporting
@@ -113,11 +154,13 @@ void test_migrate_export_ok() {
 
     G_mocks.seed_output_USE_FROM_EXPORT_ONLY = true;
     G_mocks.access_output_password_USE_FROM_EXPORT_ONLY = true;
+    G_mocks.aes_gcm_encrypt = true;
 
     G_out_size = sizeof(G_out);
-    assert(migrate_export(G_out, &G_out_size));
-    assert(!memcmp(
-        G_out, "01234567890123456789012345678901abcABC89", sizeof(G_out)));
+    assert(migrate_export(G_key, sizeof(G_key), G_out, &G_out_size));
+    assert(!memcmp(G_out,
+                   "encrypted:01234567890123456789012345678901abcABC89",
+                   sizeof(G_out)));
 }
 
 void test_migrate_export_err_buftoosmall() {
@@ -126,10 +169,11 @@ void test_migrate_export_err_buftoosmall() {
 
     G_mocks.seed_output_USE_FROM_EXPORT_ONLY = true;
     G_mocks.access_output_password_USE_FROM_EXPORT_ONLY = true;
+    G_mocks.aes_gcm_encrypt = true;
 
     uint8_t out[IMPORT_EXPORT_SIZE - 1];
     G_out_size = sizeof(out);
-    assert(!migrate_export(out, &G_out_size));
+    assert(!migrate_export(G_key, sizeof(G_key), out, &G_out_size));
 }
 
 void test_migrate_export_err_seed() {
@@ -138,9 +182,10 @@ void test_migrate_export_err_seed() {
 
     G_mocks.seed_output_USE_FROM_EXPORT_ONLY = false;
     G_mocks.access_output_password_USE_FROM_EXPORT_ONLY = true;
+    G_mocks.aes_gcm_encrypt = true;
 
     G_out_size = sizeof(G_out);
-    assert(!migrate_export(G_out, &G_out_size));
+    assert(!migrate_export(G_key, sizeof(G_key), G_out, &G_out_size));
 }
 
 void test_migrate_export_err_access() {
@@ -149,9 +194,22 @@ void test_migrate_export_err_access() {
 
     G_mocks.seed_output_USE_FROM_EXPORT_ONLY = true;
     G_mocks.access_output_password_USE_FROM_EXPORT_ONLY = false;
+    G_mocks.aes_gcm_encrypt = true;
 
     G_out_size = sizeof(G_out);
-    assert(!migrate_export(G_out, &G_out_size));
+    assert(!migrate_export(G_key, sizeof(G_key), G_out, &G_out_size));
+}
+
+void test_migrate_export_err_encrypting() {
+    setup();
+    printf("Test exporting when encrypting fails...\n");
+
+    G_mocks.seed_output_USE_FROM_EXPORT_ONLY = true;
+    G_mocks.access_output_password_USE_FROM_EXPORT_ONLY = true;
+    G_mocks.aes_gcm_encrypt = false;
+
+    G_out_size = sizeof(G_out);
+    assert(!migrate_export(G_key, sizeof(G_key), G_out, &G_out_size));
 }
 
 void test_migrate_export_err_inconsistency() {
@@ -162,7 +220,7 @@ void test_migrate_export_err_inconsistency() {
     G_mocks.inconsistent_mocks = true;
 
     G_out_size = sizeof(G_out);
-    assert(!migrate_export(G_out, &G_out_size));
+    assert(!migrate_export(G_key, sizeof(G_key), G_out, &G_out_size));
 }
 
 // Importing
@@ -172,8 +230,9 @@ void test_migrate_import_ok() {
 
     G_mocks.seed_set_USE_FROM_EXPORT_ONLY = true;
     G_mocks.access_set_password = true;
+    G_mocks.aes_gcm_decrypt = true;
 
-    assert(migrate_import(G_in, strlen((char*)G_in)));
+    assert(migrate_import(G_key, sizeof(G_key), G_in, strlen((char*)G_in)));
     assert(!G_called.access_wipe);
     assert(!G_called.seed_wipe);
 }
@@ -184,8 +243,23 @@ void test_migrate_import_err_buftoosmall() {
 
     G_mocks.seed_set_USE_FROM_EXPORT_ONLY = true;
     G_mocks.access_set_password = true;
+    G_mocks.aes_gcm_decrypt = true;
 
-    assert(!migrate_import(G_in, strlen((char*)G_in) - 1));
+    assert(
+        !migrate_import(G_key, sizeof(G_key), G_in, strlen((char*)G_in) - 1));
+    assert(G_called.access_wipe);
+    assert(G_called.seed_wipe);
+}
+
+void test_migrate_import_decrypt() {
+    setup();
+    printf("Test importing when decrypting fails...\n");
+
+    G_mocks.seed_set_USE_FROM_EXPORT_ONLY = true;
+    G_mocks.access_set_password = true;
+    G_mocks.aes_gcm_decrypt = false;
+
+    assert(!migrate_import(G_key, sizeof(G_key), G_in, strlen((char*)G_in)));
     assert(G_called.access_wipe);
     assert(G_called.seed_wipe);
 }
@@ -196,8 +270,9 @@ void test_migrate_import_err_seed() {
 
     G_mocks.seed_set_USE_FROM_EXPORT_ONLY = false;
     G_mocks.access_set_password = true;
+    G_mocks.aes_gcm_decrypt = true;
 
-    assert(!migrate_import(G_in, strlen((char*)G_in)));
+    assert(!migrate_import(G_key, sizeof(G_key), G_in, strlen((char*)G_in)));
     assert(G_called.access_wipe);
     assert(G_called.seed_wipe);
 }
@@ -208,8 +283,9 @@ void test_migrate_import_err_access() {
 
     G_mocks.seed_set_USE_FROM_EXPORT_ONLY = true;
     G_mocks.access_set_password = false;
+    G_mocks.aes_gcm_decrypt = true;
 
-    assert(!migrate_import(G_in, strlen((char*)G_in)));
+    assert(!migrate_import(G_key, sizeof(G_key), G_in, strlen((char*)G_in)));
     assert(G_called.access_wipe);
     assert(G_called.seed_wipe);
 }
@@ -219,10 +295,12 @@ int main() {
     test_migrate_export_err_buftoosmall();
     test_migrate_export_err_seed();
     test_migrate_export_err_access();
+    test_migrate_export_err_encrypting();
     test_migrate_export_err_inconsistency();
 
     test_migrate_import_ok();
     test_migrate_import_err_buftoosmall();
+    test_migrate_import_decrypt();
     test_migrate_import_err_seed();
     test_migrate_import_err_access();
 

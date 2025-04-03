@@ -22,38 +22,6 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __TRUSTED_MIGRATE_H
-#define __TRUSTED_MIGRATE_H
+#define oe_malloc(bs) malloc(bs)
 
-#include <stdlib.h>
-#include <stdbool.h>
-#include <stdint.h>
-
-/**
- * @brief Exports the DB
- *
- * @param key       encryption key
- * @param key_size  encryption key size
- * @param out output buffer
- * @param out_size [in/out] output buffer size
- *
- * @returns whether export succeeded
- */
-bool migrate_export(uint8_t* key,
-                    size_t key_size,
-                    uint8_t* out,
-                    size_t* out_size);
-
-/**
- * @brief Imports the given DB to the local store
- *
- * @param key       decryption key
- * @param key_size  decryption key size
- * @param in input buffer
- * @param in_size input buffer size
- *
- * @returns whether the import succeeded
- */
-bool migrate_import(uint8_t* key, size_t key_size, uint8_t* in, size_t in_size);
-
-#endif // __TRUSTED_MIGRATE_H
+#define oe_free(pt) free(pt)
