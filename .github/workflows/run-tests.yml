@@ -108,7 +108,7 @@ jobs:
           docker/sgx/do-notty /hsm2/firmware/src/sgx "make generate-private-key"
           firmware/build/build-sgx-sim \
               0xe108960a242ad7bd45c21aff9c7ed9c516789e9cffacdd895502727d8f460d2c \
-              0x6E regtest
+              0x6E regtest testing
 
       - name: Checkout hsm-integration-test repo
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 #v4.2.2

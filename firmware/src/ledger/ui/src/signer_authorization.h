@@ -25,23 +25,14 @@
 #ifndef __SIGNER_AUTHORIZATION_H
 #define __SIGNER_AUTHORIZATION_H
 
-#ifndef PARAM_SIGNERS_FILE
-#error "Signers header file not defined!"
-#endif
-
-// clang-format off
-#define QUOTEME(x) #x
-#define SIGNERS_FOR(x) QUOTEME(signer_authorization_signers/x.h)
-#define SIGNERS_FILE SIGNERS_FOR(PARAM_SIGNERS_FILE)
-// clang-format on
-
 #include <stdint.h>
 #include <stdbool.h>
 #include "os.h"
 #include "cx.h"
 #include "defs.h"
+#include "eth.h"
 #include "signer_authorization_status.h"
-#include SIGNERS_FILE
+#include "upgrade_signers.h"
 
 // -----------------------------------------------------------------------
 // Signer installation & execution authorization
@@ -68,12 +59,6 @@ typedef enum {
     RES_SIGAUT_MORE = 0x01,
     RES_SIGAUT_SUCCESS = 0x02,
 } res_code_sigaut_t;
-
-// Ethereum message prefix
-#define ETHEREUM_MSG_PREFIX \
-    "\x19"                  \
-    "Ethereum Signed Message:\n"
-#define ETHEREUM_MSG_PREFIX_LENGTH (sizeof(ETHEREUM_MSG_PREFIX) - sizeof(""))
 
 // RSK signer version message parts
 #define RSK_SIGNER_VERSION_MSG_P1 "RSK_powHSM_signer_"

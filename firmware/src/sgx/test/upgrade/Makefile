@@ -22,13 +22,17 @@
 
 include ../common/common.mk
 
+CFLAGS += -DPARAM_SIGNERS_FILE=testing
+VPATH += $(HALSGXSRCDIR)
+LIBS = -lsecp256k1 -lmbedcrypto
+
 PROG = test.out
-OBJS = upgrade.o log.o test_upgrade.o
+OBJS = upgrade.o hash.o sha256.o keccak256.o log.o test_upgrade.o
 
 all: $(PROG)
 
 $(PROG): $(OBJS)
-	$(CC) $(COVFLAGS) -o $@ $^
+	$(CC) $(COVFLAGS) -o $@ $^ $(LIBS)
 
 .PHONY: clean test
 clean:

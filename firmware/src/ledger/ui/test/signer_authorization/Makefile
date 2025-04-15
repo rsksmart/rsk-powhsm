@@ -22,7 +22,7 @@
 
 include ../mock/common.mk
 
-SIGNERDIRS=$(SRCDIR)/signer_authorization_signers
+SIGNERDIRS=$(COMMONDIR)/upgrade_signers
 CFLAGS += -iquote $(SIGNERDIRS)
 
 PARAM_INITIAL_SIGNER_HASH="\x09\x09\x66\x04\x52\xeb\x7a\x3a\x44\xb6\xca\x07$\

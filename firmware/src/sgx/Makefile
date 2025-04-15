@@ -91,6 +91,12 @@ UTIL_DIR = ../util
 include $(UTIL_DIR)/signer.mk
 CFLAGS_TRUSTED += $(SIGNER_FLAGS)
 
+# Pass the firmware upgrade signers file name to the compiler
+ifneq ($(SIGNERS_FILE),)
+$(info Building with signers file set to "$(SIGNERS_FILE).h")
+CFLAGS_TRUSTED += -DPARAM_SIGNERS_FILE="$(SIGNERS_FILE)"
+endif
+
 INCLUDE_UNTRUSTED = -I$(OE_INCDIR) -iquote $(SGX_UNTRUSTED_SRC_DIR) -iquote $(UNTRUSTED_GENERATED_DIR)
 CFLAGS_UNTRUSTED = $(CFLAGS_COMMON) $(INCLUDE_UNTRUSTED)
 
