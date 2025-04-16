@@ -10,8 +10,8 @@ elif [[ "$(basename $0)" != "build-sgx" ]]; then
     exit 1
 fi
 
-if [[ $# -lt 3 ]]; then
-    echo "Usage: $0 <checkpoint> <minimum_difficulty> <network>"
+if [[ $# -lt 4 ]]; then
+    echo "Usage: $0 <checkpoint> <minimum_difficulty> <network> <signers_file>"
     exit 1
 fi
 
@@ -35,7 +35,7 @@ HSM_ROOT=$(realpath $BUILD_ROOT/../../)
 DOCKER_IMAGE=hsm:sgx
 source $BUILD_ROOT/../../docker/check-image
 
-BUILD_CMD="\$SGX_ENVSETUP && make clean $BUILD_TARGET CHECKPOINT=$1 TARGET_DIFFICULTY=$2 NETWORK=$NETWORK"
+BUILD_CMD="\$SGX_ENVSETUP && make clean $BUILD_TARGET CHECKPOINT=$1 TARGET_DIFFICULTY=$2 NETWORK=$NETWORK SIGNERS_FILE=$4"
 
 DOCKER_USER="$(id -u):$(id -g)"
 

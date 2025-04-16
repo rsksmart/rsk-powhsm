@@ -42,6 +42,24 @@
     "\xBB\xBB\xBB\xBB\xBB\xBB\xBB\xBB\xBB\xBB" \
     "\xBB\xBB"
 
+// Two valid signatures and one invalid for the above
+// source and destination
+#define SIG_VALID_1                                                            \
+    "\x30\x45\x02\x21\x00\xac\x85\x67\x3c\xae\x22\x65\x10\x07\x2e\x29\x29\x8c" \
+    "\xab\x1f\x59\xa1\x0f\xd3\xb7\xe1\x31\xed\x1f\x66\x1b\x44\xd0\xff\xe3\xfd" \
+    "\xe1\x02\x20\x6c\x28\x77\xa0\xa3\x21\x9d\xdb\x90\xe9\x03\x30\x9b\xbc\xc8" \
+    "\x61\x00\xcd\x1a\xa8\xe9\x41\x8e\xef\xd8\x71\x63\x90\x3b\x9f\xb5\x9f"
+#define SIG_VALID_2                                                            \
+    "\x30\x44\x02\x20\x05\xb6\x07\x70\x3d\x82\x0f\x12\x17\x3c\xe1\x5b\x0e\x9a" \
+    "\x3b\x1c\xcb\x4b\x95\x4c\xeb\x60\x67\x1d\x55\xb6\xd9\x74\xf4\x28\x4f\x56" \
+    "\x02\x20\x44\xe0\x3b\xac\x7a\xa5\x21\xa6\xc3\x83\xe0\x52\x15\xf7\xa8\x46" \
+    "\x7b\x45\xbc\xe1\x19\x91\x5a\x73\xc3\x90\xc3\x8d\x82\xab\xc0\x54"
+#define SIG_INVALID                                                            \
+    "\x30\x45\x02\x21\x00\xd4\xaa\x43\xb0\x9e\x97\xf8\x5e\xff\x1e\xd1\x9d\x01" \
+    "\xa5\xe8\x1a\x64\xe9\x7a\x5f\xad\xf0\x1e\x06\x5f\x4d\x77\xcf\x9d\x60\x35" \
+    "\x1f\x02\x20\x4a\xa9\xbc\xe0\x0e\x03\x09\xed\xb1\xbc\x61\xb3\xfd\x1c\xb3" \
+    "\x76\x0e\x43\x44\x82\xf8\x9b\x06\x94\x04\xa2\xfd\xf5\x05\x39\xd7\x7a"
+
 // Globals
 static try_context_t G_try_last_open_context_var;
 try_context_t* G_try_last_open_context = &G_try_last_open_context_var;
@@ -171,8 +189,15 @@ void test_do_upgrade_export_ok() {
 
     ASSERT_DOESNT_THROW({
         // Start export
-        SET_APDU("\x80\xA6\x01" SRC_MRE DST_MRE, rx);
+        SET_APDU("\x80\xA6\x01\x01" SRC_MRE DST_MRE, rx);
         assert(3 == do_upgrade(rx));
+        // Spec auth
+        SET_APDU("\x80\xA6\x02" SIG_VALID_1, rx);
+        assert(3 == do_upgrade(rx));
+        ASSERT_APDU("\x80\xA6\x01");
+        SET_APDU("\x80\xA6\x02" SIG_VALID_2, rx);
+        assert(3 == do_upgrade(rx));
+        ASSERT_APDU("\x80\xA6\x00");
         // Identify peer
         SET_APDU("\x80\xA6\x03"
                  "peer-id:" DST_MRE,
@@ -197,7 +222,7 @@ void test_do_upgrade_export_not_onboarded() {
     ASSERT_THROWS(
         {
             // Start export
-            SET_APDU("\x80\xA6\x01" SRC_MRE DST_MRE, rx);
+            SET_APDU("\x80\xA6\x01\x01" SRC_MRE DST_MRE, rx);
             do_upgrade(rx);
         },
         0x6BEE);
@@ -215,7 +240,7 @@ void test_do_upgrade_export_not_unlocked() {
     ASSERT_THROWS(
         {
             // Start export
-            SET_APDU("\x80\xA6\x01" SRC_MRE DST_MRE, rx);
+            SET_APDU("\x80\xA6\x01\x01" SRC_MRE DST_MRE, rx);
             do_upgrade(rx);
         },
         0x6BF1);
@@ -233,12 +258,68 @@ void test_do_upgrade_export_invalid_spec() {
     ASSERT_THROWS(
         {
             // Start export
-            SET_APDU("\x80\xA6\x01"
+            SET_APDU("\x80\xA6\x01\x01"
                      "not a valid spec",
                      rx);
             do_upgrade(rx);
         },
-        0x6A01);
+        0x6A00);
+}
+
+void test_do_upgrade_export_invalid_spec_auth() {
+    unsigned int rx;
+
+    setup();
+    printf("Test exporting when invalid spec auth given...\n");
+
+    G_mocks.seed_available = true;
+    G_mocks.access_is_locked = false;
+
+    ASSERT_THROWS(
+        {
+            // Start export
+            SET_APDU("\x80\xA6\x01\x01" SRC_MRE DST_MRE, rx);
+            assert(3 == do_upgrade(rx));
+            // Spec auth
+            SET_APDU("\x80\xA6\x02" SIG_VALID_1, rx);
+            assert(3 == do_upgrade(rx));
+            ASSERT_APDU("\x80\xA6\x01");
+            SET_APDU("\x80\xA6\x02" SIG_INVALID, rx);
+            assert(3 == do_upgrade(rx));
+            ASSERT_APDU("\x80\xA6\x01");
+            // Attempting to identify peer fails
+            SET_APDU("\x80\xA6\x03"
+                     "peer-id:" DST_MRE,
+                     rx);
+            do_upgrade(rx);
+        },
+        0x6A00);
+}
+
+void test_do_upgrade_export_invalid_spec_auth_format() {
+    unsigned int rx;
+
+    setup();
+    printf("Test exporting when invalid spec auth given...\n");
+
+    G_mocks.seed_available = true;
+    G_mocks.access_is_locked = false;
+
+    ASSERT_THROWS(
+        {
+            // Start export
+            SET_APDU("\x80\xA6\x01\x01" SRC_MRE DST_MRE, rx);
+            assert(3 == do_upgrade(rx));
+            // Spec auth
+            SET_APDU("\x80\xA6\x02" SIG_VALID_1, rx);
+            assert(3 == do_upgrade(rx));
+            ASSERT_APDU("\x80\xA6\x01");
+            SET_APDU("\x80\xA6\x02"
+                     "invalid signature",
+                     rx);
+            do_upgrade(rx);
+        },
+        0x6A02);
 }
 
 void test_do_upgrade_export_invalid_peer_id() {
@@ -253,14 +334,22 @@ void test_do_upgrade_export_invalid_peer_id() {
     ASSERT_THROWS(
         {
             // Start export
-            SET_APDU("\x80\xA6\x01" SRC_MRE DST_MRE, rx);
+            SET_APDU("\x80\xA6\x01\x01" SRC_MRE DST_MRE, rx);
             assert(3 == do_upgrade(rx));
+            // Spec auth
+            SET_APDU("\x80\xA6\x02" SIG_VALID_1, rx);
+            assert(3 == do_upgrade(rx));
+            ASSERT_APDU("\x80\xA6\x01");
+            SET_APDU("\x80\xA6\x02" SIG_VALID_2, rx);
+            assert(3 == do_upgrade(rx));
+            ASSERT_APDU("\x80\xA6\x00");
+            // Identify peer
             SET_APDU("\x80\xA6\x03"
                      "invalid peer id",
                      rx);
             do_upgrade(rx);
         },
-        0x6A02);
+        0x6A03);
 }
 
 void test_do_upgrade_export_migrate_fails() {
@@ -276,8 +365,15 @@ void test_do_upgrade_export_migrate_fails() {
     ASSERT_THROWS(
         {
             // Start export
-            SET_APDU("\x80\xA6\x01" SRC_MRE DST_MRE, rx);
+            SET_APDU("\x80\xA6\x01\x01" SRC_MRE DST_MRE, rx);
             assert(3 == do_upgrade(rx));
+            // Spec auth
+            SET_APDU("\x80\xA6\x02" SIG_VALID_1, rx);
+            assert(3 == do_upgrade(rx));
+            ASSERT_APDU("\x80\xA6\x01");
+            SET_APDU("\x80\xA6\x02" SIG_VALID_2, rx);
+            assert(3 == do_upgrade(rx));
+            ASSERT_APDU("\x80\xA6\x00");
             // Identify peer
             SET_APDU("\x80\xA6\x03"
                      "peer-id:" DST_MRE,
@@ -287,7 +383,7 @@ void test_do_upgrade_export_migrate_fails() {
             SET_APDU("\x80\xA6\x04", rx);
             do_upgrade(rx);
         },
-        0x6A03);
+        0x6A04);
 }
 
 // Importing
@@ -302,8 +398,15 @@ void test_do_upgrade_import_ok() {
 
     ASSERT_DOESNT_THROW({
         // Start import
-        SET_APDU("\x80\xA6\x02" SRC_MRE DST_MRE, rx);
+        SET_APDU("\x80\xA6\x01\x02" SRC_MRE DST_MRE, rx);
         assert(3 == do_upgrade(rx));
+        // Spec auth
+        SET_APDU("\x80\xA6\x02" SIG_VALID_1, rx);
+        assert(3 == do_upgrade(rx));
+        ASSERT_APDU("\x80\xA6\x01");
+        SET_APDU("\x80\xA6\x02" SIG_VALID_2, rx);
+        assert(3 == do_upgrade(rx));
+        ASSERT_APDU("\x80\xA6\x00");
         // Identify peer
         SET_APDU("\x80\xA6\x03"
                  "peer-id:" SRC_MRE,
@@ -329,7 +432,7 @@ void test_do_upgrade_import_onboarded() {
     ASSERT_THROWS(
         {
             // Start export
-            SET_APDU("\x80\xA6\x02" SRC_MRE DST_MRE, rx);
+            SET_APDU("\x80\xA6\x01\x02" SRC_MRE DST_MRE, rx);
             do_upgrade(rx);
         },
         0x6BEF);
@@ -347,12 +450,12 @@ void test_do_upgrade_import_invalid_spec() {
     ASSERT_THROWS(
         {
             // Start export
-            SET_APDU("\x80\xA6\x02"
+            SET_APDU("\x80\xA6\x01\x02"
                      "not a valid spec",
                      rx);
             do_upgrade(rx);
         },
-        0x6A01);
+        0x6A00);
 }
 
 void test_do_upgrade_import_invalid_peer_id() {
@@ -367,14 +470,22 @@ void test_do_upgrade_import_invalid_peer_id() {
     ASSERT_THROWS(
         {
             // Start import
-            SET_APDU("\x80\xA6\x02" SRC_MRE DST_MRE, rx);
+            SET_APDU("\x80\xA6\x01\x02" SRC_MRE DST_MRE, rx);
             assert(3 == do_upgrade(rx));
+            // Spec auth
+            SET_APDU("\x80\xA6\x02" SIG_VALID_1, rx);
+            assert(3 == do_upgrade(rx));
+            ASSERT_APDU("\x80\xA6\x01");
+            SET_APDU("\x80\xA6\x02" SIG_VALID_2, rx);
+            assert(3 == do_upgrade(rx));
+            ASSERT_APDU("\x80\xA6\x00");
+            // Identify peer
             SET_APDU("\x80\xA6\x03"
                      "invalid peer id",
                      rx);
             do_upgrade(rx);
         },
-        0x6A02);
+        0x6A03);
 }
 
 void test_do_upgrade_import_migrate_fails() {
@@ -389,8 +500,15 @@ void test_do_upgrade_import_migrate_fails() {
     ASSERT_THROWS(
         {
             // Start import
-            SET_APDU("\x80\xA6\x02" SRC_MRE DST_MRE, rx);
+            SET_APDU("\x80\xA6\x01\x02" SRC_MRE DST_MRE, rx);
             assert(3 == do_upgrade(rx));
+            // Spec auth
+            SET_APDU("\x80\xA6\x02" SIG_VALID_1, rx);
+            assert(3 == do_upgrade(rx));
+            ASSERT_APDU("\x80\xA6\x01");
+            SET_APDU("\x80\xA6\x02" SIG_VALID_2, rx);
+            assert(3 == do_upgrade(rx));
+            ASSERT_APDU("\x80\xA6\x00");
             // Identify peer
             SET_APDU("\x80\xA6\x03"
                      "peer-id:" SRC_MRE,
@@ -402,7 +520,7 @@ void test_do_upgrade_import_migrate_fails() {
                      rx);
             do_upgrade(rx);
         },
-        0x6A03);
+        0x6A04);
 }
 
 void test_do_upgrade_invalid_op() {
@@ -425,6 +543,8 @@ int main() {
     test_do_upgrade_export_not_onboarded();
     test_do_upgrade_export_not_unlocked();
     test_do_upgrade_export_invalid_spec();
+    test_do_upgrade_export_invalid_spec_auth();
+    test_do_upgrade_export_invalid_spec_auth_format();
     test_do_upgrade_export_invalid_peer_id();
     test_do_upgrade_export_migrate_fails();
 
