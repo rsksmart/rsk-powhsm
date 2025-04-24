@@ -1,0 +1,1 @@
+../../../../hal/sgx/test/mock/openenclave/common.h

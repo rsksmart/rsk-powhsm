@@ -19,6 +19,7 @@
 #include "err.h"
 #include "bc_err.h"
 #include "upgrade.h"
+#include "evidence.h"
 
 /**
  * APDU buffer (host pointer and local enclave copy)
@@ -224,6 +225,11 @@ bool system_init(unsigned char* msg_buffer, size_t msg_buffer_size) {
         return false;
     }
 
+    if (!evidence_init()) {
+        LOG("Error initializing evidence module\n");
+        return false;
+    }
+
     if (!endorsement_init()) {
         LOG("Error initializing endorsement module\n");
         return false;
@@ -262,4 +268,5 @@ bool system_init(unsigned char* msg_buffer, size_t msg_buffer_size) {
 void system_finalise() {
     // Finalise modules
     endorsement_finalise();
+    evidence_finalise();
 }

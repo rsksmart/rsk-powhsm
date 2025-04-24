@@ -33,6 +33,7 @@ typedef struct {
     bool result_oe_free_evidence;
     bool result_oe_get_evidence;
     bool result_oe_attester_select_format;
+    bool result_oe_verifier_get_format_settings;
 
     uint8_t* oe_get_evidence_buffer;
     size_t oe_get_evidence_buffer_size;

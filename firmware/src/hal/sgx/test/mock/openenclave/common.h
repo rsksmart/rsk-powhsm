@@ -28,6 +28,10 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdlib.h>
+
+#define oe_malloc(sz) malloc(sz)
+#define oe_free(ptr) free(ptr)
 
 // Taken from OpenEnclave's include/openenclave/bits/defs.h
 
@@ -195,7 +199,7 @@ typedef struct _sgx_quote_auth_data {
 } sgx_quote_auth_data_t;
 OE_PACK_END
 
-// Taken from OpenEnclave's include/openenclave/bits/evidence.h
+// Taken from OpenEnclave's include/openenclave/attestation/sgx/evidence.h
 
 #define OE_FORMAT_UUID_SGX_ECDSA                                          \
     {                                                                     \
@@ -203,11 +207,38 @@ OE_PACK_END
             0x25, 0xd2, 0xfb, 0xcd, 0x8c                                  \
     }
 
+#define OE_FORMAT_UUID_SGX_LOCAL_ATTESTATION                              \
+    {                                                                     \
+        0x09, 0x26, 0x8c, 0x33, 0x6e, 0x0b, 0x45, 0xe5, 0x8a, 0x27, 0x15, \
+            0x64, 0x4d, 0x0e, 0xf8, 0x9a                                  \
+    }
+
+// Taken from OpenEnclave's include/openenclave/bits/evidence.h
+
 #define OE_UUID_SIZE 16
+
+#define OE_CLAIM_UNIQUE_ID "unique_id"
 
 typedef struct _oe_uuid_t {
     uint8_t b[OE_UUID_SIZE];
 } oe_uuid_t;
+
+typedef struct _oe_claim {
+    char* name;
+    uint8_t* value;
+    size_t value_size;
+} oe_claim_t;
+
+typedef enum _oe_policy_type {
+    OE_POLICY_ENDORSEMENTS_TIME = 1,
+    OE_POLICY_ENDORSEMENTS_BASELINE = 2
+} oe_policy_type_t;
+
+typedef struct _oe_policy {
+    oe_policy_type_t type;
+    void* policy;
+    size_t policy_size;
+} oe_policy_t;
 
 // Taken from OpenEnclave's include/openenclave/attestation/attester.h
 
@@ -232,8 +263,30 @@ oe_result_t oe_free_evidence(uint8_t* evidence_buffer);
 
 oe_result_t oe_attester_shutdown(void);
 
+// Taken from OpenEnclave's include/openenclave/attestation/verifier.h
+
+oe_result_t oe_verifier_initialize(void);
+
+oe_result_t oe_verifier_get_format_settings(const oe_uuid_t* format_id,
+                                            uint8_t** settings,
+                                            size_t* settings_size);
+
+oe_result_t oe_verify_evidence(const oe_uuid_t* format_id,
+                               const uint8_t* evidence_buffer,
+                               size_t evidence_buffer_size,
+                               const uint8_t* endorsements_buffer,
+                               size_t endorsements_buffer_size,
+                               const oe_policy_t* policies,
+                               size_t policies_size,
+                               oe_claim_t** claims,
+                               size_t* claims_length);
+
+oe_result_t oe_verifier_shutdown(void);
+
 // Taken from OpenEnclave's include/openenclave/enclave.h
 
 bool oe_is_within_enclave(const void* ptr, size_t size);
+
+bool oe_is_outside_enclave(const void* ptr, size_t size);
 
 #endif // #ifndef __MOCK_OE_COMMON_H

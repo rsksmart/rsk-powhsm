@@ -22,13 +22,18 @@
  * IN THE SOFTWARE.
  */
 
-#include <string.h>
-
 #include "upgrade.h"
+
+#include <string.h>
+#include <secp256k1.h>
+#include <openenclave/corelibc/stdlib.h>
+#include <openenclave/attestation/custom_claims.h>
+
 #include "hal/exceptions.h"
 #include "hal/log.h"
 #include "hal/seed.h"
 #include "hal/hash.h"
+
 #include "defs.h"
 #include "apdu.h"
 #include "hsm.h"
@@ -36,7 +41,7 @@
 #include "eth.h"
 #include "ints.h"
 #include "compiletime.h"
-#include <secp256k1.h>
+#include "evidence.h"
 
 // Authorizers' public keys length (uncompressed format)
 #define AUTHORIZED_SIGNER_PUBKEY_LENGTH 65
@@ -62,6 +67,8 @@ static const uint8_t authorizers_pubkeys[][AUTHORIZED_SIGNER_PUBKEY_LENGTH] =
 
 #define SGX_UPG_SPEC_MSG_P2 "_to_"
 #define SGX_UPG_SPEC_MSG_P2_LENGTH (sizeof(SGX_UPG_SPEC_MSG_P2) - sizeof(""))
+
+#define EVIDENCE_FORMAT EVIDENCE_FORMAT_SGX_LOCAL
 
 // Operation selectors
 typedef enum {
@@ -110,6 +117,9 @@ typedef struct {
     upgrade_operation_t operation;
     upgrade_state_t state;
     upgrade_spec_t spec;
+    uint8_t* my_mrenclave;
+    uint8_t* their_mrenclave;
+
     uint8_t expected_message_hash[HASH_LENGTH];
     bool authorized_signer_verified[MAX_AUTHORIZERS];
 } upgrade_ctx_t;
@@ -232,13 +242,17 @@ void upgrade_init() {
 
 unsigned int do_upgrade(volatile unsigned int rx) {
     uint8_t key[] = DUMMY_KEY;
-    uint8_t* expected_mre = NULL;
     size_t sz = 0;
     int signature_valid;
     long unsigned valid_count;
     secp256k1_context* secp_ctx;
     secp256k1_ecdsa_signature signature;
     secp256k1_pubkey pubkey;
+    uint8_t* evidence = NULL;
+    size_t evidence_size;
+    oe_claim_t* claims = NULL;
+    size_t claims_size;
+    oe_claim_t* claim;
 
     switch (APDU_OP()) {
     case OP_UPGRADE_START:
@@ -269,6 +283,14 @@ unsigned int do_upgrade(volatile unsigned int rx) {
         memcpy(upgrade_ctx.spec.mrenclave_to,
                APDU_DATA_PTR + 1 + UPGRADE_MRENCLAVE_SIZE,
                UPGRADE_MRENCLAVE_SIZE);
+        upgrade_ctx.my_mrenclave =
+            upgrade_ctx.operation == upgrade_operation_export
+                ? upgrade_ctx.spec.mrenclave_from
+                : upgrade_ctx.spec.mrenclave_to;
+        upgrade_ctx.their_mrenclave =
+            upgrade_ctx.operation == upgrade_operation_export
+                ? upgrade_ctx.spec.mrenclave_to
+                : upgrade_ctx.spec.mrenclave_from;
         LOG("Spec received\n");
         LOG_HEX(
             "From:", upgrade_ctx.spec.mrenclave_from, UPGRADE_MRENCLAVE_SIZE);
@@ -276,12 +298,48 @@ unsigned int do_upgrade(volatile unsigned int rx) {
         LOG("Role: %s\n",
             upgrade_ctx.operation == upgrade_operation_export ? "exporter"
                                                               : "importer");
+        // Check this enclave's mrenclave matches the corresponding
+        // value in the spec according to the specified role
+        if (!evidence_generate(
+                EVIDENCE_FORMAT, NULL, 0, &evidence, &evidence_size)) {
+            LOG("Unable to generate enclave evidence\n");
+            goto do_upgrade_start_error;
+        }
+        if (!evidence_verify_and_extract_claims(EVIDENCE_FORMAT,
+                                                evidence,
+                                                evidence_size,
+                                                &claims,
+                                                &claims_size)) {
+            LOG("Error verifying this enclave's evidence\n");
+            goto do_upgrade_start_error;
+        }
+        if (!(claim = evidence_get_claim(
+                  claims, claims_size, OE_CLAIM_UNIQUE_ID))) {
+            LOG("Error extracting this enclave's mrenclave\n");
+            goto do_upgrade_start_error;
+        }
+        LOG_HEX("This enclave's mrenclave:", claim->value, claim->value_size);
+        if (claim->value_size != UPGRADE_MRENCLAVE_SIZE ||
+            memcmp(claim->value,
+                   upgrade_ctx.my_mrenclave,
+                   UPGRADE_MRENCLAVE_SIZE) != 0) {
+            LOG("This enclave's mrenclave does not match the spec's "
+                "mrenclave\n");
+            goto do_upgrade_start_error;
+        }
         generate_message_to_verify();
         LOG_HEX("Message to verify: ",
                 upgrade_ctx.expected_message_hash,
                 sizeof(upgrade_ctx.expected_message_hash));
         upgrade_ctx.state = upgrade_state_await_spec_sigs;
         return TX_NO_DATA();
+    do_upgrade_start_error:
+        if (evidence)
+            evidence_free(evidence);
+        if (claims)
+            oe_free(claims);
+        reset_upgrade();
+        THROW(ERR_UPGRADE_SPEC);
     case OP_UPGRADE_SPEC_SIG:
         check_state(upgrade_state_await_spec_sigs);
         if (APDU_DATA_SIZE(rx) < 1) {
@@ -346,13 +404,10 @@ unsigned int do_upgrade(volatile unsigned int rx) {
         return TX_NO_DATA();
     case OP_UPGRADE_IDENTIFY_PEER:
         check_state(upgrade_state_await_peer_id);
-        expected_mre = upgrade_ctx.operation == upgrade_operation_export
-                           ? upgrade_ctx.spec.mrenclave_to
-                           : upgrade_ctx.spec.mrenclave_from;
         if (APDU_DATA_SIZE(rx) != DUMMY_PEER_ID_LEN + UPGRADE_MRENCLAVE_SIZE ||
             memcmp(APDU_DATA_PTR, DUMMY_PEER_ID, DUMMY_PEER_ID_LEN) ||
             memcmp(APDU_DATA_PTR + DUMMY_PEER_ID_LEN,
-                   expected_mre,
+                   upgrade_ctx.their_mrenclave,
                    UPGRADE_MRENCLAVE_SIZE)) {
             reset_upgrade();
             THROW(ERR_UPGRADE_AUTH);
