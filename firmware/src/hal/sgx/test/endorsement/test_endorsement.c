@@ -31,65 +31,147 @@
 
 #include "hal/endorsement.h"
 #include "hal/constants.h"
+#include "evidence.h"
+
+#include "mock_evidence.h"
 
 #include <openenclave/common.h>
-#include "mocks.h"
+
+// Mocks
+struct {
+    bool der_encode_signature;
+    bool evidence_supports_format;
+    bool evidence_generate;
+    size_t evidence_generate_bufsize;
+} G_mocks;
+
+struct {
+    bool evidence_supports_format;
+    bool evidence_generate;
+    bool evidence_free;
+} G_called;
+
+const uint8_t mock_evidence[] = MOCK_EVIDENCE;
+
+uint8_t der_encode_signature(uint8_t* dest,
+                             size_t dest_size,
+                             sgx_ecdsa256_signature_t* sig) {
+    if (!G_mocks.der_encode_signature)
+        return 0;
+
+    assert(dest_size >= sizeof(sig->r) + sizeof(sig->s));
+    memcpy(dest, sig->r, sizeof(sig->r));
+    memcpy(dest + sizeof(sig->r), sig->s, sizeof(sig->s));
+    return sizeof(sig->r) + sizeof(sig->s);
+}
+
+bool evidence_supports_format(oe_uuid_t format_id) {
+    G_called.evidence_supports_format = true;
+
+    const oe_uuid_t expected_format_id = EVIDENCE_FORMAT_SGX_ECDSA;
+    assert(!memcmp(&expected_format_id, &format_id, sizeof(format_id)));
+
+    return G_mocks.evidence_supports_format;
+}
+
+bool evidence_generate(oe_uuid_t format_id,
+                       uint8_t* ccs,
+                       size_t ccs_size,
+                       uint8_t** evidence_buffer,
+                       size_t* evidence_buffer_size) {
+    G_called.evidence_generate = true;
+
+    const oe_uuid_t expected_format_id = EVIDENCE_FORMAT_SGX_ECDSA;
+    assert(!memcmp(&expected_format_id, &format_id, sizeof(format_id)));
+    assert(ccs && ccs_size);
+    assert(evidence_buffer && evidence_buffer_size);
+    assert(!*evidence_buffer);
+
+    if (G_mocks.evidence_generate) {
+        size_t sz = G_mocks.evidence_generate_bufsize > 0
+                        ? G_mocks.evidence_generate_bufsize
+                        : sizeof(mock_evidence) + ccs_size;
+        *evidence_buffer = malloc(sz);
+        memcpy(*evidence_buffer,
+               mock_evidence,
+               sizeof(mock_evidence) > sz ? sz : sizeof(mock_evidence));
+        memcpy(*evidence_buffer + sizeof(mock_evidence), ccs, ccs_size);
+        ((sgx_quote_t*)(*evidence_buffer))->signature_len =
+            sz - sizeof(sgx_quote_t) - ccs_size;
+        *evidence_buffer_size = sz;
+    }
+
+    return G_mocks.evidence_generate;
+}
+
+void evidence_free(uint8_t* evidence_buffer) {
+    // Should never be called with a NULL pointer
+    G_called.evidence_free = true;
+    assert(evidence_buffer != NULL);
+}
+
+// Unit tests
 
 uint8_t msg[] = "this is a message";
 uint8_t signature[MAX_SIGNATURE_LENGTH];
 uint8_t signature_length;
-extern uint8_t mock_evidence[];
-
-void setup_no_init() {
-    // This has the side effect of clearing the initialized state of the
-    // endorsement module
-    G_mock_config.result_oe_attester_initialize = false;
-    endorsement_init();
-
-    G_mock_config.result_oe_attester_initialize = true;
-    G_mock_config.result_oe_attester_select_format = true;
-    G_mock_config.result_oe_get_evidence = true;
-    G_mock_config.oe_get_evidence_buffer_freed = false;
-
-    signature_length = sizeof(signature);
-    if (G_mock_config.oe_get_evidence_buffer != NULL) {
-        free(G_mock_config.oe_get_evidence_buffer);
-        G_mock_config.oe_get_evidence_buffer = NULL;
-    }
-    G_mock_config.oe_get_evidence_buffer_size = 0;
-}
 
 void setup() {
-    setup_no_init();
-    assert(endorsement_init());
+    // This has the side effect of clearing the initialized state of the
+    // endorsement module
+    endorsement_finalise();
+
+    explicit_bzero(&G_mocks, sizeof(G_mocks));
+    explicit_bzero(&G_called, sizeof(G_called));
+}
+
+void setup_nosign() {
+    setup();
+
+    G_mocks.evidence_supports_format = true;
+    G_mocks.evidence_generate = true;
+    G_mocks.der_encode_signature = true;
+
+    endorsement_init();
 }
 
 void setup_and_sign() {
-    setup();
+    setup_nosign();
+
+    signature_length = sizeof(signature);
     assert(endorsement_sign(msg, sizeof(msg), signature, &signature_length));
-    assert(G_mock_config.oe_get_evidence_buffer_freed);
 }
 
-void test_endorsement_init_ok() {
-    setup_no_init();
-    assert(endorsement_init() == true);
-}
-
-void test_endorsement_init_err_attinit() {
-    setup_no_init();
-    G_mock_config.result_oe_attester_initialize = false;
-    assert(endorsement_init() == false);
-}
-
-void test_endorsement_init_err_selfmt() {
-    setup_no_init();
-    G_mock_config.result_oe_attester_select_format = false;
-    assert(endorsement_init() == false);
-}
-
-void test_signature_ok() {
+void test_init_ok() {
+    printf("Testing endorsement_init succeeds...\n");
     setup();
 
+    G_mocks.evidence_supports_format = true;
+
+    assert(endorsement_init());
+    assert(G_called.evidence_supports_format);
+}
+
+void test_init_err_fmtunsupported() {
+    printf("Testing endorsement_init fails when format is unsupported...\n");
+    setup();
+
+    G_mocks.evidence_supports_format = false;
+
+    assert(!endorsement_init());
+    assert(G_called.evidence_supports_format);
+}
+
+void test_sign_ok() {
+    printf("Testing endorsement_sign succeeds...\n");
+    setup();
+
+    G_mocks.evidence_supports_format = true;
+    G_mocks.evidence_generate = true;
+    G_mocks.der_encode_signature = true;
+    endorsement_init();
+
+    signature_length = sizeof(signature);
     assert(endorsement_sign(msg, sizeof(msg), signature, &signature_length));
 
     sgx_ecdsa256_signature_t* sig =
@@ -99,44 +181,94 @@ void test_signature_ok() {
     assert(!memcmp(signature + sizeof(sig->r), sig->s, sizeof(sig->s)));
     assert(signature_length == sizeof(sig->r) + sizeof(sig->s));
 
-    assert(G_mock_config.oe_get_evidence_buffer_freed);
+    assert(!G_called.evidence_free);
 }
 
-void test_signature_err_notinit() {
-    setup_no_init();
-
-    assert(!endorsement_sign(msg, sizeof(msg), signature, &signature_length));
-}
-
-void test_signature_err_sigbuftoosmall() {
+void test_sign_err_notinit() {
+    printf("Testing endorsement_sign fails when module not initialised...\n");
     setup();
 
-    signature_length = 10;
-    assert(!endorsement_sign(msg, sizeof(msg), signature, &signature_length));
+    G_mocks.evidence_supports_format = true;
+    G_mocks.evidence_generate = true;
+    G_mocks.der_encode_signature = true;
 
-    assert(!G_mock_config.oe_get_evidence_buffer_freed);
+    signature_length = sizeof(signature);
+    assert(!endorsement_sign(msg, sizeof(msg), signature, &signature_length));
 }
 
-void test_signature_err_evibuftoobig() {
+void test_sign_err_sigbuftoosmall() {
+    printf("Testing endorsement_sign fails when signature buffer is too "
+           "small...\n");
     setup();
 
-    G_mock_config.oe_get_evidence_buffer_size = 100000;
-    assert(!endorsement_sign(msg, sizeof(msg), signature, &signature_length));
+    G_mocks.evidence_supports_format = true;
+    G_mocks.evidence_generate = true;
+    G_mocks.der_encode_signature = true;
+    endorsement_init();
 
-    assert(G_mock_config.oe_get_evidence_buffer_freed);
+    signature_length = sizeof(signature) - 1;
+    assert(!endorsement_sign(msg, sizeof(msg), signature, &signature_length));
 }
 
-void test_signature_err_evidencebroken() {
+void test_sign_err_evigenerate() {
+    printf(
+        "Testing endorsement_sign fails when evidence generation fails...\n");
     setup();
 
-    G_mock_config.oe_get_evidence_buffer_size = 1000;
-    assert(!endorsement_sign(msg, sizeof(msg), signature, &signature_length));
+    G_mocks.evidence_supports_format = true;
+    G_mocks.evidence_generate = false;
+    G_mocks.der_encode_signature = true;
+    endorsement_init();
 
-    assert(G_mock_config.oe_get_evidence_buffer_freed);
+    signature_length = sizeof(signature);
+    assert(!endorsement_sign(msg, sizeof(msg), signature, &signature_length));
+}
+
+void test_sign_err_evidencebroken() {
+    printf("Testing endorsement_sign fails when evidence is broken...\n");
+    setup();
+
+    G_mocks.evidence_supports_format = true;
+    G_mocks.evidence_generate = true;
+    G_mocks.evidence_generate_bufsize = 100;
+    G_mocks.der_encode_signature = true;
+    endorsement_init();
+
+    signature_length = sizeof(signature);
+    assert(!endorsement_sign(msg, sizeof(msg), signature, &signature_length));
+}
+
+void test_sign_err_evidencetoolarge() {
+    printf("Testing endorsement_sign fails when evidence is too large...\n");
+    setup();
+
+    G_mocks.evidence_supports_format = true;
+    G_mocks.evidence_generate = true;
+    G_mocks.evidence_generate_bufsize = 10000;
+    G_mocks.der_encode_signature = true;
+    endorsement_init();
+
+    signature_length = sizeof(signature);
+    assert(!endorsement_sign(msg, sizeof(msg), signature, &signature_length));
+}
+
+void test_sign_err_sigencoding() {
+    printf("Testing endorsement_sign fails when signature encoding fails...\n");
+    setup();
+
+    G_mocks.evidence_supports_format = true;
+    G_mocks.evidence_generate = true;
+    G_mocks.der_encode_signature = false;
+    endorsement_init();
+
+    signature_length = sizeof(signature);
+    assert(!endorsement_sign(msg, sizeof(msg), signature, &signature_length));
 }
 
 void test_get_envelope_ok() {
+    printf("Testing endorsement_get_envelope succeeds...\n");
     setup_and_sign();
+
     assert(!memcmp(endorsement_get_envelope(),
                    mock_evidence,
                    sizeof(sgx_quote_t) - sizeof(uint32_t)));
@@ -150,8 +282,19 @@ void test_get_envelope_ok() {
                    sizeof(msg)));
 }
 
-void test_get_envelope_nosignature() {
+void test_get_envelope_noinit() {
+    printf("Testing endorsement_get_envelope when module hasn't been "
+           "initialised...\n");
     setup();
+
+    assert(endorsement_get_envelope() == NULL);
+    assert(endorsement_get_envelope_length() == 0);
+}
+
+void test_get_envelope_nosignature() {
+    printf("Testing endorsement_get_envelope when no signature present...\n");
+    setup_nosign();
+
     assert(endorsement_get_envelope() == NULL);
     assert(endorsement_get_envelope_length() == 0);
 }
@@ -183,7 +326,7 @@ void test_get_code_hash_err_nullbuf() {
 }
 
 void test_get_code_hash_err_nosignature() {
-    setup();
+    setup_nosign();
 
     uint8_t code_hash[123];
     uint8_t code_hash_length = sizeof(code_hash);
@@ -233,7 +376,7 @@ void test_get_public_key_err_nullbuf() {
 }
 
 void test_get_public_key_err_nosignature() {
-    setup();
+    setup_nosign();
 
     uint8_t public_key[123];
     uint8_t public_key_length = sizeof(public_key);
@@ -253,29 +396,26 @@ void test_get_public_key_err_buftoosmall() {
 }
 
 int main() {
-    printf("Testing endorsement_init()...\n");
-    test_endorsement_init_ok();
-    test_endorsement_init_err_attinit();
-    test_endorsement_init_err_selfmt();
+    test_init_ok();
+    test_init_err_fmtunsupported();
 
-    printf("Testing endorsement_sign()...\n");
-    test_signature_ok();
-    test_signature_err_notinit();
-    test_signature_err_sigbuftoosmall();
-    test_signature_err_evibuftoobig();
-    test_signature_err_evidencebroken();
+    test_sign_ok();
+    test_sign_err_notinit();
+    test_sign_err_sigbuftoosmall();
+    test_sign_err_evigenerate();
+    test_sign_err_evidencebroken();
+    test_sign_err_evidencetoolarge();
+    test_sign_err_sigencoding();
 
-    printf("Testing endorsement_get_envelope()...\n");
     test_get_envelope_ok();
+    test_get_envelope_noinit();
     test_get_envelope_nosignature();
 
-    printf("Testing endorsement_get_code_hash()...\n");
     test_get_code_hash_ok();
     test_get_code_hash_err_nullbuf();
     test_get_code_hash_err_nosignature();
     test_get_code_hash_err_buftoosmall();
 
-    printf("Testing endorsement_get_public_key()...\n");
     test_get_public_key_ok();
     test_get_public_key_err_nullbuf();
     test_get_public_key_err_nosignature();

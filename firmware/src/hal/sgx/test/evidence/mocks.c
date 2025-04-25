@@ -32,7 +32,8 @@ mock_config_t G_mock_config;
 
 #define MOCK_RESULT(fn) return G_mock_config.result_##fn ? OE_OK : OE_FAILURE
 
-uint8_t mock_format_id[] = {11, 22, 33};
+uint8_t format_id_ecdsa[] = OE_FORMAT_UUID_SGX_ECDSA;
+uint8_t mock_format_settings[] = {44, 55, 66, 77};
 uint8_t mock_evidence[] = MOCK_EVIDENCE;
 
 uint8_t der_encode_signature(uint8_t* dest,
@@ -62,6 +63,28 @@ oe_result_t oe_attester_select_format(const oe_uuid_t* format_ids,
     MOCK_RESULT(oe_attester_select_format);
 }
 
+oe_result_t oe_verifier_initialize(void) {
+    // TODO: implement when actually testing evidence module
+    return OE_OK;
+}
+
+oe_result_t oe_verifier_shutdown(void) {
+    // TODO: implement when actually testing evidence module
+    return OE_OK;
+}
+
+oe_result_t oe_verifier_get_format_settings(const oe_uuid_t* format_id,
+                                            uint8_t** settings,
+                                            size_t* settings_size) {
+    assert(!memcmp(format_id->b, format_id_ecdsa, sizeof(format_id_ecdsa)));
+    assert(settings_size != NULL);
+    *settings = malloc(sizeof(mock_format_settings));
+    memcpy(*settings, mock_format_settings, sizeof(mock_format_settings));
+    *settings_size = sizeof(mock_format_settings);
+
+    MOCK_RESULT(oe_verifier_get_format_settings);
+}
+
 oe_result_t oe_get_evidence(const oe_uuid_t* format_id,
                             uint32_t flags,
                             const void* custom_claims_buffer,
@@ -75,9 +98,11 @@ oe_result_t oe_get_evidence(const oe_uuid_t* format_id,
 
     // Test parameters
     assert(flags == 0);
-    assert(!memcmp(format_id, mock_format_id, sizeof(mock_format_id)));
-    assert(optional_parameters == NULL);
-    assert(optional_parameters_size == 0);
+    assert(!memcmp(format_id, format_id_ecdsa, sizeof(format_id_ecdsa)));
+    assert(!memcmp(optional_parameters,
+                   mock_format_settings,
+                   sizeof(mock_format_settings)));
+    assert(optional_parameters_size == sizeof(mock_format_settings));
     assert(endorsements_buffer == NULL);
     assert(endorsements_buffer_size == NULL);
 
@@ -102,6 +127,19 @@ oe_result_t oe_get_evidence(const oe_uuid_t* format_id,
     *evidence_buffer_size = sz;
 
     MOCK_RESULT(oe_get_evidence);
+}
+
+oe_result_t oe_verify_evidence(const oe_uuid_t* format_id,
+                               const uint8_t* evidence_buffer,
+                               size_t evidence_buffer_size,
+                               const uint8_t* endorsements_buffer,
+                               size_t endorsements_buffer_size,
+                               const oe_policy_t* policies,
+                               size_t policies_size,
+                               oe_claim_t** claims,
+                               size_t* claims_length) {
+    // TODO: implement proper mock when actually testing this
+    return OE_FAILURE;
 }
 
 oe_result_t oe_free_evidence(uint8_t* evidence_buffer) {

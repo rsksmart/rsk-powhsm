@@ -27,26 +27,18 @@
 #include "hal/exceptions.h"
 #include "hal/log.h"
 #include "der_utils.h"
+#include "evidence.h"
 
 #include <string.h>
 
-#include <openenclave/attestation/sgx/evidence.h>
-#include <openenclave/attestation/attester.h>
-#include <openenclave/attestation/verifier.h>
-#include <openenclave/bits/sgx/sgxtypes.h>
-#include <openenclave/bits/attestation.h>
-#include <openenclave/bits/defs.h>
-
-#define RAW_ENVELOPE_BUFFER_SIZE (10 * 1024)
+#define ENDORSEMENT_FORMAT EVIDENCE_FORMAT_SGX_ECDSA
 
 static struct {
     bool initialised;
-    // The format ID used for attestation.
-    // See openenclave/attestation/sgx/evidence.h for supported formats.
-    oe_uuid_t format_id;
+
     // Current envelope
     struct {
-        uint8_t raw[RAW_ENVELOPE_BUFFER_SIZE];
+        uint8_t* raw;
         size_t raw_size;
         sgx_quote_t* quote;
         sgx_quote_auth_data_t* quote_auth_data;
@@ -54,8 +46,6 @@ static struct {
         sgx_qe_cert_data_t qe_cert_data;
     } envelope;
 } G_endorsement_ctx;
-
-#define ENDORSEMENT_FORMAT OE_FORMAT_UUID_SGX_ECDSA
 
 #define ENDORSEMENT_CHECK(oe_result, error_msg)                          \
     {                                                                    \
@@ -74,45 +64,6 @@ OE_INLINE uint16_t ReadUint16(const uint8_t* p) {
 // Taken from OpenEnclave's common/sgx/quote.c
 OE_INLINE uint32_t ReadUint32(const uint8_t* p) {
     return (uint32_t)(p[0] | (p[1] << 8) | (p[2] << 16) | (p[3] << 24));
-}
-
-// Generates an envelop with the provided message as a custom claim.
-static bool generate_envelope(uint8_t* msg, size_t msg_size) {
-    if (!G_endorsement_ctx.initialised) {
-        LOG("Endorsement module has not been initialised\n");
-        return false;
-    }
-
-    oe_result_t result = OE_FAILURE;
-    uint8_t* evidence_buffer = NULL;
-    size_t evidence_buffer_size = 0;
-
-    result = oe_get_evidence(&G_endorsement_ctx.format_id,
-                             0,
-                             msg,
-                             msg_size,
-                             NULL,
-                             0,
-                             &evidence_buffer,
-                             &evidence_buffer_size,
-                             NULL,
-                             NULL);
-    ENDORSEMENT_CHECK(result, "Envelope generation failed");
-    if (evidence_buffer_size > sizeof(G_endorsement_ctx.envelope.raw)) {
-        LOG("Envelope generation failed: buffer needs %lu bytes but "
-            "only %ld available\n",
-            evidence_buffer_size,
-            sizeof(G_endorsement_ctx.envelope.raw));
-        oe_free_evidence(evidence_buffer);
-        return false;
-    }
-
-    memcpy(
-        G_endorsement_ctx.envelope.raw, evidence_buffer, evidence_buffer_size);
-    G_endorsement_ctx.envelope.raw_size = evidence_buffer_size;
-    oe_free_evidence(evidence_buffer);
-
-    return true;
 }
 
 // Based on OpenEnclave's common/sgx/quote.c::_parse_quote()
@@ -182,41 +133,57 @@ static bool parse_envelope(uint8_t* msg, size_t msg_size) {
 // ********** Public interface implemenetation ********** //
 // ****************************************************** //
 
-bool endorsement_init() {
-    oe_result_t result = OE_FAILURE;
+#define CHECK_INITIALISED_OR_RETURN(retval)   \
+    {                                         \
+        if (!G_endorsement_ctx.initialised) { \
+            return (retval);                  \
+        }                                     \
+    }
 
+bool endorsement_init() {
     explicit_bzero(&G_endorsement_ctx, sizeof(G_endorsement_ctx));
 
-    // Initialize modules
-    result = oe_attester_initialize();
-    ENDORSEMENT_CHECK(result, "Failed to initialize attester");
-
-    // Make sure the desired format is supported by selecting it
-    const oe_uuid_t format_id = {ENDORSEMENT_FORMAT};
-    result =
-        oe_attester_select_format(&format_id, 1, &G_endorsement_ctx.format_id);
-    ENDORSEMENT_CHECK(result, "Failed to select attestation format");
+    // Make sure the desired evidence format is supported
+    if (!evidence_supports_format(ENDORSEMENT_FORMAT)) {
+        LOG("Endorsement: evidence format not supported\n");
+        return false;
+    }
 
     G_endorsement_ctx.initialised = true;
-    LOG("Attestation module initialized\n");
+    LOG("Endorsement module initialized\n");
     return true;
 }
 
 void endorsement_finalise() {
-    oe_attester_shutdown();
+    if (G_endorsement_ctx.envelope.raw) {
+        evidence_free(G_endorsement_ctx.envelope.raw);
+    }
+    explicit_bzero(&G_endorsement_ctx, sizeof(G_endorsement_ctx));
 }
 
 bool endorsement_sign(uint8_t* msg,
                       size_t msg_size,
                       uint8_t* signature_out,
                       uint8_t* signature_out_length) {
+    CHECK_INITIALISED_OR_RETURN(false);
+
     if (*signature_out_length < MAX_SIGNATURE_LENGTH) {
         LOG("Output buffer for signature too small: %u bytes\n",
             *signature_out_length);
         goto endorsement_sign_fail;
     }
 
-    if (!generate_envelope(msg, msg_size)) {
+    if (G_endorsement_ctx.envelope.raw) {
+        evidence_free(G_endorsement_ctx.envelope.raw);
+        explicit_bzero(&G_endorsement_ctx.envelope,
+                       sizeof(G_endorsement_ctx.envelope));
+    }
+
+    if (!evidence_generate(ENDORSEMENT_FORMAT,
+                           msg,
+                           msg_size,
+                           &G_endorsement_ctx.envelope.raw,
+                           &G_endorsement_ctx.envelope.raw_size)) {
         LOG("Error generating envelope\n");
         goto endorsement_sign_fail;
     }
@@ -246,6 +213,8 @@ endorsement_sign_fail:
 }
 
 uint8_t* endorsement_get_envelope() {
+    CHECK_INITIALISED_OR_RETURN(0);
+
     if (G_endorsement_ctx.envelope.raw_size == 0) {
         return 0;
     }
@@ -253,11 +222,14 @@ uint8_t* endorsement_get_envelope() {
 }
 
 size_t endorsement_get_envelope_length() {
+    CHECK_INITIALISED_OR_RETURN(0);
+
     return G_endorsement_ctx.envelope.raw_size;
 }
 
 bool endorsement_get_code_hash(uint8_t* code_hash_out,
                                uint8_t* code_hash_out_length) {
+    CHECK_INITIALISED_OR_RETURN(false);
 
     if (G_endorsement_ctx.envelope.raw_size == 0) {
         LOG("No envelope available\n");
@@ -286,6 +258,8 @@ bool endorsement_get_code_hash(uint8_t* code_hash_out,
 
 bool endorsement_get_public_key(uint8_t* public_key_out,
                                 uint8_t* public_key_out_length) {
+    CHECK_INITIALISED_OR_RETURN(false);
+
     if (G_endorsement_ctx.envelope.raw_size == 0) {
         LOG("No envelope available\n");
         return false;

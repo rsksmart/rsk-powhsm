@@ -68,6 +68,7 @@ typedef struct mock_calls_counter {
     int oe_is_outside_enclave_count;
     int upgrade_init_count;
     int do_upgrade_count;
+    int evidence_init_count;
 } mock_calls_counter_t;
 
 typedef struct nvmem_register_block_args {
@@ -111,6 +112,7 @@ typedef struct mock_force_fail {
     bool nvmem_register_block;
     bool sest_init;
     bool oe_is_outside_enclave;
+    bool evidence_init;
 } mock_force_fail_t;
 
 typedef struct mock_data {
@@ -322,6 +324,15 @@ void upgrade_init() {
     NUM_CALLS(upgrade_init)++;
 }
 
+bool evidence_init() {
+    MOCK_CALL(evidence_init);
+    return true;
+}
+
+void evidence_finalise() {
+    // Nothing to do here
+}
+
 unsigned int do_upgrade(volatile unsigned int rx) {
     NUM_CALLS(do_upgrade)++;
     SET_APDU_OP(APDU_OP() * 3);
@@ -384,6 +395,7 @@ void test_init_success() {
     assert(NUM_CALLS(seed_init) == 1);
     assert(NUM_CALLS(access_is_wiped) == 1);
     assert(NUM_CALLS(communication_init) == 1);
+    assert(NUM_CALLS(evidence_init) == 1);
     assert(NUM_CALLS(endorsement_init) == 1);
     assert(NUM_CALLS(nvmem_init) == 1);
     assert(NUM_CALLS(nvmem_register_block) == 2);
@@ -415,6 +427,7 @@ void test_init_fails_invalid_buf_size() {
     ASSERT_NOT_CALLED(access_init);
     ASSERT_NOT_CALLED(seed_init);
     ASSERT_NOT_CALLED(communication_init);
+    ASSERT_NOT_CALLED(evidence_init);
     ASSERT_NOT_CALLED(endorsement_init);
     ASSERT_NOT_CALLED(nvmem_init);
     ASSERT_NOT_CALLED(upgrade_init);
@@ -432,6 +445,7 @@ void test_init_fails_invalid_buf_memarea() {
     ASSERT_NOT_CALLED(access_init);
     ASSERT_NOT_CALLED(seed_init);
     ASSERT_NOT_CALLED(communication_init);
+    ASSERT_NOT_CALLED(evidence_init);
     ASSERT_NOT_CALLED(endorsement_init);
     ASSERT_NOT_CALLED(nvmem_init);
     ASSERT_NOT_CALLED(upgrade_init);
@@ -449,6 +463,7 @@ void test_init_fails_when_sest_init_fails() {
     ASSERT_NOT_CALLED(access_init);
     ASSERT_NOT_CALLED(seed_init);
     ASSERT_NOT_CALLED(communication_init);
+    ASSERT_NOT_CALLED(evidence_init);
     ASSERT_NOT_CALLED(endorsement_init);
     ASSERT_NOT_CALLED(nvmem_init);
     ASSERT_NOT_CALLED(upgrade_init);
@@ -466,6 +481,7 @@ void test_init_fails_when_access_init_fails() {
     assert(NUM_CALLS(access_init) == 1);
     ASSERT_NOT_CALLED(seed_init);
     ASSERT_NOT_CALLED(communication_init);
+    ASSERT_NOT_CALLED(evidence_init);
     ASSERT_NOT_CALLED(endorsement_init);
     ASSERT_NOT_CALLED(nvmem_init);
     ASSERT_NOT_CALLED(upgrade_init);
@@ -483,6 +499,7 @@ void test_init_fails_when_seed_init_fails() {
     assert(NUM_CALLS(access_init) == 1);
     assert(NUM_CALLS(seed_init) == 1);
     ASSERT_NOT_CALLED(communication_init);
+    ASSERT_NOT_CALLED(evidence_init);
     ASSERT_NOT_CALLED(endorsement_init);
     ASSERT_NOT_CALLED(nvmem_init);
     ASSERT_NOT_CALLED(upgrade_init);
@@ -500,6 +517,25 @@ void test_init_fails_when_communication_init_fails() {
     assert(NUM_CALLS(access_init) == 1);
     assert(NUM_CALLS(seed_init) == 1);
     assert(NUM_CALLS(communication_init) == 1);
+    ASSERT_NOT_CALLED(evidence_init);
+    ASSERT_NOT_CALLED(endorsement_init);
+    ASSERT_NOT_CALLED(nvmem_init);
+    ASSERT_NOT_CALLED(upgrade_init);
+    teardown();
+}
+
+void test_init_fails_when_evidence_init_fails() {
+    setup();
+    printf("Test system_init fails when communication_init fails...\n");
+
+    FORCE_FAIL(evidence_init, true);
+    assert(!system_init(G_io_apdu_buffer, sizeof(G_io_apdu_buffer)));
+    assert(NUM_CALLS(oe_is_outside_enclave) == 1);
+    assert(NUM_CALLS(sest_init) == 1);
+    assert(NUM_CALLS(access_init) == 1);
+    assert(NUM_CALLS(seed_init) == 1);
+    assert(NUM_CALLS(communication_init) == 1);
+    assert(NUM_CALLS(evidence_init) == 1);
     ASSERT_NOT_CALLED(endorsement_init);
     ASSERT_NOT_CALLED(nvmem_init);
     ASSERT_NOT_CALLED(upgrade_init);
@@ -517,6 +553,7 @@ void test_init_fails_when_endorsement_init_fails() {
     assert(NUM_CALLS(access_init) == 1);
     assert(NUM_CALLS(seed_init) == 1);
     assert(NUM_CALLS(communication_init) == 1);
+    assert(NUM_CALLS(evidence_init) == 1);
     assert(NUM_CALLS(endorsement_init) == 1);
     ASSERT_NOT_CALLED(nvmem_init);
     ASSERT_NOT_CALLED(upgrade_init);
@@ -534,6 +571,7 @@ void test_init_fails_when_nvmem_register_block_fails() {
     assert(NUM_CALLS(access_init) == 1);
     assert(NUM_CALLS(seed_init) == 1);
     assert(NUM_CALLS(communication_init) == 1);
+    assert(NUM_CALLS(evidence_init) == 1);
     assert(NUM_CALLS(endorsement_init) == 1);
     assert(NUM_CALLS(nvmem_init) == 1);
     assert(NUM_CALLS(nvmem_register_block) == 1);
@@ -551,6 +589,7 @@ void test_init_fails_when_nvmem_register_block_fails() {
     assert(NUM_CALLS(access_init) == 2);
     assert(NUM_CALLS(seed_init) == 2);
     assert(NUM_CALLS(communication_init) == 2);
+    assert(NUM_CALLS(evidence_init) == 2);
     assert(NUM_CALLS(endorsement_init) == 2);
     assert(NUM_CALLS(nvmem_init) == 2);
     assert(NUM_CALLS(nvmem_register_block) == 3);
@@ -580,6 +619,7 @@ void test_init_fails_when_nvmem_load_fails() {
     assert(NUM_CALLS(access_init) == 1);
     assert(NUM_CALLS(seed_init) == 1);
     assert(NUM_CALLS(communication_init) == 1);
+    assert(NUM_CALLS(evidence_init) == 1);
     assert(NUM_CALLS(endorsement_init) == 1);
     assert(NUM_CALLS(nvmem_init) == 1);
     assert(NUM_CALLS(nvmem_load) == 1);
@@ -1068,6 +1108,7 @@ int main() {
     test_init_fails_when_access_init_fails();
     test_init_fails_when_seed_init_fails();
     test_init_fails_when_communication_init_fails();
+    test_init_fails_when_evidence_init_fails();
     test_init_fails_when_endorsement_init_fails();
     test_init_fails_when_nvmem_register_block_fails();
     test_init_fails_when_nvmem_load_fails();
