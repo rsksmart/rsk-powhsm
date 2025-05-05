@@ -179,7 +179,12 @@ bool endorsement_sign(uint8_t* msg,
                        sizeof(G_endorsement_ctx.envelope));
     }
 
-    if (!evidence_generate(ENDORSEMENT_FORMAT,
+    evidence_format_t format = {
+        .id = ENDORSEMENT_FORMAT,
+        .settings = NULL,
+        .settings_size = 0,
+    };
+    if (!evidence_generate(&format,
                            msg,
                            msg_size,
                            &G_endorsement_ctx.envelope.raw,

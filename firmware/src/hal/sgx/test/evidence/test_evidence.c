@@ -40,6 +40,7 @@ struct {
     oe_result_t oe_attester_select_format;
     oe_result_t oe_verifier_get_format_settings;
     oe_result_t oe_get_evidence;
+    bool oe_get_evidence_custom_settings;
     oe_result_t oe_verify_evidence;
 } G_mocks;
 
@@ -49,6 +50,7 @@ struct {
     bool oe_attester_shutdown;
     bool oe_verifier_shutdown;
     bool oe_free_evidence;
+    bool oe_verifier_get_format_settings;
 } G_called;
 
 oe_result_t oe_attester_initialize(void) {
@@ -78,6 +80,9 @@ oe_result_t oe_verifier_shutdown(void) {
         0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, \
             0xBB, 0xCC, 0xDD, 0xEE, 0xFF                                  \
     }
+#define CUSTOM_FORMAT_SETTINGS \
+    { 0x01, 0x02, 0x03, 0x04, 0x05 }
+
 #define TEST_EVIDENCE_HEADER "<evidence-header>"
 #define TEST_EVIDENCE_HEADER_SIZE strlen(TEST_EVIDENCE_HEADER)
 
@@ -99,6 +104,7 @@ oe_result_t oe_attester_select_format(const oe_uuid_t* format_ids,
 oe_result_t oe_verifier_get_format_settings(const oe_uuid_t* format_id,
                                             uint8_t** settings,
                                             size_t* settings_size) {
+    G_called.oe_verifier_get_format_settings = true;
     const uint8_t expected_format_id[] = TEST_FORMAT_ID;
     const uint8_t mock_format_settings[] = TEST_FORMAT_SETTINGS;
 
@@ -127,16 +133,24 @@ oe_result_t oe_get_evidence(const oe_uuid_t* format_id,
 
     const uint8_t expected_format_id[] = TEST_FORMAT_ID;
     const uint8_t mock_format_settings[] = TEST_FORMAT_SETTINGS;
+    const uint8_t custom_format_settings[] = CUSTOM_FORMAT_SETTINGS;
 
     assert(flags == 0);
     assert(
         !memcmp(format_id->b, expected_format_id, sizeof(expected_format_id)));
     assert(custom_claims_buffer);
     assert(custom_claims_buffer_size > 0);
-    assert(!memcmp(optional_parameters,
-                   mock_format_settings,
-                   sizeof(mock_format_settings)));
-    assert(optional_parameters_size == sizeof(mock_format_settings));
+    if (G_mocks.oe_get_evidence_custom_settings) {
+        assert(!memcmp(optional_parameters,
+                       custom_format_settings,
+                       sizeof(custom_format_settings)));
+        assert(optional_parameters_size == sizeof(custom_format_settings));
+    } else {
+        assert(!memcmp(optional_parameters,
+                       mock_format_settings,
+                       sizeof(mock_format_settings)));
+        assert(optional_parameters_size == sizeof(mock_format_settings));
+    }
     assert(evidence_buffer != NULL);
     assert(evidence_buffer_size != NULL);
     assert(endorsements_buffer == NULL);
@@ -292,24 +306,130 @@ void test_evidence_supports_format_err_getsettingsfails() {
     assert(!evidence_supports_format(format_id));
 }
 
+void test_evidence_get_format_settings_ok() {
+    printf("Testing evidence_get_format_settings succeeds...\n");
+    setup();
+
+    const uint8_t mock_format_settings[] = TEST_FORMAT_SETTINGS;
+
+    evidence_init();
+    G_mocks.oe_verifier_get_format_settings = OE_OK;
+
+    evidence_format_t format = {
+        .id = {.b = TEST_FORMAT_ID},
+        .settings = NULL,
+        .settings_size = 0,
+    };
+    assert(evidence_get_format_settings(&format));
+
+    assert(format.settings);
+    assert(sizeof(mock_format_settings) == format.settings_size);
+    assert(
+        !memcmp(mock_format_settings, format.settings, format.settings_size));
+}
+
+void test_evidence_get_format_settings_err_notinit() {
+    printf("Testing evidence_get_format_settings fails when module not "
+           "initialised...\n");
+    setup();
+
+    G_mocks.oe_verifier_get_format_settings = OE_OK;
+
+    evidence_format_t format = {
+        .id = {.b = TEST_FORMAT_ID},
+        .settings = NULL,
+        .settings_size = 0,
+    };
+    assert(!evidence_get_format_settings(&format));
+}
+
+void test_evidence_get_format_settings_invalid_args() {
+    printf("Testing evidence_get_format_settings fails when invalid args are "
+           "given...\n");
+    setup();
+
+    evidence_init();
+    G_mocks.oe_verifier_get_format_settings = OE_OK;
+
+    evidence_format_t format = {
+        .id = {.b = TEST_FORMAT_ID},
+        .settings = (uint8_t*)1234,
+        .settings_size = 0,
+    };
+    assert(!evidence_get_format_settings(&format));
+
+    format.settings = NULL;
+    format.settings_size = 12;
+    assert(!evidence_get_format_settings(&format));
+}
+
+void test_evidence_get_format_settings_get_fails() {
+    printf("Testing evidence_get_format_settings fails when getting settings "
+           "fails...\n");
+    setup();
+
+    evidence_init();
+    G_mocks.oe_verifier_get_format_settings = OE_FAILURE;
+
+    evidence_format_t format = {
+        .id = {.b = TEST_FORMAT_ID},
+        .settings = NULL,
+        .settings_size = 0,
+    };
+    assert(!evidence_get_format_settings(&format));
+}
+
 void test_evidence_generate_ok() {
     printf("Testing evidence_generate succeeds...\n");
     setup();
 
     evidence_init();
-    G_mocks.oe_attester_select_format = OE_OK;
     G_mocks.oe_verifier_get_format_settings = OE_OK;
     G_mocks.oe_get_evidence = OE_OK;
 
     uint8_t* eb = NULL;
     size_t ebs = 0;
 
-    oe_uuid_t format_id = {.b = TEST_FORMAT_ID};
+    evidence_format_t format = {
+        .id = {.b = TEST_FORMAT_ID},
+        .settings = NULL,
+        .settings_size = 0,
+    };
     assert(evidence_generate(
-        format_id, (uint8_t*)"some custom claims", 18, &eb, &ebs));
+        &format, (uint8_t*)"some custom claims", 18, &eb, &ebs));
 
     assert(ebs == TEST_EVIDENCE_HEADER_SIZE + 18);
     assert(!memcmp(eb, TEST_EVIDENCE_HEADER "some custom claims", ebs));
+    assert(G_called.oe_verifier_get_format_settings);
+    free(eb);
+}
+
+void test_evidence_generate_ok_with_custom_settings() {
+    printf(
+        "Testing evidence_generate succeeds with custom format settings...\n");
+    setup();
+
+    evidence_init();
+    G_mocks.oe_verifier_get_format_settings = OE_OK;
+    G_mocks.oe_get_evidence = OE_OK;
+    G_mocks.oe_get_evidence_custom_settings = true;
+
+    uint8_t* eb = NULL;
+    size_t ebs = 0;
+
+    uint8_t custom_format_settings[] = CUSTOM_FORMAT_SETTINGS;
+
+    evidence_format_t format = {
+        .id = {.b = TEST_FORMAT_ID},
+        .settings = custom_format_settings,
+        .settings_size = sizeof(custom_format_settings),
+    };
+    assert(evidence_generate(
+        &format, (uint8_t*)"some custom claims", 18, &eb, &ebs));
+
+    assert(ebs == TEST_EVIDENCE_HEADER_SIZE + 18);
+    assert(!memcmp(eb, TEST_EVIDENCE_HEADER "some custom claims", ebs));
+    assert(!G_called.oe_verifier_get_format_settings);
     free(eb);
 }
 
@@ -317,17 +437,21 @@ void test_evidence_generate_err_notinit() {
     printf("Testing evidence_generate fails when module not initialised...\n");
     setup();
 
-    G_mocks.oe_attester_select_format = OE_OK;
     G_mocks.oe_verifier_get_format_settings = OE_OK;
     G_mocks.oe_get_evidence = OE_OK;
 
     uint8_t* eb = NULL;
     size_t ebs = 0;
 
-    oe_uuid_t format_id = {.b = TEST_FORMAT_ID};
+    evidence_format_t format = {
+        .id = {.b = TEST_FORMAT_ID},
+        .settings = NULL,
+        .settings_size = 0,
+    };
     assert(!evidence_generate(
-        format_id, (uint8_t*)"some custom claims", 18, &eb, &ebs));
+        &format, (uint8_t*)"some custom claims", 18, &eb, &ebs));
     assert(!eb && !ebs);
+    assert(!G_called.oe_verifier_get_format_settings);
 }
 
 void test_evidence_generate_err_arguments() {
@@ -336,38 +460,30 @@ void test_evidence_generate_err_arguments() {
     setup();
 
     evidence_init();
-    G_mocks.oe_attester_select_format = OE_OK;
     G_mocks.oe_verifier_get_format_settings = OE_OK;
     G_mocks.oe_get_evidence = OE_OK;
 
     uint8_t* eb = NULL;
     size_t ebs = 0;
 
-    oe_uuid_t format_id = {.b = TEST_FORMAT_ID};
+    evidence_format_t format = {
+        .id = {.b = TEST_FORMAT_ID},
+        .settings = NULL,
+        .settings_size = 0,
+    };
     assert(!evidence_generate(
-        format_id, (uint8_t*)"some custom claims", 18, NULL, &ebs));
+        NULL, (uint8_t*)"some custom claims", 18, &eb, &ebs));
     assert(!eb && ebs == 0);
+
     assert(!evidence_generate(
-        format_id, (uint8_t*)"some custom claims", 18, &eb, NULL));
+        &format, (uint8_t*)"some custom claims", 18, NULL, &ebs));
     assert(!eb && ebs == 0);
-}
 
-void test_evidence_generate_err_selectfails() {
-    printf("Testing evidence_generate fails when attester select fails...\n");
-    setup();
-
-    evidence_init();
-    G_mocks.oe_attester_select_format = OE_FAILURE;
-    G_mocks.oe_verifier_get_format_settings = OE_OK;
-    G_mocks.oe_get_evidence = OE_OK;
-
-    uint8_t* eb = NULL;
-    size_t ebs = 0;
-
-    oe_uuid_t format_id = {.b = TEST_FORMAT_ID};
     assert(!evidence_generate(
-        format_id, (uint8_t*)"some custom claims", 18, &eb, &ebs));
-    assert(!eb && !ebs);
+        &format, (uint8_t*)"some custom claims", 18, &eb, NULL));
+    assert(!eb && ebs == 0);
+
+    assert(!G_called.oe_verifier_get_format_settings);
 }
 
 void test_evidence_generate_err_getsettingsfails() {
@@ -376,17 +492,21 @@ void test_evidence_generate_err_getsettingsfails() {
     setup();
 
     evidence_init();
-    G_mocks.oe_attester_select_format = OE_OK;
     G_mocks.oe_verifier_get_format_settings = OE_FAILURE;
     G_mocks.oe_get_evidence = OE_OK;
 
     uint8_t* eb = NULL;
     size_t ebs = 0;
 
-    oe_uuid_t format_id = {.b = TEST_FORMAT_ID};
+    evidence_format_t format = {
+        .id = {.b = TEST_FORMAT_ID},
+        .settings = NULL,
+        .settings_size = 0,
+    };
     assert(!evidence_generate(
-        format_id, (uint8_t*)"some custom claims", 18, &eb, &ebs));
+        &format, (uint8_t*)"some custom claims", 18, &eb, &ebs));
     assert(!eb && !ebs);
+    assert(G_called.oe_verifier_get_format_settings);
 }
 
 void test_evidence_generate_err_getevidencefails() {
@@ -394,17 +514,21 @@ void test_evidence_generate_err_getevidencefails() {
     setup();
 
     evidence_init();
-    G_mocks.oe_attester_select_format = OE_OK;
     G_mocks.oe_verifier_get_format_settings = OE_OK;
     G_mocks.oe_get_evidence = OE_FAILURE;
 
     uint8_t* eb = NULL;
     size_t ebs = 0;
 
-    oe_uuid_t format_id = {.b = TEST_FORMAT_ID};
+    evidence_format_t format = {
+        .id = {.b = TEST_FORMAT_ID},
+        .settings = NULL,
+        .settings_size = 0,
+    };
     assert(!evidence_generate(
-        format_id, (uint8_t*)"some custom claims", 18, &eb, &ebs));
+        &format, (uint8_t*)"some custom claims", 18, &eb, &ebs));
     assert(!eb && !ebs);
+    assert(G_called.oe_verifier_get_format_settings);
 }
 
 void test_evidence_verify_and_extract_claims_ok() {
@@ -531,10 +655,15 @@ int main() {
     test_evidence_supports_format_err_selectfails();
     test_evidence_supports_format_err_getsettingsfails();
 
+    test_evidence_get_format_settings_ok();
+    test_evidence_get_format_settings_err_notinit();
+    test_evidence_get_format_settings_invalid_args();
+    test_evidence_get_format_settings_get_fails();
+
     test_evidence_generate_ok();
+    test_evidence_generate_ok_with_custom_settings();
     test_evidence_generate_err_notinit();
     test_evidence_generate_err_arguments();
-    test_evidence_generate_err_selectfails();
     test_evidence_generate_err_getsettingsfails();
     test_evidence_generate_err_getevidencefails();
 

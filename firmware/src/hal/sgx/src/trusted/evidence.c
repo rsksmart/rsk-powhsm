@@ -32,24 +32,15 @@
 
 static struct { bool initialised; } G_evidence_ctx;
 
-typedef struct {
-    // The format ID.
-    // See openenclave/attestation/sgx/evidence.h for supported formats.
-    oe_uuid_t id;
-    // The format settings buffer for the corresponding format id.
-    // This is returned by oe_verifier_get_format_settings.
-    uint8_t* settings;
-    // The size of the format settings buffer.
-    size_t settings_size;
-} evidence_format_t;
-
-#define EVIDENCE_CHECK(oe_result, error_msg, statement)                  \
-    {                                                                    \
-        if (OE_OK != oe_result) {                                        \
-            LOG(error_msg);                                              \
-            LOG(": result=%u (%s)\n", result, oe_result_str(oe_result)); \
-            { statement; }                                               \
-        }                                                                \
+#define EVIDENCE_CHECK(oe_result, error_msg, statement) \
+    {                                                   \
+        if (OE_OK != oe_result) {                       \
+            LOG("%s: result=%u (%s)\n",                 \
+                error_msg,                              \
+                result,                                 \
+                oe_result_str(oe_result));              \
+            { statement; }                              \
+        }                                               \
     }
 
 // ****************************************************** //
@@ -78,48 +69,63 @@ void evidence_finalise() {
     explicit_bzero(&G_evidence_ctx, sizeof(G_evidence_ctx));
 }
 
-bool evidence_supports_format(oe_uuid_t format_id) {
+bool evidence_get_format_settings(evidence_format_t* format) {
+    oe_result_t result;
+
     if (!G_evidence_ctx.initialised) {
         LOG("Evidence module not initialised\n");
         return false;
     }
 
-    oe_result_t result;
+    if (!format || format->settings || format->settings_size) {
+        LOG("Invalid format getter spec given\n");
+        return false;
+    }
+
+    result = oe_verifier_get_format_settings(
+        &format->id, &format->settings, &format->settings_size);
+    EVIDENCE_CHECK(result, "Failed to gather format settings", return false);
+
+    return true;
+}
+
+bool evidence_supports_format(oe_uuid_t format_id) {
     evidence_format_t format = {
         .id = format_id,
         .settings = NULL,
         .settings_size = 0,
     };
     oe_uuid_t selected_format;
+    oe_result_t result;
 
+    // Make sure we can get format settings
+    if (!evidence_get_format_settings(&format))
+        return false;
+    oe_free(format.settings);
+
+    // Make sure we can select format for attestation
     result = oe_attester_select_format(&format.id, 1, &selected_format);
     EVIDENCE_CHECK(result, "Failed to select attestation format", return false);
-
-    result = oe_verifier_get_format_settings(
-        &format.id, &format.settings, &format.settings_size);
-    EVIDENCE_CHECK(result, "Failed to gather format settings", return false);
-    oe_free(format.settings);
 
     return true;
 }
 
 // Generates evidence with the given format id and custom claims.
-bool evidence_generate(oe_uuid_t format_id,
+bool evidence_generate(evidence_format_t* format,
                        uint8_t* ccs,
                        size_t ccs_size,
                        uint8_t** evidence_buffer,
                        size_t* evidence_buffer_size) {
     oe_result_t result;
-
-    evidence_format_t format = {
-        .id = format_id,
-        .settings = NULL,
-        .settings_size = 0,
-    };
-    oe_uuid_t selected_format;
+    bool gathered_settings;
 
     if (!G_evidence_ctx.initialised) {
         LOG("Evidence module not initialised\n");
+        goto generate_evidence_error;
+    }
+
+    if (!format) {
+        LOG("Invalid evidence format\n");
         goto generate_evidence_error;
     }
 
@@ -128,28 +134,24 @@ bool evidence_generate(oe_uuid_t format_id,
         goto generate_evidence_error;
     }
 
-    // Make sure the desired format is supported and
-    // gather the corresponding settings
+    // Gather the corresponding format settings if needed
+    // Otherwise make sure the format is supported
+    gathered_settings = false;
+    if (!format->settings) {
+        if (!evidence_get_format_settings(format)) {
+            LOG("Error gathering format settings\n");
+            goto generate_evidence_error;
+        }
+        gathered_settings = true;
+        LOG("Gathered settings\n");
+    }
 
-    result = oe_attester_select_format(&format.id, 1, &selected_format);
-    EVIDENCE_CHECK(result,
-                   "Failed to select attestation format",
-                   goto generate_evidence_error);
-
-    result = oe_verifier_get_format_settings(
-        &format.id, &format.settings, &format.settings_size);
-    EVIDENCE_CHECK(result,
-                   "Failed to gather format settings",
-                   goto generate_evidence_error);
-
-    *evidence_buffer = NULL;
-    *evidence_buffer_size = 0;
-    result = oe_get_evidence(&format.id,
+    result = oe_get_evidence(&format->id,
                              0,
                              ccs,
                              ccs_size,
-                             format.settings,
-                             format.settings_size,
+                             format->settings,
+                             format->settings_size,
                              evidence_buffer,
                              evidence_buffer_size,
                              NULL,
@@ -157,7 +159,11 @@ bool evidence_generate(oe_uuid_t format_id,
     EVIDENCE_CHECK(
         result, "Evidence generation failed", goto generate_evidence_error);
 
-    oe_free(format.settings);
+    if (gathered_settings) {
+        oe_free(format->settings);
+        format->settings = NULL;
+        format->settings_size = 0;
+    }
 
     LOG("Evidence generated successfully\n");
 
@@ -169,8 +175,11 @@ generate_evidence_error:
         *evidence_buffer = NULL;
         *evidence_buffer_size = 0;
     }
-    if (format.settings)
-        oe_free(format.settings);
+    if (gathered_settings && format->settings) {
+        oe_free(format->settings);
+        format->settings = NULL;
+        format->settings_size = 0;
+    }
     return false;
 }
 

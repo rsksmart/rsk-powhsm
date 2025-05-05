@@ -74,7 +74,7 @@ bool evidence_supports_format(oe_uuid_t format_id) {
     return G_mocks.evidence_supports_format;
 }
 
-bool evidence_generate(oe_uuid_t format_id,
+bool evidence_generate(evidence_format_t* format,
                        uint8_t* ccs,
                        size_t ccs_size,
                        uint8_t** evidence_buffer,
@@ -82,7 +82,8 @@ bool evidence_generate(oe_uuid_t format_id,
     G_called.evidence_generate = true;
 
     const oe_uuid_t expected_format_id = EVIDENCE_FORMAT_SGX_ECDSA;
-    assert(!memcmp(&expected_format_id, &format_id, sizeof(format_id)));
+    assert(!memcmp(&expected_format_id, &format->id, sizeof(format->id)));
+    assert(!format->settings && !format->settings_size);
     assert(ccs && ccs_size);
     assert(evidence_buffer && evidence_buffer_size);
     assert(!*evidence_buffer);
