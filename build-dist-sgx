@@ -63,6 +63,13 @@ echo
 echo "$HSM_DIR/hsmsgx_enclave.signed"
 echo "$ENCLAVE_HASH"
 
+MIGRATION_AUTH_FILE="migration_auth.json"
+EXPORTER_HASH="0000000000000000000000000000000000000000000000000000000000000000"
+IMPORTER_HASH=$(echo $ENCLAVE_HASH | grep -oP 'mrenclave: \K[0-9a-f]+')
+echo -e "\e[33mCreating empty migration authorization for upgrades...\e[0m"
+$ROOT_DIR/docker/mware/do-notty-nousb /hsm2 "python middleware/signmigration.py message -e $EXPORTER_HASH -i $IMPORTER_HASH -o $MIGRATION_AUTH_FILE" > /dev/null
+mv -f $ROOT_DIR/$MIGRATION_AUTH_FILE $HSM_DIR/$MIGRATION_AUTH_FILE
+
 echo
 echo -e "\e[32mBuild complete.\e[0m"
 
