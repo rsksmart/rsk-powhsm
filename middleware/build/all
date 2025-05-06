@@ -12,4 +12,5 @@ QUIET=1 $BUILDDIR/adm_ledger && \
 QUIET=1 $BUILDDIR/adm_sgx && \
 QUIET=1 $BUILDDIR/lbutils && \
 QUIET=1 $BUILDDIR/signapp && \
+QUIET=1 $BUILDDIR/signmigration && \
 echo "" && sha256sum $BINDIR/*.tgz

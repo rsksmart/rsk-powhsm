@@ -44,6 +44,7 @@ echo -e "\e[33mBuilding middleware...\e[0m"
 $ROOT_DIR/middleware/build/dist_sgx
 cp $ROOT_DIR/middleware/bin/adm_sgx.tgz $BIN_DIR
 cp $ROOT_DIR/middleware/bin/manager_sgx.tgz $BIN_DIR
+cp $ROOT_DIR/middleware/bin/signmigration.tgz $BIN_DIR
 echo
 
 echo -e "\e[33mBuilding SGX apps...\e[0m"
