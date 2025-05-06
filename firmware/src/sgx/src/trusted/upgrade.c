@@ -27,7 +27,6 @@
 #include <string.h>
 #include <secp256k1.h>
 #include <openenclave/corelibc/stdlib.h>
-#include <openenclave/attestation/custom_claims.h>
 
 #include "hal/exceptions.h"
 #include "hal/log.h"
@@ -42,12 +41,16 @@
 #include "ints.h"
 #include "compiletime.h"
 #include "evidence.h"
+#include "util.h"
 
 // Authorizers' public keys length (uncompressed format)
 #define AUTHORIZED_SIGNER_PUBKEY_LENGTH 65
 
 // Maximum number of authorizers (increase this if using a greater number)
 #define MAX_AUTHORIZERS 10
+
+// Maximum size for a peer data packet
+#define MAX_RECV_DATA_SIZE (8 * 1024) // 8Kbytes
 
 // Authorized signers
 #include "upgrade_signers.h"
@@ -74,8 +77,9 @@ static const uint8_t authorizers_pubkeys[][AUTHORIZED_SIGNER_PUBKEY_LENGTH] =
 typedef enum {
     OP_UPGRADE_START = 0x01,
     OP_UPGRADE_SPEC_SIG = 0x02,
-    OP_UPGRADE_IDENTIFY_PEER = 0x03,
-    OP_UPGRADE_PROCESS_DATA = 0x04,
+    OP_UPGRADE_IDENTIFY_SELF = 0x03,
+    OP_UPGRADE_IDENTIFY_PEER = 0x04,
+    OP_UPGRADE_PROCESS_DATA = 0x05,
 } op_code_upgrade_t;
 
 // Error codes
@@ -106,31 +110,54 @@ typedef enum {
 
 // SGX upgrade SM states
 typedef enum {
-    upgrade_state_await_spec = 0,
-    upgrade_state_await_spec_sigs = 1,
-    upgrade_state_await_peer_id = 2,
-    upgrade_state_ready_for_xchg = 3,
+    upgrade_state_await_spec,
+    upgrade_state_await_spec_sigs,
+    upgrade_state_send_self_id,
+    upgrade_state_await_peer_id,
+    upgrade_state_ready_for_xchg,
 } upgrade_state_t;
 
 // SGX upgrade context
 typedef struct {
-    upgrade_operation_t operation;
     upgrade_state_t state;
+
     upgrade_spec_t spec;
+    upgrade_operation_t operation;
     uint8_t* my_mrenclave;
     uint8_t* their_mrenclave;
 
     uint8_t expected_message_hash[HASH_LENGTH];
     bool authorized_signer_verified[MAX_AUTHORIZERS];
+
+    uint8_t* evidence;
+    size_t evidence_size;
+    bool evidence_external;
+
+    size_t trx_offset;
 } upgrade_ctx_t;
 
 // SGX upgrade ctx
 static upgrade_ctx_t upgrade_ctx;
 
 /*
+ * Free current evidence buffer, if any
+ */
+static void free_evidence() {
+    if (upgrade_ctx.evidence) {
+        if (!upgrade_ctx.evidence_external)
+            evidence_free(upgrade_ctx.evidence);
+        else
+            oe_free(upgrade_ctx.evidence);
+    }
+    upgrade_ctx.evidence = NULL;
+    upgrade_ctx.evidence_size = 0;
+}
+
+/*
  * Reset the upgrade context
  */
 static void reset_upgrade() {
+    free_evidence();
     explicit_bzero(&upgrade_ctx, sizeof(upgrade_ctx));
 }
 
@@ -218,6 +245,51 @@ generate_message_to_verify_error:
     return false;
 }
 
+static uint8_t send_data(uint8_t* src,
+                         size_t src_size,
+                         size_t* src_offset,
+                         bool* more) {
+    size_t tx = MIN(APDU_TOTAL_DATA_SIZE_OUT, src_size - *src_offset);
+    memcpy(APDU_DATA_PTR, src + *src_offset, tx);
+    *src_offset += tx;
+    *more = *src_offset < src_size;
+    LOG("Sending %lu bytes of data\n", tx);
+    return (uint8_t)tx;
+}
+
+static bool receive_data(volatile unsigned int rx,
+                         uint8_t** dest,
+                         size_t* dest_size,
+                         size_t* dest_offset) {
+    size_t pl = !*dest ? 2 : 0; // Two bytes for payload length
+    if (APDU_DATA_SIZE(rx) <= pl) {
+        reset_upgrade();
+        THROW(ERR_UPGRADE_PROTOCOL);
+    }
+    if (!*dest) {
+        VAR_BIGENDIAN_FROM(APDU_DATA_PTR, *dest_size, pl);
+        // We allow a maximum data size due to the nature of data
+        // we need to process
+        if (*dest_size > MAX_RECV_DATA_SIZE) {
+            LOG("Data bigger than allowed max\n");
+            reset_upgrade();
+            THROW(ERR_UPGRADE_PROTOCOL);
+        }
+        *dest = oe_malloc(*dest_size);
+        *dest_offset = 0;
+        LOG("Expecting %lu bytes of data\n", *dest_size);
+    }
+    if (APDU_DATA_SIZE(rx) - pl > *dest_size - *dest_offset) {
+        LOG("Data buffer overflow\n");
+        reset_upgrade();
+        THROW(ERR_UPGRADE_PROTOCOL);
+    }
+    memcpy(*dest + *dest_offset, APDU_DATA_PTR + pl, APDU_DATA_SIZE(rx) - pl);
+    *dest_offset += APDU_DATA_SIZE(rx) - pl;
+    LOG("Received %lu bytes of data\n", APDU_DATA_SIZE(rx) - pl);
+    return *dest_offset < *dest_size; // More?
+}
+
 // -----------------------------------------------------------------------
 // Protocol implementation
 // -----------------------------------------------------------------------
@@ -230,9 +302,6 @@ void upgrade_init() {
     LOG("Upgrade module initialized\n");
 }
 
-#define DUMMY_PEER_ID "peer-id:"
-#define DUMMY_PEER_ID_LEN (sizeof(DUMMY_PEER_ID) - 1)
-
 #define DUMMY_KEY                                                             \
     {                                                                         \
         0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x22,     \
@@ -243,16 +312,18 @@ void upgrade_init() {
 unsigned int do_upgrade(volatile unsigned int rx) {
     uint8_t key[] = DUMMY_KEY;
     size_t sz = 0;
+    uint8_t tx;
+    bool baux;
     int signature_valid;
     long unsigned valid_count;
     secp256k1_context* secp_ctx;
     secp256k1_ecdsa_signature signature;
     secp256k1_pubkey pubkey;
-    uint8_t* evidence = NULL;
-    size_t evidence_size;
     oe_claim_t* claims = NULL;
     size_t claims_size;
     oe_claim_t* claim;
+    evidence_format_t format;
+    uint16_t error;
 
     switch (APDU_OP()) {
     case OP_UPGRADE_START:
@@ -300,22 +371,32 @@ unsigned int do_upgrade(volatile unsigned int rx) {
                                                               : "importer");
         // Check this enclave's mrenclave matches the corresponding
         // value in the spec according to the specified role
-        if (!evidence_generate(
-                EVIDENCE_FORMAT, NULL, 0, &evidence, &evidence_size)) {
-            LOG("Unable to generate enclave evidence\n");
+        explicit_bzero(&format, sizeof(format));
+        format.id = EVIDENCE_FORMAT;
+        upgrade_ctx.evidence_external = false;
+        if (!evidence_generate(&format,
+                               NULL,
+                               0,
+                               &upgrade_ctx.evidence,
+                               &upgrade_ctx.evidence_size)) {
+            LOG("Unable to generate enclave evidence for self\n");
+            error = ERR_UPGRADE_INTERNAL;
             goto do_upgrade_start_error;
         }
+        LOG_HEX("EVIDENCE:", upgrade_ctx.evidence, upgrade_ctx.evidence_size);
         if (!evidence_verify_and_extract_claims(EVIDENCE_FORMAT,
-                                                evidence,
-                                                evidence_size,
+                                                upgrade_ctx.evidence,
+                                                upgrade_ctx.evidence_size,
                                                 &claims,
                                                 &claims_size)) {
             LOG("Error verifying this enclave's evidence\n");
+            error = ERR_UPGRADE_INTERNAL;
             goto do_upgrade_start_error;
         }
         if (!(claim = evidence_get_claim(
                   claims, claims_size, OE_CLAIM_UNIQUE_ID))) {
             LOG("Error extracting this enclave's mrenclave\n");
+            error = ERR_UPGRADE_INTERNAL;
             goto do_upgrade_start_error;
         }
         LOG_HEX("This enclave's mrenclave:", claim->value, claim->value_size);
@@ -325,21 +406,22 @@ unsigned int do_upgrade(volatile unsigned int rx) {
                    UPGRADE_MRENCLAVE_SIZE) != 0) {
             LOG("This enclave's mrenclave does not match the spec's "
                 "mrenclave\n");
+            error = ERR_UPGRADE_SPEC;
             goto do_upgrade_start_error;
         }
         generate_message_to_verify();
-        LOG_HEX("Message to verify: ",
+        LOG_HEX("Message to verify:",
                 upgrade_ctx.expected_message_hash,
                 sizeof(upgrade_ctx.expected_message_hash));
         upgrade_ctx.state = upgrade_state_await_spec_sigs;
+        oe_free(claims);
+        free_evidence();
         return TX_NO_DATA();
     do_upgrade_start_error:
-        if (evidence)
-            evidence_free(evidence);
         if (claims)
             oe_free(claims);
         reset_upgrade();
-        THROW(ERR_UPGRADE_SPEC);
+        THROW(error);
     case OP_UPGRADE_SPEC_SIG:
         check_state(upgrade_state_await_spec_sigs);
         if (APDU_DATA_SIZE(rx) < 1) {
@@ -355,11 +437,8 @@ unsigned int do_upgrade(volatile unsigned int rx) {
             THROW(ERR_UPGRADE_SIGNATURE);
         }
         signature_valid = 0;
-        for (unsigned int i = 0; i < TOTAL_AUTHORIZERS && !signature_valid;
-             i++) {
-            // Clear public key memory region first just in case initialization
-            // fails
-            explicit_bzero(&pubkey, sizeof(pubkey));
+        for (unsigned int i = 0; i < TOTAL_AUTHORIZERS; i++) {
+
             // Attempt to verify against this public key
             if (!secp256k1_ec_pubkey_parse(
                     secp_ctx,
@@ -375,13 +454,12 @@ unsigned int do_upgrade(volatile unsigned int rx) {
                                        &signature,
                                        upgrade_ctx.expected_message_hash,
                                        &pubkey);
-            // Cleanup
-            explicit_bzero(&pubkey, sizeof(pubkey));
 
             // Found a valid signature?
             if (signature_valid) {
                 LOG("Valid signature received!\n");
                 upgrade_ctx.authorized_signer_verified[i] = true;
+                break;
             }
         }
         secp256k1_context_destroy(secp_ctx);
@@ -396,24 +474,96 @@ unsigned int do_upgrade(volatile unsigned int rx) {
 
         if (valid_count >= THRESHOLD_AUTHORIZERS) {
             SET_APDU_OP(0); // No need for more
-            upgrade_ctx.state = upgrade_state_await_peer_id;
+            upgrade_ctx.state = upgrade_state_send_self_id;
             LOG("Threshold reached!\n");
         } else {
             SET_APDU_OP(1); // We need more
         }
         return TX_NO_DATA();
+    case OP_UPGRADE_IDENTIFY_SELF:
+        check_state(upgrade_state_send_self_id);
+
+        if (!upgrade_ctx.evidence) {
+            explicit_bzero(&format, sizeof(format));
+            format.id = EVIDENCE_FORMAT;
+            if (!evidence_get_format_settings(&format)) {
+                LOG("Unable to get evidence format\n");
+                reset_upgrade();
+                THROW(ERR_UPGRADE_INTERNAL);
+            }
+            memcpy(format.settings,
+                   upgrade_ctx.their_mrenclave,
+                   UPGRADE_MRENCLAVE_SIZE);
+            upgrade_ctx.evidence_external = false;
+            if (!evidence_generate(&format,
+                                   NULL,
+                                   0,
+                                   &upgrade_ctx.evidence,
+                                   &upgrade_ctx.evidence_size)) {
+                LOG("Unable to generate enclave evidence for peer\n");
+                reset_upgrade();
+                THROW(ERR_UPGRADE_INTERNAL);
+            }
+            oe_free(format.settings);
+            explicit_bzero(&format, sizeof(format));
+            upgrade_ctx.trx_offset = 0;
+        }
+
+        tx = send_data(upgrade_ctx.evidence,
+                       upgrade_ctx.evidence_size,
+                       &upgrade_ctx.trx_offset,
+                       &baux);
+        SET_APDU_OP(baux ? 1 : 0); // More to send?
+
+        if (!baux) {
+            LOG("Self evidence completely sent\n");
+            free_evidence();
+            upgrade_ctx.state = upgrade_state_await_peer_id;
+        }
+
+        return TX_FOR_DATA_SIZE(tx);
     case OP_UPGRADE_IDENTIFY_PEER:
         check_state(upgrade_state_await_peer_id);
-        if (APDU_DATA_SIZE(rx) != DUMMY_PEER_ID_LEN + UPGRADE_MRENCLAVE_SIZE ||
-            memcmp(APDU_DATA_PTR, DUMMY_PEER_ID, DUMMY_PEER_ID_LEN) ||
-            memcmp(APDU_DATA_PTR + DUMMY_PEER_ID_LEN,
+        upgrade_ctx.evidence_external = true;
+        if (receive_data(rx,
+                         &upgrade_ctx.evidence,
+                         &upgrade_ctx.evidence_size,
+                         &upgrade_ctx.trx_offset)) {
+            SET_APDU_OP(1); // More
+            return TX_NO_DATA();
+        }
+        // We received the entire peer evidence. Perform validation
+        if (!evidence_verify_and_extract_claims(EVIDENCE_FORMAT,
+                                                upgrade_ctx.evidence,
+                                                upgrade_ctx.evidence_size,
+                                                &claims,
+                                                &claims_size)) {
+            LOG("Error verifying peer enclave's evidence\n");
+            goto do_upgrade_identify_peer_error;
+        }
+        if (!(claim = evidence_get_claim(
+                  claims, claims_size, OE_CLAIM_UNIQUE_ID))) {
+            LOG("Error extracting peer enclave's mrenclave\n");
+            goto do_upgrade_identify_peer_error;
+        }
+        LOG_HEX("Peer enclave's mrenclave:", claim->value, claim->value_size);
+        if (claim->value_size != UPGRADE_MRENCLAVE_SIZE ||
+            memcmp(claim->value,
                    upgrade_ctx.their_mrenclave,
-                   UPGRADE_MRENCLAVE_SIZE)) {
-            reset_upgrade();
-            THROW(ERR_UPGRADE_AUTH);
+                   UPGRADE_MRENCLAVE_SIZE) != 0) {
+            LOG("Peer enclave's mrenclave does not match the spec's "
+                "mrenclave\n");
+            goto do_upgrade_identify_peer_error;
         }
         upgrade_ctx.state = upgrade_state_ready_for_xchg;
+        SET_APDU_OP(0); // Done
+        free_evidence();
         return TX_NO_DATA();
+    do_upgrade_identify_peer_error:
+        if (claims)
+            oe_free(claims);
+        reset_upgrade();
+        THROW(ERR_UPGRADE_AUTH);
     case OP_UPGRADE_PROCESS_DATA:
         check_state(upgrade_state_ready_for_xchg);
         switch (upgrade_ctx.operation) {

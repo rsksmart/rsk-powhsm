@@ -30,6 +30,8 @@
 #include "hal/exceptions.h"
 #include "openenclave/common.h"
 #include "apdu_utils.h"
+#include "evidence.h"
+#include "apdu.h"
 
 #define SRC_MRE                                \
     "\xAA\xAA\xAA\xAA\xAA\xAA\xAA\xAA\xAA\xAA" \
@@ -52,23 +54,43 @@
 const uint8_t src_mre[] = SRC_MRE;
 const uint8_t dst_mre[] = DST_MRE;
 const uint8_t oth_mre[] = OTH_MRE;
+const size_t mre_size = sizeof(src_mre) - 1;
+
+const uint8_t mock_format_settings[] = {
+    0xE5, 0xE5, 0xE5, 0xE5, 0xE5, 0xE5, 0xE5, 0xE5, 0xE5, 0xE5,
+    0xE5, 0xE5, 0xE5, 0xE5, 0xE5, 0xE5, 0xE5, 0xE5, 0xE5, 0xE5,
+    0xE5, 0xE5, 0xE5, 0xE5, 0xE5, 0xE5, 0xE5, 0xE5, 0xE5, 0xE5,
+    0xE5, 0xE5, 0xE5, 0xE5, 0xE5, 0xE5, 0xE5, 0xE5, 0xE5, 0xE5,
+    0xE5, 0xE5, 0xE5, 0xE5, 0xE5, 0xE5, 0xE5, 0xE5, 0xE5, 0xE5,
+};
+
+#define EVIDENCE_MAGIC 0xD4
+#define EVIDENCE_PRELUDE "mock_evidence:"
+#define EVIDENCE_HEADER                                                \
+    EVIDENCE_PRELUDE                                                   \
+    "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF" \
+    "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT"
+#define EVIDENCE_OH_SIZE 200
+#define EVIDENCE_SIZE (strlen(EVIDENCE_HEADER) + EVIDENCE_OH_SIZE)
+#define EVIDENCE_FR_OFFSET (strlen(EVIDENCE_PRELUDE))
+#define EVIDENCE_TO_OFFSET (strlen(EVIDENCE_PRELUDE) + mre_size)
 
 const oe_claim_t source_mrenclave_claim = {
     .name = OE_CLAIM_UNIQUE_ID,
     .value = (uint8_t*)src_mre,
-    .value_size = sizeof(src_mre) - 1,
+    .value_size = mre_size,
 };
 
 const oe_claim_t destination_mrenclave_claim = {
     .name = OE_CLAIM_UNIQUE_ID,
     .value = (uint8_t*)dst_mre,
-    .value_size = sizeof(dst_mre) - 1,
+    .value_size = mre_size,
 };
 
 const oe_claim_t other_mrenclave_claim = {
     .name = OE_CLAIM_UNIQUE_ID,
     .value = (uint8_t*)oth_mre,
-    .value_size = sizeof(oth_mre) - 1,
+    .value_size = mre_size,
 };
 
 // Two valid signatures and one invalid for the above
@@ -145,6 +167,7 @@ struct {
     bool access_is_locked;
     bool migrate_export;
     bool migrate_import;
+    bool evidence_get_format_settings;
     bool evidence_generate;
     bool evidence_verify_and_extract_claims;
     char local_enclave_id;
@@ -206,7 +229,23 @@ bool migrate_import(uint8_t* key,
 static const oe_uuid_t expected_format = {
     .b = OE_FORMAT_UUID_SGX_LOCAL_ATTESTATION};
 
-bool evidence_generate(oe_uuid_t format_id,
+bool evidence_get_format_settings(evidence_format_t* format) {
+    if (!G_mocks.evidence_get_format_settings)
+        return false;
+
+    assert(!memcmp(&format->id, &expected_format, sizeof(expected_format)));
+    assert(!format->settings);
+    assert(format->settings_size == 0);
+
+    format->settings = malloc(sizeof(mock_format_settings));
+    memcpy(
+        format->settings, mock_format_settings, sizeof(mock_format_settings));
+    format->settings_size = sizeof(mock_format_settings);
+
+    return true;
+}
+
+bool evidence_generate(evidence_format_t* format,
                        uint8_t* ccs,
                        size_t ccs_size,
                        uint8_t** evidence_buffer,
@@ -215,22 +254,45 @@ bool evidence_generate(oe_uuid_t format_id,
         return false;
 
     assert(OE_UUID_SIZE == sizeof(expected_format));
-    assert(!memcmp(&format_id, &expected_format, sizeof(expected_format)));
+    assert(!memcmp(&format->id, &expected_format, sizeof(expected_format)));
+    if (!format->settings) {
+        assert(format->settings_size == 0);
+    } else {
+        assert(sizeof(mock_format_settings) == format->settings_size);
+        assert(!memcmp(mock_format_settings,
+                       format->settings + 32,
+                       format->settings_size - 32));
+    }
     assert(!ccs && ccs_size == 0);
-    *evidence_buffer_size = strlen("local_evidence_mock_xxx");
+    *evidence_buffer_size = EVIDENCE_SIZE;
     *evidence_buffer = malloc(*evidence_buffer_size);
+    memset(*evidence_buffer, EVIDENCE_MAGIC, *evidence_buffer_size);
+    memcpy(*evidence_buffer, EVIDENCE_PRELUDE, strlen(EVIDENCE_PRELUDE));
     switch (G_mocks.local_enclave_id) {
     case 's':
-        memcpy(
-            *evidence_buffer, "local_evidence_mock_src", *evidence_buffer_size);
+        memcpy(*evidence_buffer + EVIDENCE_FR_OFFSET, src_mre, mre_size);
+        memcpy(*evidence_buffer + EVIDENCE_TO_OFFSET,
+               format->settings ? dst_mre : src_mre,
+               mre_size);
+        if (format->settings) {
+            assert(!memcmp(dst_mre, format->settings, mre_size));
+        }
         break;
     case 'd':
-        memcpy(
-            *evidence_buffer, "local_evidence_mock_dst", *evidence_buffer_size);
+        memcpy(*evidence_buffer + EVIDENCE_FR_OFFSET, dst_mre, mre_size);
+        memcpy(*evidence_buffer + EVIDENCE_TO_OFFSET,
+               format->settings ? src_mre : dst_mre,
+               mre_size);
+        if (format->settings) {
+            assert(!memcmp(src_mre, format->settings, mre_size));
+        }
         break;
     default:
-        memcpy(
-            *evidence_buffer, "local_evidence_mock_oth", *evidence_buffer_size);
+        memcpy(*evidence_buffer + EVIDENCE_FR_OFFSET, oth_mre, mre_size);
+        memcpy(*evidence_buffer + EVIDENCE_TO_OFFSET, oth_mre, mre_size);
+        if (format->settings) {
+            assert(!memcmp(oth_mre, format->settings, mre_size));
+        }
         break;
     }
     return true;
@@ -246,24 +308,22 @@ bool evidence_verify_and_extract_claims(oe_uuid_t format_id,
 
     assert(OE_UUID_SIZE == sizeof(expected_format));
     assert(!memcmp(&format_id, &expected_format, sizeof(expected_format)));
+
     assert(evidence_buffer);
-    assert(evidence_buffer_size == strlen("local_evidence_mock_xxx"));
-    *claims_size = strlen("local_claims_xxx");
-    *claims = malloc(*claims_size);
-    if (!memcmp(
-            "local_evidence_mock_src", evidence_buffer, evidence_buffer_size)) {
-        memcpy(*claims, "local_claims_src", *claims_size);
-    } else if (!memcmp("local_evidence_mock_dst",
-                       evidence_buffer,
-                       evidence_buffer_size)) {
-        memcpy(*claims, "local_claims_dst", *claims_size);
-    } else if (!memcmp("local_evidence_mock_oth",
-                       evidence_buffer,
-                       evidence_buffer_size)) {
-        memcpy(*claims, "local_claims_oth", *claims_size);
-    } else {
-        assert(false);
-    }
+    if (evidence_buffer_size != EVIDENCE_SIZE)
+        return false;
+    if (memcmp(EVIDENCE_PRELUDE, evidence_buffer, strlen(EVIDENCE_PRELUDE)))
+        return false;
+    for (size_t i = strlen(EVIDENCE_PRELUDE) + 2 * mre_size; i < EVIDENCE_SIZE;
+         i++)
+        if (EVIDENCE_MAGIC != evidence_buffer[i])
+            return false;
+
+    *claims_size = 1;
+    *claims = malloc(sizeof(oe_claim_t));
+    (*claims)[0].name = OE_CLAIM_UNIQUE_ID;
+    (*claims)[0].value = evidence_buffer + EVIDENCE_FR_OFFSET;
+    (*claims)[0].value_size = mre_size;
 
     return true;
 }
@@ -274,17 +334,10 @@ oe_claim_t* evidence_get_claim(oe_claim_t* claims,
     if (!G_mocks.evidence_get_claim)
         return NULL;
 
-    if (!strcmp(OE_CLAIM_UNIQUE_ID, claim_name)) {
-        if (!memcmp(claims, "local_claims_src", claims_size)) {
-            return (oe_claim_t*)&source_mrenclave_claim;
-        } else if (!memcmp(claims, "local_claims_dst", claims_size)) {
-            return (oe_claim_t*)&destination_mrenclave_claim;
-        } else if (!memcmp(claims, "local_claims_oth", claims_size)) {
-            return (oe_claim_t*)&other_mrenclave_claim;
-        }
-    }
-    printf("Unexpected claim get\n");
-    assert(false);
+    assert(claims_size == 1);
+    assert(!strcmp(OE_CLAIM_UNIQUE_ID, claim_name));
+    assert(!strcmp(OE_CLAIM_UNIQUE_ID, claims[0].name));
+    return &claims[0];
 }
 
 void evidence_free(uint8_t* evidence_buffer) {
@@ -297,6 +350,102 @@ void setup() {
     explicit_bzero(&G_mocks, sizeof(G_mocks));
 }
 
+void identify_self() {
+    unsigned int rx;
+    uint8_t buf[EVIDENCE_SIZE + 10];
+    size_t total = 0;
+    uint8_t* expected_fr;
+    uint8_t* expected_to;
+
+    while (true) {
+        SET_APDU("\x80\xA6\x03", rx);
+        rx = do_upgrade(rx);
+        memcpy(buf + total, APDU_DATA_PTR, rx - 3);
+        total += rx - 3;
+        if (!APDU_OP())
+            break;
+        if (total >= EVIDENCE_SIZE) {
+            printf("Self evidence too big\n");
+            assert(false);
+        }
+    }
+
+    assert(EVIDENCE_SIZE == total);
+    assert(!memcmp(EVIDENCE_PRELUDE, buf, strlen(EVIDENCE_PRELUDE)));
+    for (size_t i = strlen(EVIDENCE_HEADER); i < EVIDENCE_SIZE; i++)
+        assert(EVIDENCE_MAGIC == buf[i]);
+    switch (G_mocks.local_enclave_id) {
+    case 's':
+        expected_fr = (uint8_t*)src_mre;
+        expected_to = (uint8_t*)dst_mre;
+        break;
+    case 'd':
+        expected_fr = (uint8_t*)dst_mre;
+        expected_to = (uint8_t*)src_mre;
+        break;
+    default:
+        expected_fr = (uint8_t*)oth_mre;
+        expected_to = (uint8_t*)oth_mre;
+    }
+    assert(!memcmp(expected_fr, buf + EVIDENCE_FR_OFFSET, mre_size));
+    assert(!memcmp(expected_to, buf + EVIDENCE_TO_OFFSET, mre_size));
+}
+
+void identify_peer(bool correct) {
+    unsigned int rx;
+    uint8_t* peer_evidence;
+    uint8_t* mre_fr;
+    uint8_t* mre_to;
+    uint8_t* datap;
+    size_t offset;
+    size_t chunk;
+
+    peer_evidence = malloc(EVIDENCE_SIZE);
+    memset(peer_evidence, EVIDENCE_MAGIC, EVIDENCE_SIZE);
+    memcpy(peer_evidence, EVIDENCE_PRELUDE, strlen(EVIDENCE_PRELUDE));
+    if (correct) {
+        switch (G_mocks.local_enclave_id) {
+        case 's':
+            mre_fr = (uint8_t*)dst_mre;
+            mre_to = (uint8_t*)src_mre;
+            break;
+        case 'd':
+            mre_fr = (uint8_t*)src_mre;
+            mre_to = (uint8_t*)dst_mre;
+            break;
+        }
+        memcpy(peer_evidence + EVIDENCE_FR_OFFSET, mre_fr, mre_size);
+        memcpy(peer_evidence + EVIDENCE_TO_OFFSET, mre_to, mre_size);
+    }
+
+    offset = 0;
+    while (true) {
+        datap = APDU_DATA_PTR;
+        SET_APDU("\x80\xA6\x04", rx);
+        if (offset == 0) {
+            APDU_DATA_PTR[0] = (EVIDENCE_SIZE & 0xFF00) >> 8;
+            APDU_DATA_PTR[1] = EVIDENCE_SIZE & 0xFF;
+            datap = APDU_DATA_PTR + 2;
+            rx += 2;
+        }
+        chunk = offset + APDU_TOTAL_DATA_SIZE <= EVIDENCE_SIZE
+                    ? APDU_TOTAL_DATA_SIZE
+                    : EVIDENCE_SIZE - offset;
+        memcpy(datap, peer_evidence + offset, chunk);
+        rx += chunk;
+        offset += chunk;
+        rx = do_upgrade(rx);
+        if (offset < EVIDENCE_SIZE) {
+            assert(APDU_OP() == 1);
+        } else {
+            assert(APDU_OP() == 0);
+            break;
+        }
+    }
+
+    free(peer_evidence);
+}
+
 // Exporting
 void test_do_upgrade_export_ok() {
     unsigned int rx;
@@ -307,6 +456,7 @@ void test_do_upgrade_export_ok() {
     G_mocks.seed_available = true;
     G_mocks.access_is_locked = false;
     G_mocks.migrate_export = true;
+    G_mocks.evidence_get_format_settings = true;
     G_mocks.evidence_generate = true;
     G_mocks.evidence_verify_and_extract_claims = true;
     G_mocks.local_enclave_id = 's';
@@ -323,15 +473,12 @@ void test_do_upgrade_export_ok() {
         SET_APDU("\x80\xA6\x02" SIG_VALID_2, rx);
         assert(3 == do_upgrade(rx));
         ASSERT_APDU("\x80\xA6\x00");
-        // Identify peer
-        SET_APDU("\x80\xA6\x03"
-                 "peer-id:" DST_MRE,
-                 rx);
-        assert(3 == do_upgrade(rx));
+        identify_self();
+        identify_peer(true);
         // Process data
-        SET_APDU("\x80\xA6\x04", rx);
+        SET_APDU("\x80\xA6\x05", rx);
         assert(3 + sizeof("data_export_result") - 1 == do_upgrade(rx));
-        ASSERT_APDU("\x80\xA6\x04"
+        ASSERT_APDU("\x80\xA6\x05"
                     "data_export_result");
     });
 }
@@ -399,6 +546,7 @@ void test_do_upgrade_export_spec_differs_from_local_mre() {
 
     G_mocks.seed_available = true;
     G_mocks.access_is_locked = false;
+    G_mocks.evidence_get_format_settings = true;
     G_mocks.evidence_generate = true;
     G_mocks.evidence_verify_and_extract_claims = true;
     G_mocks.local_enclave_id = 'o';
@@ -421,6 +569,7 @@ void test_do_upgrade_export_cant_get_local_evidence() {
 
     G_mocks.seed_available = true;
     G_mocks.access_is_locked = false;
+    G_mocks.evidence_get_format_settings = true;
     G_mocks.evidence_generate = false;
     G_mocks.evidence_verify_and_extract_claims = true;
     G_mocks.local_enclave_id = 's';
@@ -432,7 +581,7 @@ void test_do_upgrade_export_cant_get_local_evidence() {
             SET_APDU("\x80\xA6\x01\x01" SRC_MRE DST_MRE, rx);
             do_upgrade(rx);
         },
-        0x6A01);
+        0x6A99);
 }
 
 void test_do_upgrade_export_cant_verify_local_evidence() {
@@ -443,6 +592,7 @@ void test_do_upgrade_export_cant_verify_local_evidence() {
 
     G_mocks.seed_available = true;
     G_mocks.access_is_locked = false;
+    G_mocks.evidence_get_format_settings = true;
     G_mocks.evidence_generate = true;
     G_mocks.evidence_verify_and_extract_claims = false;
     G_mocks.local_enclave_id = 's';
@@ -454,17 +604,18 @@ void test_do_upgrade_export_cant_verify_local_evidence() {
             SET_APDU("\x80\xA6\x01\x01" SRC_MRE DST_MRE, rx);
             do_upgrade(rx);
         },
-        0x6A01);
+        0x6A99);
 }
 
 void test_do_upgrade_export_cant_find_local_mrenclave() {
     unsigned int rx;
 
     setup();
-    printf("Test exporting when can't extract local mrenclave...\n");
+    printf("Test exporting when can't find local mrenclave...\n");
 
     G_mocks.seed_available = true;
     G_mocks.access_is_locked = false;
+    G_mocks.evidence_get_format_settings = true;
     G_mocks.evidence_generate = true;
     G_mocks.evidence_verify_and_extract_claims = true;
     G_mocks.local_enclave_id = 's';
@@ -476,7 +627,7 @@ void test_do_upgrade_export_cant_find_local_mrenclave() {
             SET_APDU("\x80\xA6\x01\x01" SRC_MRE DST_MRE, rx);
             do_upgrade(rx);
         },
-        0x6A01);
+        0x6A99);
 }
 
 void test_do_upgrade_export_invalid_spec_auth() {
@@ -487,6 +638,7 @@ void test_do_upgrade_export_invalid_spec_auth() {
 
     G_mocks.seed_available = true;
     G_mocks.access_is_locked = false;
+    G_mocks.evidence_get_format_settings = true;
     G_mocks.evidence_generate = true;
     G_mocks.evidence_verify_and_extract_claims = true;
     G_mocks.local_enclave_id = 's';
@@ -517,10 +669,11 @@ void test_do_upgrade_export_invalid_spec_auth_format() {
     unsigned int rx;
 
     setup();
-    printf("Test exporting when invalid spec auth given...\n");
+    printf("Test exporting when invalid spec auth format given...\n");
 
     G_mocks.seed_available = true;
     G_mocks.access_is_locked = false;
+    G_mocks.evidence_get_format_settings = true;
     G_mocks.evidence_generate = true;
     G_mocks.evidence_verify_and_extract_claims = true;
     G_mocks.local_enclave_id = 's';
@@ -543,6 +696,158 @@ void test_do_upgrade_export_invalid_spec_auth_format() {
         0x6A02);
 }
 
+void test_do_upgrade_export_peer_id_empty_packet() {
+    unsigned int rx;
+
+    setup();
+    printf("Test exporting when peer id wants to send an empty packet...\n");
+
+    G_mocks.seed_available = true;
+    G_mocks.access_is_locked = false;
+    G_mocks.evidence_get_format_settings = true;
+    G_mocks.evidence_generate = true;
+    G_mocks.evidence_verify_and_extract_claims = true;
+    G_mocks.local_enclave_id = 's';
+    G_mocks.evidence_get_claim = true;
+
+    ASSERT_THROWS(
+        {
+            // Start export
+            SET_APDU("\x80\xA6\x01\x01" SRC_MRE DST_MRE, rx);
+            assert(3 == do_upgrade(rx));
+            // Spec auth
+            SET_APDU("\x80\xA6\x02" SIG_VALID_1, rx);
+            assert(3 == do_upgrade(rx));
+            ASSERT_APDU("\x80\xA6\x01");
+            SET_APDU("\x80\xA6\x02" SIG_VALID_2, rx);
+            assert(3 == do_upgrade(rx));
+            ASSERT_APDU("\x80\xA6\x00");
+            identify_self();
+            SET_APDU("\x80\xA6\x04", rx);
+            do_upgrade(rx);
+        },
+        0x6A00);
+}
+
+void test_do_upgrade_export_peer_id_packet_too_big() {
+    unsigned int rx;
+
+    setup();
+    printf("Test exporting when peer id wants to send a packet too big...\n");
+
+    G_mocks.seed_available = true;
+    G_mocks.access_is_locked = false;
+    G_mocks.evidence_get_format_settings = true;
+    G_mocks.evidence_generate = true;
+    G_mocks.evidence_verify_and_extract_claims = true;
+    G_mocks.local_enclave_id = 's';
+    G_mocks.evidence_get_claim = true;
+
+    ASSERT_THROWS(
+        {
+            // Start export
+            SET_APDU("\x80\xA6\x01\x01" SRC_MRE DST_MRE, rx);
+            assert(3 == do_upgrade(rx));
+            // Spec auth
+            SET_APDU("\x80\xA6\x02" SIG_VALID_1, rx);
+            assert(3 == do_upgrade(rx));
+            ASSERT_APDU("\x80\xA6\x01");
+            SET_APDU("\x80\xA6\x02" SIG_VALID_2, rx);
+            assert(3 == do_upgrade(rx));
+            ASSERT_APDU("\x80\xA6\x00");
+            identify_self();
+            SET_APDU("\x80\xA6\x04"
+                     "\x23\x28"
+                     "\x01\x02",
+                     rx);
+            do_upgrade(rx);
+        },
+        0x6A00);
+}
+
+void test_do_upgrade_export_peer_id_packet_overflows() {
+    unsigned int rx;
+
+    setup();
+    printf("Test exporting when peer id wants to send a packet that "
+           "overflows...\n");
+
+    G_mocks.seed_available = true;
+    G_mocks.access_is_locked = false;
+    G_mocks.evidence_get_format_settings = true;
+    G_mocks.evidence_generate = true;
+    G_mocks.evidence_verify_and_extract_claims = true;
+    G_mocks.local_enclave_id = 's';
+    G_mocks.evidence_get_claim = true;
+
+    ASSERT_THROWS(
+        {
+            // Start export
+            SET_APDU("\x80\xA6\x01\x01" SRC_MRE DST_MRE, rx);
+            assert(3 == do_upgrade(rx));
+            // Spec auth
+            SET_APDU("\x80\xA6\x02" SIG_VALID_1, rx);
+            assert(3 == do_upgrade(rx));
+            ASSERT_APDU("\x80\xA6\x01");
+            SET_APDU("\x80\xA6\x02" SIG_VALID_2, rx);
+            assert(3 == do_upgrade(rx));
+            ASSERT_APDU("\x80\xA6\x00");
+            identify_self();
+            SET_APDU("\x80\xA6\x04"
+                     "\x00\x05"
+                     "\x01\x02",
+                     rx);
+            assert(3 == do_upgrade(rx));
+            assert(1 == APDU_OP());
+            SET_APDU("\x80\xA6\x04"
+                     "\x03\x04\x05\x06",
+                     rx);
+            do_upgrade(rx);
+        },
+        0x6A00);
+}
+
+void test_do_upgrade_export_peer_id_invalid_evidence() {
+    unsigned int rx;
+
+    setup();
+    printf("Test exporting when peer id wants to send invalid evidence...\n");
+
+    G_mocks.seed_available = true;
+    G_mocks.access_is_locked = false;
+    G_mocks.evidence_get_format_settings = true;
+    G_mocks.evidence_generate = true;
+    G_mocks.evidence_verify_and_extract_claims = true;
+    G_mocks.local_enclave_id = 's';
+    G_mocks.evidence_get_claim = true;
+
+    ASSERT_THROWS(
+        {
+            // Start export
+            SET_APDU("\x80\xA6\x01\x01" SRC_MRE DST_MRE, rx);
+            assert(3 == do_upgrade(rx));
+            // Spec auth
+            SET_APDU("\x80\xA6\x02" SIG_VALID_1, rx);
+            assert(3 == do_upgrade(rx));
+            ASSERT_APDU("\x80\xA6\x01");
+            SET_APDU("\x80\xA6\x02" SIG_VALID_2, rx);
+            assert(3 == do_upgrade(rx));
+            ASSERT_APDU("\x80\xA6\x00");
+            identify_self();
+            SET_APDU("\x80\xA6\x04"
+                     "\x00\x07"
+                     "\x01\x02\x03",
+                     rx);
+            assert(3 == do_upgrade(rx));
+            assert(1 == APDU_OP());
+            SET_APDU("\x80\xA6\x04"
+                     "\xAA\xBB\xCC\xDD",
+                     rx);
+            do_upgrade(rx);
+        },
+        0x6A03);
+}
+
 void test_do_upgrade_export_invalid_peer_id() {
     unsigned int rx;
 
@@ -551,6 +856,7 @@ void test_do_upgrade_export_invalid_peer_id() {
 
     G_mocks.seed_available = true;
     G_mocks.access_is_locked = false;
+    G_mocks.evidence_get_format_settings = true;
     G_mocks.evidence_generate = true;
     G_mocks.evidence_verify_and_extract_claims = true;
     G_mocks.local_enclave_id = 's';
@@ -568,11 +874,8 @@ void test_do_upgrade_export_invalid_peer_id() {
             SET_APDU("\x80\xA6\x02" SIG_VALID_2, rx);
             assert(3 == do_upgrade(rx));
             ASSERT_APDU("\x80\xA6\x00");
-            // Identify peer
-            SET_APDU("\x80\xA6\x03"
-                     "invalid peer id",
-                     rx);
-            do_upgrade(rx);
+            identify_self();
+            identify_peer(false);
         },
         0x6A03);
 }
@@ -581,11 +884,12 @@ void test_do_upgrade_export_migrate_fails() {
     unsigned int rx;
 
     setup();
-    printf("Test exporting...\n");
+    printf("Test exporting when migration fails...\n");
 
     G_mocks.seed_available = true;
     G_mocks.access_is_locked = false;
     G_mocks.migrate_export = false;
+    G_mocks.evidence_get_format_settings = true;
     G_mocks.evidence_generate = true;
     G_mocks.evidence_verify_and_extract_claims = true;
     G_mocks.local_enclave_id = 's';
@@ -603,13 +907,10 @@ void test_do_upgrade_export_migrate_fails() {
             SET_APDU("\x80\xA6\x02" SIG_VALID_2, rx);
             assert(3 == do_upgrade(rx));
             ASSERT_APDU("\x80\xA6\x00");
-            // Identify peer
-            SET_APDU("\x80\xA6\x03"
-                     "peer-id:" DST_MRE,
-                     rx);
-            assert(3 == do_upgrade(rx));
+            identify_self();
+            identify_peer(true);
             // Process data
-            SET_APDU("\x80\xA6\x04", rx);
+            SET_APDU("\x80\xA6\x05", rx);
             do_upgrade(rx);
         },
         0x6A04);
@@ -624,6 +925,7 @@ void test_do_upgrade_import_ok() {
 
     G_mocks.seed_available = false;
     G_mocks.migrate_import = true;
+    G_mocks.evidence_get_format_settings = true;
     G_mocks.evidence_generate = true;
     G_mocks.evidence_verify_and_extract_claims = true;
     G_mocks.local_enclave_id = 'd';
@@ -640,13 +942,10 @@ void test_do_upgrade_import_ok() {
         SET_APDU("\x80\xA6\x02" SIG_VALID_2, rx);
         assert(3 == do_upgrade(rx));
         ASSERT_APDU("\x80\xA6\x00");
-        // Identify peer
-        SET_APDU("\x80\xA6\x03"
-                 "peer-id:" SRC_MRE,
-                 rx);
-        assert(3 == do_upgrade(rx));
+        identify_self();
+        identify_peer(true);
         // Process data
-        SET_APDU("\x80\xA6\x04"
+        SET_APDU("\x80\xA6\x05"
                  "doto_import_result",
                  rx);
         assert(3 == do_upgrade(rx));
@@ -699,6 +998,7 @@ void test_do_upgrade_import_spec_differs_from_local_mre() {
         "Test import when local mrenclave differs from spec destination...\n");
 
     G_mocks.seed_available = false;
+    G_mocks.evidence_get_format_settings = true;
     G_mocks.evidence_generate = true;
     G_mocks.evidence_verify_and_extract_claims = true;
     G_mocks.local_enclave_id = 'o';
@@ -720,6 +1020,7 @@ void test_do_upgrade_import_cant_get_local_evidence() {
     printf("Test import when can't generate local evidence...\n");
 
     G_mocks.seed_available = false;
+    G_mocks.evidence_get_format_settings = true;
     G_mocks.evidence_generate = false;
     G_mocks.evidence_verify_and_extract_claims = true;
     G_mocks.local_enclave_id = 'd';
@@ -731,7 +1032,7 @@ void test_do_upgrade_import_cant_get_local_evidence() {
             SET_APDU("\x80\xA6\x01\x02" SRC_MRE DST_MRE, rx);
             do_upgrade(rx);
         },
-        0x6A01);
+        0x6A99);
 }
 
 void test_do_upgrade_import_cant_verify_local_evidence() {
@@ -741,6 +1042,7 @@ void test_do_upgrade_import_cant_verify_local_evidence() {
     printf("Test import when can't verify local evidence...\n");
 
     G_mocks.seed_available = false;
+    G_mocks.evidence_get_format_settings = true;
     G_mocks.evidence_generate = true;
     G_mocks.evidence_verify_and_extract_claims = false;
     G_mocks.local_enclave_id = 'd';
@@ -752,16 +1054,17 @@ void test_do_upgrade_import_cant_verify_local_evidence() {
             SET_APDU("\x80\xA6\x01\x02" SRC_MRE DST_MRE, rx);
             do_upgrade(rx);
         },
-        0x6A01);
+        0x6A99);
 }
 
 void test_do_upgrade_import_cant_find_local_mrenclave() {
     unsigned int rx;
 
     setup();
-    printf("Test import when can't verify local evidence...\n");
+    printf("Test import when can't find local mrenclave...\n");
 
     G_mocks.seed_available = false;
+    G_mocks.evidence_get_format_settings = true;
     G_mocks.evidence_generate = true;
     G_mocks.evidence_verify_and_extract_claims = true;
     G_mocks.local_enclave_id = 'd';
@@ -773,7 +1076,7 @@ void test_do_upgrade_import_cant_find_local_mrenclave() {
             SET_APDU("\x80\xA6\x01\x02" SRC_MRE DST_MRE, rx);
             do_upgrade(rx);
         },
-        0x6A01);
+        0x6A99);
 }
 
 void test_do_upgrade_import_invalid_peer_id() {
@@ -784,6 +1087,7 @@ void test_do_upgrade_import_invalid_peer_id() {
 
     G_mocks.seed_available = false;
     G_mocks.migrate_import = true;
+    G_mocks.evidence_get_format_settings = true;
     G_mocks.evidence_generate = true;
     G_mocks.evidence_verify_and_extract_claims = true;
     G_mocks.local_enclave_id = 'd';
@@ -801,11 +1105,8 @@ void test_do_upgrade_import_invalid_peer_id() {
             SET_APDU("\x80\xA6\x02" SIG_VALID_2, rx);
             assert(3 == do_upgrade(rx));
             ASSERT_APDU("\x80\xA6\x00");
-            // Identify peer
-            SET_APDU("\x80\xA6\x03"
-                     "invalid peer id",
-                     rx);
-            do_upgrade(rx);
+            identify_self();
+            identify_peer(false);
         },
         0x6A03);
 }
@@ -818,6 +1119,7 @@ void test_do_upgrade_import_migrate_fails() {
 
     G_mocks.seed_available = false;
     G_mocks.migrate_import = false;
+    G_mocks.evidence_get_format_settings = true;
     G_mocks.evidence_generate = true;
     G_mocks.evidence_verify_and_extract_claims = true;
     G_mocks.local_enclave_id = 'd';
@@ -835,13 +1137,10 @@ void test_do_upgrade_import_migrate_fails() {
             SET_APDU("\x80\xA6\x02" SIG_VALID_2, rx);
             assert(3 == do_upgrade(rx));
             ASSERT_APDU("\x80\xA6\x00");
-            // Identify peer
-            SET_APDU("\x80\xA6\x03"
-                     "peer-id:" SRC_MRE,
-                     rx);
-            assert(3 == do_upgrade(rx));
+            identify_self();
+            identify_peer(true);
             // Process data
-            SET_APDU("\x80\xA6\x04"
+            SET_APDU("\x80\xA6\x05"
                      "doto_import_result",
                      rx);
             do_upgrade(rx);
@@ -876,6 +1175,10 @@ int main() {
     test_do_upgrade_export_invalid_spec_auth();
     test_do_upgrade_export_invalid_spec_auth_format();
     test_do_upgrade_export_invalid_peer_id();
+    test_do_upgrade_export_peer_id_empty_packet();
+    test_do_upgrade_export_peer_id_packet_too_big();
+    test_do_upgrade_export_peer_id_packet_overflows();
+    test_do_upgrade_export_peer_id_invalid_evidence();
     test_do_upgrade_export_migrate_fails();
 
     test_do_upgrade_import_ok();
