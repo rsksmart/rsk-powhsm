@@ -24,7 +24,6 @@ import sys
 from os.path import isfile
 from argparse import ArgumentParser
 import ecdsa
-import logging
 from admin.misc import (
     get_eth_dongle,
     dispose_eth_dongle,
@@ -160,8 +159,6 @@ def do_eth(options):
 
 
 def main():
-    logging.disable(logging.CRITICAL)
-
     parser = ArgumentParser(
         description="powHSM SGX migration authorization generation and signing tool"
     )
