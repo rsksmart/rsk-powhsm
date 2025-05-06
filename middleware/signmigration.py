@@ -130,9 +130,7 @@ def do_eth(options):
 
         # Is there an existing migration authorization? Read it
         sgx_authorization = None
-        if not isfile(options.output_path):
-            raise AdminError("Invalid SGX migration authorization file: "
-                             f"{options.output_path}")
+        _require_output_path(options, require_existing=True)
 
         info(f"Opening SGX migration authorization file {options.output_path}...")
         sgx_authorization = SGXMigrationAuthorization.from_jsonfile(options.output_path)
