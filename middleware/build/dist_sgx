@@ -7,6 +7,8 @@ echo "Building SGX distribution binaries..."
 
 QUIET=1 $BUILDDIR/manager_sgx && \
 QUIET=1 $BUILDDIR/adm_sgx && \
+QUIET=1 $BUILDDIR/signmigration && \
 echo "" && \
 sha256sum $BINDIR/manager_sgx.tgz && \
-sha256sum $BINDIR/adm_sgx.tgz
+sha256sum $BINDIR/adm_sgx.tgz && \
+sha256sum $BINDIR/signmigration.tgz

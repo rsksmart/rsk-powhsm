@@ -23,7 +23,6 @@
 import sys
 from os.path import isfile
 from argparse import ArgumentParser
-import logging
 import ecdsa
 from admin.misc import (
     get_eth_dongle,
@@ -47,8 +46,6 @@ OP_SIGN_MSG_HASH = bytes.fromhex("800000")
 
 
 def main():
-    logging.disable(logging.CRITICAL)
-
     parser = ArgumentParser(description="powHSM Signer Authorization Generator")
     parser.add_argument("operation", choices=["hash", "message", "key", "eth", "manual"])
     parser.add_argument(
