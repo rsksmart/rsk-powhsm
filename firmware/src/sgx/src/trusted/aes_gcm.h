@@ -29,6 +29,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#define AES_GCM_KEY_SIZE 32 // AES-256
+
 /**
  * @brief Gets the size of encrypted content for
  * the given cleartext size

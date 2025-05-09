@@ -31,9 +31,9 @@
 #include <openenclave/corelibc/stdlib.h>
 #include <mbedtls/gcm.h>
 
-#define AES_KEY_SIZE 32 // AES-256
-#define AES_IV_SIZE 12  // Recommended IV size for GCM
-#define AES_TAG_SIZE 16 // Authentication tag size
+#define AES_GCM_KEY_SIZE 32 // AES-256
+#define AES_IV_SIZE 12      // Recommended IV size for GCM
+#define AES_TAG_SIZE 16     // Authentication tag size
 
 size_t aes_gcm_get_encrypted_size(size_t cleartext_size) {
     if (cleartext_size + AES_IV_SIZE + AES_TAG_SIZE < cleartext_size)
@@ -55,8 +55,9 @@ bool aes_gcm_encrypt(uint8_t* key,
     uint8_t* ciphertext = NULL;
 
     // Sizes check
-    if (AES_KEY_SIZE != key_size) {
-        LOG("AES-GCM encrypt error: expected a %u-byte key\n", AES_KEY_SIZE);
+    if (AES_GCM_KEY_SIZE != key_size) {
+        LOG("AES-GCM encrypt error: expected a %u-byte key\n",
+            AES_GCM_KEY_SIZE);
         goto aes_gcm_encrypt_exit;
     }
     if (in_size == 0) {
@@ -125,8 +126,9 @@ bool aes_gcm_decrypt(uint8_t* key,
     size_t cleartext_size = in_size - AES_IV_SIZE - AES_TAG_SIZE;
 
     // Sizes check
-    if (AES_KEY_SIZE != key_size) {
-        LOG("AES-GCM decrypt error: expected a %u-byte key\n", AES_KEY_SIZE);
+    if (AES_GCM_KEY_SIZE != key_size) {
+        LOG("AES-GCM decrypt error: expected a %u-byte key\n",
+            AES_GCM_KEY_SIZE);
         goto aes_gcm_decrypt_exit;
     }
     if (in_size <= AES_IV_SIZE + AES_TAG_SIZE) {

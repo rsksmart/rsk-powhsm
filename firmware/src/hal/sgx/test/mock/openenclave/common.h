@@ -219,6 +219,8 @@ OE_PACK_END
 
 #define OE_CLAIM_UNIQUE_ID "unique_id"
 
+#define OE_CLAIM_CUSTOM_CLAIMS_BUFFER "custom_claims_buffer"
+
 typedef struct _oe_uuid_t {
     uint8_t b[OE_UUID_SIZE];
 } oe_uuid_t;
