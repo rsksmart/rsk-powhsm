@@ -95,15 +95,45 @@ bool evidence_generate(evidence_format_t* format,
                        uint8_t** evidence_buffer,
                        size_t* evidence_buffer_size);
 
+/**
+ * @brief Verify and extract claims from a given evidence
+ *
+ * @param format_id             the evidence format
+ * @param evidence_buffer       the evidence buffer
+ * @param evidence_buffer_size  the evidence buffer size
+ * @param claims                [out] claims buffer
+ * @param claims_size           [out] number of claims
+ *
+ * @returns true iff evidence was successfully verified
+ */
 bool evidence_verify_and_extract_claims(oe_uuid_t format_id,
                                         uint8_t* evidence_buffer,
                                         size_t evidence_buffer_size,
                                         oe_claim_t** claims,
                                         size_t* claims_size);
 
+/**
+ * @brief Given a set of claims, find the one with the given name
+ *
+ * @param claims        the claim list
+ * @param claims_size   the number of claims
+ * @param claim_name    target claim name
+ *
+ * @returns the claim, or NULL if no claim with that name was found
+ */
 oe_claim_t* evidence_get_claim(oe_claim_t* claims,
                                size_t claims_size,
                                const char* claim_name);
+
+/**
+ * @brief Given a set of claims, find the custom claim
+ *
+ * @param claims        the claim list
+ * @param claims_size   the number of claims
+ *
+ * @returns the custom claim, or NULL if no custom claim was found
+ */
+oe_claim_t* evidence_get_custom_claim(oe_claim_t* claims, size_t claims_size);
 
 /**
  * @brief Frees a buffer previously output by evidence_generate

@@ -634,6 +634,49 @@ void test_evidence_get_claim_behaves_ok_with_invalid_params() {
     assert(!evidence_get_claim((oe_claim_t*)"valid-pointer", 13, NULL));
 }
 
+void test_evidence_get_custom_claim_ok() {
+    printf("Testing evidence_get_custom_claim succeeds...\n");
+
+    oe_claim_t claim1 = {
+        .name = "claim1_name",
+        .value = (uint8_t*)"claim1_value",
+        .value_size = strlen("claim1_value"),
+    };
+    oe_claim_t claim2 = {
+        .name = "claim2_name",
+        .value = (uint8_t*)"claim2_value",
+        .value_size = strlen("claim2_value"),
+    };
+    oe_claim_t custom_claims = {
+        .name = "custom_claims_buffer",
+        .value = (uint8_t*)"the custom claim buffer",
+        .value_size = strlen("the custom claim buffer"),
+    };
+
+    oe_claim_t claims[] = {claim1, custom_claims, claim2};
+    oe_claim_t claims_nocustom[] = {claim1, claim2};
+
+    oe_claim_t* found =
+        evidence_get_custom_claim(claims, sizeof(claims) / sizeof(claims[0]));
+    assert(found);
+    assert(!memcmp(
+        found->name, "custom_claims_buffer", strlen("custom_claims_buffer")));
+    assert(strlen("the custom claim buffer") == found->value_size);
+    assert(!memcmp(found->value, "the custom claim buffer", found->value_size));
+
+    assert(!evidence_get_custom_claim(
+        claims_nocustom, sizeof(claims_nocustom) / sizeof(claims_nocustom[0])));
+}
+
+void test_evidence_get_custom_claim_behaves_ok_with_invalid_params() {
+    printf("Testing evidence_get_custom_claim behaves correctly with invalid "
+           "parameters...\n");
+    setup();
+
+    assert(!evidence_get_custom_claim(NULL, 123));
+    assert(!evidence_get_custom_claim((oe_claim_t*)"valid-pointer", 0));
+}
+
 void test_evidence_free() {
     printf("Testing evidence_free...\n");
     setup();
@@ -673,5 +716,9 @@ int main() {
 
     test_evidence_get_claim_ok();
     test_evidence_get_claim_behaves_ok_with_invalid_params();
+
+    test_evidence_get_custom_claim_ok();
+    test_evidence_get_custom_claim_behaves_ok_with_invalid_params();
+
     test_evidence_free();
 }

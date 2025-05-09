@@ -26,6 +26,7 @@
 
 #include <string.h>
 #include <secp256k1.h>
+#include <secp256k1_ecdh.h>
 #include <openenclave/corelibc/stdlib.h>
 
 #include "hal/exceptions.h"
@@ -42,6 +43,8 @@
 #include "compiletime.h"
 #include "evidence.h"
 #include "util.h"
+#include "random.h"
+#include "aes_gcm.h"
 
 // Authorizers' public keys length (uncompressed format)
 #define AUTHORIZED_SIGNER_PUBKEY_LENGTH 65
@@ -132,6 +135,11 @@ typedef struct {
     uint8_t* evidence;
     size_t evidence_size;
     bool evidence_external;
+
+    uint8_t my_privkey[PRIVATE_KEY_LENGTH];
+    uint8_t my_pubkey[PUBKEY_CMP_LENGTH];
+    size_t my_pubkey_len;
+    uint8_t their_pubkey[PUBKEY_CMP_LENGTH];
 
     size_t trx_offset;
 } upgrade_ctx_t;
@@ -297,20 +305,15 @@ static bool receive_data(volatile unsigned int rx,
 void upgrade_init() {
     // Build should fail when more authorizers than supported are provided
     COMPILE_TIME_ASSERT(TOTAL_AUTHORIZERS <= MAX_AUTHORIZERS);
+    // Build should fail if hash size size differs from expected key size
+    COMPILE_TIME_ASSERT(HASH_LENGTH == AES_GCM_KEY_SIZE);
 
     reset_upgrade();
     LOG("Upgrade module initialized\n");
 }
 
-#define DUMMY_KEY                                                             \
-    {                                                                         \
-        0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x22,     \
-            0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x33, 0x33, \
-            0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x44, 0x44,       \
-    }
-
 unsigned int do_upgrade(volatile unsigned int rx) {
-    uint8_t key[] = DUMMY_KEY;
+    uint8_t key[AES_GCM_KEY_SIZE];
     size_t sz = 0;
     uint8_t tx;
     bool baux;
@@ -328,6 +331,7 @@ unsigned int do_upgrade(volatile unsigned int rx) {
     switch (APDU_OP()) {
     case OP_UPGRADE_START:
         check_state(upgrade_state_await_spec);
+
         // We expect a from/to upgrade spec plus an operation type byte
         if (APDU_DATA_SIZE(rx) != UPGRADE_MRENCLAVE_SIZE * 2 + 1) {
             reset_upgrade();
@@ -383,7 +387,6 @@ unsigned int do_upgrade(volatile unsigned int rx) {
             error = ERR_UPGRADE_INTERNAL;
             goto do_upgrade_start_error;
         }
-        LOG_HEX("EVIDENCE:", upgrade_ctx.evidence, upgrade_ctx.evidence_size);
         if (!evidence_verify_and_extract_claims(EVIDENCE_FORMAT,
                                                 upgrade_ctx.evidence,
                                                 upgrade_ctx.evidence_size,
@@ -424,12 +427,13 @@ unsigned int do_upgrade(volatile unsigned int rx) {
         THROW(error);
     case OP_UPGRADE_SPEC_SIG:
         check_state(upgrade_state_await_spec_sigs);
+
         if (APDU_DATA_SIZE(rx) < 1) {
             reset_upgrade();
             THROW(ERR_UPGRADE_PROTOCOL);
         }
         // Check to see whether we find a matching authorized signer
-        secp_ctx = secp256k1_context_create(SECP256K1_CONTEXT_VERIFY);
+        secp_ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
         if (!secp256k1_ecdsa_signature_parse_der(
                 secp_ctx, &signature, APDU_DATA_PTR, APDU_DATA_SIZE(rx))) {
             secp256k1_context_destroy(secp_ctx);
@@ -484,6 +488,31 @@ unsigned int do_upgrade(volatile unsigned int rx) {
         check_state(upgrade_state_send_self_id);
 
         if (!upgrade_ctx.evidence) {
+            secp_ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
+            do {
+                if (!random_getrandom(upgrade_ctx.my_privkey,
+                                      sizeof(upgrade_ctx.my_privkey))) {
+                    LOG("Unable to generate private key\n");
+                    THROW(ERR_UPGRADE_INTERNAL);
+                }
+            } while (!secp256k1_ec_pubkey_create(
+                secp_ctx, &pubkey, upgrade_ctx.my_privkey));
+            upgrade_ctx.my_pubkey_len = sizeof(upgrade_ctx.my_pubkey);
+            secp256k1_ec_pubkey_serialize(secp_ctx,
+                                          upgrade_ctx.my_pubkey,
+                                          &upgrade_ctx.my_pubkey_len,
+                                          &pubkey,
+                                          SECP256K1_EC_COMPRESSED);
+            if (upgrade_ctx.my_pubkey_len != sizeof(upgrade_ctx.my_pubkey)) {
+                LOG("Unable to serialize pubkey\n");
+                reset_upgrade();
+                secp256k1_context_destroy(secp_ctx);
+                THROW(ERR_UPGRADE_INTERNAL);
+            }
+            LOG_HEX("My pubkey:",
+                    upgrade_ctx.my_pubkey,
+                    sizeof(upgrade_ctx.my_pubkey));
+            secp256k1_context_destroy(secp_ctx);
             explicit_bzero(&format, sizeof(format));
             format.id = EVIDENCE_FORMAT;
             if (!evidence_get_format_settings(&format)) {
@@ -496,8 +525,8 @@ unsigned int do_upgrade(volatile unsigned int rx) {
                    UPGRADE_MRENCLAVE_SIZE);
             upgrade_ctx.evidence_external = false;
             if (!evidence_generate(&format,
-                                   NULL,
-                                   0,
+                                   upgrade_ctx.my_pubkey,
+                                   sizeof(upgrade_ctx.my_pubkey),
                                    &upgrade_ctx.evidence,
                                    &upgrade_ctx.evidence_size)) {
                 LOG("Unable to generate enclave evidence for peer\n");
@@ -524,6 +553,7 @@ unsigned int do_upgrade(volatile unsigned int rx) {
         return TX_FOR_DATA_SIZE(tx);
     case OP_UPGRADE_IDENTIFY_PEER:
         check_state(upgrade_state_await_peer_id);
+
         upgrade_ctx.evidence_external = true;
         if (receive_data(rx,
                          &upgrade_ctx.evidence,
@@ -555,8 +585,27 @@ unsigned int do_upgrade(volatile unsigned int rx) {
                 "mrenclave\n");
             goto do_upgrade_identify_peer_error;
         }
+        if (!(claim = evidence_get_custom_claim(claims, claims_size))) {
+            LOG("Error extracting peer enclave's public key\n");
+            goto do_upgrade_identify_peer_error;
+        }
+        secp_ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
+        if (claim->value_size != sizeof(upgrade_ctx.their_pubkey) ||
+            !secp256k1_ec_pubkey_parse(
+                secp_ctx, &pubkey, claim->value, claim->value_size)) {
+            LOG("Invalid peer public key received");
+            secp256k1_context_destroy(secp_ctx);
+            goto do_upgrade_identify_peer_error;
+        }
+        secp256k1_context_destroy(secp_ctx);
+        memcpy(upgrade_ctx.their_pubkey, claim->value, claim->value_size);
+        LOG_HEX("Peer public key:",
+                upgrade_ctx.their_pubkey,
+                sizeof(upgrade_ctx.their_pubkey));
         upgrade_ctx.state = upgrade_state_ready_for_xchg;
         SET_APDU_OP(0); // Done
+        if (claims)
+            oe_free(claims);
         free_evidence();
         return TX_NO_DATA();
     do_upgrade_identify_peer_error:
@@ -566,6 +615,29 @@ unsigned int do_upgrade(volatile unsigned int rx) {
         THROW(ERR_UPGRADE_AUTH);
     case OP_UPGRADE_PROCESS_DATA:
         check_state(upgrade_state_ready_for_xchg);
+
+        secp_ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
+        if (!secp256k1_ec_pubkey_parse(secp_ctx,
+                                       &pubkey,
+                                       upgrade_ctx.their_pubkey,
+                                       sizeof(upgrade_ctx.their_pubkey)) ||
+            !secp256k1_ecdh(secp_ctx,
+                            key,
+                            &pubkey,
+                            upgrade_ctx.my_privkey,
+                            secp256k1_ecdh_hash_function_sha256,
+                            NULL)) {
+            LOG("Unable to generate data processing key\n");
+            reset_upgrade();
+            secp256k1_context_destroy(secp_ctx);
+            THROW(ERR_UPGRADE_INTERNAL);
+        }
+        secp256k1_context_destroy(secp_ctx);
+        explicit_bzero(upgrade_ctx.my_privkey, sizeof(upgrade_ctx.my_privkey));
+        explicit_bzero(upgrade_ctx.my_pubkey, sizeof(upgrade_ctx.my_pubkey));
+        explicit_bzero(upgrade_ctx.their_pubkey,
+                       sizeof(upgrade_ctx.their_pubkey));
+
         switch (upgrade_ctx.operation) {
         case upgrade_operation_export:
             LOG("Exporting data...\n");
@@ -594,6 +666,8 @@ unsigned int do_upgrade(volatile unsigned int rx) {
             return TX_NO_DATA();
         default:
             // We should never reach this point
+            LOG("Inconsistent internal state when processing data\n");
+            reset_upgrade();
             THROW(ERR_UPGRADE_INTERNAL);
         }
     default:
