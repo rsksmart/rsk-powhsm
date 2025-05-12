@@ -76,6 +76,8 @@ class SGXMigrationAuthorization:
 
     def add_signature(self, signature):
         self._assert_signature_valid(signature)
+        if self._contains_signature(signature):
+            raise ValueError("Signature already exists")
         self._signatures.append(signature)
 
     def to_dict(self):
@@ -94,6 +96,9 @@ class SGXMigrationAuthorization:
             ec.PrivateKey().ecdsa_deserialize(bytes.fromhex(signature))
         except Exception as e:
             raise ValueError(f"Invalid DER signature: {signature}: {e}")
+
+    def _contains_signature(self, signature):
+        return signature in self._signatures
 
 
 class SGXMigrationSpec:

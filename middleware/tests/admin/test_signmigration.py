@@ -21,7 +21,7 @@
 # SOFTWARE.
 
 from unittest import TestCase
-from unittest.mock import Mock, call, patch
+from unittest.mock import Mock, call, patch, mock_open
 from signmigration import main
 from admin.bip32 import BIP32Path
 import ecdsa
@@ -99,6 +99,34 @@ class TestSignMigrationMessage(TestCase):
             self.migration_auth.save_to_jsonfile.call_args_list
         )
 
+    def test_missing_exporter(self, info_mock, migration_spec_mock, migration_auth_mock):
+        with patch("sys.argv", ["signmigration.py", "message",
+                                "-i", "importer-hash"]):
+            with self.assertRaises(SystemExit) as exit:
+                main()
+
+        self.assertEqual(exit.exception.code, RETURN_ERROR)
+        self.assertEqual(
+            [call("Must provide an exporter hash (-e/--exporter)")],
+            info_mock.call_args_list
+        )
+        migration_spec_mock.assert_not_called()
+        migration_auth_mock.for_spec.assert_not_called()
+
+    def test_missing_importer(self, info_mock, migration_spec_mock, migration_auth_mock):
+        with patch("sys.argv", ["signmigration.py", "message",
+                                "-e", "exporter-hash"]):
+            with self.assertRaises(SystemExit) as exit:
+                main()
+
+        self.assertEqual(exit.exception.code, RETURN_ERROR)
+        self.assertEqual(
+            [call("Must provide an importer hash (-i/--importer)")],
+            info_mock.call_args_list
+        )
+        migration_spec_mock.assert_not_called()
+        migration_auth_mock.for_spec.assert_not_called()
+
 
 @patch("signmigration.isfile")
 @patch("signmigration.SGXMigrationAuthorization")
@@ -155,6 +183,65 @@ class TestSignMigrationManual(TestCase):
         )
         migration_auth_mock.from_jsonfile.assert_not_called()
 
+    def test_missing_signature(self, info_mock, migration_auth_mock, isfile_mock):
+        migration_auth = Mock()
+        migration_auth_mock.from_jsonfile.return_value = migration_auth
+        isfile_mock.return_value = True
+
+        with patch("sys.argv", ["signmigration.py", "manual",
+                                "-o", "an-output-path"]):
+            with self.assertRaises(SystemExit) as exit:
+                main()
+
+        self.assertEqual(exit.exception.code, RETURN_ERROR)
+        self.assertEqual(
+            [
+                call("Must provide a signature (-g/--signature)"),
+            ],
+            info_mock.call_args_list
+        )
+        migration_auth_mock.from_jsonfile.assert_not_called()
+        migration_auth.add_signature.assert_not_called()
+        migration_auth.save_to_jsonfile.assert_not_called()
+
+    def test_missing_output_file(self, info_mock, migration_auth_mock, isfile_mock):
+        with patch("sys.argv", ["signmigration.py", "manual",
+                                "-g", "a-signature"]):
+            with self.assertRaises(SystemExit) as exit:
+                main()
+
+        self.assertEqual(exit.exception.code, RETURN_ERROR)
+        self.assertEqual(
+            [
+                call("Must provide an output path (-o/--output)"),
+            ],
+            info_mock.call_args_list
+        )
+        isfile_mock.assert_not_called()
+        migration_auth_mock.from_jsonfile.assert_not_called()
+        migration_auth_mock.add_signature.assert_not_called()
+        migration_auth_mock.save_to_jsonfile.assert_not_called()
+
+    def test_non_existent_output_file(self, info_mock, migration_auth_mock, isfile_mock):
+        isfile_mock.return_value = False
+
+        with patch("sys.argv", ["signmigration.py", "manual",
+                                "-o", "an-output-path"]):
+            with self.assertRaises(SystemExit) as exit:
+                main()
+
+        self.assertEqual(exit.exception.code, RETURN_ERROR)
+        isfile_mock.assert_called_once_with("an-output-path")
+        self.assertEqual(
+            [
+                call("Invalid output path: an-output-path"),
+            ],
+            info_mock.call_args_list
+        )
+        migration_auth_mock.from_jsonfile.assert_not_called()
+        migration_auth_mock.add_signature.assert_not_called()
+        migration_auth_mock.save_to_jsonfile.assert_not_called()
+
 
 @patch("signmigration.isfile")
 @patch("signmigration.SGXMigrationAuthorization")
@@ -197,6 +284,80 @@ class TestSignMigrationKey(TestCase):
             info_mock.call_args_list
         )
 
+    def test_missing_key(self, info_mock, migration_auth_mock, isfile_mock):
+        isfile_mock.return_value = True
+
+        with patch("sys.argv", ["signmigration.py", "key",
+                                "-o", "an-output-path"]):
+            with self.assertRaises(SystemExit) as exit:
+                main()
+
+        self.assertEqual(exit.exception.code, RETURN_ERROR)
+        self.assertEqual(
+            [
+                call("Must provide a signing key (-k/--key)"),
+            ],
+            info_mock.call_args_list
+        )
+        migration_auth_mock.from_jsonfile.assert_not_called()
+        migration_auth_mock.add_signature.assert_not_called()
+        migration_auth_mock.save_to_jsonfile.assert_not_called()
+
+    def test_invalid_key(self, info_mock, migration_auth_mock, isfile_mock):
+        isfile_mock.return_value = True
+
+        with patch("sys.argv", ["signmigration.py", "key",
+                                "-o", "an-output-path",
+                                "-k", "invalid-key"]):
+            with self.assertRaises(SystemExit) as exit:
+                main()
+
+        self.assertEqual(exit.exception.code, RETURN_ERROR)
+        self.assertEqual(
+            [
+                call("Invalid key 'invalid-key'"),
+            ],
+            info_mock.call_args_list
+        )
+        migration_auth_mock.from_jsonfile.assert_not_called()
+        migration_auth_mock.add_signature.assert_not_called()
+        migration_auth_mock.save_to_jsonfile.assert_not_called()
+
+    def test_missing_output_file(self, info_mock, migration_auth_mock, isfile_mock):
+        with patch("sys.argv", ["signmigration.py", "key",
+                                "-k", "aa"*32]):
+            with self.assertRaises(SystemExit) as exit:
+                main()
+
+        self.assertEqual(exit.exception.code, RETURN_ERROR)
+        self.assertEqual(
+            [
+                call("Must provide an output path (-o/--output)"),
+            ],
+            info_mock.call_args_list
+        )
+        isfile_mock.assert_not_called()
+        migration_auth_mock.from_jsonfile.assert_not_called()
+
+    def test_non_existent_output_file(self, info_mock, migration_auth_mock, isfile_mock):
+        isfile_mock.return_value = False
+
+        with patch("sys.argv", ["signmigration.py", "key",
+                                "-o", "an-output-path",
+                                "-k", "aa"*32]):
+            with self.assertRaises(SystemExit) as exit:
+                main()
+
+        self.assertEqual(exit.exception.code, RETURN_ERROR)
+        isfile_mock.assert_called_once_with("an-output-path")
+        self.assertEqual(
+            [
+                call("Invalid output path: an-output-path"),
+            ],
+            info_mock.call_args_list
+        )
+        migration_auth_mock.from_jsonfile.assert_not_called()
+
 
 @patch("signmigration.isfile")
 @patch("signmigration.dispose_eth_dongle")
@@ -225,10 +386,12 @@ class TestSignMigrationEth(TestCase):
         get_eth_mock.return_value = eth_mock
         isfile_mock.return_value = True
 
-        with patch("sys.argv", ["signmigration.py", "eth",
-                                "-o", "an-output-path", "-b"]):
-            with self.assertRaises(SystemExit) as exit:
-                main()
+        mock_file = mock_open()
+        with patch("builtins.open", mock_file) as open_mock:
+            with patch("sys.argv", ["signmigration.py", "eth",
+                                    "-o", "an-output-path", "-b"]):
+                with self.assertRaises(SystemExit) as exit:
+                    main()
 
         self.assertEqual(exit.exception.code, RETURN_SUCCESS)
         get_eth_mock.assert_called_once()
@@ -243,6 +406,10 @@ class TestSignMigrationEth(TestCase):
             ],
             info_mock.call_args_list
         )
+        # Verify the file was opened in write mode
+        open_mock.assert_called_once_with("an-output-path", "w")
+        # Verify the correct content was written
+        mock_file.return_value.write.assert_called_once_with("aa"*32 + "\n")
 
     def test_existingfile_ok(
             self,
@@ -292,3 +459,146 @@ class TestSignMigrationEth(TestCase):
                              sigdecode=ecdsa.util.sigdecode_der)
         self.assertEqual([call("an-output-path")],
                          migration_auth.save_to_jsonfile.call_args_list)
+
+    def test_missing_output_file(
+            self,
+            info_mock,
+            migration_auth_mock,
+            migration_spec_mock,
+            bip32path_mock,
+            get_eth_mock,
+            dispose_eth_mock,
+            isfile_mock):
+
+        with patch("sys.argv", ["signmigration.py", "eth"]):
+            with self.assertRaises(SystemExit) as exit:
+                main()
+
+        self.assertEqual(exit.exception.code, RETURN_ERROR)
+        self.assertEqual(
+            [call("Must provide an output path (-o/--output)")],
+            info_mock.call_args_list
+        )
+        get_eth_mock.assert_not_called()
+        dispose_eth_mock.assert_not_called()
+
+    def test_get_eth_dongle_exception(
+            self,
+            info_mock,
+            migration_auth_mock,
+            migration_spec_mock,
+            bip32path_mock,
+            get_eth_mock,
+            dispose_eth_mock,
+            isfile_mock):
+
+        bip32path_mock.return_value = BIP32Path("m/44'/60'/0'/0/0")
+        get_eth_mock.side_effect = Exception("Dongle connection error")
+
+        with patch("sys.argv", ["signmigration.py", "eth",
+                                "-o", "an-output-path"]):
+            with self.assertRaises(SystemExit) as exit:
+                main()
+
+        self.assertEqual(exit.exception.code, RETURN_ERROR)
+        bip32path_mock.assert_called_once_with("m/44'/60'/0'/0/0")
+        get_eth_mock.assert_called_once()
+        self.assertEqual(
+            [call("Error signing with dongle: Dongle connection error")],
+            info_mock.call_args_list
+        )
+        # dispose_eth_dongle should be called even if get_eth_dongle fails
+        dispose_eth_mock.assert_called_once_with(None)
+
+    def test_get_pubkey_exception(
+            self,
+            info_mock,
+            migration_auth_mock,
+            migration_spec_mock,
+            bip32path_mock,
+            get_eth_mock,
+            dispose_eth_mock,
+            isfile_mock):
+
+        bip32path_mock.return_value = BIP32Path("m/44'/60'/0'/0/0")
+        eth_mock = Mock()
+        eth_mock.get_pubkey.side_effect = Exception("Could not get pubkey")
+        get_eth_mock.return_value = eth_mock
+
+        with patch("sys.argv", ["signmigration.py", "eth",
+                                "-o", "an-output-path"]):
+            with self.assertRaises(SystemExit) as exit:
+                main()
+
+        self.assertEqual(exit.exception.code, RETURN_ERROR)
+        bip32path_mock.assert_called_once_with("m/44'/60'/0'/0/0")
+        get_eth_mock.assert_called_once()
+        eth_mock.get_pubkey.assert_called_once_with(BIP32Path("m/44'/60'/0'/0/0"))
+        self.assertEqual(
+            [
+                call("Retrieving public key for path 'm/44\'/60\'/0\'/0/0'..."),
+                call("Error signing with dongle: Could not get pubkey")
+            ],
+            info_mock.call_args_list
+        )
+        dispose_eth_mock.assert_called_once_with(eth_mock)
+
+    def test_bad_signature(
+            self,
+            info_mock,
+            migration_auth_mock,
+            migration_spec_mock,
+            bip32path_mock,
+            get_eth_mock,
+            dispose_eth_mock,
+            isfile_mock):
+
+        migration_spec = Mock()
+        migration_spec.get_authorization_digest.return_value = bytes.fromhex("aa"*32)
+        migration_spec.msg = "RSK_powHSM_SGX_upgrade_from_exporter_to_importer"
+        migration_auth = Mock()
+        migration_auth.migration_spec = migration_spec
+        migration_auth_mock.from_jsonfile.return_value = migration_auth
+        bip32path_mock.return_value = BIP32Path("m/44'/60'/0'/0/0")
+
+        # Generate a valid key pair
+        privkey = ecdsa.SigningKey.from_string(bytes.fromhex("dd"*32),
+                                               curve=ecdsa.SECP256k1)
+        pubkey = privkey.get_verifying_key()
+
+        eth_mock = Mock()
+        eth_mock.get_pubkey.return_value = pubkey.to_string("uncompressed")
+        # Sign a DIFFERENT digest to create a bad signature for the expected digest
+        bad_signature = privkey.sign_digest(
+            bytes.fromhex("cc"*32), sigencode=ecdsa.util.sigencode_der)
+        eth_mock.sign.return_value = bad_signature
+        get_eth_mock.return_value = eth_mock
+        isfile_mock.return_value = True
+
+        with patch("sys.argv", ["signmigration.py", "eth",
+                                "-o", "an-output-path"]):
+            with self.assertRaises(SystemExit) as exit:
+                main()
+
+        self.assertEqual(exit.exception.code, RETURN_ERROR)
+        isfile_mock.assert_called_once_with("an-output-path")
+        migration_auth_mock.from_jsonfile.assert_called_once_with("an-output-path")
+        get_eth_mock.assert_called_once()
+        eth_mock.get_pubkey.assert_called_once_with(BIP32Path("m/44'/60'/0'/0/0"))
+        eth_mock.sign.assert_called_once_with(
+            BIP32Path("m/44'/60'/0'/0/0"),
+            b"RSK_powHSM_SGX_upgrade_from_exporter_to_importer"
+        )
+        self.assertEqual(
+            [
+                call("Retrieving public key for path 'm/44\'/60\'/0\'/0/0'..."),
+                call(f"Public key: {pubkey.to_string('uncompressed').hex()}"),
+                call("Opening SGX migration authorization file an-output-path..."),
+                call("Signing with dongle..."),
+                call(f"Bad signature from dongle! (got '{bad_signature.hex()}')")
+            ],
+            info_mock.call_args_list
+        )
+        migration_auth.add_signature.assert_not_called()
+        migration_auth.save_to_jsonfile.assert_not_called()
+        dispose_eth_mock.assert_called_once_with(eth_mock)
