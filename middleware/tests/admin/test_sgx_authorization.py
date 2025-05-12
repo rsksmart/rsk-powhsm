@@ -97,10 +97,14 @@ class TestSGXAuthorization(TestCase):
         self.sa.add_signature(new_sig)
         self.assertEqual(self.sa.signatures, self.sigs + [new_sig])
 
-    def test_add_duplicate_signature(self):
-        # Adding the same signature should be allowed
-        self.sa.add_signature(self.sigs[0])
-        self.assertEqual(self.sa.signatures, self.sigs + [self.sigs[0]])
+    def test_add_duplicate_signature_not_allowed(self):
+        # Adding the same signature should not be allowed
+        with self.assertRaises(ValueError) as e:
+            self.sa.add_signature(self.sigs[0])
+        self.assertEqual(
+            str(e.exception),
+            "Signature already exists"
+        )
 
     def test_add_invalid_signature(self):
         # Test signature validation with various invalid formats
@@ -259,15 +263,6 @@ class TestSGXAuthorization(TestCase):
                         b"_to_" + self.importer_mrenclave.encode("ASCII"))
         self.assertEqual(expected_msg, self.sa.migration_spec.get_authorization_msg())
 
-    def test_authorization_digest(self):
-        # Test authorization digest generation
-        msg = self.sa.migration_spec.get_authorization_msg()
-        expected_digest = keccak_256(msg)
-        self.assertEqual(
-            expected_digest,
-            self.sa.migration_spec.get_authorization_digest()
-        )
-
 
 class TestMigrationSpec(TestCase):
     def setUp(self):
@@ -316,6 +311,12 @@ class TestMigrationSpec(TestCase):
             "importer": self.importer_mrenclave,
         }
         self.assertEqual(expected_dict, self.migration_spec.to_dict())
+
+    def test_msg_generation(self):
+        # Test non-prefixed message generation
+        expected_msg = (f"RSK_powHSM_SGX_upgrade_from_{self.exporter_mrenclave}"
+                        f"_to_{self.importer_mrenclave}")
+        self.assertEqual(expected_msg, self.migration_spec.msg)
 
     def test_authorization_message(self):
         # Test authorization message format
