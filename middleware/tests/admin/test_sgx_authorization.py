@@ -314,8 +314,9 @@ class TestMigrationSpec(TestCase):
 
     def test_msg_generation(self):
         # Test non-prefixed message generation
-        expected_msg = (f"RSK_powHSM_SGX_upgrade_from_{self.exporter_mrenclave}"
-                        f"_to_{self.importer_mrenclave}")
+        expected_msg = (f"RSK_powHSM_SGX_upgrade_from_"
+                        f"{'aa' * 32}"
+                        f"_to_{'bb' * 32}")
         self.assertEqual(expected_msg, self.migration_spec.msg)
 
     def test_authorization_message(self):
