@@ -31,7 +31,7 @@ import logging
 logging.disable(logging.CRITICAL)
 
 
-class TestSGXAuthorization(TestCase):
+class TestSGXMigrationAuthorization(TestCase):
     def setUp(self):
         # Sample valid DER signatures
         self.sigs = [
@@ -264,7 +264,7 @@ class TestSGXAuthorization(TestCase):
         self.assertEqual(expected_msg, self.sa.migration_spec.get_authorization_msg())
 
 
-class TestMigrationSpec(TestCase):
+class TestSGXMigrationSpec(TestCase):
     def setUp(self):
         # Sample mrenclave values (32-byte hex strings)
         self.exporter_mrenclave = "aa" * 32
