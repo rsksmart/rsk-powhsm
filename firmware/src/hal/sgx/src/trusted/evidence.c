@@ -227,6 +227,11 @@ oe_claim_t* evidence_get_claim(oe_claim_t* claims,
     return NULL;
 }
 
+oe_claim_t* evidence_get_custom_claim(oe_claim_t* claims, size_t claims_size) {
+    return evidence_get_claim(
+        claims, claims_size, OE_CLAIM_CUSTOM_CLAIMS_BUFFER);
+}
+
 void evidence_free(uint8_t* evidence_buffer) {
     if (evidence_buffer)
         oe_free_evidence(evidence_buffer);
