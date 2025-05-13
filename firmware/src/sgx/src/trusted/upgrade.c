@@ -198,15 +198,15 @@ static void check_state(upgrade_state_t expected) {
 static bool generate_message_to_verify() {
     uint8_t message_size;
     uint8_t aux_buf[4]; // Hold at most three digits plus a null terminator
-    hash_sha256_ctx_t hash_ctx;
+    hash_keccak256_ctx_t hash_ctx;
 
-    if (!hash_sha256_init(&hash_ctx))
+    if (!hash_keccak256_init(&hash_ctx))
         goto generate_message_to_verify_error;
 
     // Hash eth prefix
-    if (!hash_sha256_update(&hash_ctx,
-                            (const uint8_t*)ETHEREUM_MSG_PREFIX,
-                            ETHEREUM_MSG_PREFIX_LENGTH))
+    if (!hash_keccak256_update(&hash_ctx,
+                               (const uint8_t*)ETHEREUM_MSG_PREFIX,
+                               ETHEREUM_MSG_PREFIX_LENGTH))
         goto generate_message_to_verify_error;
 
     // Compute total message size
@@ -217,34 +217,34 @@ static bool generate_message_to_verify() {
 
     // Hash message size
     UINT_TO_DECSTR(aux_buf, message_size);
-    if (!hash_sha256_update(&hash_ctx, aux_buf, strlen((char*)aux_buf)))
+    if (!hash_keccak256_update(&hash_ctx, aux_buf, strlen((char*)aux_buf)))
         goto generate_message_to_verify_error;
 
     // Hash message
-    if (!hash_sha256_update(&hash_ctx,
-                            (uint8_t*)SGX_UPG_SPEC_MSG_P1,
-                            SGX_UPG_SPEC_MSG_P1_LENGTH))
+    if (!hash_keccak256_update(&hash_ctx,
+                               (uint8_t*)SGX_UPG_SPEC_MSG_P1,
+                               SGX_UPG_SPEC_MSG_P1_LENGTH))
         goto generate_message_to_verify_error;
 
     for (unsigned int i = 0; i < sizeof(upgrade_ctx.spec.mrenclave_from); i++) {
         BYTE_TO_HEXSTR(aux_buf, upgrade_ctx.spec.mrenclave_from[i]);
-        if (!hash_sha256_update(&hash_ctx, aux_buf, 2))
+        if (!hash_keccak256_update(&hash_ctx, aux_buf, 2))
             goto generate_message_to_verify_error;
     }
 
-    if (!hash_sha256_update(&hash_ctx,
-                            (uint8_t*)SGX_UPG_SPEC_MSG_P2,
-                            SGX_UPG_SPEC_MSG_P2_LENGTH))
+    if (!hash_keccak256_update(&hash_ctx,
+                               (uint8_t*)SGX_UPG_SPEC_MSG_P2,
+                               SGX_UPG_SPEC_MSG_P2_LENGTH))
         goto generate_message_to_verify_error;
 
     for (unsigned int i = 0; i < sizeof(upgrade_ctx.spec.mrenclave_to); i++) {
         BYTE_TO_HEXSTR(aux_buf, upgrade_ctx.spec.mrenclave_to[i]);
-        if (!hash_sha256_update(&hash_ctx, aux_buf, 2))
+        if (!hash_keccak256_update(&hash_ctx, aux_buf, 2))
             goto generate_message_to_verify_error;
     }
 
     // Output hash
-    if (!hash_sha256_final(&hash_ctx, upgrade_ctx.expected_message_hash))
+    if (!hash_keccak256_final(&hash_ctx, upgrade_ctx.expected_message_hash))
         goto generate_message_to_verify_error;
     return true;
 
@@ -442,7 +442,6 @@ unsigned int do_upgrade(volatile unsigned int rx) {
         }
         signature_valid = 0;
         for (unsigned int i = 0; i < TOTAL_AUTHORIZERS; i++) {
-
             // Attempt to verify against this public key
             if (!secp256k1_ec_pubkey_parse(
                     secp_ctx,
