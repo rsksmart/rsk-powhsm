@@ -312,7 +312,11 @@ void upgrade_init() {
     LOG("Upgrade module initialized\n");
 }
 
-unsigned int do_upgrade(volatile unsigned int rx) {
+void upgrade_reset() {
+    reset_upgrade();
+}
+
+unsigned int upgrade_process_apdu(volatile unsigned int rx) {
     uint8_t key[AES_GCM_KEY_SIZE];
     size_t sz = 0;
     uint8_t tx;
@@ -385,7 +389,7 @@ unsigned int do_upgrade(volatile unsigned int rx) {
                                &upgrade_ctx.evidence_size)) {
             LOG("Unable to generate enclave evidence for self\n");
             error = ERR_UPGRADE_INTERNAL;
-            goto do_upgrade_start_error;
+            goto upgrade_process_apdu_start_error;
         }
         if (!evidence_verify_and_extract_claims(EVIDENCE_FORMAT,
                                                 upgrade_ctx.evidence,
@@ -394,13 +398,13 @@ unsigned int do_upgrade(volatile unsigned int rx) {
                                                 &claims_size)) {
             LOG("Error verifying this enclave's evidence\n");
             error = ERR_UPGRADE_INTERNAL;
-            goto do_upgrade_start_error;
+            goto upgrade_process_apdu_start_error;
         }
         if (!(claim = evidence_get_claim(
                   claims, claims_size, OE_CLAIM_UNIQUE_ID))) {
             LOG("Error extracting this enclave's mrenclave\n");
             error = ERR_UPGRADE_INTERNAL;
-            goto do_upgrade_start_error;
+            goto upgrade_process_apdu_start_error;
         }
         LOG_HEX("This enclave's mrenclave:", claim->value, claim->value_size);
         if (claim->value_size != UPGRADE_MRENCLAVE_SIZE ||
@@ -410,7 +414,7 @@ unsigned int do_upgrade(volatile unsigned int rx) {
             LOG("This enclave's mrenclave does not match the spec's "
                 "mrenclave\n");
             error = ERR_UPGRADE_SPEC;
-            goto do_upgrade_start_error;
+            goto upgrade_process_apdu_start_error;
         }
         generate_message_to_verify();
         LOG_HEX("Message to verify:",
@@ -420,7 +424,7 @@ unsigned int do_upgrade(volatile unsigned int rx) {
         oe_free(claims);
         free_evidence();
         return TX_NO_DATA();
-    do_upgrade_start_error:
+    upgrade_process_apdu_start_error:
         if (claims)
             oe_free(claims);
         reset_upgrade();
@@ -568,12 +572,12 @@ unsigned int do_upgrade(volatile unsigned int rx) {
                                                 &claims,
                                                 &claims_size)) {
             LOG("Error verifying peer enclave's evidence\n");
-            goto do_upgrade_identify_peer_error;
+            goto upgrade_process_apdu_identify_peer_error;
         }
         if (!(claim = evidence_get_claim(
                   claims, claims_size, OE_CLAIM_UNIQUE_ID))) {
             LOG("Error extracting peer enclave's mrenclave\n");
-            goto do_upgrade_identify_peer_error;
+            goto upgrade_process_apdu_identify_peer_error;
         }
         LOG_HEX("Peer enclave's mrenclave:", claim->value, claim->value_size);
         if (claim->value_size != UPGRADE_MRENCLAVE_SIZE ||
@@ -582,11 +586,11 @@ unsigned int do_upgrade(volatile unsigned int rx) {
                    UPGRADE_MRENCLAVE_SIZE) != 0) {
             LOG("Peer enclave's mrenclave does not match the spec's "
                 "mrenclave\n");
-            goto do_upgrade_identify_peer_error;
+            goto upgrade_process_apdu_identify_peer_error;
         }
         if (!(claim = evidence_get_custom_claim(claims, claims_size))) {
             LOG("Error extracting peer enclave's public key\n");
-            goto do_upgrade_identify_peer_error;
+            goto upgrade_process_apdu_identify_peer_error;
         }
         secp_ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
         if (claim->value_size != sizeof(upgrade_ctx.their_pubkey) ||
@@ -594,7 +598,7 @@ unsigned int do_upgrade(volatile unsigned int rx) {
                 secp_ctx, &pubkey, claim->value, claim->value_size)) {
             LOG("Invalid peer public key received");
             secp256k1_context_destroy(secp_ctx);
-            goto do_upgrade_identify_peer_error;
+            goto upgrade_process_apdu_identify_peer_error;
         }
         secp256k1_context_destroy(secp_ctx);
         memcpy(upgrade_ctx.their_pubkey, claim->value, claim->value_size);
@@ -607,7 +611,7 @@ unsigned int do_upgrade(volatile unsigned int rx) {
             oe_free(claims);
         free_evidence();
         return TX_NO_DATA();
-    do_upgrade_identify_peer_error:
+    upgrade_process_apdu_identify_peer_error:
         if (claims)
             oe_free(claims);
         reset_upgrade();

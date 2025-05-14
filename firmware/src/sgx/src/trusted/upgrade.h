@@ -31,17 +31,23 @@
 // SGX upgrade authorization & migration
 // -----------------------------------------------------------------------
 
-/*
+/**
  * Initialize the upgrade module
  */
 void upgrade_init();
 
-/*
- * Implement the upgrade protocol.
- *
- * @arg[in] rx    number of received bytes from the host
- * @ret           number of transmited bytes to the host
+/**
+ * @brief Reset any ongoing reset operations
+ * and clear any current operation context
  */
-unsigned int do_upgrade(volatile unsigned int rx);
+void upgrade_reset();
+
+/**
+ * @brief Implement the upgrade protocol.
+ *
+ * @arg[in] rx  number of received bytes from the host
+ * @returns     number of transmited bytes to the host
+ */
+unsigned int upgrade_process_apdu(volatile unsigned int rx);
 
 #endif // __TRUSTED_UPGRADE_H
