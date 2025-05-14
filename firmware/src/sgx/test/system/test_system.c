@@ -67,8 +67,9 @@ typedef struct mock_calls_counter {
     int sest_init_count;
     int oe_is_outside_enclave_count;
     int upgrade_init_count;
-    int do_upgrade_count;
+    int upgrade_process_apdu_count;
     int evidence_init_count;
+    int upgrade_reset_count;
 } mock_calls_counter_t;
 
 typedef struct nvmem_register_block_args {
@@ -333,10 +334,14 @@ void evidence_finalise() {
     // Nothing to do here
 }
 
-unsigned int do_upgrade(volatile unsigned int rx) {
-    NUM_CALLS(do_upgrade)++;
+unsigned int upgrade_process_apdu(volatile unsigned int rx) {
+    NUM_CALLS(upgrade_process_apdu)++;
     SET_APDU_OP(APDU_OP() * 3);
     return 3;
+}
+
+void upgrade_reset() {
+    NUM_CALLS(upgrade_reset)++;
 }
 
 // Helper functions
@@ -1055,7 +1060,32 @@ void test_upgrade_cmd_handled() {
     assert(3 == system_process_apdu(rx));
     ASSERT_HANDLED();
     ASSERT_APDU("\x80\xA6\x0F");
-    assert(NUM_CALLS(do_upgrade) == 1);
+    assert(NUM_CALLS(upgrade_process_apdu) == 1);
+}
+
+void test_upgrade_resets_when_other_cmds_in_between() {
+    setup();
+    printf("Test upgrade command resets when other commands in between...\n");
+
+    system_init(G_io_apdu_buffer, sizeof(G_io_apdu_buffer));
+    unsigned int rx = 0;
+    SET_APDU("\x80\xA6\x05", rx); // SGX_UPGRADE
+    assert(3 == system_process_apdu(rx));
+    SET_APDU("\x80\xA6\x05", rx); // SGX_UPGRADE
+    assert(3 == system_process_apdu(rx));
+    assert(NUM_CALLS(upgrade_reset) == 1);
+    assert(NUM_CALLS(upgrade_process_apdu) == 2);
+    SET_APDU("\x80\x06\x00", rx); // RSK_IS_ONBOARD
+    system_process_apdu(rx);
+    assert(NUM_CALLS(upgrade_reset) == 2);
+    SET_APDU("\x80\xA6\x05", rx); // SGX_UPGRADE
+    assert(3 == system_process_apdu(rx));
+    assert(NUM_CALLS(upgrade_reset) == 3);
+    assert(NUM_CALLS(upgrade_process_apdu) == 3);
+    SET_APDU("\x80\xA6\x05", rx); // SGX_UPGRADE
+    assert(3 == system_process_apdu(rx));
+    assert(NUM_CALLS(upgrade_reset) == 3);
+    assert(NUM_CALLS(upgrade_process_apdu) == 4);
 }
 
 void test_heartbeat_cmd_throws_unsupported() {
@@ -1131,6 +1161,7 @@ int main() {
     test_retries_cmd_handled();
     test_heartbeat_cmd_throws_unsupported();
     test_upgrade_cmd_handled();
+    test_upgrade_resets_when_other_cmds_in_between();
     test_invalid_cmd_not_handled();
 
     return 0;

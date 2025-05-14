@@ -108,6 +108,16 @@ static unsigned int do_echo(unsigned int rx) {
     return rx;
 }
 
+static unsigned char curr_cmd;
+
+static void reset_unless_cmd_is(unsigned char cmd) {
+    if (cmd != curr_cmd) {
+        // Reset all modules' contexts
+        upgrade_reset();
+        curr_cmd = cmd;
+    }
+}
+
 static external_processor_result_t system_do_process_apdu(unsigned int rx) {
     external_processor_result_t result = {
         .handled = true,
@@ -120,6 +130,7 @@ static external_processor_result_t system_do_process_apdu(unsigned int rx) {
     // take over instead.
     case RSK_MODE_CMD:
         if (access_is_locked()) {
+            reset_unless_cmd_is(RSK_MODE_CMD);
             SET_APDU_CMD(APP_MODE_BOOTLOADER);
             result.tx = 2;
             break;
@@ -127,38 +138,46 @@ static external_processor_result_t system_do_process_apdu(unsigned int rx) {
         result.handled = false;
         break;
     case SGX_ONBOARD:
+        reset_unless_cmd_is(SGX_ONBOARD);
         result.tx = do_onboard(rx);
         break;
     case SGX_IS_LOCKED:
         REQUIRE_ONBOARDED();
+        reset_unless_cmd_is(SGX_IS_LOCKED);
         SET_APDU_OP(access_is_locked() ? 1 : 0);
         result.tx = TX_NO_DATA();
         break;
     case SGX_RETRIES:
         REQUIRE_ONBOARDED();
+        reset_unless_cmd_is(SGX_RETRIES);
         SET_APDU_OP(access_get_retries());
         result.tx = TX_NO_DATA();
         break;
     case SGX_UNLOCK:
         REQUIRE_ONBOARDED();
+        reset_unless_cmd_is(SGX_UNLOCK);
         result.tx = do_unlock(rx);
         break;
     case SGX_ECHO:
+        reset_unless_cmd_is(SGX_ECHO);
         result.tx = do_echo(rx);
         break;
     case SGX_CHANGE_PASSWORD:
         REQUIRE_ONBOARDED();
         REQUIRE_UNLOCKED();
+        reset_unless_cmd_is(SGX_CHANGE_PASSWORD);
         result.tx = do_change_password(rx);
         break;
     case SGX_UPGRADE:
-        result.tx = do_upgrade(rx);
+        reset_unless_cmd_is(SGX_UPGRADE);
+        result.tx = upgrade_process_apdu(rx);
         break;
     case INS_HEARTBEAT:
         // For now, we don't support heartbeat in SGX
         THROW(ERR_INS_NOT_SUPPORTED);
         break;
     default:
+        reset_unless_cmd_is(0);
         result.handled = false;
     }
 
@@ -260,6 +279,7 @@ bool system_init(unsigned char* msg_buffer, size_t msg_buffer_size) {
     LOG("Initializing powHSM...\n");
     hsm_init();
     hsm_set_external_processor(system_do_process_apdu);
+    curr_cmd = 0;
     LOG("powHSM initialized\n");
 
     return true;
