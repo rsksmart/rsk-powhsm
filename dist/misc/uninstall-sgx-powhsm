@@ -48,7 +48,7 @@ function backupInstallDirectory() {
     fi
 
     echo "Creating backup of $WORKING_DIR..."
-    tar czf backup.tgz -C $WORKING_DIR $WORKING_DIR
+    tar czf backup.tgz -C $WORKING_DIR .
     error "Failed to create backup."
 
     echo "Backup created successfully! Find the previous installation in the backup.tgz file."
