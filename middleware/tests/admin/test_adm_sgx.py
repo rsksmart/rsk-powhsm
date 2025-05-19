@@ -46,6 +46,9 @@ class TestAdmSgx(TestCase):
             "operation": None,
             "output_file_path": None,
             "pin": None,
+            "destination_sgx_port": 3333,
+            "destination_sgx_host": "localhost",
+            "migration_authorization_file_path": None,
             "verbose": False,
         }
 
@@ -210,3 +213,39 @@ class TestAdmSgx(TestCase):
         self.assertTrue(do_attestation.called)
         self.assertEqual(do_attestation.call_count, 2)
         self.assertEqual(expected_call_args_list, do_attestation.call_args_list)
+
+    @patch("adm_sgx.do_migrate_db")
+    def test_migrate_db(self, do_migrate_db):
+        expected_options = {
+            **self.DEFAULT_OPTIONS,
+            "operation": "migrate_db",
+            "migration_authorization_file_path": "a-file-path",
+        }
+        expected_call_args_list = [
+            call(Namespace(**expected_options)),
+            call(Namespace(**{
+                **expected_options,
+                "destination_sgx_port": 4444,
+                "destination_sgx_host": "another.host.com"}))
+        ]
+
+        with patch("sys.argv", ["adm_sgx.py",
+                                "migrate_db",
+                                "--migauth", "a-file-path"]):
+            with self.assertRaises(SystemExit) as e:
+                main()
+        self.assertEqual(e.exception.code, 0)
+
+        with patch("sys.argv", ["adm_sgx.py",
+                                "migrate_db",
+                                "-z", "a-file-path",
+                                "--dest-port", "4444",
+                                "--dest-host", "another.host.com"]):
+            with self.assertRaises(SystemExit) as e:
+                main()
+        self.assertEqual(e.exception.code, 0)
+
+        self.assertTrue(do_migrate_db.called)
+        self.assertEqual(do_migrate_db.call_count, 2)
+        for i, call_args in enumerate(expected_call_args_list):
+            self.assertEqual(call_args, do_migrate_db.call_args_list[i], f"Call #{i}")

@@ -32,6 +32,7 @@ from admin.pubkeys import do_get_pubkeys
 from admin.changepin import do_changepin
 from admin.sgx_attestation import do_attestation
 from admin.verify_sgx_attestation import do_verify_attestation
+from admin.migrate_db import do_migrate_db
 
 
 def main():
@@ -44,6 +45,7 @@ def main():
         "changepin": do_changepin,
         "attestation": do_attestation,
         "verify_attestation": do_verify_attestation,
+        "migrate_db": do_migrate_db,
     }
 
     parser = ArgumentParser(description="SGX powHSM Administrative tool")
@@ -124,6 +126,28 @@ def main():
         "--pubkeys",
         dest="pubkeys_file_path",
         help="Public keys file (only valid for 'verify_attestation' operation).",
+    )
+    parser.add_argument(
+        "--dest-port",
+        dest="destination_sgx_port",
+        help="Destination SGX powHSM listening port (default 3333) "
+             "(only valid for 'migrate_db' operations)",
+        type=int,
+        default=3333,
+    )
+    parser.add_argument(
+        "--dest-host",
+        dest="destination_sgx_host",
+        help="Destination SGX powHSM host. (default 'localhost') "
+             "(only valid for 'migrate_db' operations)",
+        default="localhost",
+    )
+    parser.add_argument(
+        "-z",
+        "--migauth",
+        dest="migration_authorization_file_path",
+        help="Migration authorization file (only valid for 'migrate_db' "
+        "operation).",
     )
     parser.add_argument(
         "-v",
