@@ -23,6 +23,13 @@ function promptUserConfirmation() {
     fi
 }
 
+function checkExistingBackup() {
+    if [ -f "backup.tgz" ]; then
+        echo "Error: backup.tgz already exists. Please remove it first."
+        exit 1
+    fi
+}
+
 function backupInstallDirectory() {
     if [ ! -f "/etc/systemd/system/$SERVICE_NAME" ]; then
         echo "Service unit file not found, skipping backup."
@@ -40,13 +47,8 @@ function backupInstallDirectory() {
         return
     fi
 
-    if [ -f "backup.tgz" ]; then
-        echo "Error: backup.tgz already exists. Please remove it first."
-        exit 1
-    fi
-
     echo "Creating backup of $WORKING_DIR..."
-    tar czf backup.tgz -C "$(dirname "$WORKING_DIR")" "$(basename "$WORKING_DIR")"
+    tar czf backup.tgz -C $WORKING_DIR $WORKING_DIR
     error "Failed to create backup."
 
     echo "Backup created successfully! Find the previous installation in the backup.tgz file."
@@ -119,6 +121,7 @@ echo "Welcome to the SGX powHSM uninstall utility"
 echo
 
 promptUserConfirmation
+checkExistingBackup
 echo
 removeService
 echo
