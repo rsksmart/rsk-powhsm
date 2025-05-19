@@ -31,6 +31,24 @@ class SgxCommand(IntEnum):
     SGX_UNLOCK = 0xA3,
     SGX_ECHO = 0xA4,
     SGX_CHANGE_PASSWORD = 0xA5,
+    SGX_UPGRADE = 0xA6,
+
+
+class SgxUpgradeOps(IntEnum):
+    START = 0x01,
+    SPEC_SIG = 0x02,
+    IDENTIFY_SELF = 0x03,
+    IDENTIFY_PEER = 0x04,
+    PROCESS_DATA = 0x05,
+
+
+class SgxUpgradeRoles(IntEnum):
+    EXPORTER = 0x01,
+    IMPORTER = 0x02,
+
+
+EVIDENCE_LEN_BYTES = 2
+EVIDENCE_CHUNK_SIZE = 80
 
 
 class HSM2DongleSGX(HSM2DongleTCP):
@@ -76,3 +94,70 @@ class HSM2DongleSGX(HSM2DongleTCP):
             raise HSM2DongleError("Error onboarding. Got '%s'" % response.hex())
 
         return True
+
+    # Migration operations
+    def migrate_db_spec(self, role, source_mre, destination_mre, signatures):
+        # Send spec and role
+        self._send_command(
+            SgxCommand.SGX_UPGRADE,
+            bytes([SgxUpgradeOps.START]) +
+            bytes([role]) + source_mre + destination_mre)
+
+        # Send signatures
+        for signature in signatures:
+            response = self._send_command(
+                SgxCommand.SGX_UPGRADE,
+                bytes([SgxUpgradeOps.SPEC_SIG]) + signature)
+
+            if response[2] == 0:
+                break
+
+        if response[2] != 0:
+            raise HSM2DongleError("Not enough correct signatures gathered")
+
+    def migrate_db_get_evidence(self):
+        evidence = bytes([])
+        while True:
+            response = self._send_command(
+                SgxCommand.SGX_UPGRADE,
+                bytes([SgxUpgradeOps.IDENTIFY_SELF]))
+
+            evidence += response[3:]
+
+            if response[2] == 0:
+                break
+
+        return evidence
+
+    def migrate_db_send_evidence(self, evidence):
+        evlen = len(evidence).to_bytes(
+                EVIDENCE_LEN_BYTES, byteorder="big", signed=False)
+        offset = 0
+        while True:
+            response = self._send_command(
+                SgxCommand.SGX_UPGRADE,
+                bytes([SgxUpgradeOps.IDENTIFY_PEER]) +
+                (evlen if offset == 0 else bytes([])) +
+                evidence[offset:offset+EVIDENCE_CHUNK_SIZE])
+            offset += EVIDENCE_CHUNK_SIZE
+            if response[2] == 0 or offset >= len(evidence):
+                break
+
+        if response[2] != 0:
+            raise HSM2DongleError("Failed to receive evidence ack")
+
+    def migrate_db_get_data(self):
+        data = self._send_command(
+            SgxCommand.SGX_UPGRADE,
+            bytes([SgxUpgradeOps.PROCESS_DATA]))[3:]
+
+        if len(data) == 0:
+            raise HSM2DongleError("Migration data gathering failed."
+                                  "Expected data but got 0 bytes instead")
+
+        return data
+
+    def migrate_db_send_data(self, data):
+        self._send_command(
+            SgxCommand.SGX_UPGRADE,
+            bytes([SgxUpgradeOps.PROCESS_DATA]) + data)

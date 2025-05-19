@@ -79,10 +79,17 @@ def get_hsm(debug):
     if Platform.is_ledger():
         hsm = HSM2Dongle(debug)
     elif Platform.is_sgx():
-        hsm = HSM2DongleSGX(Platform.options("sgx_host"),
-                            Platform.options("sgx_port"), debug)
+        hsm = get_sgx_hsm(Platform.options("sgx_host"),
+                          Platform.options("sgx_port"), debug)
     else:
         raise AdminError("Platform not set or unknown platform")
+    hsm.connect()
+    info("OK")
+    return hsm
+
+
+def get_sgx_hsm(host, port, debug):
+    hsm = HSM2DongleSGX(host, port, debug)
     hsm.connect()
     info("OK")
     return hsm
@@ -132,7 +139,9 @@ def ask_for_pin(any_pin):
 
 
 def wait_for_reconnection():
-    time.sleep(SIGNER_WAIT_TIME)
+    # This is only ever needed for Ledger
+    if Platform.is_ledger():
+        time.sleep(SIGNER_WAIT_TIME)
 
 
 def get_ud_value_for_attestation(user_provided_ud_source):
