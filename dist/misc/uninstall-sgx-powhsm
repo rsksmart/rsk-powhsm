@@ -1,0 +1,130 @@
+#!/bin/bash
+
+# The name of the service unit that will be uninstalled
+SERVICE_NAME=powhsmsgx.service
+# The internal network name for the powHSM service
+NETWORK=powhsmsgx_net
+# The user name created during the installation
+USER=powhsm
+
+function error() {
+    if [ $? -ne 0 ]; then
+        echo "Error: $1"
+        exit 1
+    fi
+}
+
+function promptUserConfirmation() {
+    echo "Are you sure you want to uninstall the powHSM SGX service from this machine?"
+    read -p "Proceed? [y/N]: " confirm
+    if [ "$confirm" != "Y" ] && [ "$confirm" != "y" ]; then
+        echo "Uninstall cancelled."
+        exit 1
+    fi
+}
+
+function backupInstallDirectory() {
+    if [ ! -f "/etc/systemd/system/$SERVICE_NAME" ]; then
+        echo "Service unit file not found, skipping backup."
+        return
+    fi
+
+    WORKING_DIR=$(grep "^WorkingDirectory=" "/etc/systemd/system/$SERVICE_NAME" | cut -d'=' -f2)
+    if [ -z "$WORKING_DIR" ]; then
+        echo "Could not determine working directory from service unit. Aborting."
+        exit 1
+    fi
+
+    if [ ! -d "$WORKING_DIR" ]; then
+        echo "Working directory $WORKING_DIR does not exist, skipping backup."
+        return
+    fi
+
+    if [ -f "backup.tgz" ]; then
+        echo "Error: backup.tgz already exists. Please remove it first."
+        exit 1
+    fi
+
+    echo "Creating backup of $WORKING_DIR..."
+    tar czf backup.tgz -C "$(dirname "$WORKING_DIR")" "$(basename "$WORKING_DIR")"
+    error "Failed to create backup."
+
+    echo "Backup created successfully! Find the previous installation in the backup.tgz file."
+}
+
+function removeService() {
+    echo "Checking if $SERVICE_NAME is installed..."
+    if ! systemctl list-units --full --all | grep -Fq $SERVICE_NAME; then
+        echo "Service is not installed."
+        return
+    fi
+
+    if systemctl is-active --quiet $SERVICE_NAME; then
+        echo "Stopping $SERVICE_NAME..."
+        systemctl stop $SERVICE_NAME
+        error "Could not stop $SERVICE_NAME."
+    fi
+
+    if systemctl is-enabled --quiet $SERVICE_NAME; then
+        echo "Disabling $SERVICE_NAME..."
+        systemctl disable $SERVICE_NAME
+        error "Could not disable $SERVICE_NAME."
+    fi
+
+    echo "Backing up install directory..."
+    backupInstallDirectory
+
+    echo "Removing $SERVICE_NAME..."
+    rm -f /etc/systemd/system/$SERVICE_NAME
+    error "Could not remove $SERVICE_NAME."
+
+    echo "Reloading systemd daemon..."
+    systemctl daemon-reload
+    error "Could not reload systemd daemon."
+
+    echo "Resetting failed state for $SERVICE_NAME (if any)..."
+    systemctl reset-failed "$SERVICE_NAME" &> /dev/null
+}
+
+function removeUser() {
+    echo "Checking for $USER user..."
+    if ! id -u $USER >/dev/null 2>&1; then
+        echo "User $USER does not exist."
+        return
+    fi
+
+    echo "Removing $USER user..."
+    userdel $USER
+    error "Could not remove the $USER user."
+}
+
+function removeNetwork() {
+    echo "Checking for $NETWORK docker network..."
+    if ! docker network ls | grep -Fq $NETWORK; then
+        echo "Network $NETWORK does not exist."
+        return
+    fi
+
+    echo "Removing $NETWORK docker network..."
+    docker network rm $NETWORK
+    error "Could not remove the $NETWORK docker network."
+}
+
+if ! [ "$(id -u)" == "0" ]; then
+    echo "Please run with sudo."
+    exit 1
+fi
+
+echo "Welcome to the SGX powHSM uninstall utility"
+echo
+
+promptUserConfirmation
+echo
+removeService
+echo
+removeUser
+echo
+removeNetwork
+echo
+
+echo "HSM SGX powHSM uninstall done."
