@@ -124,8 +124,8 @@ fi
 echo "Welcome to the SGX powHSM uninstall utility"
 echo
 
-promptUserConfirmation
 checkExistingBackup
+promptUserConfirmation
 echo
 removeService
 echo
