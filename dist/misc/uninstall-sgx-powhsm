@@ -76,6 +76,10 @@ function removeService() {
     echo "Backing up install directory..."
     backupInstallDirectory
 
+    echo "Removing install directory..."
+    rm -rf $WORKING_DIR
+    error "Could not remove $WORKING_DIR."
+
     echo "Removing $SERVICE_NAME..."
     rm -f /etc/systemd/system/$SERVICE_NAME
     error "Could not remove $SERVICE_NAME."
