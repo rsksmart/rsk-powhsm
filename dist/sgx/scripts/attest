@@ -1,0 +1,56 @@
+#!/bin/bash
+
+ROOT_DIR=$(realpath $(dirname $0)/..)
+source $ROOT_DIR/scripts/print_utils
+
+# The admin command used to interact with the powhsmsgx service
+ADMIN_CMD="$ROOT_DIR/bin/adm_sgx/adm_sgx --host powhsmsgx"
+
+# Directory where attesting result will be saved
+EXPORT_DIR="$ROOT_DIR/export"
+PUBLIC_KEY_FILE="$EXPORT_DIR/public-keys.txt"
+PUBLIC_KEY_FILE_JSON="$EXPORT_DIR/public-keys.json"
+ATTESTATION_FILE="$EXPORT_DIR/attestation.json"
+
+# File with the current pin
+PIN_FILE="$ROOT_DIR/pin.txt"
+
+error() {
+    if [[ $? -ne 0 ]]; then
+        rm -rf $EXPORT_DIR
+        exit 1
+    fi
+}
+
+createOutputDir() {
+    rm -rf $EXPORT_DIR
+    mkdir -p $EXPORT_DIR
+    error
+}
+
+attestation() {
+    $ADMIN_CMD attestation -P$(cat $PIN_FILE) -o $ATTESTATION_FILE
+    error
+}
+
+keys() {
+    $ADMIN_CMD pubkeys -uo $PUBLIC_KEY_FILE
+    error
+}
+
+verify_attestation() {
+    $ADMIN_CMD verify_attestation -t $ATTESTATION_FILE -b $PUBLIC_KEY_FILE_JSON
+    error
+}
+
+print_info "Creating export directory"
+createOutputDir
+echo
+print_info "Gathering attestation"
+attestation
+echo
+print_info "Gathering public keys"
+keys
+echo
+print_info "Verifying attestation"
+verify_attestation

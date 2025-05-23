@@ -1,0 +1,27 @@
+#!/bin/bash
+
+ROOT_DIR=$(realpath $(dirname $0)/..)
+
+# powHSM hostnames
+POWHSM_HOST_EXP="powhsmsgx"
+POWHSM_HOST_IMP="powhsmsgx_tmp"
+
+# powHSM ports
+POWHSM_PORT_EXP="7777"
+POWHSM_PORT_IMP="3333"
+
+# Admin binary
+ADMIN_BIN=$ROOT_DIR/bin/adm_sgx/adm_sgx
+
+# File with the current pin
+PIN_FILE="$ROOT_DIR/pin.txt"
+
+# Migration authorization file
+MIG_AUTH_FILE="$ROOT_DIR/hsm/migration_auth.json"
+
+$ADMIN_BIN migrate_db \
+    --host $POWHSM_HOST_EXP --port $POWHSM_PORT_EXP \
+    -P$(cat $PIN_FILE) \
+    --dest-host $POWHSM_HOST_IMP --dest-port $POWHSM_PORT_IMP \
+    --migauth $MIG_AUTH_FILE
+exit $?

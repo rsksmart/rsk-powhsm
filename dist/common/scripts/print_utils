@@ -27,14 +27,14 @@ else
     txtrst=""
 fi
 
-function print_info() {
+print_info() {
     echo "${txtgrn}$1${txtrst}"
 }
 
-function print_warning() {
+print_warning() {
     echo "${txtylw}$1${txtrst}"
 }
 
-function print_error() {
+print_error() {
     echo "${txtred}$1${txtrst}"
 }
