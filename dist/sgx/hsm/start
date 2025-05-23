@@ -14,11 +14,11 @@ docker build -t $DOCKER_IMAGE $BINDIR $QUIET
 echo -e "\e[96mDocker image build done.\e[0m"
 echo
 
-DOCKER_CNT=powhsmsgx-runner
+DOCKER_CNT="powhsmsgx-runner$POWHSM_UPGRADE_SUFFIX"
 DOCKER_USER="$(id -u):$(id -g)"
-HOSTNAME="powhsmsgx"
+HOSTNAME="powhsmsgx$POWHSM_UPGRADE_SUFFIX"
 NETWORK=powhsmsgx_net
-PORT=7777
+PORT=${POWHSM_UPGRADE_PORT:-7777}
 DOCKER_PORT="$PORT:$PORT"
 SGX_PRV_GID=$(getent group sgx_prv | cut -d: -f3)
 
