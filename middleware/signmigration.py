@@ -95,7 +95,7 @@ def do_key(options):
     )
     signature = sk.sign_digest(
         migration_spec.get_authorization_digest(),
-        sigencode=ecdsa.util.sigencode_der
+        sigencode=ecdsa.util.sigencode_der_canonize
     )
     # Add the signature to the authorization and save it to disk
     sgx_authorization.add_signature(signature.hex())
