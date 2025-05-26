@@ -363,32 +363,26 @@ class TestSignMigrationKey(TestCase):
         migration_auth_mock.from_jsonfile.return_value = migration_auth
         migration_auth.add_signature.return_value = None
         isfile_mock.return_value = True
-
-        # Use a digest that could produce non-canonical signature
-        curve_order = ecdsa.SECP256k1.generator.order()
-        test_digest = bytes.fromhex(f"{(curve_order + 1):064x}")
+        test_digest = bytes.fromhex("bb"*32)
         migration_auth.migration_spec.get_authorization_digest.return_value = test_digest
 
-        with patch("sys.argv", ["signmigration.py", "key",
-                                "-o", "an-output-path",
-                                "-k", "aa"*32]):
-            with self.assertRaises(SystemExit) as exit:
-                main()
+        with patch("signmigration.ecdsa.util.sigencode_der_canonize") as sigencode_mock:
+            known_signature = bytes.fromhex(
+                "30440220" + "11" * 32 + "0220" + "22" * 32
+            )
+            sigencode_mock.return_value = known_signature
+
+            with patch("sys.argv", ["signmigration.py", "key",
+                                    "-o", "an-output-path",
+                                    "-k", "aa"*32]):
+                with self.assertRaises(SystemExit) as exit:
+                    main()
+
+            self.assertEqual(sigencode_mock.call_count, 1)
+            signature_hex = migration_auth.add_signature.call_args_list[0][0][0]
+            self.assertEqual(signature_hex, known_signature.hex())
 
         self.assertEqual(exit.exception.code, RETURN_SUCCESS)
-        signature_hex = migration_auth.add_signature.call_args_list[0][0][0]
-        signature_bytes = bytes.fromhex(signature_hex)
-
-        privkey = ecdsa.SigningKey.from_string(
-            bytes.fromhex("aa"*32),
-            curve=ecdsa.SECP256k1
-        )
-        pubkey = privkey.get_verifying_key()
-        pubkey.verify_digest(signature_bytes, test_digest,
-                             sigdecode=ecdsa.util.sigdecode_der)
-
-        (_, s) = ecdsa.util.sigdecode_der(signature_bytes, curve_order)
-        self.assertLessEqual(s, curve_order // 2)
 
 
 @patch("signmigration.isfile")
