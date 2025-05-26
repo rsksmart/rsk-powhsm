@@ -55,7 +55,7 @@ Unless otherwise stated, only x86 platforms are supported for building this proj
 
 - Build a complete SGX powHSM distribution:
 ```
-~/repo> ./build-dist-sgx <destination path> <checkpoint> <minimum difficulty> <network>
+~/repo> ./build-dist-sgx <destination path> <checkpoint> <minimum difficulty> <network> <signers_file>
 ```
 
 - Build the TCPSigner:
