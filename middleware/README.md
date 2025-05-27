@@ -72,12 +72,13 @@ Hit CTRL-C at any time to stop it.
 
 ### Administrative utilities
 
-Aside from the main `manager_ledger.py`, `manager_sgx.py` and `manager_tcp.py` scripts, there are other three scripts to consider:
+Aside from the main `manager_ledger.py`, `manager_sgx.py` and `manager_tcp.py` scripts, there are other scripts to consider:
 
 - `adm_ledger.py`: administrative utility for a Ledger powHSM dongle. It provides common utilities that can be performed on a powHSM dongle.
 - `adm_sgx.py`: administrative utility for an SGX powHSM. It provides common utilities that can be performed on a running SGX powHSM instance.
 - `lbutils.py`: common frontend to some of the `ledgerblue` modules. In particular, it ultimately serves the purpose of being able to build a binary for these utilities. This is used for Ledger exclusively.
 - `signapp.py`: signer authorization generator. Serves the purpose of generating authorization files for Signer versions (see [the signer authorization documentation](../docs/signer-authorization.md) for details). It can be used to add externally generated signatures, or to sign with a manually input key (intended for testing purposes only). It can also be used to calculate the message to be signed to authorize a specific signer version (so that then the signature can be generated on a third-party application, e.g., MetaMask). Last, it has an option to calculate and output a Ledger app's hash. This is used for Ledger exclusively.
+- `signmigration.py`: SGX migration authorization generator. Serves the purpose of generating authorization files for SGX database migrations. See [the SGX firmware upgrades documentation](../docs/sgx-upgrades.md) for details.
 - `signonetime.py`: ledger app signer. Serves the purpose of signing Ledger Nano S firmware builds with a securely generated random one-time key. It is used in the distribution building process targeting the initial device setup process. This is used for Ledger exclusively.
 
 The remaining `client.py` is a shorthand client utility for manually testing communication with a running Ledger, SGX or TCP manager.

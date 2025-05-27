@@ -57,7 +57,8 @@ Refer to the following documents for details on specifics:
 - [Heartbeat documentation](./docs/heartbeat.md)
 - [Firmware](./firmware/README.md)
 - [Middleware](./middleware/README.md)
-- [Distribution](./dist/README.md)
+- [Ledger distribution](./dist/ledger/README.md)
+- [SGX distribution](./dist/sgx/README.md)
 
 ## Report Security Vulnerabilities
 

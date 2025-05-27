@@ -6,9 +6,7 @@ Signer authorization and upgrading is a feature designed exclusively for the Led
 version of powHSM. Therefore, all the information contained herein must be interpreted as
 applying exclusively to this implementation.
 
-The only other implementation of powHSM, written for the Intel SGX platform, has currently
-got no support for upgrading, and thus an equivalent document to describe such a process
-does not exist.
+The only other implementation of powHSM, written for the Intel SGX platform, has got its own independent firmware upgrade process, described in [this document](./sgx-upgrades.md).
 
 ## Abstract
 

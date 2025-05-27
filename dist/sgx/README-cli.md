@@ -6,17 +6,13 @@ The computer on which the powHSM setup and onboarding is to be executed needs th
 
 - Docker
 
-## Reminders
+## Installation
 
-- Before running the setup script, make sure that the current user has `sudo` privileges
-- Make sure to have the following information at hand:
+Before running the setup script, make sure that the current user has `sudo` privileges. Also, make sure you have the following information at hand:
 	- The absolute path where the powHSM is to be installed
 	- The pin that will be used to connect to the powHSM
 
-All the items listed above will be required during the setup process, and failing to provide them will result in
-the setup script aborting and the entire process will have to be restarted.
-
-## Installation
+All the items listed above will be required during the setup process, and failing to provide them will result in the setup script aborting and the entire process will have to be restarted.
 
 Unless otherwise specified, all commands are to be executed in the machine in which the powHSM is to be installed.
 
@@ -26,10 +22,9 @@ To setup a brand new powHSM, assuming the powHSM distribution is located in `/pa
 /path/to/dist> sudo ./setup-new-powhsm
 ```
 
-and follow the instructions provided by the script. The following subsections provide a detailed description of
-each step. Experienced users can skip to the [What's next](#whats-next) section.
+and follow the instructions provided by the script. The following subsections provide a detailed description of each step. Experienced users can skip to the [What's next](#whats-next) section.
 
-### Selecting the install directory
+### Selecting the installation directory
 
 The first step is to provide the absolute path to the installation directory:
 ```
@@ -54,6 +49,7 @@ Reply with `Y` if the directory is correct and you wish to proceed with the inst
 or you wish to abort the installation, feel free to reply with `N` and start over.
 
 ### powHSM service setup
+
 Once the installation directory is confirmed, the script will proceed with the setup of the powHSM service. The powHSM
 application is installed as a `systemd` service. No user intervention is required at this step:
 ```
@@ -224,6 +220,7 @@ Once that step is finished, all the files required by the powHSM will be located
 ### Verifying the service status
 
 Once the service is properly set up, the user can verify its status by running:
+
 ```
 systemctl status powhsmsgx.service
 ```
@@ -258,6 +255,23 @@ At any time, the logs of the powHSM service can be accessed by running:
 ```
 journalctl -u powhsmsgx.service
 ```
+
+## Upgrading an existing installation
+
+To upgrade an existing SGX powHSM installation to a newer firmware version, you will first need:
+
+- A file `/path/to/dist/pin.txt` with the current installation's pin.
+- A fully signed `/path/to/dist/hsm/migration_auth.json`, authorising the firmware versions from and to which the installation is to be upgraded.
+
+Then, to execute the upgrade process, within the `/path/to/dist` directory, issue:
+
+```
+/path/to/dist> ./upgrade-existing-powhsm
+```
+
+and follow any instructions on screen. Please note that the actual upgrade process should require no interaction if all the prerequisites are met.
+
+During the upgrade process, a new attestation will be output both to screen and to the `export` directory (just like what happens in the setup process). Refer to [the corresponding section](#attestation-gathering) for details. Likewise, once the upgrade process has finished, the service should remain running and ready to be used. Refer to [this section](#verifying-the-service-status) for details on how to verify the service status.
 
 ## What's next
 
