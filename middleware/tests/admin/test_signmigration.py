@@ -358,6 +358,32 @@ class TestSignMigrationKey(TestCase):
         )
         migration_auth_mock.from_jsonfile.assert_not_called()
 
+    def test_canonical_signature_encoding(self, _, migration_auth_mock, isfile_mock):
+        migration_auth = Mock()
+        migration_auth_mock.from_jsonfile.return_value = migration_auth
+        migration_auth.add_signature.return_value = None
+        isfile_mock.return_value = True
+        test_digest = bytes.fromhex("bb"*32)
+        migration_auth.migration_spec.get_authorization_digest.return_value = test_digest
+
+        with patch("signmigration.ecdsa.util.sigencode_der_canonize") as sigencode_mock:
+            known_signature = bytes.fromhex(
+                "30440220" + "11" * 32 + "0220" + "22" * 32
+            )
+            sigencode_mock.return_value = known_signature
+
+            with patch("sys.argv", ["signmigration.py", "key",
+                                    "-o", "an-output-path",
+                                    "-k", "aa"*32]):
+                with self.assertRaises(SystemExit) as exit:
+                    main()
+
+            self.assertEqual(sigencode_mock.call_count, 1)
+            signature_hex = migration_auth.add_signature.call_args_list[0][0][0]
+            self.assertEqual(signature_hex, known_signature.hex())
+
+        self.assertEqual(exit.exception.code, RETURN_SUCCESS)
+
 
 @patch("signmigration.isfile")
 @patch("signmigration.dispose_eth_dongle")
