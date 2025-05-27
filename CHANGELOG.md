@@ -1,5 +1,30 @@
 # Changelog
 
+## [5.5.0] - 27/05/2025
+
+### Features/enhancements
+
+- Introduced SGX firmware upgrades
+- Added SGX uninstall script
+- Improved SGX setup scripts
+- Use `mbedtls` for `hmac_sha512` and non-midstate `sha256` implementation on SGX HAL
+- Enhanced Ledger setup and upgrade script to use tput for specific colors in user-facing messages
+- Automatically deleting all pre-installed apps on Ledger before onboarding
+- Added "Troubleshooting" section to distribution docs
+- Ledger screen now shows current signer version
+
+### Fixes
+
+- Fixed mistimed log message in middleware server component
+- Ignoring SGX tool-generated files for C linting
+- Moved `oeedger8r` generated sources to their own directory
+- Destination size check in `der_encode_signature`
+- Fixed potential buffer overflow in `der_encode_uint`
+- Updated Ubuntu image on GH workflows
+- Bumped `libudev-dev`, `ossf/scorecard-action`, `actions/upload-artifact`, 
+  `cryptography`, `github/codeql-action`, `aws-actions/configure-aws-credentials`, 
+  `actions/dependency-review-action` and `setuptools`
+
 ## [5.4.1] - 07/02/2025
 
 ### Features/enhancements

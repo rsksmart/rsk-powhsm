@@ -46,7 +46,7 @@ typedef enum {
 } err_code_ui_heartbeat_t;
 
 // Heartbeat message prefix
-#define UI_HEARTBEAT_MSG_PREFIX "HSM:UI:HB:5.4:"
+#define UI_HEARTBEAT_MSG_PREFIX "HSM:UI:HB:5.5:"
 #define UI_HEARTBEAT_MSG_PREFIX_LENGTH \
     (sizeof(UI_HEARTBEAT_MSG_PREFIX) - sizeof(""))
 

@@ -70,7 +70,7 @@ class TestVerifySgxAttestation(TestCase):
         self.expected_pubkeys_hash = pubkeys_hash.digest().hex()
 
         self.powhsm_msg = \
-            b"POWHSM:5.4::" + \
+            b"POWHSM:5.5::" + \
             b'plf' + \
             bytes.fromhex('aa'*32) + \
             bytes.fromhex(self.expected_pubkeys_hash) + \
@@ -130,7 +130,7 @@ class TestVerifySgxAttestation(TestCase):
             "",
             "Installed powHSM MRENCLAVE: aabbccdd",
             "Installed powHSM MRSIGNER: 1122334455",
-            "Installed powHSM version: 5.4",
+            "Installed powHSM version: 5.5",
             "Platform: plf",
             f"UD value: {"aa"*32}",
             f"Best block: {"bb"*32}",
@@ -251,7 +251,7 @@ class TestVerifySgxAttestation(TestCase):
     def test_verify_attestation_invalid_message(self, get_root_of_trust, load_pubkeys,
                                                 HSMCertificate, head, _):
         self.configure_mocks(get_root_of_trust, load_pubkeys, HSMCertificate, head)
-        self.validate_result["quote"][1]["message"] = b"POWHSM:5.4::plf".hex()
+        self.validate_result["quote"][1]["message"] = b"POWHSM:5.5::plf".hex()
 
         with self.assertRaises(AdminError) as e:
             do_verify_attestation(self.options)
