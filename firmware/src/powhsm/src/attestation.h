@@ -28,7 +28,7 @@
 #include "hal/hash.h"
 
 // Attestation message prefix
-#define ATT_MSG_PREFIX "POWHSM:5.4::"
+#define ATT_MSG_PREFIX "POWHSM:5.5::"
 #define ATT_MSG_PREFIX_LENGTH (sizeof(ATT_MSG_PREFIX) - sizeof(""))
 
 // Attestation UD value size
