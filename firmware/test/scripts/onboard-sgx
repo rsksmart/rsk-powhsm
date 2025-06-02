@@ -1,0 +1,10 @@
+#!/bin/bash
+
+ROOT_DIR=$(realpath $(dirname $0)/../../..)
+
+if [[ $# -ne 2 ]]; then
+    echo "Usage: $0 <sgx_host> <pin>"
+    exit 1
+fi
+
+echo 'Yes' | python $ROOT_DIR/middleware/adm_sgx.py onboard -s$1 --pin $2
