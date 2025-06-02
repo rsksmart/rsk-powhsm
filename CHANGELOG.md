@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.5.1] - 02/06/2025
+
+### Fixes
+
+- Fixed middleware docker image build
+- Bumped `ossf/scorecard-action`
+
 ## [5.5.0] - 27/05/2025
 
 ### Features/enhancements
