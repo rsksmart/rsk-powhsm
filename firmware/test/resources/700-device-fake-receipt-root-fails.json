@@ -1,7 +1,7 @@
 {
     "name": "Attempt to fake the ancestor receipts root on a real device fails",
     "operation": "signAuthorized",
-    "runOn": ["ledger", "sgx"],
+    "runOn": ["ledger", "sgx", "sgxsim"],
     "expected": "0x6e11",
     "fake_ancestor_receipts_root": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "btcTx": "",

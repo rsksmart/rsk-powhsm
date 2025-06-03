@@ -67,6 +67,10 @@ if __name__ == "__main__":
             dongle = HSM2DongleSGX(options.host, options.port, options.dongle_verbose)
             run_on = TestCase.RUN_ON_VALUE_SGX
             output.info("Running against an SGX device", nl=True)
+        elif options.device == "sgxsim":
+            dongle = HSM2DongleSGX(options.host, options.port, options.dongle_verbose)
+            run_on = TestCase.RUN_ON_VALUE_SGX_SIM
+            output.info("Running against an SGX simulator", nl=True)
         else:
             dongle = HSM2DongleTCP(options.host, options.port, options.dongle_verbose)
             run_on = TestCase.RUN_ON_VALUE_TCPSIGNER
