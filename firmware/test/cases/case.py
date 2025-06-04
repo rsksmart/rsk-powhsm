@@ -32,8 +32,13 @@ class TestCase:
     RUN_ON_VALUE_LEDGER = "ledger"
     RUN_ON_VALUE_SGX = "sgx"
     RUN_ON_VALUE_TCPSIGNER = "tcpsigner"
+    RUN_ON_VALUE_SGX_SIM = "sgxsim"
     RUN_ON_VALUES = [
-        RUN_ON_VALUE_ALL, RUN_ON_VALUE_LEDGER, RUN_ON_VALUE_SGX, RUN_ON_VALUE_TCPSIGNER
+        RUN_ON_VALUE_ALL,
+        RUN_ON_VALUE_LEDGER,
+        RUN_ON_VALUE_SGX,
+        RUN_ON_VALUE_TCPSIGNER,
+        RUN_ON_VALUE_SGX_SIM,
     ]
 
     RUN_ARGS_PIN_KEY = "pin"

@@ -43,10 +43,10 @@ class OptionParser:
             "-d",
             "--device",
             dest="device",
-            choices=["tcpsigner", "ledger", "sgx"],
+            choices=["tcpsigner", "ledger", "sgx", "sgxsim"],
             default="tcpsigner",
-            help="Type of device to run with (one of \"tcpsigner\", \"ledger\" or "
-                 "\"sgx\", defaults to \"tcpsigner\")",
+            help="Type of device to run with (one of \"tcpsigner\", \"ledger\", "
+                 "\"sgx\" or \"sgxsim\", defaults to \"tcpsigner\")",
         )
         parser.add_argument(
             "-r",

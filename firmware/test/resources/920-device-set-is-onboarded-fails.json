@@ -3,5 +3,5 @@
     "operation": "adminIsOnboarded",
     "value": true,
     "expected": "0x6e11",
-    "runOn": ["ledger", "sgx"]
+    "runOn": ["ledger", "sgx", "sgxsim"]
 }

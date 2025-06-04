@@ -4,12 +4,14 @@
 WITH_DEVICE="no"
 RUN_ARGS=""
 MANUAL_UNLOCK=""
+PLATFORM=""
 if [[ "$1" == "help" ]]; then
     echo "Usage: $0 [ledger [pin|manual] | sgx host port]"
     echo "Example (using tcpsigner):              $0"
     echo "Example (using ledger - auto unlock):   $0 ledger 12345678"
     echo "Example (using ledger - manual unlock): $0 ledger manual"
     echo "Example (using sgx): $0 sgx 123.40.55.67 6666"
+    echo "Example (using sgxsim): $0 sgxsim"
     exit 1
 elif [[ "$1" == "ledger" ]]; then
     if [ "$#" -lt 2 ]; then
@@ -23,6 +25,7 @@ elif [[ "$1" == "ledger" ]]; then
     else
         RUN_ARGS="$RUN_ARGS -P $2"
     fi
+    PLATFORM="ledger"
 elif [[ "$1" == "sgx" ]]; then
     if [ "$#" -lt 3 ]; then
         echo -e "\e[1;31mInvalid usage for 'sgx' option. Issue '$0 help' for help.\e[0m"
@@ -30,6 +33,12 @@ elif [[ "$1" == "sgx" ]]; then
     fi
     WITH_DEVICE="yes"
     RUN_ARGS="-dsgx -s$2 -p$3"
+    PLATFORM="sgx"
+elif [[ "$1" == "sgxsim" ]]; then
+    WITH_DEVICE="no"
+    PIN=1234abcd
+    RUN_ARGS="-dsgxsim -shost.docker.internal -p7777 -P $PIN"
+    PLATFORM="sgx"
 elif [[ "$1" != "" ]]; then
     echo -e "\e[1;31mInvalid or unknown option '$1'. Issue '$0 help' for help.\e[0m"
     exit 1
@@ -41,18 +50,37 @@ TEST_ROOT=$(pwd)
 popd > /dev/null
 
 if [[ "$WITH_DEVICE" == "no" ]]; then
-    # Build and run tcp signer
-    $TEST_ROOT/../build/build-tcpsigner
+    if [[ "$PLATFORM" == "sgx" ]]; then
+        # Delete any old binaries and database files
+        $TEST_ROOT/../../docker/sgx/do-notty /hsm2 "rm -rf /hsm2/firmware/src/sgx/bin"
+        # Build and run the SGX simulator
+        $TEST_ROOT/../../docker/sgx/do-notty /hsm2/firmware/src/sgx "make generate-private-key"
+        $TEST_ROOT/../build/build-sgx-sim 0xbdcb3c17c7aee714cec8ad900341bfd987b452280220dcbd6e7191f67ea4209b 0x32 regtest testing
+        $TEST_ROOT/../../docker/sgx/do-notty /hsm2/firmware/src/sgx/bin "./hsmsgx ./hsmsgx_enclave.signed -b 0.0.0.0" > /dev/null &
+        sleep 1
 
-    $TEST_ROOT/../../docker/mware/do-notty-nousb /hsm2/firmware/src/tcpsigner ./tcpsigner --checkpoint 0xbdcb3c17c7aee714cec8ad900341bfd987b452280220dcbd6e7191f67ea4209b --difficulty 0x32 --network regtest > /dev/null &
-    sleep 1
+        ## Onboard and unlock the powHSM
+        $TEST_ROOT/../../docker/mware/do-notty-nousb /hsm2/firmware/test/scripts ./onboard-sgx host.docker.internal $PIN
+        $TEST_ROOT/../../docker/mware/do-notty-nousb /hsm2/middleware python adm_sgx.py unlock -shost.docker.internal --pin $PIN
 
-    # Run tests
-    docker exec -t -w /hsm2/firmware/test hsm-mware-notty python run.py
-    err_code=$?
+        ## Run tests
+        $TEST_ROOT/../../docker/mware/do-notty-nousb /hsm2/firmware/test "python run.py ${RUN_ARGS}"
+        err_code=$?
 
-    # Kill (and remove) container
-    docker kill hsm-mware-notty > /dev/null
+        # Kill (and remove) container
+        docker kill hsm-sgx > /dev/null
+    else
+        # Build and run tcp signer
+        $TEST_ROOT/../build/build-tcpsigner
+        $TEST_ROOT/../../docker/mware/do-notty-nousb /hsm2/firmware/src/tcpsigner ./tcpsigner --checkpoint 0xbdcb3c17c7aee714cec8ad900341bfd987b452280220dcbd6e7191f67ea4209b --difficulty 0x32 --network regtest > /dev/null &
+        sleep 1
+        # Run tests
+        docker exec -t -w /hsm2/firmware/test hsm-mware-notty python run.py
+        err_code=$?
+        # Kill (and remove) container
+        docker kill hsm-mware-notty > /dev/null
+    fi
+
 else
     # Run tests against a device
     $TEST_ROOT/../../docker/mware/do /hsm2/firmware/test "python run.py ${RUN_ARGS}"

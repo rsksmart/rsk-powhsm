@@ -20,11 +20,17 @@ jobs:
       - name: Build the middleware docker image
         run: docker/mware/build
 
+      - name: Build the SGX docker image
+        run: docker/sgx/build
+
       - name: Middleware tests
         run: middleware/test-all
 
       - name: Firmware tests using TCPSigner
         run: firmware/test/test-all
+
+      - name: Firmware tests using SGX simulator
+        run: firmware/test/test-all sgxsim
 
       - name: Firmware HAL's common unit tests
         run: firmware/src/hal/common_linked/test/run-all.sh
