@@ -6,7 +6,7 @@ DOCKER_IMAGE=powhsmsgx:runner
 
 QUIET=""
 echo -e "\e[96mBuilding docker image $DOCKER_IMAGE (this will take a few minutes)..."
-if [[ "$2" != "-v" ]]; then
+if [[ "$1" != "-v" ]]; then
     QUIET="-q"
     echo -e "Run with '-v' if you want to see progress detail\e[94m"
 fi
