@@ -42,7 +42,7 @@ class HSMCertificateV2Element:
     def from_dict(cls, element_map):
         if element_map.get("type") not in cls.TYPE_MAPPING:
             raise ValueError("Invalid or missing element type for "
-                             f"element {element_map.get("name")}")
+                             f"element {element_map.get('name')}")
 
         return cls.TYPE_MAPPING[element_map["type"]](element_map)
 

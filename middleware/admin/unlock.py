@@ -67,7 +67,7 @@ def do_unlock(options, exit=True, no_exec=False, label=True):
     # Modes for which we can't unlock
     if mode == HSM2Dongle.MODE.UNKNOWN:
         raise AdminError("Device mode unknown. Already unlocked? Otherwise "
-                         f"{Platform.message("restart")} and try again")
+                         f"{Platform.message('restart')} and try again")
     if mode == HSM2Dongle.MODE.SIGNER or mode == HSM2Dongle.MODE.UI_HEARTBEAT:
         raise AdminError("Device already unlocked")
 

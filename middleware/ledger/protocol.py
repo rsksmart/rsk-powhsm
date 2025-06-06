@@ -74,7 +74,7 @@ class HSM2ProtocolLedger(HSM2Protocol):
             self.logger.info(
                 "Could not determine onboarded status. If unlocked, "
                 + "please enter the signing app and rerun the manager. Otherwise,"
-                + f"{Platform.message("restart")} and try again"
+                + f"{Platform.message('restart')} and try again"
             )
             raise HSM2ProtocolInterrupt()
 
@@ -197,12 +197,12 @@ class HSM2ProtocolLedger(HSM2Protocol):
                     raise Exception("Dongle reported fail to change pin. Pin invalid?")
                 self.pin.commit_change()
                 self.logger.info(
-                    f"PIN changed. Please {Platform.message("restart")}"
+                    f"PIN changed. Please {Platform.message('restart')}"
                 )
             except Exception as e:
                 self.pin.abort_change()
                 self.logger.error(
-                    f"Error changing PIN: %s. Please {Platform.message("restart")} "
+                    f"Error changing PIN: %s. Please {Platform.message('restart')} "
                     "and try again", format(e),
                 )
             finally:

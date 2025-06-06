@@ -73,7 +73,7 @@ def do_onboard(options):
     # Require bootloader mode for onboarding
     if mode != HSM2Dongle.MODE.BOOTLOADER:
         raise AdminError("Device not in bootloader mode. "
-                         f"{Platform.message("restart").capitalize()} and try again")
+                         f"{Platform.message('restart').capitalize()} and try again")
 
     # Echo check
     info("Sending echo... ", options.verbose)

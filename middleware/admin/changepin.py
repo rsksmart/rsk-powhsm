@@ -66,7 +66,7 @@ def do_changepin(options):
     # In Ledger, we can only change the pin while in bootloader mode
     if Platform.is_ledger() and mode != HSM2Dongle.MODE.BOOTLOADER:
         raise AdminError("Device not in bootloader mode. "
-                         f"{Platform.message("restart").capitalize()} and try again")
+                         f"{Platform.message('restart').capitalize()} and try again")
 
     # Ask the user for a new pin if one has not been given
     if new_pin is None:
@@ -80,6 +80,6 @@ def do_changepin(options):
     info("Pin changed.", nl=Platform.is_sgx())
     # We require a restart in Ledger only
     if Platform.is_ledger():
-        info(f" Please {Platform.message("restart")}.")
+        info(f" Please {Platform.message('restart')}.")
 
     dispose_hsm(hsm)
