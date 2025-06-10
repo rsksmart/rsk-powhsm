@@ -6,7 +6,7 @@ DOCKER_IMAGE=powhsmsgx:runner
 
 QUIET=""
 echo -e "\e[96mBuilding docker image $DOCKER_IMAGE (this will take a few minutes)..."
-if [[ "$2" != "-v" ]]; then
+if [[ "$1" != "-v" ]]; then
     QUIET="-q"
     echo -e "Run with '-v' if you want to see progress detail\e[94m"
 fi
@@ -19,7 +19,6 @@ DOCKER_USER="$(id -u):$(id -g)"
 HOSTNAME="powhsmsgx$POWHSM_UPGRADE_SUFFIX"
 NETWORK=powhsmsgx_net
 PORT=${POWHSM_UPGRADE_PORT:-7777}
-DOCKER_PORT="$PORT:$PORT"
 SGX_PRV_GID=$(getent group sgx_prv | cut -d: -f3)
 
 docker run --rm --name $DOCKER_CNT --user $DOCKER_USER -v $WORKDIR:/hsm \
@@ -27,5 +26,5 @@ docker run --rm --name $DOCKER_CNT --user $DOCKER_USER -v $WORKDIR:/hsm \
     --hostname $HOSTNAME --network $NETWORK \
     --device=/dev/sgx_enclave:/dev/sgx_enclave \
     --device=/dev/sgx_provision:/dev/sgx_provision \
-    -w /hsm -p$DOCKER_PORT $DOCKER_IMAGE \
+    -w /hsm $DOCKER_IMAGE \
     bin/hsmsgx ./bin/hsmsgx_enclave.signed -p$PORT -b0.0.0.0
