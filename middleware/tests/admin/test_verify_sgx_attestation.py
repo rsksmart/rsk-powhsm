@@ -132,9 +132,9 @@ class TestVerifySgxAttestation(TestCase):
             "Installed powHSM MRSIGNER: 1122334455",
             "Installed powHSM version: 5.5",
             "Platform: plf",
-            f"UD value: {"aa"*32}",
-            f"Best block: {"bb"*32}",
-            f"Last transaction signed: {"cc"*8}",
+            f"UD value: {'aa'*32}",
+            f"Best block: {'bb'*32}",
+            f"Last transaction signed: {'cc'*8}",
             "Timestamp: 205",
         ], fill="-")
 

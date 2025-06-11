@@ -66,7 +66,7 @@ def do_get_pubkeys(options):
     # Modes for which we can't get the public keys
     if mode in [HSM2Dongle.MODE.UNKNOWN, HSM2Dongle.MODE.BOOTLOADER]:
         raise AdminError(
-            f"Device not in app mode. {Platform.message("restart").capitalize()}")
+            f"Device not in app mode. {Platform.message('restart').capitalize()}")
 
     # Gather public keys
     pubkeys = {}

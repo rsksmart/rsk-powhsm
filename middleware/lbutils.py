@@ -64,7 +64,7 @@ def main():
     try:
         command = sys.argv[1]
         sys.argv = [f"{sys.argv[0]} {command}"] + sys.argv[2:]
-        module = f"ledgerblue.{utilities[command]["module"]}"
+        module = f"ledgerblue.{utilities[command]['module']}"
         post_process = utilities[command]["post_process"]
 
         buffer = io.StringIO()
