@@ -1,5 +1,11 @@
 # Changelog
 
+## [5.2.4] - 12/06/2025
+
+### Fixes
+
+- Fixed middleware docker image build
+
 ## [5.2.3] - 18/03/2025
 
 ### Features/enhancements
