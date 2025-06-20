@@ -16,6 +16,7 @@ if [[ $1 == "exec" ]]; then
     COVERAGE=y $REPOROOT/firmware/src/sgx/test/run-all.sh exec
     COVERAGE=y $REPOROOT/firmware/src/ledger/ui/test/run-all.sh exec
     COVERAGE=y $REPOROOT/firmware/src/ledger/signer/test/run-all.sh exec
+    COVERAGE=y $REPOROOT/firmware/src/hal/common_linked/test/run-all.sh exec
     COVERAGE=y $REPOROOT/firmware/src/hal/sgx/test/run-all.sh exec
 
     # Run tcpsigner test suite

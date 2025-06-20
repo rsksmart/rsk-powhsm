@@ -30,6 +30,18 @@ all: $(PROG)
 $(PROG): $(OBJS)
 	$(CC) $(COVFLAGS) -o $@ $^
 
+test_pin.o: test_pin.c
+	$(CC) $(CFLAGS) -c -o $@ $^
+
+mock.o: mock.c
+	$(CC) $(CFLAGS) -c -o $@ $^
+
+pin.o: pin.c
+	$(CC) $(CFLAGS) $(COVFLAGS) -c -o $@ $^
+
+pin_policy.o: pin_policy.c
+	$(CC) $(CFLAGS) $(COVFLAGS) -c -o $@ $^
+
 .PHONY: clean test
 
 clean:
