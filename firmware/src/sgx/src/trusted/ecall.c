@@ -24,7 +24,6 @@
 
 #include "ecall.h"
 
-#include "hsm_t.h"
 #include "sync.h"
 
 #include "system.h"
