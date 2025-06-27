@@ -26,6 +26,8 @@
 
 #if defined(HSM_PLATFORM_X86) || defined(HSM_PLATFORM_SGX)
 
+#if defined(DEBUG_BUILD) || defined(ENCLAVE_LOGS)
+
 #include "hal/log.h"
 
 static struct err_entry {
@@ -76,6 +78,13 @@ void show_error(err_code_t errcode) {
     }
     LOG("*** ERROR: %s\n", msg);
 }
+
+#else // DEBUG_BUILD || ENCLAVE_LOGS
+void show_error(err_code_t errcode) {
+    (void)errcode;
+}
+#endif // DEBUG_BUILD || ENCLAVE_LOGS
+
 #else
 void show_error(err_code_t errcode) {
 }

@@ -37,6 +37,7 @@
 #include "err.h"
 #include "mem.h"
 #include "memutil.h"
+#include "util.h"
 
 #include "pathAuth.h"
 #include "auth.h"
@@ -71,7 +72,7 @@ static void reset_shared_state() {
  *
  * @arg[in] cmd operation code
  */
-static void reset_if_starting(unsigned char cmd) {
+void hsm_reset_if_starting(unsigned char cmd) {
     // Reset only if starting new operation (cmd != curr_cmd).
     // Otherwise we already reset when curr_cmd started.
     if (cmd != curr_cmd) {
@@ -112,7 +113,6 @@ static unsigned int hsm_process_command(volatile unsigned int rx) {
     if (external_processor) {
         external_processor_result_t epr = external_processor(rx);
         if (epr.handled) {
-            reset_if_starting(0);
             return epr.tx;
         }
     }
@@ -120,14 +120,14 @@ static unsigned int hsm_process_command(volatile unsigned int rx) {
     switch (APDU_CMD()) {
     // Reports the current mode (i.e., always reports signer mode)
     case RSK_MODE_CMD:
-        reset_if_starting(RSK_MODE_CMD);
+        hsm_reset_if_starting(RSK_MODE_CMD);
         SET_APDU_CMD(APP_MODE_SIGNER);
         tx = 2;
         break;
 
     // Reports wheter the device is onboarded and the current signer version
     case RSK_IS_ONBOARD:
-        reset_if_starting(RSK_IS_ONBOARD);
+        hsm_reset_if_starting(RSK_IS_ONBOARD);
         uint8_t output_index = CMDPOS;
         SET_APDU_AT(output_index++, seed_available() ? 1 : 0);
         SET_APDU_AT(output_index++, VERSION_MAJOR);
@@ -141,7 +141,7 @@ static unsigned int hsm_process_command(volatile unsigned int rx) {
         REQUIRE_UNLOCKED();
         REQUIRE_ONBOARDED();
 
-        reset_if_starting(INS_GET_PUBLIC_KEY);
+        hsm_reset_if_starting(INS_GET_PUBLIC_KEY);
 
         // Check the received data size
         if (rx != DATA + sizeof(uint32_t) * BIP32_PATH_NUMPARTS)
@@ -168,7 +168,7 @@ static unsigned int hsm_process_command(volatile unsigned int rx) {
                      sizeof(auth.path),
                      THROW(ERR_INVALID_PATH));
 
-        pubkey_length = communication_get_msg_buffer_size();
+        pubkey_length = (uint8_t)MIN(communication_get_msg_buffer_size(), 0xFF);
         if (!seed_derive_pubkey(auth.path,
                                 sizeof(auth.path) / sizeof(auth.path[0]),
                                 communication_get_msg_buffer(),
@@ -184,7 +184,7 @@ static unsigned int hsm_process_command(volatile unsigned int rx) {
         REQUIRE_UNLOCKED();
         REQUIRE_ONBOARDED();
 
-        reset_if_starting(INS_SIGN);
+        hsm_reset_if_starting(INS_SIGN);
         tx = auth_sign(rx);
         break;
 
@@ -192,7 +192,7 @@ static unsigned int hsm_process_command(volatile unsigned int rx) {
         REQUIRE_UNLOCKED();
         REQUIRE_ONBOARDED();
 
-        reset_if_starting(INS_ATTESTATION);
+        hsm_reset_if_starting(INS_ATTESTATION);
         tx = get_attestation(rx, &attestation);
         break;
 
@@ -200,7 +200,7 @@ static unsigned int hsm_process_command(volatile unsigned int rx) {
         REQUIRE_UNLOCKED();
         REQUIRE_ONBOARDED();
 
-        reset_if_starting(INS_HEARTBEAT);
+        hsm_reset_if_starting(INS_HEARTBEAT);
         tx = get_heartbeat(rx, &heartbeat);
         break;
 
@@ -211,7 +211,7 @@ static unsigned int hsm_process_command(volatile unsigned int rx) {
 
         // Get blockchain state is considered part of the
         // advance blockchain operation
-        reset_if_starting(INS_ADVANCE);
+        hsm_reset_if_starting(INS_ADVANCE);
         tx = bc_get_state(rx);
         break;
 
@@ -220,7 +220,7 @@ static unsigned int hsm_process_command(volatile unsigned int rx) {
         REQUIRE_UNLOCKED();
         REQUIRE_ONBOARDED();
 
-        reset_if_starting(INS_RESET_STATE);
+        hsm_reset_if_starting(INS_RESET_STATE);
         tx = bc_reset_state(rx);
         break;
 
@@ -229,7 +229,7 @@ static unsigned int hsm_process_command(volatile unsigned int rx) {
         REQUIRE_UNLOCKED();
         REQUIRE_ONBOARDED();
 
-        reset_if_starting(INS_ADVANCE);
+        hsm_reset_if_starting(INS_ADVANCE);
         tx = bc_advance(rx);
         break;
 
@@ -238,7 +238,7 @@ static unsigned int hsm_process_command(volatile unsigned int rx) {
         REQUIRE_UNLOCKED();
         REQUIRE_ONBOARDED();
 
-        reset_if_starting(INS_ADVANCE_PARAMS);
+        hsm_reset_if_starting(INS_ADVANCE_PARAMS);
         tx = bc_advance_get_params();
         break;
 
@@ -247,7 +247,7 @@ static unsigned int hsm_process_command(volatile unsigned int rx) {
         REQUIRE_UNLOCKED();
         REQUIRE_ONBOARDED();
 
-        reset_if_starting(INS_UPD_ANCESTOR);
+        hsm_reset_if_starting(INS_UPD_ANCESTOR);
         tx = bc_upd_ancestor(rx);
         break;
 
@@ -274,7 +274,7 @@ static unsigned int hsm_process_exception(unsigned short code,
     // Always reset the full state when an error occurs
     if (code != APDU_OK) {
         RESET_BC_STATE();
-        reset_if_starting(0);
+        hsm_reset_if_starting(0);
     }
 
     // Apply code transformations

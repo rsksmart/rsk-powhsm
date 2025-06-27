@@ -33,6 +33,7 @@
 #include "hal/log.h"
 #include "apdu.h"
 #include "hsm.h"
+#include "instructions.h"
 #include "system.h"
 
 // Constants
@@ -47,6 +48,7 @@
 typedef struct mock_calls_counter {
     int hsm_init_count;
     int hsm_set_external_processor_count;
+    int hsm_reset_if_starting_count;
     int nvmem_load_count;
     int access_init_count;
     int access_wipe_count;
@@ -70,6 +72,7 @@ typedef struct mock_calls_counter {
     int upgrade_process_apdu_count;
     int evidence_init_count;
     int upgrade_reset_count;
+    int do_meta_advupd_count;
 } mock_calls_counter_t;
 
 typedef struct nvmem_register_block_args {
@@ -93,11 +96,16 @@ typedef struct access_unlock_args {
     uint8_t password_length;
 } access_unlock_args_t;
 
+typedef struct hsm_reset_if_starting_args {
+    unsigned char cmd;
+} hsm_reset_if_starting_args_t;
+
 typedef struct mock_call_args {
     nvmem_register_block_args_t nvmem_register_block_args;
     seed_generate_args_t seed_generate_args;
     access_set_password_args_t access_set_password_args;
     access_unlock_args_t access_unlock_args;
+    hsm_reset_if_starting_args_t hsm_reset_if_starting_args;
 } mock_call_args_t;
 
 typedef struct mock_force_fail {
@@ -187,6 +195,11 @@ void hsm_init() {
 void hsm_set_external_processor(external_processor_t external_processor) {
     NUM_CALLS(hsm_set_external_processor)++;
     G_mock_data.external_processor = external_processor;
+}
+
+void hsm_reset_if_starting(unsigned char cmd) {
+    NUM_CALLS(hsm_reset_if_starting)++;
+    G_mock_data.mock_call_args->hsm_reset_if_starting_args.cmd = cmd;
 }
 
 bool nvmem_load() {
@@ -342,6 +355,12 @@ unsigned int upgrade_process_apdu(volatile unsigned int rx) {
 
 void upgrade_reset() {
     NUM_CALLS(upgrade_reset)++;
+}
+
+unsigned int do_meta_advupd(unsigned int rx) {
+    NUM_CALLS(do_meta_advupd)++;
+    SET_APDU_OP(APDU_OP() * 5);
+    return 3;
 }
 
 // Helper functions
@@ -1115,6 +1134,216 @@ void test_heartbeat_cmd_throws_unsupported() {
     END_TRY;
 }
 
+void test_advance_bc_cmd_handled() {
+    setup();
+    printf("Test advance blockchain command success...\n");
+
+    system_init(G_io_apdu_buffer, sizeof(G_io_apdu_buffer));
+    SEED_SET_AVAILABLE(true);
+    ACCESS_UNLOCK();
+    unsigned int rx = 0;
+    SET_APDU("\x80\x10\x11\x22\x33\x44", rx); // INS_ADVANCE
+    assert(3 == system_process_apdu(rx));
+    ASSERT_HANDLED();
+    ASSERT_APDU("\x80\x10\x55");
+    assert(NUM_CALLS(do_meta_advupd) == 1);
+}
+
+void test_advance_bc_cmd_fails_when_not_onboarded() {
+    setup();
+    printf("Test advance blockchain command fails when not onboarded...\n");
+
+    system_init(G_io_apdu_buffer, sizeof(G_io_apdu_buffer));
+    SEED_SET_AVAILABLE(false);
+    unsigned int rx = 0;
+    SET_APDU("\x80\x10\x11\x22\x33\x44", rx); // INS_ADVANCE
+    BEGIN_TRY {
+        TRY {
+            system_process_apdu(rx);
+            ASSERT_FAIL();
+        }
+        CATCH_OTHER(e) {
+            assert(e == ERR_DEVICE_NOT_ONBOARDED);
+        }
+        FINALLY {
+            ASSERT_NOT_HANDLED();
+            ASSERT_NOT_CALLED(do_meta_advupd);
+            teardown();
+            return;
+        }
+    }
+    END_TRY;
+}
+
+void test_advance_bc_cmd_fails_when_locked() {
+    setup();
+    printf("Test advance blockchain command fails when locked...\n");
+
+    system_init(G_io_apdu_buffer, sizeof(G_io_apdu_buffer));
+    SEED_SET_AVAILABLE(true);
+    ACCESS_LOCK();
+    unsigned int rx = 0;
+    SET_APDU("\x80\x10\x11\x22\x33\x44", rx); // INS_ADVANCE
+    BEGIN_TRY {
+        TRY {
+            system_process_apdu(rx);
+            ASSERT_FAIL();
+        }
+        CATCH_OTHER(e) {
+            assert(e == ERR_DEVICE_LOCKED);
+        }
+        FINALLY {
+            ASSERT_NOT_HANDLED();
+            ASSERT_NOT_CALLED(do_meta_advupd);
+            teardown();
+            return;
+        }
+    }
+    END_TRY;
+}
+
+void test_advance_bc_resets_when_other_cmds_in_between() {
+    setup();
+    printf("Test advance blockchain command resets when other commands in "
+           "between...\n");
+
+    system_init(G_io_apdu_buffer, sizeof(G_io_apdu_buffer));
+    unsigned int rx = 0;
+    SEED_SET_AVAILABLE(true);
+    ACCESS_UNLOCK();
+
+    SET_APDU("\x80\x10\x01", rx); // INS_ADVANCE
+    assert(3 == system_process_apdu(rx));
+    SET_APDU("\x80\x10\x02", rx); // INS_ADVANCE
+    assert(3 == system_process_apdu(rx));
+    assert(NUM_CALLS(hsm_reset_if_starting) == 1);
+    assert(G_mock_data.mock_call_args->hsm_reset_if_starting_args.cmd ==
+           INS_ADVANCE);
+    assert(NUM_CALLS(do_meta_advupd) == 2);
+    SET_APDU("\x80\xA1\x00", rx); // SGX_IS_LOCKED
+    system_process_apdu(rx);
+    assert(NUM_CALLS(hsm_reset_if_starting) == 2);
+    printf("%u\n", G_mock_data.mock_call_args->hsm_reset_if_starting_args.cmd);
+    assert(G_mock_data.mock_call_args->hsm_reset_if_starting_args.cmd ==
+           SGX_IS_LOCKED);
+    assert(NUM_CALLS(do_meta_advupd) == 2);
+    SET_APDU("\x80\x10\x01", rx); // INS_ADVANCE
+    assert(3 == system_process_apdu(rx));
+    assert(NUM_CALLS(hsm_reset_if_starting) == 3);
+    assert(G_mock_data.mock_call_args->hsm_reset_if_starting_args.cmd ==
+           INS_ADVANCE);
+    assert(NUM_CALLS(do_meta_advupd) == 3);
+    SET_APDU("\x80\x10\x01", rx); // INS_ADVANCE
+    assert(3 == system_process_apdu(rx));
+    assert(NUM_CALLS(hsm_reset_if_starting) == 3);
+    assert(NUM_CALLS(do_meta_advupd) == 4);
+}
+
+void test_upd_ancestor_cmd_handled() {
+    setup();
+    printf("Test update ancestor command success...\n");
+
+    system_init(G_io_apdu_buffer, sizeof(G_io_apdu_buffer));
+    SEED_SET_AVAILABLE(true);
+    ACCESS_UNLOCK();
+    unsigned int rx = 0;
+    SET_APDU("\x80\x30\x11\x22\x33\x44", rx); // INS_UPD_ANCESTOR
+    assert(3 == system_process_apdu(rx));
+    ASSERT_HANDLED();
+    ASSERT_APDU("\x80\x30\x55");
+    assert(NUM_CALLS(do_meta_advupd) == 1);
+}
+
+void test_upd_ancestor_cmd_fails_when_not_onboarded() {
+    setup();
+    printf("Test update ancestor command fails when not onboarded...\n");
+
+    system_init(G_io_apdu_buffer, sizeof(G_io_apdu_buffer));
+    SEED_SET_AVAILABLE(false);
+    unsigned int rx = 0;
+    SET_APDU("\x80\x30\x11\x22\x33\x44", rx); // INS_UPD_ANCESTOR
+    BEGIN_TRY {
+        TRY {
+            system_process_apdu(rx);
+            ASSERT_FAIL();
+        }
+        CATCH_OTHER(e) {
+            assert(e == ERR_DEVICE_NOT_ONBOARDED);
+        }
+        FINALLY {
+            ASSERT_NOT_HANDLED();
+            ASSERT_NOT_CALLED(do_meta_advupd);
+            teardown();
+            return;
+        }
+    }
+    END_TRY;
+}
+
+void test_upd_ancestor_cmd_fails_when_locked() {
+    setup();
+    printf("Test update ancestor command fails when locked...\n");
+
+    system_init(G_io_apdu_buffer, sizeof(G_io_apdu_buffer));
+    SEED_SET_AVAILABLE(true);
+    ACCESS_LOCK();
+    unsigned int rx = 0;
+    SET_APDU("\x80\x30\x11\x22\x33\x44", rx); // INS_UPD_ANCESTOR
+    BEGIN_TRY {
+        TRY {
+            system_process_apdu(rx);
+            ASSERT_FAIL();
+        }
+        CATCH_OTHER(e) {
+            assert(e == ERR_DEVICE_LOCKED);
+        }
+        FINALLY {
+            ASSERT_NOT_HANDLED();
+            ASSERT_NOT_CALLED(do_meta_advupd);
+            teardown();
+            return;
+        }
+    }
+    END_TRY;
+}
+
+void test_upd_ancestor_resets_when_other_cmds_in_between() {
+    setup();
+    printf("Test update ancestor command resets when other commands in "
+           "between...\n");
+
+    system_init(G_io_apdu_buffer, sizeof(G_io_apdu_buffer));
+    unsigned int rx = 0;
+    SEED_SET_AVAILABLE(true);
+    ACCESS_UNLOCK();
+
+    SET_APDU("\x80\x30\x01", rx); // INS_UPD_ANCESTOR
+    assert(3 == system_process_apdu(rx));
+    SET_APDU("\x80\x30\x02", rx); // INS_UPD_ANCESTOR
+    assert(3 == system_process_apdu(rx));
+    assert(NUM_CALLS(hsm_reset_if_starting) == 1);
+    assert(G_mock_data.mock_call_args->hsm_reset_if_starting_args.cmd ==
+           INS_UPD_ANCESTOR);
+    assert(NUM_CALLS(do_meta_advupd) == 2);
+    SET_APDU("\x80\xA1\x00", rx); // SGX_IS_LOCKED
+    system_process_apdu(rx);
+    assert(NUM_CALLS(hsm_reset_if_starting) == 2);
+    printf("%u\n", G_mock_data.mock_call_args->hsm_reset_if_starting_args.cmd);
+    assert(G_mock_data.mock_call_args->hsm_reset_if_starting_args.cmd ==
+           SGX_IS_LOCKED);
+    assert(NUM_CALLS(do_meta_advupd) == 2);
+    SET_APDU("\x80\x30\x01", rx); // INS_UPD_ANCESTOR
+    assert(3 == system_process_apdu(rx));
+    assert(NUM_CALLS(hsm_reset_if_starting) == 3);
+    assert(G_mock_data.mock_call_args->hsm_reset_if_starting_args.cmd ==
+           INS_UPD_ANCESTOR);
+    assert(NUM_CALLS(do_meta_advupd) == 3);
+    SET_APDU("\x80\x30\x01", rx); // INS_UPD_ANCESTOR
+    assert(3 == system_process_apdu(rx));
+    assert(NUM_CALLS(hsm_reset_if_starting) == 3);
+    assert(NUM_CALLS(do_meta_advupd) == 4);
+}
+
 void test_invalid_cmd_not_handled() {
     setup();
     printf("Test invalid command is ignored...\n");
@@ -1162,6 +1391,14 @@ int main() {
     test_heartbeat_cmd_throws_unsupported();
     test_upgrade_cmd_handled();
     test_upgrade_resets_when_other_cmds_in_between();
+    test_advance_bc_cmd_handled();
+    test_advance_bc_cmd_fails_when_not_onboarded();
+    test_advance_bc_cmd_fails_when_locked();
+    test_advance_bc_resets_when_other_cmds_in_between();
+    test_upd_ancestor_cmd_handled();
+    test_upd_ancestor_cmd_fails_when_not_onboarded();
+    test_upd_ancestor_cmd_fails_when_locked();
+    test_upd_ancestor_resets_when_other_cmds_in_between();
     test_invalid_cmd_not_handled();
 
     return 0;

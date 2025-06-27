@@ -19,30 +19,3 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
-TESTCOMMONDIR = ../common
-TESTLOCALMOCKSDIR = ./mocks
-SGXTRUSTEDDIR = ../../src/trusted
-SGXUNTRUSTEDDIR = ../../src/untrusted
-HALINCDIR = ../../../hal/include
-HALSGXSRCDIR = ../../../hal/sgx/src/trusted
-POWHSMSRCDIR = ../../../powhsm/src
-COMMONDIR = ../../../common/src
-
-CFLAGS = -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-function
-CFLAGS += -DDEBUG_BUILD
-CFLAGS += -I $(TESTCOMMONDIR)
-CFLAGS += -I $(TESTLOCALMOCKSDIR)
-CFLAGS += -iquote $(SGXTRUSTEDDIR)
-CFLAGS += -iquote $(SGXUNTRUSTEDDIR)
-CFLAGS += -iquote $(HALINCDIR)
-CFLAGS += -iquote $(HALSGXSRCDIR)
-CFLAGS += -iquote $(POWHSMSRCDIR)
-CFLAGS += -iquote $(COMMONDIR)
-CFLAGS += -DHSM_PLATFORM_SGX
-
-VPATH += $(SGXTRUSTEDDIR):$(SGXUNTRUSTEDDIR):$(COMMONDIR)
-
-include ../../../../coverage/coverage.mk
-
-CFLAGS += $(COVFLAGS)

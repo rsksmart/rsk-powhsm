@@ -114,7 +114,17 @@ if options.command is not None:
           (len(data), len(chunks), options.chunksize))
 
 else:
-    chunks = [options.data]
+    chunks = None
+    if len(options.data) < 1024:
+        try:
+            with open(options.data, "r") as datafile:
+                chunks = [datafile.read()]
+            print(f"Read command from {options.data} ({len(chunks[0])} bytes)")
+        except Exception:
+            pass
+
+    if chunks is None:
+        chunks = [options.data]
 
 if options.verbose:
     print("Server:   %s:%s" % (options.host, options.port))

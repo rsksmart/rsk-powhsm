@@ -37,6 +37,7 @@
 #include "bc_hash.h"
 #include "mem.h"
 #include "memutil.h"
+#include "util.h"
 
 // Attestation message prefix
 const char att_msg_prefix[ATT_MSG_PREFIX_LENGTH] = ATT_MSG_PREFIX;
@@ -224,7 +225,7 @@ unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx) {
         generate_message_to_sign(att_ctx, APDU_DATA_PTR);
 
         // Attest message
-        uint8_t endorsement_size = APDU_TOTAL_DATA_SIZE_OUT;
+        uint8_t endorsement_size = (uint8_t)MIN(APDU_TOTAL_DATA_SIZE_OUT, 0xFF);
         if (!endorsement_sign(
                 att_ctx->msg, att_ctx->msg_length, APDU_DATA_PTR, &endorsement_size)) {
             THROW(ERR_ATT_INTERNAL);
@@ -273,11 +274,11 @@ unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx) {
     case OP_ATT_APP_HASH:
         check_state(att_ctx, STATE_ATTESTATION_READY);
         
-        buf_length = APDU_TOTAL_DATA_SIZE_OUT;
+        buf_length = MIN(APDU_TOTAL_DATA_SIZE_OUT, 0xFF);
         if (!endorsement_get_code_hash(APDU_DATA_PTR, (uint8_t*)&buf_length)) {
             THROW(ERR_ATT_INTERNAL);
         }
-        return TX_FOR_DATA_SIZE((uint8_t)buf_length);
+        return TX_FOR_DATA_SIZE(buf_length);
     default:
         THROW(ERR_ATT_PROT_INVALID);
         break;
