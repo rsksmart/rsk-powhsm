@@ -61,6 +61,8 @@ void hsm_init();
 
 unsigned int hsm_process_apdu(unsigned int rx);
 
+void hsm_reset_if_starting(unsigned char cmd);
+
 bool hsm_exit_requested();
 
 void hsm_set_external_processor(external_processor_t external_processor);

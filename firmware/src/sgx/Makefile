@@ -115,11 +115,11 @@ all: build
 # production. The build is fast enough so we should be alright.
 build: clean check-private-key $(ENCLAVE_SIGNED_FILE) $(EXEC_FILE)
 
-build-debug: CFLAGS_COMMON += -DDEBUG_BUILD
+build-debug: CFLAGS_COMMON += -DDEBUG_BUILD -DENCLAVE_LOGS
 build-debug: CONF_FILE = $(SGX_SRC_DIR)/$(ENCLAVE_NAME)-debug.conf
 build-debug: build
 
-build-sim: CFLAGS_COMMON += -DSIM_BUILD -DDEBUG_BUILD
+build-sim: CFLAGS_COMMON += -DSIM_BUILD -DENCLAVE_LOGS
 build-sim: CONF_FILE = $(SGX_SRC_DIR)/$(ENCLAVE_NAME)-sim.conf
 build-sim: build
 

@@ -34,6 +34,7 @@
 #include "memutil.h"
 #include "bc_state.h"
 #include "compiletime.h"
+#include "util.h"
 
 /*
  * Reset the given heartbeat context
@@ -143,7 +144,7 @@ unsigned int get_heartbeat(volatile unsigned int rx,
         check_state(heartbeat_ctx, STATE_HEARTBEAT_READY);
 
         // Sign message
-        uint8_t endorsement_size = APDU_TOTAL_DATA_SIZE_OUT;
+        uint8_t endorsement_size = (uint8_t)MIN(APDU_TOTAL_DATA_SIZE_OUT, 0xFF);
         if (!endorsement_sign(heartbeat_ctx->msg,
                               heartbeat_ctx->msg_offset,
                               APDU_DATA_PTR,
@@ -166,13 +167,13 @@ unsigned int get_heartbeat(volatile unsigned int rx,
 
         return TX_FOR_DATA_SIZE(heartbeat_ctx->msg_offset);
     case OP_HBT_APP_HASH:
-        out_size = APDU_TOTAL_DATA_SIZE_OUT;
+        out_size = (uint8_t)MIN(APDU_TOTAL_DATA_SIZE_OUT, 0xFF);
         if (!endorsement_get_code_hash(APDU_DATA_PTR, &out_size)) {
             THROW(ERR_HBT_INTERNAL);
         }
         return TX_FOR_DATA_SIZE(out_size);
     case OP_HBT_PUBKEY:
-        out_size = APDU_TOTAL_DATA_SIZE_OUT;
+        out_size = (uint8_t)MIN(APDU_TOTAL_DATA_SIZE_OUT, 0xFF);
         if (!endorsement_get_public_key(APDU_DATA_PTR, &out_size)) {
             THROW(ERR_HBT_INTERNAL);
         }

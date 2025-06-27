@@ -20,11 +20,12 @@
 #include "bc_err.h"
 #include "upgrade.h"
 #include "evidence.h"
+#include "meta_bc.h"
 
 /**
  * APDU buffer (host pointer and local enclave copy)
  */
-#define APDU_BUFFER_SIZE 85
+#define APDU_BUFFER_SIZE (2048 + 5)
 
 static unsigned char* host_apdu_buffer;
 static unsigned char apdu_buffer[APDU_BUFFER_SIZE];
@@ -113,6 +114,7 @@ static unsigned char curr_cmd;
 static void reset_unless_cmd_is(unsigned char cmd) {
     if (cmd != curr_cmd) {
         // Reset all modules' contexts
+        hsm_reset_if_starting(cmd);
         upgrade_reset();
         curr_cmd = cmd;
     }
@@ -175,6 +177,15 @@ static external_processor_result_t system_do_process_apdu(unsigned int rx) {
     case INS_HEARTBEAT:
         // For now, we don't support heartbeat in SGX
         THROW(ERR_INS_NOT_SUPPORTED);
+        break;
+    // Override the default hsm module handlers for these
+    // commands
+    case INS_ADVANCE:
+    case INS_UPD_ANCESTOR:
+        REQUIRE_UNLOCKED();
+        REQUIRE_ONBOARDED();
+        reset_unless_cmd_is(APDU_CMD());
+        result.tx = do_meta_advupd(rx);
         break;
     default:
         reset_unless_cmd_is(0);

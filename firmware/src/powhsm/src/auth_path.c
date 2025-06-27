@@ -30,6 +30,7 @@
 
 #include "mem.h"
 #include "memutil.h"
+#include "util.h"
 
 /*
  * Implement the path parsing and validation portion of the signing
@@ -78,7 +79,7 @@ unsigned int auth_sign_handle_path(volatile unsigned int rx) {
 
         // Request BTC transaction
         SET_APDU_OP(P1_BTC);
-        SET_APDU_TXLEN(APDU_TOTAL_DATA_SIZE);
+        SET_APDU_TXLEN(AUTH_MAX_EXCHANGE_SIZE);
         auth.expected_bytes = APDU_TXLEN();
         auth_transition_to(STATE_AUTH_BTCTX);
         return TX_FOR_TXLEN();

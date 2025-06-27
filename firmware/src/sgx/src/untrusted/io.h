@@ -30,7 +30,7 @@
 /**
  * APDU buffer
  */
-#define APDU_BUFFER_SIZE 85
+#define APDU_BUFFER_SIZE (2048 + 5)
 extern unsigned char io_apdu_buffer[APDU_BUFFER_SIZE];
 
 /**

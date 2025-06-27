@@ -161,3 +161,59 @@ class HSM2DongleSGX(HSM2DongleTCP):
         self._send_command(
             SgxCommand.SGX_UPGRADE,
             bytes([SgxUpgradeOps.PROCESS_DATA]) + data)
+
+    # Map from standard commands to SGX-specific commands
+    SGX_SPECIFIC_COMMANDS = [
+        HSM2DongleTCP.CMD.ADVANCE, HSM2DongleTCP.CMD.UPD_ANCESTOR
+    ]
+
+    # Send a specific piece of data in chunks to the device
+    # as the device requests bytes from it.
+    # Validate responses wrt current operation and next possible expected operations
+    # Exceptions are to be handled by the caller
+    def _send_data_in_chunks(
+        self,
+        command,
+        operation,
+        next_operations,
+        data,
+        expect_full_data,
+        initial_bytes,
+        operation_name,
+        data_description,
+    ):
+        # Same old behavior for anything that hasn't got an SGX-specific
+        # mapping
+        if command not in self.SGX_SPECIFIC_COMMANDS:
+            return super()._send_data_in_chunks(
+                command,
+                operation,
+                next_operations,
+                data, expect_full_data,
+                initial_bytes,
+                operation_name,
+                data_description)
+
+        # Send data in full
+        response = self._send_command(command, bytes([operation]) + data)
+
+        # We expect the device to ask for one of the next operations but
+        # not the current chunk operation
+        # If it doesn't happen, error out
+        if response[self.OFF.OP] not in next_operations or \
+           response[self.OFF.OP] == operation:
+            self.logger.debug(
+                "Current operation %s, next operations %s, ledger requesting %s",
+                hex(operation),
+                str(list(map(hex, next_operations))),
+                hex(response[2]),
+            )
+            self.logger.error(
+                "%s: unexpected response %s",
+                operation_name.capitalize(),
+                response.hex(),
+            )
+            return (False, response)
+
+        # All is good
+        return (True, response)

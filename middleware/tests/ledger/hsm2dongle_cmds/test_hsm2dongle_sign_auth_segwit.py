@@ -22,7 +22,7 @@
 
 from unittest.mock import Mock, patch, call
 from parameterized import parameterized
-from tests.ledger.test_hsm2dongle import TestHSM2DongleBase
+from tests.ledger.test_hsm2dongle import TestHSM2DongleBase, HSM2DongleTestMode
 from ledger.hsm2dongle import (
     HSM2DongleError,
     SighashComputationMode,
@@ -147,3 +147,8 @@ class TestHSM2DongleSignAuthorizedSegwit(TestHSM2DongleBase):
         with self.assertRaises(HSM2DongleError):
             self.do_sign_auth(spec)
         self.assert_exchange(spec["requests"])
+
+
+class TestHSM2DongleSGXSignAuthorizedSegwit(TestHSM2DongleSignAuthorizedSegwit):
+    def get_test_mode(self):
+        return HSM2DongleTestMode.SGX

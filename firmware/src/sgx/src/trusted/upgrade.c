@@ -253,16 +253,16 @@ generate_message_to_verify_error:
     return false;
 }
 
-static uint8_t send_data(uint8_t* src,
-                         size_t src_size,
-                         size_t* src_offset,
-                         bool* more) {
+static size_t send_data(uint8_t* src,
+                        size_t src_size,
+                        size_t* src_offset,
+                        bool* more) {
     size_t tx = MIN(APDU_TOTAL_DATA_SIZE_OUT, src_size - *src_offset);
     memcpy(APDU_DATA_PTR, src + *src_offset, tx);
     *src_offset += tx;
     *more = *src_offset < src_size;
     LOG("Sending %lu bytes of data\n", tx);
-    return (uint8_t)tx;
+    return tx;
 }
 
 static bool receive_data(volatile unsigned int rx,
@@ -319,7 +319,7 @@ void upgrade_reset() {
 unsigned int upgrade_process_apdu(volatile unsigned int rx) {
     uint8_t key[AES_GCM_KEY_SIZE];
     size_t sz = 0;
-    uint8_t tx;
+    unsigned int tx;
     bool baux;
     int signature_valid;
     long unsigned valid_count;
@@ -652,7 +652,7 @@ unsigned int upgrade_process_apdu(volatile unsigned int rx) {
             }
             LOG("Data export complete\n");
             reset_upgrade();
-            return TX_FOR_DATA_SIZE((uint8_t)sz);
+            return TX_FOR_DATA_SIZE(sz);
         case upgrade_operation_import:
             LOG("Importing data...\n");
             if (APDU_DATA_SIZE(rx) == 0) {

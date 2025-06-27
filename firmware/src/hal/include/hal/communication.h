@@ -40,6 +40,17 @@
 bool communication_init(unsigned char *msg_buffer, size_t msg_buffer_size);
 
 /**
+ * @brief Sets the buffer to use for communication
+ *
+ * @param msg_buffer The buffer to use for communication
+ * @param msg_buffer_size The size of the message buffer in bytes
+ *
+ * @returns whether the buffer setting succeeded
+ */
+bool communication_set_msg_buffer(unsigned char *msg_buffer,
+                                  size_t msg_buffer_size);
+
+/**
  * @brief Get a pointer to the message buffer
  *
  * @returns a pointer to the message buffer

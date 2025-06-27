@@ -24,6 +24,8 @@ from unittest import TestCase
 from unittest.mock import Mock, patch, call
 from sgx.hsm2dongle import HSM2DongleSGX
 from ledger.hsm2dongle import HSM2DongleError
+from tests.ledger.test_hsm2dongle import \
+    TestHSM2DongleBase, HSM2DongleTestMode  # noqa: F401
 
 import logging
 

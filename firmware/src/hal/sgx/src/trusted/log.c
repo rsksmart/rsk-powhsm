@@ -24,8 +24,7 @@
 
 #include "hal/log.h"
 
-// #ifdef DEBUG_BUILD
-#if 1 // For now, we always output enclave logs
+#ifdef ENCLAVE_LOGS
 
 void LOG_HEX(const char *prefix, const void *buffer, const size_t size) {
     fprintf(stderr, TRUSTED_LOG_PREFIX);
@@ -41,4 +40,4 @@ void LOG_HEX(const char *prefix, const void *buffer, const size_t size) {
     fprintf(stderr, "\n");
 }
 
-#endif
+#endif // ENCLAVE_LOGS
