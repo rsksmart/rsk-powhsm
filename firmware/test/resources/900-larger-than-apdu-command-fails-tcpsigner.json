@@ -1,7 +1,7 @@
 {
-    "name": "Larger than APDU command fails",
+    "name": "Larger than APDU command fails (tcpsigner)",
     "operation": "rawCommand",
     "command": "804300aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "expected": "0x6982",
-    "runOn": ["tcpsigner", "sgx", "sgxsim"]
+    "runOn": ["tcpsigner"]
 }

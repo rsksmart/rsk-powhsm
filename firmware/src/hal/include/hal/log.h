@@ -46,8 +46,7 @@ void LOG_HEX(const char *prefix, const void *buffer, const size_t size);
 
 #elif defined(HSM_PLATFORM_SGX)
 
-// #ifdef DEBUG_BUILD
-#if 1 // For now, we always output enclave logs
+#ifdef ENCLAVE_LOGS
 
 #include <stdio.h>
 
@@ -72,12 +71,12 @@ void LOG_HEX(const char *prefix, const void *buffer, const size_t size);
  */
 void LOG_HEX(const char *prefix, const void *buffer, const size_t size);
 
-#else // DEBUG_BUILD
+#else // ENCLAVE_LOGS
 
 #define LOG(...)
 #define LOG_HEX(...)
 
-#endif // DEBUG_BUILD
+#endif // ENCLAVE_LOGS
 
 #elif defined(HSM_PLATFORM_LEDGER)
 

@@ -48,4 +48,49 @@
                   &(struct_name){0},                        \
                   sizeof(struct_name)) == 0)
 
+// Testing helpers
+#define ASSERT_DOESNT_THROW(st)             \
+    {                                       \
+        BEGIN_TRY {                         \
+            TRY{st} CATCH_OTHER(e) {        \
+                printf("Expected no "       \
+                       "exception but got " \
+                       "0x%x\n",            \
+                       e);                  \
+                assert(false);              \
+            }                               \
+            FINALLY {                       \
+            }                               \
+        }                                   \
+        END_TRY;                            \
+    }
+
+#define ASSERT_THROWS(st, ex)               \
+    {                                       \
+        BEGIN_TRY {                         \
+            TRY {                           \
+                { st; }                     \
+                printf("Expected a 0x%x "   \
+                       "exception but "     \
+                       "none was thrown\n", \
+                       ex);                 \
+                assert(false);              \
+            }                               \
+            CATCH_OTHER(e) {                \
+                if (e != ex) {              \
+                    printf("Expected a "    \
+                           "0x%x exception" \
+                           " but got 0x%x " \
+                           "instead\n",     \
+                           ex,              \
+                           e);              \
+                    assert(false);          \
+                }                           \
+            }                               \
+            FINALLY {                       \
+            }                               \
+        }                                   \
+        END_TRY;                            \
+    }
+
 #endif // __ASSERT_UTILS_H

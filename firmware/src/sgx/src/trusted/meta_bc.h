@@ -22,28 +22,9 @@
  * IN THE SOFTWARE.
  */
 
-#include "hal/communication.h"
+#ifndef __TRUSTED_META_BC_H
+#define __TRUSTED_META_BC_H
 
-static unsigned char* G_msg_buffer;
-static size_t G_msg_buffer_size;
+unsigned int do_meta_advupd(unsigned int rx);
 
-// HAL implementation
-bool communication_init(unsigned char* msg_buffer, size_t msg_buffer_size) {
-    return communication_set_msg_buffer(msg_buffer, msg_buffer_size);
-}
-
-bool communication_set_msg_buffer(unsigned char* msg_buffer,
-                                  size_t msg_buffer_size) {
-    // Setup the exchange buffer
-    G_msg_buffer = msg_buffer;
-    G_msg_buffer_size = msg_buffer_size;
-    return true;
-}
-
-unsigned char* communication_get_msg_buffer() {
-    return G_msg_buffer;
-}
-
-size_t communication_get_msg_buffer_size() {
-    return G_msg_buffer_size;
-}
+#endif // __TRUSTED_META_BC_H

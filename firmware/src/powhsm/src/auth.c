@@ -31,6 +31,7 @@
 #include "err.h"
 #include "mem.h"
 #include "compiletime.h"
+#include "util.h"
 
 #include "hal/log.h"
 
@@ -97,7 +98,7 @@ unsigned int auth_sign(volatile unsigned int rx) {
     if (auth.state != STATE_AUTH_SIGN)
         THROW(ERR_AUTH_INVALID_STATE); // Invalid state
 
-    sig_size = APDU_TOTAL_DATA_SIZE_OUT;
+    sig_size = (uint8_t)MIN(APDU_TOTAL_DATA_SIZE_OUT, 0xFF);
     if (!seed_sign(auth.path,
                    sizeof(auth.path) / sizeof(auth.path[0]),
                    auth.sig_hash,
