@@ -35,11 +35,12 @@ if [[ $1 == "exec" ]]; then
 
     # Capture coverage data
     lcov --capture --directory $SRCDIR --list-full-path --output-file $BASEDIR/coverage.info
-    # Remove unwanted coverage info (test files, tcpsigner, x86 HAL implementation, mock files)
+    # Remove unwanted coverage info (test files, tcpsigner, x86 HAL implementation, mock files, local includes)
     lcov --remove $BASEDIR/coverage.info "*/test_*.c" --output-file $BASEDIR/coverage.info
     lcov --remove $BASEDIR/coverage.info "*/tcpsigner/src/*" --output-file $BASEDIR/coverage.info
     lcov --remove $BASEDIR/coverage.info "*/hal/x86/src/*" --output-file $BASEDIR/coverage.info
     lcov --remove $BASEDIR/coverage.info "*/mock_*.c" --output-file $BASEDIR/coverage.info
+    lcov --remove $BASEDIR/coverage.info "/usr/include/*" --output-file $BASEDIR/coverage.info
     # Generate report and summary
     genhtml $BASEDIR/coverage.info --output $BASEDIR/output -p $SRCDIR -t "powHSM firmware"
     lcov --summary $BASEDIR/coverage.info | grep lines | sed -e "s/.\+lines.\+: \([[:digit:].]\+\).\+/\1/g" > $BASEDIR/output/total
