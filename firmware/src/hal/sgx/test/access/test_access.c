@@ -172,15 +172,16 @@ bool oe_is_within_enclave(const void* buffer, size_t size) {
     return G_mocks.oe_is_within_enclave_success;
 }
 
-void test_wiped_callback() {
+void wiped_callback() {
     G_called.wiped_callback = true;
 }
 
-void test_access_init() {
+// Test helper functions
+void do_access_init_locked() {
     G_mocks.sest_exists_password = true;
     G_mocks.sest_exists_retries = true;
 
-    bool init_ok = access_init(test_wiped_callback);
+    bool init_ok = access_init(wiped_callback);
 
     assert(init_ok);
     assert(G_called.sest_exists);
@@ -191,11 +192,11 @@ void test_access_init() {
     explicit_bzero(&G_called, sizeof(G_called));
 }
 
-void test_access_init_wiped() {
+void do_access_init_wiped() {
     G_mocks.sest_exists_password = false;
     G_mocks.sest_exists_retries = false;
 
-    bool init_ok = access_init(test_wiped_callback);
+    bool init_ok = access_init(wiped_callback);
 
     assert(init_ok);
     assert(G_called.sest_exists);
@@ -206,8 +207,8 @@ void test_access_init_wiped() {
     explicit_bzero(&G_called, sizeof(G_called));
 }
 
-void test_access_init_unlock() {
-    test_access_init();
+void do_access_init_unlocked() {
+    do_access_init_locked();
     char password[] = "1234567a";
     uint8_t password_length = 8;
     bool unlock_ok = access_unlock(password, password_length);
@@ -244,7 +245,7 @@ void test_access_init_wiped_state_ok() {
     setup();
     printf("Testing access_init succeeds when module is wiped...\n");
 
-    test_access_init_wiped();
+    do_access_init_wiped();
 
     assert(access_is_wiped() == true);
     assert(access_is_locked() == true);
@@ -254,7 +255,7 @@ void test_access_init_with_valid_stored_data_ok() {
     setup();
     printf("Testing access_init succeeds with valid stored data...\n");
 
-    test_access_init();
+    do_access_init_locked();
 
     assert(access_is_wiped() == false);
     assert(access_is_locked() == true);
@@ -269,7 +270,7 @@ void test_access_init_password_read_fails() {
     G_mocks.sest_exists_retries = true;
     G_mocks.sest_read_password_fail = true;
 
-    bool result = access_init(test_wiped_callback);
+    bool result = access_init(wiped_callback);
 
     assert(result == false);
     assert(G_called.sest_read);
@@ -284,7 +285,7 @@ void test_access_init_invalid_password() {
     G_mocks.sest_exists_retries = true;
     G_mocks.pin_policy_is_valid_pin_success = false;
 
-    bool result = access_init(test_wiped_callback);
+    bool result = access_init(wiped_callback);
 
     assert(result == false);
     assert(G_called.sest_read);
@@ -299,7 +300,7 @@ void test_access_init_retries_read_fails() {
     G_mocks.sest_exists_retries = true;
     G_mocks.sest_read_retries_fail = true;
 
-    bool result = access_init(test_wiped_callback);
+    bool result = access_init(wiped_callback);
 
     assert(result == false);
     assert(G_called.sest_read);
@@ -314,7 +315,7 @@ void test_access_init_invalid_retries_zero() {
     G_mocks.sest_exists_retries = true;
     G_stored_retries = 0;
 
-    bool result = access_init(test_wiped_callback);
+    bool result = access_init(wiped_callback);
 
     assert(result == false);
     assert(G_called.sest_read);
@@ -329,7 +330,7 @@ void test_access_init_invalid_retries_too_high() {
     G_mocks.sest_exists_retries = true;
     G_stored_retries = 4;
 
-    bool result = access_init(test_wiped_callback);
+    bool result = access_init(wiped_callback);
 
     assert(result == false);
     assert(G_called.sest_read);
@@ -340,7 +341,7 @@ void test_access_wipe_when_not_wiped_ok() {
     setup();
     printf("Testing access_wipe succeeds when not wiped...\n");
 
-    test_access_init();
+    do_access_init_locked();
 
     bool result = access_wipe();
     assert(result == true);
@@ -353,7 +354,7 @@ void test_access_wipe_already_wiped_ok() {
     setup();
     printf("Testing access_wipe succeeds when already wiped...\n");
 
-    test_access_init_wiped();
+    do_access_init_wiped();
 
     bool result = access_wipe();
 
@@ -367,7 +368,7 @@ void test_access_wipe_sest_remove_fails() {
     setup();
     printf("Testing access_wipe fails when sest_remove fails...\n");
 
-    test_access_init();
+    do_access_init_locked();
 
     G_mocks.sest_remove_success = false;
 
@@ -383,7 +384,7 @@ void test_access_unlock_ok() {
     setup();
     printf("Testing access_unlock succeeds...\n");
 
-    test_access_init_unlock();
+    do_access_init_unlocked();
 
     assert(access_is_locked() == false);
     assert(access_get_retries() == 3);
@@ -393,7 +394,7 @@ void test_access_unlock_wiped() {
     setup();
     printf("Testing access_unlock fails when module is wiped...\n");
 
-    test_access_init_wiped();
+    do_access_init_wiped();
 
     char password[] = "1234567a";
     bool result = access_unlock(password, 8);
@@ -407,7 +408,7 @@ void test_access_unlock_already_unlocked() {
     setup();
     printf("Testing access_unlock succeeds when already unlocked...\n");
 
-    test_access_init_unlock();
+    do_access_init_unlocked();
 
     bool second_unlock = access_unlock("1234567a", 8);
 
@@ -420,7 +421,7 @@ void test_access_unlock_wrong_password() {
     setup();
     printf("Testing access_unlock fails with wrong password...\n");
 
-    test_access_init();
+    do_access_init_locked();
 
     char wrong_password[] = "wrong";
     bool result = access_unlock(wrong_password, 5);
@@ -435,7 +436,7 @@ void test_access_unlock_wrong_password_length() {
     setup();
     printf("Testing access_unlock with wrong password length...\n");
 
-    test_access_init();
+    do_access_init_locked();
 
     char password[] = "1234567a";
     bool result = access_unlock(password, 7);
@@ -451,7 +452,7 @@ void test_access_unlock_excessive_retries() {
     printf("Testing access_unlock excessive retries triggers wipe...\n");
 
     G_stored_retries = 1;
-    test_access_init();
+    do_access_init_locked();
 
     char wrong_password[] = "wrong";
     bool result = access_unlock(wrong_password, 5);
@@ -467,7 +468,7 @@ void test_access_set_password_when_wiped_ok() {
     setup();
     printf("Testing access_set_password succeeds when module is wiped...\n");
 
-    test_access_init_wiped();
+    do_access_init_wiped();
 
     char new_password[] = "newpass";
     bool result = access_set_password(new_password, 7);
@@ -484,7 +485,7 @@ void test_access_set_password_when_unlocked_ok() {
     setup();
     printf("Testing access_set_password succeeds when unlocked...\n");
 
-    test_access_init_unlock();
+    do_access_init_unlocked();
 
     char new_password[] = "newpass";
     bool result = access_set_password(new_password, 7);
@@ -500,7 +501,7 @@ void test_access_set_password_when_locked_fails() {
     setup();
     printf("Testing access_set_password fails when locked and not wiped...\n");
 
-    test_access_init();
+    do_access_init_locked();
 
     char new_password[] = "newpass";
     bool result = access_set_password(new_password, 7);
@@ -515,7 +516,7 @@ void test_access_set_password_invalid_pin() {
     setup();
     printf("Testing access_set_password fails with invalid pin...\n");
 
-    test_access_init_unlock();
+    do_access_init_unlocked();
 
     G_mocks.pin_policy_is_valid_pin_success = false;
 
@@ -531,7 +532,7 @@ void test_access_set_password_sest_write_fails() {
     setup();
     printf("Testing access_set_password fails when sest_write fails...\n");
 
-    test_access_init_unlock();
+    do_access_init_unlocked();
 
     G_mocks.sest_write_success = false;
 
@@ -547,7 +548,7 @@ void test_access_output_password_ok() {
     setup();
     printf("Testing access_output_password succeeds...\n");
 
-    test_access_init_unlock();
+    do_access_init_unlocked();
 
     uint8_t output[16];
     size_t output_size = sizeof(output);
@@ -565,7 +566,7 @@ void test_access_output_password_wiped() {
     setup();
     printf("Testing access_output_password fails when module is wiped...\n");
 
-    test_access_init_wiped();
+    do_access_init_wiped();
 
     uint8_t output[] = "not-the-password";
     size_t output_size = sizeof(output);
@@ -581,7 +582,7 @@ void test_access_output_password_buffer_too_small() {
     setup();
     printf("Testing access_output_password fails with buffer too small...\n");
 
-    test_access_init_unlock();
+    do_access_init_unlocked();
 
     uint8_t output[] = "not-the-password";
     size_t output_size = 4;
@@ -597,7 +598,7 @@ void test_access_output_password_buffer_not_in_enclave() {
     setup();
     printf("Testing access_output_password fails outside of enclave...\n");
 
-    test_access_init_unlock();
+    do_access_init_unlocked();
 
     G_mocks.oe_is_within_enclave_success = false;
 
