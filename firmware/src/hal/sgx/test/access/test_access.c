@@ -188,6 +188,9 @@ void do_access_init_locked() {
     assert(G_called.sest_read);
     assert(G_called.pin_policy_is_valid_pin);
 
+    assert(access_is_wiped() == false);
+    assert(access_is_locked() == true);
+
     // Reset call flags
     explicit_bzero(&G_called, sizeof(G_called));
 }
@@ -203,6 +206,9 @@ void do_access_init_wiped() {
     assert(!G_called.sest_read);
     assert(!G_called.pin_policy_is_valid_pin);
 
+    assert(access_is_wiped() == true);
+    assert(access_is_locked() == true);
+
     // Reset call flags
     explicit_bzero(&G_called, sizeof(G_called));
 }
@@ -215,6 +221,9 @@ void do_access_init_unlocked() {
 
     assert(unlock_ok);
     assert(G_called.sest_write);
+
+    assert(access_is_wiped() == false);
+    assert(access_is_locked() == false);
 
     // Reset call flags
     explicit_bzero(&G_called, sizeof(G_called));
