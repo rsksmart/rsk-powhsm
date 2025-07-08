@@ -125,10 +125,25 @@ void io_finalise() {
     close_and_reset_fd(&serverfd);
 }
 
+#define CHECK_READ_STATUS(read_result, err_prefix)                            \
+    {                                                                         \
+        if ((read_result) == 0) {                                             \
+            LOG("%s: connection closed by the client\n", err_prefix);         \
+            close_and_reset_fd(&connfd);                                      \
+            goto end_readloop;                                                \
+        } else if ((read_result) == -1) {                                     \
+            LOG("%s: error reading from socket. Disconnected\n", err_prefix); \
+            close_and_reset_fd(&connfd);                                      \
+            goto end_readloop;                                                \
+        }                                                                     \
+    }
+
 unsigned short io_exchange(unsigned short tx) {
-    uint32_t tx_net, rx_net;
-    unsigned int rx;
-    int readlen;
+    enum {
+        READ_LENGTH,
+        READ_PLOAD,
+        SKIP_PLOAD,
+    } read_state;
 
     while (true) {
         if (connfd == -1) {
@@ -139,12 +154,12 @@ unsigned short io_exchange(unsigned short tx) {
             tx = 0;
         }
 
-        // Write len (Compatibility with LegerBlue commTCP.py)
+        // Write len (Compatibility with LedgerBlue commTCP.py)
         if (tx > 0) {
             // Write APDU length minus two bytes of the sw
             // (encoded in 4 bytes network byte-order)
-            // (compatibility with LegerBlue commTCP.py)
-            tx_net = tx - 2;
+            // (compatibility with LedgerBlue commTCP.py)
+            uint32_t tx_net = tx - 2;
             tx_net = htonl(tx_net);
             if (send(connfd, &tx_net, sizeof(tx_net), MSG_NOSIGNAL) == -1) {
                 LOG("Connection closed by the client\n");
@@ -160,56 +175,67 @@ unsigned short io_exchange(unsigned short tx) {
             LOG_HEX("I/O =>", io_apdu_buffer, tx);
         }
 
-        // Read APDU length
-        // (encoded in 4 bytes network byte-order)
-        // (compatibility with LedgerBlue commTCP.py)
-        readlen = read(connfd, &rx_net, sizeof(rx_net));
-        if (readlen == sizeof(rx_net)) {
-            rx = ntohl(rx_net);
-            if (rx > 0) {
-                // Read APDU from socket
-                readlen = read(connfd, io_apdu_buffer, sizeof(io_apdu_buffer));
-                if (readlen < 0) {
-                    LOG("Error reading APDU. Disconnected\n");
-                    close_and_reset_fd(&connfd);
-                    continue;
-                } else if ((unsigned int)readlen != rx) {
-                    LOG("Warning: APDU read length mismatch "
-                        "(got %d bytes, expected %u bytes). "
-                        "Resetting request buffer\n",
-                        readlen,
-                        rx);
-                    // Empty the request buffer
-                    int bytes_available;
-                    char c;
-                    if (ioctl(connfd, FIONREAD, &bytes_available) < 0) {
-                        LOG("Error peeking APDU. Disconnected\n");
-                        close_and_reset_fd(&connfd);
-                        continue;
+        // Read from buffer until whole APDU is read or something happens
+        read_state = READ_LENGTH;
+        ssize_t readlen;
+        uint32_t rx_net;
+        uint8_t len_buf[sizeof(rx_net)];
+        char discard_buffer[1024 * 1024];
+        unsigned int rx;
+        unsigned int offset = 0;
+        while (true) {
+            switch (read_state) {
+            case READ_LENGTH:
+                readlen =
+                    read(connfd, len_buf + offset, sizeof(len_buf) - offset);
+                CHECK_READ_STATUS(readlen, "Error while reading APDU length");
+                offset += readlen;
+                if (offset == sizeof(len_buf)) {
+                    memcpy(&rx_net, len_buf, sizeof(rx_net));
+                    rx = ntohl(rx_net);
+                    // Empty packet?
+                    if (rx == 0) {
+                        LOG("I/O <= <EMPTY MESSAGE>\n");
+                        return 0;
+                    } else if (rx > sizeof(io_apdu_buffer) ||
+                               rx != (unsigned short)rx) {
+                        LOG("Client tried to send a message "
+                            "that was too big (%u bytes). "
+                            "Skipping payload.\n",
+                            rx);
+                        // Move onto skipping the APDU payload
+                        read_state = SKIP_PLOAD;
+                        offset = 0;
+                    } else {
+                        // Move onto reading the APDU payload
+                        read_state = READ_PLOAD;
+                        offset = 0;
                     }
-                    while (bytes_available--)
-                        read(connfd, &c, 1);
                 }
-                LOG_HEX("I/O <=", io_apdu_buffer, readlen);
-            } else {
-                // Empty packet
-                LOG("I/O <= <EMPTY MESSAGE>\n");
+                break;
+            case READ_PLOAD:
+                readlen = read(connfd, io_apdu_buffer + offset, rx - offset);
+                CHECK_READ_STATUS(readlen, "Error while reading APDU payload");
+                offset += readlen;
+                if (offset == rx) {
+                    LOG("I/O <= (%u bytes)", rx);
+                    LOG_HEX("", io_apdu_buffer, rx);
+                    return (unsigned short)rx;
+                }
+                break;
+            case SKIP_PLOAD:
+                readlen = read(connfd, discard_buffer, sizeof(discard_buffer));
+                CHECK_READ_STATUS(readlen, "Error while skipping APDU payload");
+                offset += readlen;
+                if (offset == rx) {
+                    LOG("I/O <= (%u bytes) <SKIPPED PAYLOAD>\n", rx);
+                    memset(io_apdu_buffer, 0, sizeof(io_apdu_buffer));
+                    return rx != (unsigned short)rx ? (unsigned short)0xFFFFFFFF
+                                                    : (unsigned short)rx;
+                }
+                break;
             }
-
-            return rx;
-        } else if (readlen == 0) {
-            // EOF => socket closed
-            LOG("Connection closed by the client\n");
-        } else if (readlen == -1) {
-            // Error reading
-            LOG("Error reading from socket. Disconnected\n");
-        } else {
-            // Invalid packet header
-            LOG("Error reading APDU length (got %d bytes != %ld bytes). "
-                "Disconnected\n",
-                readlen,
-                sizeof(rx_net));
         }
-        close_and_reset_fd(&connfd);
+    end_readloop:;
     }
 }

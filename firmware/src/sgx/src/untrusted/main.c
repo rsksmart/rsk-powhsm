@@ -166,10 +166,7 @@ int main(int argc, char **argv) {
 
     while (true) {
         rx = io_exchange(tx);
-
-        if (rx) {
-            tx = eprx_system_process_apdu(rx);
-        }
+        tx = eprx_system_process_apdu(rx);
     }
 
     LOG("Exited main loop unexpectedly\n");
