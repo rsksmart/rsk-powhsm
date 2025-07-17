@@ -5,11 +5,11 @@ on: [push]
 jobs:
   run-unit-tests:
     name: Unit tests
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout this repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 #v4.2.2
 
       - name: Build the middleware docker image
         run: docker/mware/build
@@ -21,26 +21,18 @@ jobs:
         run: ledger/test/test-all
 
       - name: Ledger Signer's tests
-        working-directory: ledger/src/signer/test/
-        run: |
-          for d in difficulty sha256 srlp; do
-            (cd "$d" && make clean test)
-          done
+        run: ledger/src/signer/test/run-all.sh
 
       - name: Ledger common lib tests
-        working-directory: ledger/src/common/test/
-        run: |
-          for d in memutil; do
-            (cd "$d" && make clean test)
-          done
+        run: ledger/src/common/test/run-all.sh
 
   run-integration-tests:
     name: Integration tests
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout rsk-powhsm repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 #v4.2.2
         with:
           path: rsk-powhsm
 
@@ -53,7 +45,7 @@ jobs:
           ledger/build/build-tcpsigner
 
       - name: Checkout hsm-integration-test repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 #v4.2.2
         with:
           repository: rootstock/hsm-integration-test
           ref: 2.3.0.plus
