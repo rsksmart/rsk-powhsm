@@ -63,7 +63,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 #v4.2.2
         with:
           repository: rootstock/hsm-integration-test
-          ref: 5.1.0.plus
+          ref: 5.0.0.plus
           path: hsm-integration-test
           ssh-key: ${{ secrets.HSM_INTEGRATION_TEST_SSH_KEY }}
 
