@@ -205,7 +205,7 @@ static void assert_signature_valid(uint8_t *hash,
                                    uint8_t *sig,
                                    size_t sig_length) {
     secp256k1_context *sp_ctx =
-        secp256k1_context_create(SECP256K1_CONTEXT_VERIFY);
+        secp256k1_context_create(SECP256K1_CONTEXT_NONE);
     secp256k1_ecdsa_signature sp_sig;
     secp256k1_pubkey sp_pubkey;
     assert(1 == secp256k1_ecdsa_signature_parse_der(
