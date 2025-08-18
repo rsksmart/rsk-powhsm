@@ -48,7 +48,7 @@ static secp256k1_context* sp_ctx = NULL;
 bool seed_init() {
     // Init the secp256k1 context
     if (!sp_ctx)
-        sp_ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN);
+        sp_ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
 
     memset(G_seed, 0, sizeof(G_seed));
     G_seed_available = false;

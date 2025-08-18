@@ -119,7 +119,7 @@ bool bip32_derive_private(uint8_t* out,
 
     // Init the secp256k1 context
     if (!sp_ctx)
-        sp_ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN);
+        sp_ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
 
     // Compute the master node from the seed
     if (!seed_to_node(current_node, seed, seed_length)) {
