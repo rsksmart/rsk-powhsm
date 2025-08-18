@@ -108,7 +108,7 @@ static inline bool read_hex_value_into(cJSON* json,
 bool endorsement_init(char* att_file_path) {
     // Init the secp256k1 context
     if (!sp_ctx)
-        sp_ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN);
+        sp_ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
 
     LOG("Loading endorsement file '%s'\n", att_file_path);
     cJSON* json = read_json_file(att_file_path);

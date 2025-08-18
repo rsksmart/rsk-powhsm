@@ -128,7 +128,7 @@ bool seed_init(const char* key_file_path,
                const size_t bip32_paths_count) {
     // Init the secp256k1 context
     if (!sp_ctx)
-        sp_ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN);
+        sp_ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
 
     // Initialize the onboarded value
     seed_data.is_onboarded = SEED_DEFAULT_IS_ONBOARDED;
