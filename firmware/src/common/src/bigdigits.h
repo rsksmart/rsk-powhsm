@@ -140,19 +140,6 @@ DIGIT_T mpShiftRight(DIGIT_T a[], const DIGIT_T b[], size_t x, size_t ndigits);
 /** Returns number of significant non-zero digits in a */
 size_t mpSizeof(const DIGIT_T a[], size_t ndigits);
 
-/** Computes p = x * y, where x and y are single digits */
-int spMultiply(DIGIT_T p[2], DIGIT_T x, DIGIT_T y);
-
-/** Computes quotient q = u div v, remainder r = u mod v, where q, r and v are single digits */
-DIGIT_T spDivide(DIGIT_T *q, DIGIT_T *r, const DIGIT_T u[2], DIGIT_T v);
-
-/**********************************************/
-/* FUNCTIONS THAT OPERATE WITH A SINGLE DIGIT */
-/**********************************************/
-
-/** Computes quotient q = u div d, returns remainder */
-DIGIT_T mpShortDiv(DIGIT_T q[], const DIGIT_T u[], DIGIT_T d, size_t ndigits);
-
 #ifdef __cplusplus
 }
 #endif

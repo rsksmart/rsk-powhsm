@@ -56,6 +56,15 @@
 #define HIHALF(x) ((DIGIT_T)((x) >> BITS_PER_HALF_DIGIT & MAX_HALF_DIGIT))
 #define TOHIGH(x) ((DIGIT_T)((x) << BITS_PER_HALF_DIGIT))
 
+/** Computes p = x * y, where x and y are single digits */
+static int spMultiply(DIGIT_T p[2], DIGIT_T x, DIGIT_T y);
+
+/** Computes quotient q = u div v, remainder r = u mod v, where q, r and v are single digits */
+static DIGIT_T spDivide(DIGIT_T *q, DIGIT_T *r, const DIGIT_T u[2], DIGIT_T v);
+
+/** Computes quotient q = u div d, returns remainder */
+static DIGIT_T mpShortDiv(DIGIT_T q[], const DIGIT_T u[], DIGIT_T d, size_t ndigits);
+
 DIGIT_T mpSetZero(volatile DIGIT_T a[], size_t ndigits)
 {    /* Sets a = 0 */
 
@@ -352,7 +361,7 @@ int mpDivide(DIGIT_T q[], DIGIT_T r[], const DIGIT_T u[],
     return 0;
 }
 
-DIGIT_T mpShortDiv(DIGIT_T q[], const DIGIT_T u[], DIGIT_T v, 
+static DIGIT_T mpShortDiv(DIGIT_T q[], const DIGIT_T u[], DIGIT_T v, 
                    size_t ndigits)
 {
     /*    Calculates quotient q = u div v
@@ -533,7 +542,7 @@ int mpCompare(const DIGIT_T a[], const DIGIT_T b[], size_t ndigits)
     return 0;    /* EQ */
 }
 
-int spMultiply(DIGIT_T p[2], DIGIT_T x, DIGIT_T y)
+static int spMultiply(DIGIT_T p[2], DIGIT_T x, DIGIT_T y)
 {    /*    Computes p = x * y */
     /*    Ref: Arbitrary Precision Computation
     http://numbers.computation.free.fr/Constants/constants.html
@@ -617,7 +626,7 @@ static void spMultSub(DIGIT_T uu[2], DIGIT_T qhat, DIGIT_T v1, DIGIT_T v0)
     uu[1] -= HIHALF(p1);
 }
 
-DIGIT_T spDivide(DIGIT_T *q, DIGIT_T *r, const DIGIT_T u[2], DIGIT_T v)
+static DIGIT_T spDivide(DIGIT_T *q, DIGIT_T *r, const DIGIT_T u[2], DIGIT_T v)
 {    /*    Computes quotient q = u / v, remainder r = u mod v
         where u is a double digit
         and q, v, r are single precision digits.

@@ -20,12 +20,21 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-SRCDIR = ../../src
-COMMONTESTDIR = ../common
-CFLAGS = -iquote $(SRCDIR) -iquote $(COMMONTESTDIR) -iquote .
+include ../common.mk
 
-include ../../../../coverage/coverage.mk
+PROG = test.out
+OBJS = test_bigdigit.o bigdigits.o bigdigits_helper.o
+LIBS = -lmbedcrypto
 
-CFLAGS += $(COVFLAGS)
+all: $(PROG)
 
-VPATH += $(SRCDIR)
+$(PROG): $(OBJS)
+	$(CC) $(COVFLAGS) -o $@ $^ $(LIBS)
+
+.PHONY: clean test
+
+clean:
+	rm -f $(PROG) ./*.o $(COVFILES)
+
+test: all
+	./$(PROG)
