@@ -96,6 +96,8 @@ rm -f $INSTALL_DIR/*.dat
 error "Could not remove the existing DB files from the installation directory."
 cp -R $MIGRATION_DIR/*.dat $INSTALL_DIR/
 error "Could not copy the new DB files to the installation directory."
+chown -R powhsm:powhsm $INSTALL_DIR
+error "Could not set the ownership of the installation directory."
 rm -rf $MIGRATION_DIR
 error "Could not remove the temporary installation directory."
 
