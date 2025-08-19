@@ -59,6 +59,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include <time.h>
 #include "bip32.h"
 #include "test_helpers.h"
 
@@ -347,6 +348,12 @@ static void printf_hex(uint8_t *buf, size_t len) {
     printf("\n");
 }
 
+bool random_getrandom(void *buffer, size_t length) {
+    for (size_t i = 0; i < length; i++)
+        ((uint8_t *)buffer)[i] = (uint8_t)(rand() & 0xFF);
+    return true;
+}
+
 void test_derivation() {
     uint8_t expected_bytes[SERIALISED_BIP32_KEY_LENGTH];
     uint8_t canary[CANARY_LENGTH];
@@ -418,6 +425,8 @@ void test_derivation_fails_if_output_buffer_too_small() {
 }
 
 int main() {
+    srand(time(NULL));
+
     test_derivation();
     test_derivation_fails_if_output_buffer_too_small();
 

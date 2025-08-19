@@ -29,6 +29,7 @@
 #include "endian.h"
 #include "bigdigits.h"
 #include "bigdigits_helper.h"
+#include "random.h"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -117,9 +118,21 @@ bool bip32_derive_private(uint8_t* out,
         return false;
     }
 
-    // Init the secp256k1 context
-    if (!sp_ctx)
+    // Init the secp256k1 context and randomise it
+    if (!sp_ctx) {
+        unsigned char randomize[32];
         sp_ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
+        if (!random_getrandom(randomize, sizeof(randomize))) {
+            DEBUG_LOG("Error generating random seed for "
+                      "secp256k1 context randomisation\n");
+            return false;
+        }
+        if (!secp256k1_context_randomize(sp_ctx, randomize)) {
+            DEBUG_LOG("Error randomising secp256k1 context\n");
+            return false;
+        }
+        explicit_bzero(randomize, sizeof(randomize));
+    }
 
     // Compute the master node from the seed
     if (!seed_to_node(current_node, seed, seed_length)) {
