@@ -204,10 +204,17 @@ bool seed_sign(uint32_t* path,
     }
 
     // Sign and serialize as DER
-    secp256k1_ecdsa_sign(sp_ctx, &sp_sig, hash32, derived_privkey, NULL, NULL);
+    if (!secp256k1_ecdsa_sign(
+            sp_ctx, &sp_sig, hash32, derived_privkey, NULL, NULL)) {
+        LOG("Error signing with derived private key\n");
+        return false;
+    }
     size_t temp_length = *sig_out_length;
-    secp256k1_ecdsa_signature_serialize_der(
-        sp_ctx, sig_out, &temp_length, &sp_sig);
+    if (!secp256k1_ecdsa_signature_serialize_der(
+            sp_ctx, sig_out, &temp_length, &sp_sig)) {
+        LOG("Error serializing signature\n");
+        return false;
+    }
     if (temp_length > MAX_SIGNATURE_LENGTH) {
         LOG("Overflow while signing\n");
         return false;
