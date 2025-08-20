@@ -47,8 +47,20 @@ static secp256k1_context* sp_ctx = NULL;
 
 bool seed_init() {
     // Init the secp256k1 context
-    if (!sp_ctx)
+    if (!sp_ctx) {
+        unsigned char randomize[32];
         sp_ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
+        if (!random_getrandom(randomize, sizeof(randomize))) {
+            LOG("Error generating random seed for "
+                "secp256k1 context randomisation\n");
+            return false;
+        }
+        if (!secp256k1_context_randomize(sp_ctx, randomize)) {
+            LOG("Error randomising secp256k1 context\n");
+            return false;
+        }
+        explicit_bzero(randomize, sizeof(randomize));
+    }
 
     memset(G_seed, 0, sizeof(G_seed));
     G_seed_available = false;
