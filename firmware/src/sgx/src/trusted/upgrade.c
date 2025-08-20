@@ -298,6 +298,24 @@ static bool receive_data(volatile unsigned int rx,
     return *dest_offset < *dest_size; // More?
 }
 
+static secp256k1_context* assert_secp256k1_context_create_and_randomize() {
+    unsigned char randomize[32];
+    secp256k1_context* ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
+    if (!random_getrandom(randomize, sizeof(randomize))) {
+        LOG("Error generating random seed for "
+            "secp256k1 context randomisation\n");
+        reset_upgrade();
+        THROW(ERR_INTERNAL);
+    }
+    if (!secp256k1_context_randomize(ctx, randomize)) {
+        LOG("Error randomising secp256k1 context\n");
+        reset_upgrade();
+        THROW(ERR_INTERNAL);
+    }
+    explicit_bzero(randomize, sizeof(randomize));
+    return ctx;
+}
+
 // -----------------------------------------------------------------------
 // Protocol implementation
 // -----------------------------------------------------------------------
@@ -437,7 +455,7 @@ unsigned int upgrade_process_apdu(volatile unsigned int rx) {
             THROW(ERR_UPGRADE_PROTOCOL);
         }
         // Check to see whether we find a matching authorized signer
-        secp_ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
+        secp_ctx = assert_secp256k1_context_create_and_randomize();
         if (!secp256k1_ecdsa_signature_parse_der(
                 secp_ctx, &signature, APDU_DATA_PTR, APDU_DATA_SIZE(rx))) {
             secp256k1_context_destroy(secp_ctx);
@@ -491,7 +509,7 @@ unsigned int upgrade_process_apdu(volatile unsigned int rx) {
         check_state(upgrade_state_send_self_id);
 
         if (!upgrade_ctx.evidence) {
-            secp_ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
+            secp_ctx = assert_secp256k1_context_create_and_randomize();
             do {
                 if (!random_getrandom(upgrade_ctx.my_privkey,
                                       sizeof(upgrade_ctx.my_privkey))) {
@@ -592,7 +610,7 @@ unsigned int upgrade_process_apdu(volatile unsigned int rx) {
             LOG("Error extracting peer enclave's public key\n");
             goto upgrade_process_apdu_identify_peer_error;
         }
-        secp_ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
+        secp_ctx = assert_secp256k1_context_create_and_randomize();
         if (claim->value_size != sizeof(upgrade_ctx.their_pubkey) ||
             !secp256k1_ec_pubkey_parse(
                 secp_ctx, &pubkey, claim->value, claim->value_size)) {
@@ -619,7 +637,7 @@ unsigned int upgrade_process_apdu(volatile unsigned int rx) {
     case OP_UPGRADE_PROCESS_DATA:
         check_state(upgrade_state_ready_for_xchg);
 
-        secp_ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
+        secp_ctx = assert_secp256k1_context_create_and_randomize();
         if (!secp256k1_ec_pubkey_parse(secp_ctx,
                                        &pubkey,
                                        upgrade_ctx.their_pubkey,
