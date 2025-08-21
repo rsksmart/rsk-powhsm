@@ -252,6 +252,12 @@ unsigned int auth_sign_handle_btctx(volatile unsigned int rx) {
             // BTC tx length includes the length of the length
             // and the length of the sighash computation mode and
             // extradata length
+            if (auth.tx.remaining_bytes <=
+                (BTCTX_LENGTH_SIZE + SIGHASH_COMP_MODE_SIZE + EXTRADATA_SIZE)) {
+                // Prevent underflow
+                LOG("[E] BTC transaction length too small\n");
+                THROW(ERR_AUTH_INVALID_DATA_SIZE);
+            }
             auth.tx.remaining_bytes -=
                 BTCTX_LENGTH_SIZE + SIGHASH_COMP_MODE_SIZE + EXTRADATA_SIZE;
             // Init both hash operations
