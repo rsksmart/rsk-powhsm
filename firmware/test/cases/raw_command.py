@@ -36,13 +36,20 @@ class RawCommand(TestCase):
     def __init__(self, spec):
         super().__init__(spec)
 
-        if not is_nonempty_hex_string(spec.get("command")) and spec.get("command") != "":
+        self.commands = spec.get("command")
+        if type(self.commands) == str:
+            self.commands = [self.commands]
+
+        if type(self.commands) == list and \
+           all(map(lambda c: is_nonempty_hex_string(c) or c == "", self.commands)):
+            self.commands = list(map(lambda c: bytes.fromhex(c), self.commands))
+        else:
             raise TestCaseError(f"Invalid raw command: {spec.get("command")}")
-        self.command = bytes.fromhex(spec.get("command"))
 
     def run(self, dongle, debug, run_args):
         try:
-            dongle.dongle.exchange(self.command)
+            for command in self.commands:
+                dongle.dongle.exchange(command)
 
             if self.expected is not True:
                 raise TestCaseError(f"Expected error code {self.expected_desc} "

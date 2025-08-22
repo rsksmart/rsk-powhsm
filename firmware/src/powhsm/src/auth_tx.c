@@ -237,6 +237,9 @@ static void btctx_cb_segwit(const btctx_cb_event_t event) {
 unsigned int auth_sign_handle_btctx(volatile unsigned int rx) {
     uint8_t apdu_offset = 0;
 
+#define TX_METADATA_SIZE \
+    (BTCTX_LENGTH_SIZE + SIGHASH_COMP_MODE_SIZE + EXTRADATA_SIZE)
+
     if (auth.state != STATE_AUTH_BTCTX) {
         LOG("[E] Expected to be in the BTC tx state\n");
         THROW(ERR_AUTH_INVALID_STATE);
@@ -249,11 +252,15 @@ unsigned int auth_sign_handle_btctx(volatile unsigned int rx) {
             for (uint8_t i = 0; i < BTCTX_LENGTH_SIZE; i++) {
                 auth.tx.remaining_bytes += APDU_DATA_PTR[i] << (8 * i);
             }
+            if (auth.tx.remaining_bytes <= TX_METADATA_SIZE) {
+                // Prevent underflow
+                LOG("[E] BTC transaction length too small\n");
+                THROW(ERR_AUTH_INVALID_DATA_SIZE);
+            }
             // BTC tx length includes the length of the length
             // and the length of the sighash computation mode and
             // extradata length
-            auth.tx.remaining_bytes -=
-                BTCTX_LENGTH_SIZE + SIGHASH_COMP_MODE_SIZE + EXTRADATA_SIZE;
+            auth.tx.remaining_bytes -= TX_METADATA_SIZE;
             // Init both hash operations
             hash_sha256_init(&auth.tx.tx_hash_ctx);
             hash_sha256_init(&auth.tx.sig_hash_ctx);
