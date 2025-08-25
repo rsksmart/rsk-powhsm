@@ -83,6 +83,7 @@
 #define IS_VALID_SIGNATURE (0x04)
 #define IS_VALID_TXHASH (0x08)
 #define IS_MATCH (0x10)
+#define TOP_LEVEL_LIST_SEEN (0x20)
 
 __attribute__((always_inline)) static inline void update_indexes() {
     if (auth.receipt.level > 0)
@@ -108,6 +109,12 @@ static void list_start(const uint16_t size) {
 
     // Count total number of bytes remaining for the entire receipt
     if (auth.receipt.level == TOP_LEVEL) {
+        // All receipts MUST consist of a single top-level list. Fail otherwise
+        if (HAS_FLAG(auth.receipt.flags, TOP_LEVEL_LIST_SEEN)) {
+            LOG("[E] Receipt had more than one top-level list\n");
+            THROW(ERR_AUTH_RECEIPT_INVALID);
+        }
+        SET_FLAG(auth.receipt.flags, TOP_LEVEL_LIST_SEEN);
         auth.receipt.remaining_bytes = size + rlp_list_prefix_size(size);
     }
 }
