@@ -28,20 +28,29 @@
 #include <string.h>
 
 // Helper function to encode a len-byte unsigned integer (R or S) in DER format
-static size_t der_encode_uint(uint8_t* dest, uint8_t* src, size_t len) {
+static size_t der_encode_uint(uint8_t* dest,
+                              size_t dest_len,
+                              uint8_t* src,
+                              size_t src_len) {
+    // Disallow zero-length uints
+    if (src_len == 0)
+        return 0;
     // Check if we need a leading zero byte
     bool lz = src[0] & 0x80;
     // Start of source: remove leading zeroes
     size_t trim = 0;
-    while (!src[trim] && trim < (len - 1))
+    while (!src[trim] && trim < (src_len - 1))
         trim++;
+    // Validate destination buffer size
+    if (dest_len < (2 + (lz ? 1 : 0) + src_len - trim))
+        return 0;
     // Output
     size_t off = 0;
-    dest[off++] = 0x02;                      // Integer tag
-    dest[off++] = len - trim + (lz ? 1 : 0); // Length byte
+    dest[off++] = 0x02;                          // Integer tag
+    dest[off++] = src_len - trim + (lz ? 1 : 0); // Length byte
     if (lz)
-        dest[off++] = 0x00;                     // Leading zero
-    memcpy(dest + off, src + trim, len - trim); // Actual integer
+        dest[off++] = 0x00;                         // Leading zero
+    memcpy(dest + off, src + trim, src_len - trim); // Actual integer
     return (size_t)dest[1] + 2;
 }
 
@@ -52,8 +61,14 @@ uint8_t der_encode_signature(uint8_t* dest,
     // space for TLV with potential leading zero
     uint8_t r_encoded[sizeof(sig->r) + 3];
     uint8_t s_encoded[sizeof(sig->r) + 3];
-    uint8_t r_len = (uint8_t)der_encode_uint(r_encoded, sig->r, sizeof(sig->r));
-    uint8_t s_len = (uint8_t)der_encode_uint(s_encoded, sig->s, sizeof(sig->s));
+    uint8_t r_len = (uint8_t)der_encode_uint(
+        r_encoded, sizeof(r_encoded), sig->r, sizeof(sig->r));
+    uint8_t s_len = (uint8_t)der_encode_uint(
+        s_encoded, sizeof(s_encoded), sig->s, sizeof(sig->s));
+
+    // Fail if errors happened during R or S encoding
+    if (!r_len || !s_len)
+        return 0;
 
     // Check for enough space in destination buffer
     if (dest_size < (size_t)(r_len + s_len + 2))
