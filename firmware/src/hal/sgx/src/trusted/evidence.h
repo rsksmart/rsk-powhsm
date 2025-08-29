@@ -29,6 +29,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <openenclave/bits/evidence.h>
+#include <openenclave/bits/sgx/sgxtypes.h>
 #include <openenclave/attestation/sgx/evidence.h>
 
 #define EVIDENCE_FORMAT_SGX_ECDSA ((oe_uuid_t){OE_FORMAT_UUID_SGX_ECDSA})
@@ -102,7 +103,7 @@ bool evidence_generate(evidence_format_t* format,
  * @param evidence_buffer       the evidence buffer
  * @param evidence_buffer_size  the evidence buffer size
  * @param claims                [out] claims buffer
- * @param claims_size           [out] number of claims
+ * @param claims_length         [out] number of claims
  *
  * @returns true iff evidence was successfully verified
  */
@@ -110,7 +111,7 @@ bool evidence_verify_and_extract_claims(oe_uuid_t format_id,
                                         uint8_t* evidence_buffer,
                                         size_t evidence_buffer_size,
                                         oe_claim_t** claims,
-                                        size_t* claims_size);
+                                        size_t* claims_length);
 
 /**
  * @brief Given a set of claims, find the one with the given name

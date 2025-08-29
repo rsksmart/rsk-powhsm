@@ -53,13 +53,13 @@ typedef enum _oe_result {
 #define OE_ZERO_SIZED_ARRAY
 #define OE_SHA256_SIZE 32
 #define SGX_CPUSVN_SIZE 16
+#define SGX_KEYID_SIZE 32
+#define SGX_MAC_SIZE 16
 #define OE_INLINE
 
-OE_PACK_BEGIN
 typedef struct _sgx_report_data {
     unsigned char field[64];
 } sgx_report_data_t;
-OE_PACK_END
 
 OE_PACK_BEGIN
 typedef struct _sgx_qe_auth_data {
@@ -83,7 +83,6 @@ typedef struct _sgx_attributes {
 } sgx_attributes_t;
 OE_PACK_END
 
-OE_PACK_BEGIN
 typedef struct _sgx_report_body {
     /* (0) CPU security version */
     uint8_t cpusvn[SGX_CPUSVN_SIZE];
@@ -133,7 +132,17 @@ typedef struct _sgx_report_body {
     /* (320) User report data */
     sgx_report_data_t report_data;
 } sgx_report_body_t;
-OE_PACK_END
+
+typedef struct _sgx_report {
+    /* (0) */
+    sgx_report_body_t body;
+
+    /* (384) Id of key (?) */
+    uint8_t keyid[SGX_KEYID_SIZE];
+
+    /* (416) Message authentication code over fields of this structure */
+    uint8_t mac[SGX_MAC_SIZE];
+} sgx_report_t;
 
 OE_PACK_BEGIN
 typedef struct _sgx_quote {
@@ -169,21 +178,16 @@ typedef struct _sgx_quote {
 } sgx_quote_t;
 OE_PACK_END
 
-OE_PACK_BEGIN
 typedef struct _sgx_ecdsa256_signature {
     uint8_t r[32];
     uint8_t s[32];
 } sgx_ecdsa256_signature_t;
-OE_PACK_END
 
-OE_PACK_BEGIN
 typedef struct _sgx_ecdsa256_key {
     uint8_t x[32];
     uint8_t y[32];
 } sgx_ecdsa256_key_t;
-OE_PACK_END
 
-OE_PACK_BEGIN
 typedef struct _sgx_quote_auth_data {
     /* (0) Pair of 256 bit ECDSA Signature. */
     sgx_ecdsa256_signature_t signature;
@@ -197,7 +201,6 @@ typedef struct _sgx_quote_auth_data {
     /* (512) Quoting Enclave Report Body Signature */
     sgx_ecdsa256_signature_t qe_report_body_signature;
 } sgx_quote_auth_data_t;
-OE_PACK_END
 
 // Taken from OpenEnclave's include/openenclave/attestation/sgx/evidence.h
 
@@ -284,6 +287,8 @@ oe_result_t oe_verify_evidence(const oe_uuid_t* format_id,
                                size_t* claims_length);
 
 oe_result_t oe_verifier_shutdown(void);
+
+oe_result_t oe_free_claims(oe_claim_t* claims, size_t claims_length);
 
 // Taken from OpenEnclave's include/openenclave/enclave.h
 
