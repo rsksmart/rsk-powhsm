@@ -51,6 +51,7 @@ struct {
     bool oe_verifier_shutdown;
     bool oe_free_evidence;
     bool oe_verifier_get_format_settings;
+    bool oe_free_claims;
 } G_called;
 
 oe_result_t oe_attester_initialize(void) {
@@ -73,6 +74,13 @@ oe_result_t oe_verifier_shutdown(void) {
     return OE_OK;
 }
 
+oe_result_t oe_free_claims(oe_claim_t* claims, size_t claims_length) {
+    assert(claims);
+    assert(claims_length);
+    G_called.oe_free_claims = true;
+    return OE_OK;
+}
+
 #define TEST_FORMAT_ID \
     { 0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF }
 #define TEST_FORMAT_SETTINGS                                              \
@@ -85,6 +93,146 @@ oe_result_t oe_verifier_shutdown(void) {
 
 #define TEST_EVIDENCE_HEADER "<evidence-header>"
 #define TEST_EVIDENCE_HEADER_SIZE strlen(TEST_EVIDENCE_HEADER)
+
+// clang-format off
+const uint8_t MOCK_EVIDENCE_LOCAL_P1[] = {
+    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99,
+    0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff, // cpusvn
+    0x00, 0x11, 0x22, 0x33, // miscselect
+    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99,
+    0xaa, 0xbb, // reserved1
+    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99,
+    0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff, // isvextprodid
+    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99,
+    0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff, // attributes
+    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99,
+    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99,
+    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99,
+    0xaa, 0xbb, // mrenclave
+    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99,
+    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99,
+    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99,
+    0xaa, 0xbb, // reserved2
+    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99,
+    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99,
+    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99,
+    0xaa, 0xbb, // mrsigner
+    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99,
+    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99,
+    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99,
+    0xaa, 0xbb, // reserved3
+    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99,
+    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99,
+    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99,
+    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99,
+    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99,
+    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99,
+    0xaa, 0xbb, 0xcc, 0xdd, // configid
+    0x00, 0x01, // isvprodid
+    0x00, 0x01, // isvsvn
+    0x00, 0x01, // configsvn
+    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99,
+    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99,
+    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99,
+    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99,
+    0xaa, 0xbb, // reserved4
+    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99,
+    0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff, // isvfamilyid
+};
+
+const uint8_t MOCK_EVIDENCE_LOCAL_P2[] = {
+    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99,
+    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99,
+    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99,
+    0xaa, 0xbb, // report data right
+    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99,
+    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99,
+    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99,
+    0xaa, 0xbb, // keyid
+    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99,
+    0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff, // mac
+};
+
+const uint8_t MOCK_EVIDENCE_REMOTE_P1[] = {
+    0xaa, 0xbb, // version
+    0xaa, 0xbb, // sign_type;
+    0xaa, 0xbb, 0xcc, 0xdd, // tee_type
+    0xaa, 0xbb, // qe_svn
+    0xaa, 0xbb, // pce_svn
+    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99,
+    0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff, // uuid
+    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99,
+    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, // user_data
+};
+// clang-format on
+
+#define MOCK_EVIDENCE_REMOTE_P2 MOCK_EVIDENCE_LOCAL_P1
+
+void mock_evidence_local(uint8_t** evidence,
+                         size_t* evidence_size,
+                         uint8_t* report_data_left,
+                         uint8_t* custom_claims,
+                         size_t custom_claims_size) {
+    *evidence_size = sizeof(MOCK_EVIDENCE_LOCAL_P1) + 32 /*report_data_left*/ +
+                     sizeof(MOCK_EVIDENCE_LOCAL_P2) + custom_claims_size;
+    uint8_t* result = malloc(*evidence_size);
+    size_t offset = 0;
+    memcpy(result + offset,
+           MOCK_EVIDENCE_LOCAL_P1,
+           sizeof(MOCK_EVIDENCE_LOCAL_P1));
+    offset += sizeof(MOCK_EVIDENCE_LOCAL_P1);
+    memcpy(result + offset, report_data_left, 32);
+    offset += 32;
+    memcpy(result + offset,
+           MOCK_EVIDENCE_LOCAL_P2,
+           sizeof(MOCK_EVIDENCE_LOCAL_P2));
+    offset += sizeof(MOCK_EVIDENCE_LOCAL_P2);
+    if (custom_claims) {
+        memcpy(result + offset, custom_claims, custom_claims_size);
+        offset += custom_claims_size;
+    }
+    *evidence = result;
+}
+
+void mock_evidence_remote(uint8_t** evidence,
+                          size_t* evidence_size,
+                          uint8_t* report_data_left,
+                          uint8_t* custom_claims,
+                          size_t custom_claims_size) {
+    const uint8_t signature[] = {0xaa, 0xbb, 0xcc, 0xdd, 0xee};
+    const uint8_t report_data_right[] = {
+        0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0x00,
+        0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0x00, 0x11,
+        0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb,
+    };
+    *evidence_size = sizeof(MOCK_EVIDENCE_REMOTE_P1) +
+                     sizeof(MOCK_EVIDENCE_REMOTE_P2) + 64 /*report_data*/ +
+                     sizeof(uint32_t) + sizeof(signature) + custom_claims_size;
+    uint8_t* result = malloc(*evidence_size);
+    size_t offset = 0;
+    memcpy(result + offset,
+           MOCK_EVIDENCE_REMOTE_P1,
+           sizeof(MOCK_EVIDENCE_REMOTE_P1));
+    offset += sizeof(MOCK_EVIDENCE_REMOTE_P1);
+    memcpy(result + offset,
+           MOCK_EVIDENCE_REMOTE_P2,
+           sizeof(MOCK_EVIDENCE_REMOTE_P2));
+    offset += sizeof(MOCK_EVIDENCE_REMOTE_P2);
+    memcpy(result + offset, report_data_left, 32);
+    offset += 32;
+    memcpy(result + offset, report_data_right, sizeof(report_data_right));
+    offset += sizeof(report_data_right);
+    uint32_t sigsize = sizeof(signature);
+    memcpy(result + offset, &sigsize, sizeof(uint32_t));
+    offset += sizeof(uint32_t);
+    memcpy(result + offset, signature, sizeof(signature));
+    offset += sizeof(signature);
+    if (custom_claims) {
+        memcpy(result + offset, custom_claims, custom_claims_size);
+        offset += custom_claims_size;
+    }
+    *evidence = result;
+}
 
 oe_result_t oe_attester_select_format(const oe_uuid_t* format_ids,
                                       size_t format_ids_length,
@@ -180,23 +328,52 @@ oe_result_t oe_verify_evidence(const oe_uuid_t* format_id,
     if (G_mocks.oe_verify_evidence != OE_OK)
         return G_mocks.oe_verify_evidence;
 
-    const uint8_t expected_format_id[] = TEST_FORMAT_ID;
+    const oe_uuid_t* expected_format_id_ecdsa = &EVIDENCE_FORMAT_SGX_ECDSA;
+    const oe_uuid_t* expected_format_id_local = &EVIDENCE_FORMAT_SGX_LOCAL;
 
-    assert(
-        !memcmp(format_id->b, expected_format_id, sizeof(expected_format_id)));
+    size_t evidence_body_size;
     assert(evidence_buffer);
-    assert(evidence_buffer_size > TEST_EVIDENCE_HEADER_SIZE);
-    assert(!memcmp(
-        TEST_EVIDENCE_HEADER, evidence_buffer, TEST_EVIDENCE_HEADER_SIZE));
+    if (!memcmp(format_id->b,
+                expected_format_id_ecdsa->b,
+                sizeof(expected_format_id_ecdsa->b))) {
+        // ECDSA format
+        assert(evidence_buffer_size >= sizeof(sgx_quote_t));
+        sgx_quote_t* quote = (sgx_quote_t*)evidence_buffer;
+        evidence_body_size = sizeof(*quote) + quote->signature_len;
+        assert(!memcmp(evidence_buffer,
+                       MOCK_EVIDENCE_REMOTE_P1,
+                       sizeof(MOCK_EVIDENCE_REMOTE_P1)));
+    } else if (!memcmp(format_id->b,
+                       expected_format_id_local->b,
+                       sizeof(expected_format_id_local->b))) {
+        // LOCAL format
+        assert(evidence_buffer_size >= sizeof(sgx_report_t));
+        evidence_body_size = sizeof(sgx_report_t);
+        assert(!memcmp(evidence_buffer,
+                       MOCK_EVIDENCE_LOCAL_P1,
+                       sizeof(MOCK_EVIDENCE_LOCAL_P1)));
+    } else {
+        // Invalid format
+        assert(false);
+    }
     assert(!endorsements_buffer && !endorsements_buffer_size);
     assert(!policies && !policies_size);
     assert(claims && claims_length);
 
     // Mock claims
-    *claims_length = evidence_buffer_size - TEST_EVIDENCE_HEADER_SIZE;
-    *claims = malloc(*claims_length);
-    memcpy(
-        *claims, evidence_buffer + TEST_EVIDENCE_HEADER_SIZE, *claims_length);
+    *claims_length = 2 + (evidence_body_size < evidence_buffer_size ? 1 : 0);
+    *claims = malloc(sizeof(oe_claim_t) * *claims_length);
+    (*claims)[0].name = "claim_one";
+    (*claims)[0].value = (uint8_t*)"\xAA\xBB\xCC";
+    (*claims)[0].value_size = 3;
+    (*claims)[1].name = "claim_two";
+    (*claims)[1].value = (uint8_t*)"\x11\x22\x33\x44";
+    (*claims)[1].value_size = 4;
+    if (*claims_length == 3) {
+        (*claims)[2].name = OE_CLAIM_CUSTOM_CLAIMS_BUFFER;
+        (*claims)[2].value = (uint8_t*)(evidence_buffer + evidence_body_size);
+        (*claims)[2].value_size = evidence_buffer_size - evidence_body_size;
+    }
 
     return OE_OK;
 }
@@ -531,8 +708,9 @@ void test_evidence_generate_err_getevidencefails() {
     assert(G_called.oe_verifier_get_format_settings);
 }
 
-void test_evidence_verify_and_extract_claims_ok() {
-    printf("Testing evidence_verify_and_extract_claims succeeds...\n");
+void test_evidence_verify_and_extract_claims_local_ok() {
+    printf("Testing evidence_verify_and_extract_claims with local evidence "
+           "succeeds...\n");
     setup();
 
     evidence_init();
@@ -541,15 +719,276 @@ void test_evidence_verify_and_extract_claims_ok() {
     oe_claim_t* cl = NULL;
     size_t cls = 0;
 
-    oe_uuid_t format_id = {.b = TEST_FORMAT_ID};
+    uint8_t* evidence;
+    size_t evidence_size;
+    mock_evidence_local(
+        &evidence,
+        &evidence_size,
+        (uint8_t*)"\x91\xe2\x7a\x29\xcb\x42\x7c\x2c\xc7\xf8\x9d\x33\xb0\xfc\x4b"
+                  "\x03\x9a\xac\x90\xc9\x15\xdd\x6b\x61\x94\x1e\xd1\x5b\x91\x3a"
+                  "\x02\x3d",
+        (uint8_t*)"this-is-the-custom-claim",
+        24);
+    oe_uuid_t format_id = {.b = OE_FORMAT_UUID_SGX_LOCAL_ATTESTATION};
     assert(evidence_verify_and_extract_claims(
-        format_id, (uint8_t*)"<evidence-header>this is custom", 31, &cl, &cls));
+        format_id, evidence, evidence_size, &cl, &cls));
 
+    assert(!G_called.oe_free_claims);
     assert(cl);
-    assert(cls == 14);
-    assert(!memcmp("this is custom", cl, cls));
+    assert(cls == 3);
+
+    assert(evidence_get_claim(cl, cls, "claim_one"));
+    assert(evidence_get_claim(cl, cls, "claim_two"));
+    assert(!evidence_get_claim(cl, cls, "not_there"));
+    oe_claim_t* cc = evidence_get_custom_claim(cl, cls);
+    assert(!memcmp(cc->value, "this-is-the-custom-claim", cc->value_size));
 
     free(cl);
+    free(evidence);
+}
+
+void test_evidence_verify_and_extract_claims_local_ok_nocc() {
+    printf("Testing evidence_verify_and_extract_claims with local evidence and "
+           "no custom claims succeeds...\n");
+    setup();
+
+    evidence_init();
+    G_mocks.oe_verify_evidence = OE_OK;
+
+    oe_claim_t* cl = NULL;
+    size_t cls = 0;
+
+    uint8_t* evidence;
+    size_t evidence_size;
+    mock_evidence_local(&evidence,
+                        &evidence_size,
+                        (uint8_t*)"\xe3\xb0\xc4\x42\x98\xfc\x1c\x14\x9a\xfb\xf4"
+                                  "\xc8\x99\x6f\xb9\x24\x27\xae\x41\xe4\x64\x9b"
+                                  "\x93\x4c\xa4\x95\x99\x1b\x78\x52\xb8\x55",
+                        NULL,
+                        0);
+    oe_uuid_t format_id = {.b = OE_FORMAT_UUID_SGX_LOCAL_ATTESTATION};
+    assert(evidence_verify_and_extract_claims(
+        format_id, evidence, evidence_size, &cl, &cls));
+
+    assert(!G_called.oe_free_claims);
+    assert(cl);
+    assert(cls == 2);
+
+    assert(evidence_get_claim(cl, cls, "claim_one"));
+    assert(evidence_get_claim(cl, cls, "claim_two"));
+    assert(!evidence_get_claim(cl, cls, "not_there"));
+    assert(!evidence_get_custom_claim(cl, cls));
+
+    free(cl);
+    free(evidence);
+}
+
+void test_evidence_verify_and_extract_claims_local_cchash_differs() {
+    printf("Testing evidence_verify_and_extract_claims with local evidence "
+           "fails when custom claims hash not in evidence...\n");
+    setup();
+
+    evidence_init();
+    G_mocks.oe_verify_evidence = OE_OK;
+
+    oe_claim_t* cl = NULL;
+    size_t cls = 0;
+
+    uint8_t* evidence;
+    size_t evidence_size;
+    mock_evidence_local(
+        &evidence,
+        &evidence_size,
+        (uint8_t*)"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
+                  "\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
+                  "\xaa"
+                  "\xaa\xaa",
+        (uint8_t*)"this-is-the-custom-claim",
+        24);
+    oe_uuid_t format_id = {.b = OE_FORMAT_UUID_SGX_LOCAL_ATTESTATION};
+    assert(!evidence_verify_and_extract_claims(
+        format_id, evidence, evidence_size, &cl, &cls));
+
+    assert(G_called.oe_free_claims);
+    assert(!cl);
+    assert(!cls);
+    free(evidence);
+}
+
+void test_evidence_verify_and_extract_claims_local_cchash_differs_nocc() {
+    printf(
+        "Testing evidence_verify_and_extract_claims with local evidence fails "
+        "when custom claims hash not in evidence and no custom claims...\n");
+    setup();
+
+    evidence_init();
+    G_mocks.oe_verify_evidence = OE_OK;
+
+    oe_claim_t* cl = NULL;
+    size_t cls = 0;
+
+    uint8_t* evidence;
+    size_t evidence_size;
+    mock_evidence_local(
+        &evidence,
+        &evidence_size,
+        (uint8_t*)"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
+                  "\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
+                  "\xaa"
+                  "\xaa\xaa",
+        NULL,
+        0);
+    oe_uuid_t format_id = {.b = OE_FORMAT_UUID_SGX_LOCAL_ATTESTATION};
+    assert(!evidence_verify_and_extract_claims(
+        format_id, evidence, evidence_size, &cl, &cls));
+
+    assert(G_called.oe_free_claims);
+    assert(!cl);
+    assert(!cls);
+    free(evidence);
+}
+
+void test_evidence_verify_and_extract_claims_remote_ok() {
+    printf("Testing evidence_verify_and_extract_claims with remote evidence "
+           "succeeds...\n");
+    setup();
+
+    evidence_init();
+    G_mocks.oe_verify_evidence = OE_OK;
+
+    oe_claim_t* cl = NULL;
+    size_t cls = 0;
+
+    uint8_t* evidence;
+    size_t evidence_size;
+    mock_evidence_remote(
+        &evidence,
+        &evidence_size,
+        (uint8_t*)"\x91\xe2\x7a\x29\xcb\x42\x7c\x2c\xc7\xf8\x9d\x33\xb0\xfc\x4b"
+                  "\x03\x9a\xac\x90\xc9\x15\xdd\x6b\x61\x94\x1e\xd1\x5b\x91\x3a"
+                  "\x02\x3d",
+        (uint8_t*)"this-is-the-custom-claim",
+        24);
+    oe_uuid_t format_id = {.b = OE_FORMAT_UUID_SGX_ECDSA};
+    assert(evidence_verify_and_extract_claims(
+        format_id, evidence, evidence_size, &cl, &cls));
+
+    assert(!G_called.oe_free_claims);
+    assert(cl);
+    assert(cls == 3);
+
+    assert(evidence_get_claim(cl, cls, "claim_one"));
+    assert(evidence_get_claim(cl, cls, "claim_two"));
+    assert(!evidence_get_claim(cl, cls, "not_there"));
+    oe_claim_t* cc = evidence_get_custom_claim(cl, cls);
+    assert(!memcmp(cc->value, "this-is-the-custom-claim", cc->value_size));
+
+    free(cl);
+    free(evidence);
+}
+
+void test_evidence_verify_and_extract_claims_remote_ok_nocc() {
+    printf("Testing evidence_verify_and_extract_claims with remote evidence "
+           "and no custom claims succeeds...\n");
+    setup();
+
+    evidence_init();
+    G_mocks.oe_verify_evidence = OE_OK;
+
+    oe_claim_t* cl = NULL;
+    size_t cls = 0;
+
+    uint8_t* evidence;
+    size_t evidence_size;
+    mock_evidence_remote(
+        &evidence,
+        &evidence_size,
+        (uint8_t*)"\xe3\xb0\xc4\x42\x98\xfc\x1c\x14\x9a\xfb\xf4"
+                  "\xc8\x99\x6f\xb9\x24\x27\xae\x41\xe4\x64\x9b"
+                  "\x93\x4c\xa4\x95\x99\x1b\x78\x52\xb8\x55",
+        NULL,
+        0);
+    oe_uuid_t format_id = {.b = OE_FORMAT_UUID_SGX_ECDSA};
+    assert(evidence_verify_and_extract_claims(
+        format_id, evidence, evidence_size, &cl, &cls));
+
+    assert(!G_called.oe_free_claims);
+    assert(cl);
+    assert(cls == 2);
+
+    assert(evidence_get_claim(cl, cls, "claim_one"));
+    assert(evidence_get_claim(cl, cls, "claim_two"));
+    assert(!evidence_get_claim(cl, cls, "not_there"));
+    assert(!evidence_get_custom_claim(cl, cls));
+
+    free(cl);
+    free(evidence);
+}
+
+void test_evidence_verify_and_extract_claims_remote_cchash_differs() {
+    printf("Testing evidence_verify_and_extract_claims with remote evidence "
+           "fails when custom claims hash not in evidence...\n");
+    setup();
+
+    evidence_init();
+    G_mocks.oe_verify_evidence = OE_OK;
+
+    oe_claim_t* cl = NULL;
+    size_t cls = 0;
+
+    uint8_t* evidence;
+    size_t evidence_size;
+    mock_evidence_remote(
+        &evidence,
+        &evidence_size,
+        (uint8_t*)"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
+                  "\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
+                  "\xaa"
+                  "\xaa\xaa",
+        (uint8_t*)"this-is-the-custom-claim",
+        24);
+    oe_uuid_t format_id = {.b = OE_FORMAT_UUID_SGX_ECDSA};
+    assert(!evidence_verify_and_extract_claims(
+        format_id, evidence, evidence_size, &cl, &cls));
+
+    assert(G_called.oe_free_claims);
+    assert(!cl);
+    assert(!cls);
+    free(evidence);
+}
+
+void test_evidence_verify_and_extract_claims_remote_cchash_differs_nocc() {
+    printf(
+        "Testing evidence_verify_and_extract_claims with remote evidence fails "
+        "when custom claims hash not in evidence and no custom claims...\n");
+    setup();
+
+    evidence_init();
+    G_mocks.oe_verify_evidence = OE_OK;
+
+    oe_claim_t* cl = NULL;
+    size_t cls = 0;
+
+    uint8_t* evidence;
+    size_t evidence_size;
+    mock_evidence_remote(
+        &evidence,
+        &evidence_size,
+        (uint8_t*)"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
+                  "\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
+                  "\xaa"
+                  "\xaa\xaa",
+        NULL,
+        0);
+    oe_uuid_t format_id = {.b = OE_FORMAT_UUID_SGX_ECDSA};
+    assert(!evidence_verify_and_extract_claims(
+        format_id, evidence, evidence_size, &cl, &cls));
+
+    assert(G_called.oe_free_claims);
+    assert(!cl);
+    assert(!cls);
+    free(evidence);
 }
 
 void test_evidence_verify_and_extract_claims_err_notinit() {
@@ -710,7 +1149,16 @@ int main() {
     test_evidence_generate_err_getsettingsfails();
     test_evidence_generate_err_getevidencefails();
 
-    test_evidence_verify_and_extract_claims_ok();
+    test_evidence_verify_and_extract_claims_local_ok();
+    test_evidence_verify_and_extract_claims_local_ok_nocc();
+    test_evidence_verify_and_extract_claims_local_cchash_differs();
+    test_evidence_verify_and_extract_claims_local_cchash_differs_nocc();
+
+    test_evidence_verify_and_extract_claims_remote_ok();
+    test_evidence_verify_and_extract_claims_remote_ok_nocc();
+    test_evidence_verify_and_extract_claims_remote_cchash_differs();
+    test_evidence_verify_and_extract_claims_remote_cchash_differs_nocc();
+
     test_evidence_verify_and_extract_claims_err_notinit();
     test_evidence_verify_and_extract_claims_err_verification();
 

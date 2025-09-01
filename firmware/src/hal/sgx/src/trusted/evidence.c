@@ -25,6 +25,7 @@
 #include "evidence.h"
 
 #include <string.h>
+#include "hal/hash.h"
 #include "hal/log.h"
 #include <openenclave/corelibc/stdlib.h>
 #include <openenclave/attestation/attester.h>
@@ -187,15 +188,15 @@ bool evidence_verify_and_extract_claims(oe_uuid_t format_id,
                                         uint8_t* evidence_buffer,
                                         size_t evidence_buffer_size,
                                         oe_claim_t** claims,
-                                        size_t* claims_size) {
+                                        size_t* claims_length) {
     if (!G_evidence_ctx.initialised) {
         LOG("Evidence module not initialised\n");
         return false;
     }
 
-    if (!claims || !claims_size) {
+    if (!claims || !claims_length) {
         claims = NULL;
-        claims_size = NULL;
+        claims_length = NULL;
     }
 
     oe_result_t result = oe_verify_evidence(&format_id,
@@ -206,12 +207,113 @@ bool evidence_verify_and_extract_claims(oe_uuid_t format_id,
                                             NULL,
                                             0,
                                             claims,
-                                            claims_size);
+                                            claims_length);
     EVIDENCE_CHECK(result, "Evidence verification failed", return false);
+
+    // Make sure claims were succesfully extracted
+    // if that was the intention
+    if (claims && claims_length && (!*claims || !*claims_length)) {
+        LOG("Failed to extract claims from evidence\n");
+        return false;
+    }
+
+    // Verify the custom claims hash is included in the evidence
+    // and that the extracted custom claims match the custom claims
+    // in the evidence (just for completeness' sake)
+    // Hashing of the custom claims based on OpenEnclave's
+    // common/sgx/verifier.c::oe_sgx_hash_custom_claims_buffer
+
+    // Gather the report body and the custom claims buffer directly from the
+    // evidence This depends on the evidence format
+    sgx_report_data_t* report_data = NULL;
+    uint8_t* custom_claims_buffer = NULL;
+    size_t custom_claims_buffer_size = 0;
+    if (!memcmp(&format_id, &EVIDENCE_FORMAT_SGX_LOCAL, sizeof(oe_uuid_t))) {
+        if (evidence_buffer_size > sizeof(sgx_report_t)) {
+            custom_claims_buffer = evidence_buffer + sizeof(sgx_report_t);
+            custom_claims_buffer_size =
+                evidence_buffer_size - sizeof(sgx_report_t);
+        }
+        report_data = &((sgx_report_t*)evidence_buffer)->body.report_data;
+    } else if (!memcmp(
+                   &format_id, &EVIDENCE_FORMAT_SGX_ECDSA, sizeof(oe_uuid_t))) {
+        sgx_quote_t* quote = (sgx_quote_t*)evidence_buffer;
+        size_t report_body_size = sizeof(*quote) + quote->signature_len;
+
+        if (evidence_buffer_size > report_body_size) {
+            custom_claims_buffer = evidence_buffer + report_body_size;
+            custom_claims_buffer_size = evidence_buffer_size - report_body_size;
+        }
+        report_data = &((sgx_quote_t*)evidence_buffer)->report_body.report_data;
+    } else {
+        LOG("Unexpected evidence format encountered\n");
+        goto evidence_verify_and_extract_claims_fail;
+    }
+
+    if (*claims) {
+        // Extract the custom claims buffer from the extracted claims
+        oe_claim_t* custom_claim =
+            evidence_get_custom_claim(*claims, *claims_length);
+
+        // Make sure the extracted custom claim value and the custom claims
+        // buffer match
+        if (custom_claim && custom_claims_buffer && custom_claims_buffer_size) {
+            if (custom_claim->value_size != custom_claims_buffer_size ||
+                memcmp(custom_claim->value,
+                       custom_claims_buffer,
+                       custom_claims_buffer_size)) {
+                LOG("Custom claims buffer and extracted custom claims do not "
+                    "match\n");
+                goto evidence_verify_and_extract_claims_fail;
+            }
+        } else if (!(!custom_claim && !custom_claims_buffer &&
+                     !custom_claims_buffer_size)) {
+            LOG("Inconsistent custom claims detected\n");
+            goto evidence_verify_and_extract_claims_fail;
+        }
+    }
+
+    // Hash the custom claims buffer, setting to the default value if empty
+    uint8_t custom_claims_hash[32];
+    // Default hash for empty string
+    static const uint8_t sha256_for_empty_string[] = {
+        0xe3, 0xb0, 0xc4, 0x42, 0x98, 0xfc, 0x1c, 0x14, 0x9a, 0xfb, 0xf4,
+        0xc8, 0x99, 0x6f, 0xb9, 0x24, 0x27, 0xae, 0x41, 0xe4, 0x64, 0x9b,
+        0x93, 0x4c, 0xa4, 0x95, 0x99, 0x1b, 0x78, 0x52, 0xb8, 0x55};
+
+    if (!custom_claims_buffer || !custom_claims_buffer_size) {
+        memcpy(custom_claims_hash,
+               sha256_for_empty_string,
+               sizeof(sha256_for_empty_string));
+    } else {
+        hash_sha256_ctx_t hash_ctx;
+        if (!hash_sha256_init(&hash_ctx))
+            goto evidence_verify_and_extract_claims_fail;
+        if (!hash_sha256_update(
+                &hash_ctx, custom_claims_buffer, custom_claims_buffer_size))
+            goto evidence_verify_and_extract_claims_fail;
+        if (!hash_sha256_final(&hash_ctx, custom_claims_hash))
+            goto evidence_verify_and_extract_claims_fail;
+    }
+
+    if (sizeof(report_data->field) < sizeof(custom_claims_hash) ||
+        memcmp(report_data->field,
+               custom_claims_hash,
+               sizeof(custom_claims_hash))) {
+        LOG("Custom claims hash not contained within the evidence\n");
+        goto evidence_verify_and_extract_claims_fail;
+    }
 
     LOG("Evidence verified successfully\n");
 
     return true;
+evidence_verify_and_extract_claims_fail:
+    if (*claims) {
+        oe_free_claims(*claims, *claims_length);
+        *claims = NULL;
+        *claims_length = 0;
+    }
+    return false;
 }
 
 oe_claim_t* evidence_get_claim(oe_claim_t* claims,
