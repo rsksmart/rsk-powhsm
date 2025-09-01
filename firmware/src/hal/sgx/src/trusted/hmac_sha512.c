@@ -29,6 +29,7 @@
 #include <mbedtls/md.h>
 
 bool hmac_sha512(uint8_t *out,
+                 const size_t out_length,
                  const uint8_t *key,
                  const unsigned int key_length,
                  const uint8_t *text,
@@ -36,6 +37,11 @@ bool hmac_sha512(uint8_t *out,
     mbedtls_md_context_t ctx;
     int use_hmac;
     const mbedtls_md_info_t *md_info;
+
+    if (out_length < SHA512_HASH_LENGTH) {
+        LOG("Error: output buffer too small\n");
+        return false;
+    }
 
     mbedtls_md_init(&ctx);
     md_info = mbedtls_md_info_from_type(MBEDTLS_MD_SHA512);

@@ -75,6 +75,7 @@
  *
  * @param out A byte array where the HMAC-SHA512 hash value will be written.
  *            This must have space for SHA512_HASH_LENGTH bytes.
+ * @param out_length The length, in bytes, of the output buffer out.
  * @param key A byte array containing the key to use in the HMAC-SHA512
  *            calculation. The key can be of any length.
  * @param key_length The length, in bytes, of the key.
@@ -85,6 +86,7 @@
  * @returns whether the HMAC-SHA512 calculation succeeded.
  */
 bool hmac_sha512(uint8_t *out,
+                 const size_t out_length,
                  const uint8_t *key,
                  const unsigned int key_length,
                  const uint8_t *text,
