@@ -12,8 +12,8 @@ RUN apt-get install -y \
     libsecp256k1-dev=0.1~20210108-1 \
     python3-pkgconfig=1.5.1-3 \
     libusb-1.0-0-dev=2:1.0.24-3 \
-    libudev1=247.3-7+deb11u6 \
-    libudev-dev=247.3-7+deb11u6 \
+    libudev1=247.3-7+deb11u7 \
+    libudev-dev=247.3-7+deb11u7 \
     libffi-dev=3.3-6 #\
     libjpeg-dev=1:2.0.6-4
 
