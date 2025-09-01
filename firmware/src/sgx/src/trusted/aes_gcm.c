@@ -71,6 +71,11 @@ bool aes_gcm_encrypt(uint8_t* key,
 
     // Init buffers
     ciphertext = oe_malloc(in_size);
+    if (!ciphertext) {
+        LOG("AES-GCM encrypt error: unable to allocate memory\n");
+        goto aes_gcm_encrypt_exit;
+    }
+
     if (!random_getrandom(iv, sizeof(iv))) {
         LOG("AES-GCM encrypt error: error generating IV\n");
         goto aes_gcm_encrypt_exit;

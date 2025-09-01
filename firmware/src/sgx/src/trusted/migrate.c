@@ -54,6 +54,10 @@ bool migrate_export(uint8_t* key,
 
     // Buffers
     cleartext = oe_malloc(EXPORT_SIZE);
+    if (!cleartext) {
+        LOG("Migration export error: unable to allocate memory\n");
+        goto migrate_export_exit;
+    }
 
     // Export
     explicit_bzero(cleartext, EXPORT_SIZE);
@@ -123,6 +127,10 @@ bool migrate_import(uint8_t* key,
     // Buffers
     cleartext_size = EXPORT_SIZE;
     cleartext = oe_malloc(cleartext_size);
+    if (!cleartext) {
+        LOG("Migration import error: unable to allocate memory\n");
+        goto migrate_import_exit;
+    }
 
     // Decrypt
     if (!aes_gcm_decrypt(
