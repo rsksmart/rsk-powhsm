@@ -35,7 +35,6 @@
 
 // Hashing
 #define HASH_SIZE 32
-#define KECCAK256_HASH_SIZE HASH_SIZE
 
 // Merge mining constants
 #define MM_HASH_PREFIX_SIZE 20

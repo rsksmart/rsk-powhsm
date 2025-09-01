@@ -32,6 +32,9 @@
 #include "hal/constants.h"
 #include "sha256.h"
 
+#define SHA256_HASH_SIZE 32
+#define KECCAK256_HASH_SIZE 32
+
 // BEGINNING of platform-dependent code
 #if defined(HSM_PLATFORM_LEDGER)
 
