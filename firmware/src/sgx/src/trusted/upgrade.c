@@ -284,6 +284,10 @@ static bool receive_data(volatile unsigned int rx,
             THROW(ERR_UPGRADE_PROTOCOL);
         }
         *dest = oe_malloc(*dest_size);
+        if (!*dest) {
+            LOG("Unable to allocate memory\n");
+            THROW(ERR_UPGRADE_INTERNAL);
+        }
         *dest_offset = 0;
         LOG("Expecting %lu bytes of data\n", *dest_size);
     }
