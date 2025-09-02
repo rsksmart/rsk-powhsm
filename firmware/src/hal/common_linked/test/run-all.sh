@@ -2,7 +2,7 @@
 
 if [[ $1 == "exec" ]]; then
     BASEDIR=$(realpath $(dirname $0))
-    TESTDIRS="keccak256 sha256"
+    TESTDIRS="communication exceptions hash keccak256 sha256"
     for d in $TESTDIRS; do
         echo "******************************"
         echo "Testing $d..."
