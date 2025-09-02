@@ -58,6 +58,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 #include "hmac_sha512.h"
 #include "test_helpers.h"
 
@@ -156,8 +157,12 @@ http://csrc.nist.gov/groups/STM/cavp/index.html#07",
         }
         skip_whitespace(f);
         // Calculate HMAC-SHA512 and compare.
-        if (!hmac_sha512(
-                actual_result, key, key_length, message, message_length)) {
+        if (!hmac_sha512(actual_result,
+                         sizeof(actual_result),
+                         key,
+                         key_length,
+                         message,
+                         message_length)) {
             printf("HMAC-SHA512 failed\n");
             exit(1);
         }
@@ -179,9 +184,29 @@ http://csrc.nist.gov/groups/STM/cavp/index.html#07",
     fclose(f);
 }
 
+void test_hmac_fails_when_out_buffer_too_small() {
+    uint8_t small_buffer[SHA512_HASH_LENGTH - 1];
+    uint8_t ok_buffer[SHA512_HASH_LENGTH];
+    const uint8_t key[] = {11, 22, 33, 44, 55, 66, 77, 88, 99, 00};
+    const char message[] = "this-is-a-message";
+    assert(!hmac_sha512(small_buffer,
+                        sizeof(small_buffer),
+                        key,
+                        sizeof(key),
+                        (const uint8_t *)message,
+                        strlen(message)));
+    assert(hmac_sha512(ok_buffer,
+                       sizeof(ok_buffer),
+                       key,
+                       sizeof(key),
+                       (const uint8_t *)message,
+                       strlen(message)));
+}
+
 int main(void) {
     init_tests(__FILE__);
     scanTestVectors("HMAC.rsp");
     finish_tests();
+    test_hmac_fails_when_out_buffer_too_small();
     exit(0);
 }

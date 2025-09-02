@@ -90,10 +90,15 @@ static secp256k1_context* sp_ctx = NULL;
 #define NODE_PART_LENGTH PRIVATE_KEY_LENGTH
 
 static bool seed_to_node(uint8_t* master_node,
+                         const size_t master_node_length,
                          const uint8_t* seed,
                          const unsigned int seed_length) {
-    return hmac_sha512(
-        master_node, (const uint8_t*)"Bitcoin seed", 12, seed, seed_length);
+    return hmac_sha512(master_node,
+                       master_node_length,
+                       (const uint8_t*)"Bitcoin seed",
+                       12,
+                       seed,
+                       seed_length);
 }
 
 bool bip32_derive_private(uint8_t* out,
@@ -135,7 +140,7 @@ bool bip32_derive_private(uint8_t* out,
     }
 
     // Compute the master node from the seed
-    if (!seed_to_node(current_node, seed, seed_length)) {
+    if (!seed_to_node(current_node, sizeof(current_node), seed, seed_length)) {
         DEBUG_LOG("Error deriving master node from seed\n");
         return false;
     }
@@ -169,6 +174,7 @@ bool bip32_derive_private(uint8_t* out,
         // Need to write to temp here (instead of current_node) because part of
         // current_node is used as the key.
         if (!hmac_sha512(temp,
+                         sizeof(temp),
                          &current_node[NODE_PART_LENGTH],
                          NODE_PART_LENGTH,
                          hmac_data,
