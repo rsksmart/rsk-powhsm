@@ -443,12 +443,21 @@ unsigned int upgrade_process_apdu(volatile unsigned int rx) {
                 upgrade_ctx.expected_message_hash,
                 sizeof(upgrade_ctx.expected_message_hash));
         upgrade_ctx.state = upgrade_state_await_spec_sigs;
-        oe_free(claims);
+        if (claims) {
+            oe_free(claims);
+            claims = NULL;
+            claims_size = 0;
+            claim = NULL;
+        }
         free_evidence();
         return TX_NO_DATA();
     upgrade_process_apdu_start_error:
-        if (claims)
+        if (claims) {
             oe_free(claims);
+            claims = NULL;
+            claims_size = 0;
+            claim = NULL;
+        }
         reset_upgrade();
         THROW(error);
     case OP_UPGRADE_SPEC_SIG:
@@ -629,13 +638,21 @@ unsigned int upgrade_process_apdu(volatile unsigned int rx) {
                 sizeof(upgrade_ctx.their_pubkey));
         upgrade_ctx.state = upgrade_state_ready_for_xchg;
         SET_APDU_OP(0); // Done
-        if (claims)
+        if (claims) {
             oe_free(claims);
+            claims = NULL;
+            claims_size = 0;
+            claim = NULL;
+        }
         free_evidence();
         return TX_NO_DATA();
     upgrade_process_apdu_identify_peer_error:
-        if (claims)
+        if (claims) {
             oe_free(claims);
+            claims = NULL;
+            claims_size = 0;
+            claim = NULL;
+        }
         reset_upgrade();
         THROW(ERR_UPGRADE_AUTH);
     case OP_UPGRADE_PROCESS_DATA:
