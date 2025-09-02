@@ -108,6 +108,8 @@ extern try_context_t* G_try_last_open_context;
     goto CPP_CONCAT(__FINALLY, L); \
     }                              \
     else if (__try##L.ex == x) {   \
+        __try                      \
+            ##L.ex = 0;            \
         G_try_last_open_context = __try##L.previous;
 
 // -----------------------------------------------------------------------
