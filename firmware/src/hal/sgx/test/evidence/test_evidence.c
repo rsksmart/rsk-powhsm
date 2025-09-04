@@ -42,6 +42,7 @@ struct {
     oe_result_t oe_get_evidence;
     bool oe_get_evidence_custom_settings;
     oe_result_t oe_verify_evidence;
+    oe_result_t oe_free_claims;
 } G_mocks;
 
 struct {
@@ -76,9 +77,8 @@ oe_result_t oe_verifier_shutdown(void) {
 
 oe_result_t oe_free_claims(oe_claim_t* claims, size_t claims_length) {
     assert(claims);
-    assert(claims_length);
     G_called.oe_free_claims = true;
-    return OE_OK;
+    return G_mocks.oe_free_claims;
 }
 
 #define TEST_FORMAT_ID \
@@ -1026,6 +1026,37 @@ void test_evidence_verify_and_extract_claims_err_verification() {
     assert(!cl && !cls);
 }
 
+void test_evidence_free_claims_ok() {
+    printf("Testing evidence_free_claims succeeds...\n");
+    setup();
+    uint8_t claims[] = {11, 22};
+    size_t claims_length = sizeof(claims);
+    assert(evidence_free_claims((oe_claim_t*)claims, claims_length));
+    assert(G_called.oe_free_claims);
+}
+
+void test_evidence_free_claims_ok_with_no_claims() {
+    printf("Testing evidence_free_claims succeeds with no claims...\n");
+    setup();
+    uint8_t claims[] = {11, 22};
+    size_t claims_length = sizeof(claims);
+    assert(evidence_free_claims(NULL, claims_length));
+    assert(evidence_free_claims(NULL, 0));
+    assert(!G_called.oe_free_claims);
+    assert(evidence_free_claims((oe_claim_t*)claims, 0));
+    assert(G_called.oe_free_claims);
+}
+
+void test_evidence_free_claims_fails_when_freeing_fails() {
+    printf("Testing evidence_free_claims fails when freeing fails...\n");
+    setup();
+    uint8_t claims[] = {11, 22};
+    size_t claims_length = sizeof(claims);
+    G_mocks.oe_free_claims = OE_FAILURE;
+    assert(!evidence_free_claims((oe_claim_t*)claims, claims_length));
+    assert(G_called.oe_free_claims);
+}
+
 void test_evidence_get_claim_ok() {
     printf("Testing evidence_get_claim succeeds...\n");
 
@@ -1161,6 +1192,10 @@ int main() {
 
     test_evidence_verify_and_extract_claims_err_notinit();
     test_evidence_verify_and_extract_claims_err_verification();
+
+    test_evidence_free_claims_ok();
+    test_evidence_free_claims_ok_with_no_claims();
+    test_evidence_free_claims_fails_when_freeing_fails();
 
     test_evidence_get_claim_ok();
     test_evidence_get_claim_behaves_ok_with_invalid_params();

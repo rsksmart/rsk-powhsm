@@ -444,7 +444,10 @@ unsigned int upgrade_process_apdu(volatile unsigned int rx) {
                 sizeof(upgrade_ctx.expected_message_hash));
         upgrade_ctx.state = upgrade_state_await_spec_sigs;
         if (claims) {
-            oe_free(claims);
+            if (!evidence_free_claims(claims, claims_size)) {
+                LOG("Error freeing claims\n");
+                THROW(ERR_INTERNAL);
+            }
             claims = NULL;
             claims_size = 0;
             claim = NULL;
@@ -453,7 +456,10 @@ unsigned int upgrade_process_apdu(volatile unsigned int rx) {
         return TX_NO_DATA();
     upgrade_process_apdu_start_error:
         if (claims) {
-            oe_free(claims);
+            if (!evidence_free_claims(claims, claims_size)) {
+                LOG("Error freeing claims\n");
+                THROW(ERR_INTERNAL);
+            }
             claims = NULL;
             claims_size = 0;
             claim = NULL;
@@ -639,7 +645,10 @@ unsigned int upgrade_process_apdu(volatile unsigned int rx) {
         upgrade_ctx.state = upgrade_state_ready_for_xchg;
         SET_APDU_OP(0); // Done
         if (claims) {
-            oe_free(claims);
+            if (!evidence_free_claims(claims, claims_size)) {
+                LOG("Error freeing claims\n");
+                THROW(ERR_INTERNAL);
+            }
             claims = NULL;
             claims_size = 0;
             claim = NULL;
@@ -648,7 +657,10 @@ unsigned int upgrade_process_apdu(volatile unsigned int rx) {
         return TX_NO_DATA();
     upgrade_process_apdu_identify_peer_error:
         if (claims) {
-            oe_free(claims);
+            if (!evidence_free_claims(claims, claims_size)) {
+                LOG("Error freeing claims\n");
+                THROW(ERR_INTERNAL);
+            }
             claims = NULL;
             claims_size = 0;
             claim = NULL;

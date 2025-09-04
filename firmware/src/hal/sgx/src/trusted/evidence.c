@@ -316,6 +316,14 @@ evidence_verify_and_extract_claims_fail:
     return false;
 }
 
+bool evidence_free_claims(oe_claim_t* claims, size_t claims_length) {
+    if (claims) {
+        if (oe_free_claims(claims, claims_length) != OE_OK)
+            return false;
+    }
+    return true;
+}
+
 oe_claim_t* evidence_get_claim(oe_claim_t* claims,
                                size_t claims_size,
                                const char* claim_name) {
