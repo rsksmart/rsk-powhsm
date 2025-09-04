@@ -114,6 +114,17 @@ bool evidence_verify_and_extract_claims(oe_uuid_t format_id,
                                         size_t* claims_length);
 
 /**
+ * @brief Given a set of claims returned by evidence_verify_and_extract_claims,
+ * free them.
+ *
+ * @param claims            claims buffer
+ * @param claims_length     number of claims
+ *
+ * @returns true iff claims were succesfully freed
+ */
+bool evidence_free_claims(oe_claim_t* claims, size_t claims_length);
+
+/**
  * @brief Given a set of claims, find the one with the given name
  *
  * @param claims        the claim list
