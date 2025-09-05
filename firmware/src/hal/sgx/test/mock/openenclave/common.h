@@ -276,6 +276,8 @@ oe_result_t oe_verifier_get_format_settings(const oe_uuid_t* format_id,
                                             uint8_t** settings,
                                             size_t* settings_size);
 
+oe_result_t oe_verifier_free_format_settings(uint8_t* settings);
+
 oe_result_t oe_verify_evidence(const oe_uuid_t* format_id,
                                const uint8_t* evidence_buffer,
                                size_t evidence_buffer_size,
