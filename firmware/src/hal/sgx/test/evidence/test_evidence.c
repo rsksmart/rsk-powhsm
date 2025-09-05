@@ -43,6 +43,7 @@ struct {
     bool oe_get_evidence_custom_settings;
     oe_result_t oe_verify_evidence;
     oe_result_t oe_free_claims;
+    oe_result_t oe_verifier_free_format_settings;
 } G_mocks;
 
 struct {
@@ -53,6 +54,7 @@ struct {
     bool oe_free_evidence;
     bool oe_verifier_get_format_settings;
     bool oe_free_claims;
+    bool oe_verifier_free_format_settings;
 } G_called;
 
 oe_result_t oe_attester_initialize(void) {
@@ -79,6 +81,12 @@ oe_result_t oe_free_claims(oe_claim_t* claims, size_t claims_length) {
     assert(claims);
     G_called.oe_free_claims = true;
     return G_mocks.oe_free_claims;
+}
+
+oe_result_t oe_verifier_free_format_settings(uint8_t* settings) {
+    assert(settings);
+    G_called.oe_verifier_free_format_settings = true;
+    return G_mocks.oe_verifier_free_format_settings;
 }
 
 #define TEST_FORMAT_ID \
@@ -443,6 +451,7 @@ void test_evidence_supports_format_ok() {
 
     oe_uuid_t format_id = {.b = TEST_FORMAT_ID};
     assert(evidence_supports_format(format_id));
+    assert(G_called.oe_verifier_free_format_settings);
 }
 
 void test_evidence_supports_format_err_notinit() {
@@ -455,6 +464,7 @@ void test_evidence_supports_format_err_notinit() {
 
     oe_uuid_t format_id = {.b = TEST_FORMAT_ID};
     assert(!evidence_supports_format(format_id));
+    assert(!G_called.oe_verifier_free_format_settings);
 }
 
 void test_evidence_supports_format_err_selectfails() {
@@ -468,6 +478,7 @@ void test_evidence_supports_format_err_selectfails() {
 
     oe_uuid_t format_id = {.b = TEST_FORMAT_ID};
     assert(!evidence_supports_format(format_id));
+    assert(G_called.oe_verifier_free_format_settings);
 }
 
 void test_evidence_supports_format_err_getsettingsfails() {
@@ -481,6 +492,7 @@ void test_evidence_supports_format_err_getsettingsfails() {
 
     oe_uuid_t format_id = {.b = TEST_FORMAT_ID};
     assert(!evidence_supports_format(format_id));
+    assert(!G_called.oe_verifier_free_format_settings);
 }
 
 void test_evidence_get_format_settings_ok() {
@@ -556,6 +568,35 @@ void test_evidence_get_format_settings_get_fails() {
     assert(!evidence_get_format_settings(&format));
 }
 
+void test_evidence_free_format_settings_ok() {
+    printf("Testing evidence_free_format_settings succeeds...\n");
+    setup();
+
+    uint8_t mock_format_settings[] = TEST_FORMAT_SETTINGS;
+
+    assert(evidence_free_format_settings(mock_format_settings));
+    assert(G_called.oe_verifier_free_format_settings);
+}
+
+void test_evidence_free_format_settings_ok_wth_no_settings() {
+    printf("Testing evidence_free_format_settings succeeds...\n");
+    setup();
+
+    assert(evidence_free_format_settings(NULL));
+    assert(!G_called.oe_verifier_free_format_settings);
+}
+
+void test_evidence_free_format_settings_fails_if_freeing_fails() {
+    printf("Testing evidence_free_format_settings fails if freeing fails...\n");
+    setup();
+
+    uint8_t mock_format_settings[] = TEST_FORMAT_SETTINGS;
+    G_mocks.oe_verifier_free_format_settings = OE_FAILURE;
+
+    assert(!evidence_free_format_settings(mock_format_settings));
+    assert(G_called.oe_verifier_free_format_settings);
+}
+
 void test_evidence_generate_ok() {
     printf("Testing evidence_generate succeeds...\n");
     setup();
@@ -578,6 +619,7 @@ void test_evidence_generate_ok() {
     assert(ebs == TEST_EVIDENCE_HEADER_SIZE + 18);
     assert(!memcmp(eb, TEST_EVIDENCE_HEADER "some custom claims", ebs));
     assert(G_called.oe_verifier_get_format_settings);
+    assert(G_called.oe_verifier_free_format_settings);
     free(eb);
 }
 
@@ -607,6 +649,7 @@ void test_evidence_generate_ok_with_custom_settings() {
     assert(ebs == TEST_EVIDENCE_HEADER_SIZE + 18);
     assert(!memcmp(eb, TEST_EVIDENCE_HEADER "some custom claims", ebs));
     assert(!G_called.oe_verifier_get_format_settings);
+    assert(!G_called.oe_verifier_free_format_settings);
     free(eb);
 }
 
@@ -629,6 +672,7 @@ void test_evidence_generate_err_notinit() {
         &format, (uint8_t*)"some custom claims", 18, &eb, &ebs));
     assert(!eb && !ebs);
     assert(!G_called.oe_verifier_get_format_settings);
+    assert(!G_called.oe_verifier_free_format_settings);
 }
 
 void test_evidence_generate_err_arguments() {
@@ -661,6 +705,7 @@ void test_evidence_generate_err_arguments() {
     assert(!eb && ebs == 0);
 
     assert(!G_called.oe_verifier_get_format_settings);
+    assert(!G_called.oe_verifier_free_format_settings);
 }
 
 void test_evidence_generate_err_getsettingsfails() {
@@ -684,6 +729,7 @@ void test_evidence_generate_err_getsettingsfails() {
         &format, (uint8_t*)"some custom claims", 18, &eb, &ebs));
     assert(!eb && !ebs);
     assert(G_called.oe_verifier_get_format_settings);
+    assert(!G_called.oe_verifier_free_format_settings);
 }
 
 void test_evidence_generate_err_getevidencefails() {
@@ -706,6 +752,7 @@ void test_evidence_generate_err_getevidencefails() {
         &format, (uint8_t*)"some custom claims", 18, &eb, &ebs));
     assert(!eb && !ebs);
     assert(G_called.oe_verifier_get_format_settings);
+    assert(G_called.oe_verifier_free_format_settings);
 }
 
 void test_evidence_verify_and_extract_claims_local_ok() {
@@ -1172,6 +1219,10 @@ int main() {
     test_evidence_get_format_settings_err_notinit();
     test_evidence_get_format_settings_invalid_args();
     test_evidence_get_format_settings_get_fails();
+
+    test_evidence_free_format_settings_ok();
+    test_evidence_free_format_settings_ok_wth_no_settings();
+    test_evidence_free_format_settings_fails_if_freeing_fails();
 
     test_evidence_generate_ok();
     test_evidence_generate_ok_with_custom_settings();
