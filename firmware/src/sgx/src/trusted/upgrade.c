@@ -573,7 +573,10 @@ unsigned int upgrade_process_apdu(volatile unsigned int rx) {
                 reset_upgrade();
                 THROW(ERR_UPGRADE_INTERNAL);
             }
-            oe_free(format.settings);
+            if (!evidence_free_format_settings(format.settings)) {
+                LOG("Unable to free format settings\n");
+                THROW(ERR_INTERNAL);
+            }
             explicit_bzero(&format, sizeof(format));
             upgrade_ctx.trx_offset = 0;
         }
