@@ -90,6 +90,13 @@ bool evidence_get_format_settings(evidence_format_t* format) {
     return true;
 }
 
+bool evidence_free_format_settings(uint8_t* settings) {
+    if (!settings)
+        return true;
+
+    return oe_verifier_free_format_settings(settings) == OE_OK;
+}
+
 bool evidence_supports_format(oe_uuid_t format_id) {
     evidence_format_t format = {
         .id = format_id,
@@ -102,7 +109,7 @@ bool evidence_supports_format(oe_uuid_t format_id) {
     // Make sure we can get format settings
     if (!evidence_get_format_settings(&format))
         return false;
-    oe_free(format.settings);
+    evidence_free_format_settings(format.settings);
 
     // Make sure we can select format for attestation
     result = oe_attester_select_format(&format.id, 1, &selected_format);
@@ -161,7 +168,7 @@ bool evidence_generate(evidence_format_t* format,
         result, "Evidence generation failed", goto generate_evidence_error);
 
     if (gathered_settings) {
-        oe_free(format->settings);
+        evidence_free_format_settings(format->settings);
         format->settings = NULL;
         format->settings_size = 0;
     }
@@ -177,7 +184,7 @@ generate_evidence_error:
         *evidence_buffer_size = 0;
     }
     if (gathered_settings && format->settings) {
-        oe_free(format->settings);
+        evidence_free_format_settings(format->settings);
         format->settings = NULL;
         format->settings_size = 0;
     }

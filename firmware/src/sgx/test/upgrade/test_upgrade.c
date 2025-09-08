@@ -304,6 +304,11 @@ bool evidence_free_claims(oe_claim_t* claims, size_t claims_length) {
     return true;
 }
 
+bool evidence_free_format_settings(uint8_t* settings) {
+    assert(settings);
+    return true;
+}
+
 oe_claim_t* evidence_get_claim(oe_claim_t* claims,
                                size_t claims_size,
                                const char* claim_name) {

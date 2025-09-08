@@ -69,6 +69,16 @@ void evidence_finalise();
 bool evidence_get_format_settings(evidence_format_t* format);
 
 /**
+ * @brief Given format settings returned by evidence_get_format_settings,
+ * free them.
+ *
+ * @param settings  settings buffer
+ *
+ * @returns true iff settings were succesfully freed
+ */
+bool evidence_free_format_settings(uint8_t* settings);
+
+/**
  * Tells whether a given format is supported for
  * evidence generation and verification
  *
