@@ -31,6 +31,7 @@ from cryptography.hazmat.primitives.serialization import PublicFormat, Encoding
 from cryptography.hazmat.primitives.asymmetric import ec
 from .certificate_v1 import HSMCertificate
 from .utils import is_nonempty_hex_string
+from .misc import info
 from sgx.envelope import SgxQuote, SgxReportBody
 
 
@@ -216,6 +217,12 @@ class HSMCertificateV2ElementX509(HSMCertificateV2Element):
     HEADER_BEGIN = "-----BEGIN CERTIFICATE-----"
     HEADER_END = "-----END CERTIFICATE-----"
 
+    _certificate_validator = None
+
+    @classmethod
+    def set_certificate_validator(cls, certificate_validator):
+        cls._certificate_validator = certificate_validator
+
     @classmethod
     def from_pemfile(cls, pem_path, name, signed_by):
         return cls.from_pem(Path(pem_path).read_text(), name, signed_by)
@@ -254,35 +261,43 @@ class HSMCertificateV2ElementX509(HSMCertificateV2Element):
                 self.HEADER_BEGIN + self.message + self.HEADER_END).encode())
         return self._certificate
 
+    @property
+    def is_root_of_trust(self):
+        return self.name == self.signed_by
+
     def is_valid(self, certifier):
-        try:
-            # IMPORTANT: for now, we only allow verifying the validity of an
-            # HSMCertificateV2ElementX509 using another HSMCertificateV2ElementX509
-            # instance as certifier. That way, we simplify the validation procedure
-            # and ensure maximum use of the underlying library's capabilities
-            # (cryptography)
-            if not isinstance(certifier, type(self)):
-                return False
+        # IMPORTANT: for now, we only allow verifying the validity of an
+        # HSMCertificateV2ElementX509 using another HSMCertificateV2ElementX509
+        # instance as certifier. That way, we can simplify the validation procedure
+        # by using a helper X509 validator and therefore ensure maximum use of the
+        # underlying library's capabilities (cryptography).
+        if not isinstance(certifier, type(self)):
+            raise RuntimeError(f"Invalid certifier given for {type(self)} validation")
 
-            subject = self.certificate
-            issuer = certifier.certificate
-            now = datetime.now(UTC)
+        # Certificate validator must be injected
+        if self._certificate_validator is None:
+            raise RuntimeError("Certificate validator not set")
 
-            # 1. Check validity period
-            if subject.not_valid_before_utc > now or subject.not_valid_after_utc < now:
-                return False
+        subject = self.certificate
+        issuer = certifier.certificate
+        now = datetime.now(UTC)
 
-            # 2. Verify the signature
-            issuer.public_key().verify(
-                subject.signature,
-                subject.tbs_certificate_bytes,
-                ec.ECDSA(subject.signature_hash_algorithm)
-            )
+        result = self._certificate_validator.validate(
+            subject, issuer, now, check_crl=not self.is_root_of_trust)
 
-            return True
-
-        except Exception:
+        if not result["valid"]:
+            # TODO: find a better way of showing this
+            info(f"While validating element {self.name}: {result["reason"]}")
             return False
+
+        # TODO: find a better way of showing this
+        if len(result["warnings"]) > 0:
+            info("***** WARNINGS *****")
+            for warning in result["warnings"]:
+                info(warning)
+            info("********************")
+
+        return True
 
     def get_pubkey(self):
         try:

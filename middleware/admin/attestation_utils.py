@@ -125,7 +125,7 @@ def compute_pubkeys_output(pubkeys_map):
     return pubkeys_output
 
 
-def get_root_of_trust(path):
+def get_sgx_root_of_trust(path):
     # From file
     if Path(path).is_file():
         return HSMCertificateV2ElementX509.from_pemfile(
@@ -137,6 +137,7 @@ def get_root_of_trust(path):
     ra_res = requests.get(path)
     if ra_res.status_code != 200:
         raise RuntimeError(f"Error fetching root of trust from {path}")
+
     return HSMCertificateV2ElementX509.from_pem(
         ra_res.content.decode(),
         HSMCertificateV2.ROOT_ELEMENT,
