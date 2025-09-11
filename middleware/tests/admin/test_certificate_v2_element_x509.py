@@ -20,7 +20,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from datetime import datetime, timedelta, UTC
 from unittest import TestCase
 from unittest.mock import Mock, patch
 from ecdsa import NIST256p
@@ -112,6 +111,17 @@ class TestHSMCertificateV2ElementX509(TestCase):
         )
         self.assertEqual(1, load_pem_x509_certificate.call_count)
 
+    def test_is_root_of_trust_no(self):
+        self.assertFalse(self.elem.is_root_of_trust)
+
+    def test_is_root_of_trust_yes(self):
+        self.elem = HSMCertificateV2ElementX509({
+            "name": "selfsigner",
+            "message": "dGhpcyBpcyBhbiBhc2NpaSBtZXNzYWdl",
+            "signed_by": "selfsigner",
+        })
+        self.assertTrue(self.elem.is_root_of_trust)
+
     def setup_pubkey_mocks(self, load_pem_x509_certificate, VerifyingKey):
         self.pubkey = Mock()
         self.pubkey.curve = SECP256R1()
@@ -200,7 +210,7 @@ class TestHSMCertificateV2ElementX509(TestCase):
             Encoding.X962, PublicFormat.CompressedPoint)
         VerifyingKey.from_string.assert_called_with("the-public-bytes", NIST256p)
 
-    def setup_is_valid_mocks(self, load_pem_x509_certificate, ec):
+    def setup_is_valid_mocks(self, load_pem_x509_certificate):
         self.certifier = HSMCertificateV2ElementX509({
             "name": "mock-certifier",
             "signed_by": "someone-else",
@@ -210,6 +220,9 @@ class TestHSMCertificateV2ElementX509(TestCase):
         self.mock_certifier = Mock()
         self.mock_elem = Mock()
 
+        self.mock_x509_validator = Mock()
+        HSMCertificateV2ElementX509.set_certificate_validator(self.mock_x509_validator)
+
         def load_mock(data):
             if b"Y2VydGlmaWVy" in data:
                 return self.mock_certifier
@@ -217,77 +230,79 @@ class TestHSMCertificateV2ElementX509(TestCase):
 
         load_pem_x509_certificate.side_effect = load_mock
 
-        self.now = datetime.now(UTC)
-        one_week = timedelta(weeks=1)
-        self.mock_elem.not_valid_before_utc = self.now - one_week
-        self.mock_elem.not_valid_after_utc = self.now + one_week
-        self.mock_certifier_pk = Mock()
-        self.mock_certifier.public_key.return_value = self.mock_certifier_pk
-        self.mock_elem.signature = "the-signature"
-        self.mock_elem.tbs_certificate_bytes = "the-fingerprint"
-        self.mock_elem.signature_hash_algorithm = "the-signature-hash-algo"
-        ec.ECDSA.return_value = "the-ecdsa-algo"
-
-    @patch("admin.certificate_v2.ec")
+    @patch("admin.certificate_v2.info")
+    @patch("admin.certificate_v2.datetime")
     @patch("admin.certificate_v2.x509.load_pem_x509_certificate")
-    def test_is_valid_ok(self, load_pem_x509_certificate, ec):
-        self.setup_is_valid_mocks(load_pem_x509_certificate, ec)
+    def test_is_valid_yes(self, load_pem_x509_certificate, datetime, info):
+        self.setup_is_valid_mocks(load_pem_x509_certificate)
+
+        self.mock_x509_validator.validate.return_value = {
+            "valid": True,
+            "warnings": ["one warning", "another warning"],
+        }
+        datetime.now.return_value = "this-is-now"
 
         self.assertTrue(self.elem.is_valid(self.certifier))
-
-        self.mock_certifier_pk.verify.assert_called_with(
-            "the-signature",
-            "the-fingerprint",
-            "the-ecdsa-algo"
+        self.mock_x509_validator.validate.assert_called_with(
+            self.mock_elem, self.mock_certifier, "this-is-now", check_crl=True
         )
-        ec.ECDSA.assert_called_with("the-signature-hash-algo")
 
-    @patch("admin.certificate_v2.ec")
+    @patch("admin.certificate_v2.info")
+    @patch("admin.certificate_v2.datetime")
     @patch("admin.certificate_v2.x509.load_pem_x509_certificate")
-    def test_is_valid_before_in_future(self, load_pem_x509_certificate, ec):
-        self.setup_is_valid_mocks(load_pem_x509_certificate, ec)
-        self.mock_elem.not_valid_before_utc = self.now + \
-            timedelta(minutes=1)
+    def test_is_valid_no(self, load_pem_x509_certificate, datetime, info):
+        self.setup_is_valid_mocks(load_pem_x509_certificate)
+
+        self.mock_x509_validator.validate.return_value = {
+            "valid": False,
+            "reason": "something happened",
+        }
+        datetime.now.return_value = "this-is-now"
 
         self.assertFalse(self.elem.is_valid(self.certifier))
-
-        self.mock_certifier_pk.verify.assert_not_called()
-        ec.ECDSA.assert_not_called()
-
-    @patch("admin.certificate_v2.ec")
-    @patch("admin.certificate_v2.x509.load_pem_x509_certificate")
-    def test_is_valid_after_in_past(self, load_pem_x509_certificate, ec):
-        self.setup_is_valid_mocks(load_pem_x509_certificate, ec)
-        self.mock_elem.not_valid_after_utc = self.now - \
-            timedelta(minutes=1)
-
-        self.assertFalse(self.elem.is_valid(self.certifier))
-
-        self.mock_certifier_pk.verify.assert_not_called()
-        ec.ECDSA.assert_not_called()
-
-    @patch("admin.certificate_v2.ec")
-    @patch("admin.certificate_v2.x509.load_pem_x509_certificate")
-    def test_is_valid_signature_invalid(self, load_pem_x509_certificate, ec):
-        self.setup_is_valid_mocks(load_pem_x509_certificate, ec)
-        self.mock_certifier_pk.verify.side_effect = RuntimeError("wrong signature")
-
-        self.assertFalse(self.elem.is_valid(self.certifier))
-
-        self.mock_certifier_pk.verify.assert_called_with(
-            "the-signature",
-            "the-fingerprint",
-            "the-ecdsa-algo"
+        self.mock_x509_validator.validate.assert_called_with(
+            self.mock_elem, self.mock_certifier, "this-is-now", check_crl=True
         )
-        ec.ECDSA.assert_called_with("the-signature-hash-algo")
 
-    @patch("admin.certificate_v2.ec")
+    @patch("admin.certificate_v2.info")
+    @patch("admin.certificate_v2.datetime")
     @patch("admin.certificate_v2.x509.load_pem_x509_certificate")
-    def test_is_valid_x509_error(self, load_pem_x509_certificate, ec):
-        self.setup_is_valid_mocks(load_pem_x509_certificate, ec)
-        load_pem_x509_certificate.side_effect = ValueError("a random error")
+    def test_is_valid_with_rot(self, load_pem_x509_certificate, datetime, info):
+        self.elem = HSMCertificateV2ElementX509({
+            "name": "selfsigner",
+            "message": "dGhpcyBpcyBhbiBhc2NpaSBtZXNzYWdl",
+            "signed_by": "selfsigner",
+        })
+        self.setup_is_valid_mocks(load_pem_x509_certificate)
 
-        self.assertFalse(self.elem.is_valid(self.certifier))
+        self.mock_x509_validator.validate.return_value = {
+            "valid": True,
+            "warnings": [],
+        }
+        datetime.now.return_value = "this-is-now"
 
-        self.mock_certifier_pk.verify.assert_not_called()
-        ec.ECDSA.assert_not_called()
+        self.assertTrue(self.elem.is_valid(self.certifier))
+        self.mock_x509_validator.validate.assert_called_with(
+            self.mock_elem, self.mock_certifier, "this-is-now", check_crl=False
+        )
+
+    @patch("admin.certificate_v2.x509.load_pem_x509_certificate")
+    def test_is_valid_invalid_certifier(self, load_pem_x509_certificate):
+        self.setup_is_valid_mocks(load_pem_x509_certificate)
+
+        with self.assertRaises(RuntimeError) as e:
+            self.elem.is_valid("not-a-valid-certifier")
+
+        self.assertIn("Invalid certifier", str(e.exception))
+        self.mock_x509_validator.validate.assert_not_called()
+
+    @patch("admin.certificate_v2.x509.load_pem_x509_certificate")
+    def test_is_valid_cert_validator_not_set(self, load_pem_x509_certificate):
+        self.setup_is_valid_mocks(load_pem_x509_certificate)
+        HSMCertificateV2ElementX509.set_certificate_validator(None)
+
+        with self.assertRaises(RuntimeError) as e:
+            self.elem.is_valid(self.certifier)
+
+        self.assertIn("Certificate validator not set", str(e.exception))
+        self.mock_x509_validator.validate.assert_not_called()

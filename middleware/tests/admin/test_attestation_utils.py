@@ -27,7 +27,7 @@ from unittest.mock import patch, mock_open
 from parameterized import parameterized
 from admin.attestation_utils import AdminError, PowHsmAttestationMessage, load_pubkeys, \
                                     compute_pubkeys_hash, compute_pubkeys_output, \
-                                    get_root_of_trust
+                                    get_sgx_root_of_trust
 from .test_attestation_utils_resources import TEST_PUBKEYS_JSON, \
                                               TEST_PUBKEYS_JSON_INVALID
 import logging
@@ -212,7 +212,7 @@ class TestGetRootOfTrust(TestCase):
         path.return_value.is_file.return_value = True
         HSMCertificateV2ElementX509.from_pemfile.return_value = "the-result"
 
-        self.assertEqual("the-result", get_root_of_trust("a-file-path"))
+        self.assertEqual("the-result", get_sgx_root_of_trust("a-file-path"))
 
         path.assert_called_with("a-file-path")
         HSMCertificateV2ElementX509.from_pemfile.assert_called_with(
@@ -226,7 +226,7 @@ class TestGetRootOfTrust(TestCase):
         HSMCertificateV2ElementX509.from_pemfile.side_effect = err
 
         with self.assertRaises(ValueError) as e:
-            get_root_of_trust("a-file-path")
+            get_sgx_root_of_trust("a-file-path")
         self.assertEqual(err, e.exception)
 
         path.assert_called_with("a-file-path")
@@ -244,7 +244,7 @@ class TestGetRootOfTrust(TestCase):
         })
         HSMCertificateV2ElementX509.from_pem.return_value = "the-result"
 
-        self.assertEqual("the-result", get_root_of_trust("a-url"))
+        self.assertEqual("the-result", get_sgx_root_of_trust("a-url"))
 
         path.assert_called_with("a-url")
         requests.get.assert_called_with("a-url")
@@ -261,7 +261,7 @@ class TestGetRootOfTrust(TestCase):
         })
 
         with self.assertRaises(RuntimeError) as e:
-            get_root_of_trust("a-url")
+            get_sgx_root_of_trust("a-url")
         self.assertIn("fetching root of trust", str(e.exception))
 
         path.assert_called_with("a-url")
