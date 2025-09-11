@@ -23,8 +23,10 @@
 from .misc import info, head, AdminError
 from .attestation_utils import PowHsmAttestationMessage, load_pubkeys, \
                                compute_pubkeys_hash, compute_pubkeys_output, \
-                               get_root_of_trust
-from .certificate import HSMCertificate
+                               get_sgx_root_of_trust
+from .x509_utils import get_intel_pcs_x509_crl
+from .x509_validator import X509CertificateValidator
+from .certificate import HSMCertificate, HSMCertificateV2ElementX509
 
 
 # ###################################################################################
@@ -48,11 +50,15 @@ def do_verify_attestation(options):
     if options.pubkeys_file_path is None:
         raise AdminError("No public keys file given")
 
+    # Certificate validator with Intel SGX PCS CRL getter
+    certificate_validator = X509CertificateValidator(get_intel_pcs_x509_crl)
+    HSMCertificateV2ElementX509.set_certificate_validator(certificate_validator)
+
     # Load root authority
     root_authority = options.root_authority or DEFAULT_ROOT_AUTHORITY
     info(f"Attempting to gather root authority from {root_authority}...")
     try:
-        root_of_trust = get_root_of_trust(root_authority)
+        root_of_trust = get_sgx_root_of_trust(root_authority)
         info("Attempting to validate self-signed root authority...")
         if not root_of_trust.is_valid(root_of_trust):
             raise ValueError("Failed to validate self-signed root of trust")
@@ -75,7 +81,8 @@ def do_verify_attestation(options):
         raise AdminError(f"While loading the attestation certificate file: {str(e)}")
 
     # Validate the certificate using the given root authority
-    # (this should be *one of* Ledger's public keys)
+    # (this should be Intel's provisioning certification root
+    # CA certificate)
     result = att_cert.validate_and_get_values(root_of_trust)
 
     # powHSM specific validations
