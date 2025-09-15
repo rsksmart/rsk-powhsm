@@ -168,3 +168,6 @@ class TestHSMCertificateV2ElementSGXQuote(TestCase):
             "signed_by": "whosigned",
         })
         self.assertFalse(valid_elem.is_valid(certifier))
+
+    def test_get_collateral_none(self):
+        self.assertIsNone(self.elem.get_collateral())

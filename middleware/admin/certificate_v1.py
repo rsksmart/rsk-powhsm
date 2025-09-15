@@ -142,6 +142,9 @@ class HSMCertificateElement:
     def get_tweak(self):
         return self.tweak
 
+    def get_collateral(self):
+        return None
+
 
 class HSMCertificate:
     VERSION = 1  # Only supported version
@@ -194,14 +197,27 @@ class HSMCertificate:
             # If not valid, return False and the name of the element that
             # failed the validation
             current_certifier = root_of_trust
+            collateral = {}
             while True:
                 # Validate this element
                 if not current.is_valid(current_certifier):
-                    result[target] = (False, current.name)
+                    result[target] = {
+                        "valid": False,
+                        "failed_element": current.name,
+                    }
                     break
+                # Add collateral from current element
+                current_collateral = current.get_collateral()
+                if current_collateral is not None:
+                    collateral[current.name] = current_collateral
                 # Reached the leaf? => valid!
                 if len(chain) == 0:
-                    result[target] = (True, current.get_value(), current.get_tweak())
+                    result[target] = {
+                        "valid": True,
+                        "value": current.get_value(),
+                        "tweak": current.get_tweak(),
+                        "collateral": collateral,
+                    }
                     break
 
                 current_certifier = current

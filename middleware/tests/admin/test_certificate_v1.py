@@ -272,8 +272,18 @@ class TestHSMCertificate(TestCase):
         })
 
         self.assertEqual({
-            'attestation': (True, att_pubkey, None),
-            'device': (True, device_pubkey, None)
+            'attestation': {
+                "valid": True,
+                "value": att_pubkey,
+                "tweak": None,
+                "collateral": {}
+            },
+            'device': {
+                "valid": True,
+                "value": device_pubkey,
+                "tweak": None,
+                "collateral": {}
+            },
         }, cert.validate_and_get_values(root_of_trust))
 
     def test_validate_and_get_values_invalid_element(self):
@@ -310,8 +320,16 @@ class TestHSMCertificate(TestCase):
         })
 
         self.assertEqual({
-            'attestation': (False, 'attestation'),
-            'device': (True, device_pubkey, None)
+            'attestation': {
+                "valid": False,
+                "failed_element": "attestation"
+            },
+            'device': {
+                "valid": True,
+                "value": device_pubkey,
+                "tweak": None,
+                "collateral": {}
+            },
         }, cert.validate_and_get_values(root_of_trust))
 
     def test_validate_and_get_values_invalid_elements(self):
@@ -344,8 +362,14 @@ class TestHSMCertificate(TestCase):
         })
 
         self.assertEqual({
-            'attestation': (False, 'device'),
-            'device': (False, 'device')
+            'attestation': {
+                "valid": False,
+                "failed_element": "device"
+            },
+            'device': {
+                "valid": False,
+                "failed_element": "device"
+            },
         }, cert.validate_and_get_values(device_pubkey))
 
     def test_add_element_ok(self):

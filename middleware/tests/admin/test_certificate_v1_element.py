@@ -227,3 +227,13 @@ class TestHSMCertificateElement(TestCase):
             "tweak": 'bb' * 32
         })
         self.assertEqual(extractor(bytes.fromhex(msg)).hex(), element.get_value())
+
+    def test_certificate_element_get_collateral(self):
+        element = HSMCertificateElement({
+            "name": "device",
+            "message": 'cc',
+            "signature": 'dd',
+            "signed_by": "root",
+            "tweak": 'ee'
+        })
+        self.assertIsNone(element.get_collateral())

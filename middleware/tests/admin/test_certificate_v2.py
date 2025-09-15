@@ -39,12 +39,15 @@ class TestHSMCertificateV2(TestCase):
         cert = HSMCertificateV2(TEST_CERTIFICATE)
         self.assertEqual(TEST_CERTIFICATE, cert.to_dict())
 
-    def mock_element(self, which_one_invalid):
+    def mock_element(self, which_one_invalid, names_with_collateral=[]):
         class MockElement:
             def __init__(self, d):
                 self.d = d
                 self.name = d["name"]
                 self.signed_by = d["signed_by"]
+                self.collateral = None
+                if self.name in names_with_collateral:
+                    self.collateral = f"collateral-for-{d["name"]}"
 
             def is_valid(self, c):
                 return self.name != which_one_invalid
@@ -55,16 +58,27 @@ class TestHSMCertificateV2(TestCase):
             def get_tweak(self):
                 return None
 
+            def get_collateral(self):
+                return self.collateral
+
         def mock_element_factory(k, d):
             return MockElement(d)
 
         HSMCertificateV2.ELEMENT_FACTORY = mock_element_factory
 
     def test_validate_and_get_values_value(self):
-        self.mock_element(True)
+        self.mock_element(True, ["platform_ca", "quoting_enclave"])
         cert = HSMCertificateV2(TEST_CERTIFICATE)
         self.assertEqual({
-                "quote": (True, "the value for quote", None),
+                "quote": {
+                    "valid": True,
+                    "value": "the value for quote",
+                    "tweak": None,
+                    "collateral": {
+                        "platform_ca": "collateral-for-platform_ca",
+                        "quoting_enclave": "collateral-for-quoting_enclave",
+                    }
+                },
             }, cert.validate_and_get_values("a-root-of-trust"))
 
     @parameterized.expand([
@@ -77,5 +91,8 @@ class TestHSMCertificateV2(TestCase):
         self.mock_element(invalid_name)
         cert = HSMCertificateV2(TEST_CERTIFICATE)
         self.assertEqual({
-                "quote": (False, invalid_name),
+                "quote": {
+                    "valid": False,
+                    "failed_element": invalid_name,
+                },
             }, cert.validate_and_get_values("a-root-of-trust"))

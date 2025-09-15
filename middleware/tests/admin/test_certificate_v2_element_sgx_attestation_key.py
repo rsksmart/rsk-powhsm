@@ -166,3 +166,6 @@ class TestHSMCertificateV2ElementSGXAttestationKey(TestCase):
                 "key": "aabbccdd",
             })
         self.assertFalse(self.elem.is_valid(self.valid_certifier))
+
+    def test_get_collateral_none(self):
+        self.assertIsNone(self.elem.get_collateral())

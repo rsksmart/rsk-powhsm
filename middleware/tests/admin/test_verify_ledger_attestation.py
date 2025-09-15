@@ -90,8 +90,18 @@ class TestVerifyLedgerAttestation(TestCase):
         self.signer_hash = bytes.fromhex("ff" * 32)
 
         self.result = {}
-        self.result['ui'] = (True, self.ui_msg.hex(), self.ui_hash.hex())
-        self.result['signer'] = (True, self.signer_msg.hex(), self.signer_hash.hex())
+        self.result['ui'] = {
+            "valid": True,
+            "value": self.ui_msg.hex(),
+            "tweak": self.ui_hash.hex(),
+            "collateral": {},
+        }
+        self.result['signer'] = {
+            "valid": True,
+            "value": self.signer_msg.hex(),
+            "tweak": self.signer_hash.hex(),
+            "collateral": {},
+        }
 
     @patch("admin.verify_ledger_attestation.head")
     @patch("admin.verify_ledger_attestation.HSMCertificate")
@@ -103,7 +113,12 @@ class TestVerifyLedgerAttestation(TestCase):
         self.signer_msg = LEGACY_SIGNER_HEADER + \
             bytes.fromhex(self.pubkeys_hash.hex())
         self.signer_hash = bytes.fromhex("ff" * 32)
-        self.result['signer'] = (True, self.signer_msg.hex(), self.signer_hash.hex())
+        self.result['signer'] = {
+            "valid": True,
+            "value": self.signer_msg.hex(),
+            "tweak": self.signer_hash.hex(),
+            "collateral": {},
+        }
 
         load_pubkeys_mock.return_value = self.public_keys
         att_cert = Mock()
@@ -268,7 +283,10 @@ class TestVerifyLedgerAttestation(TestCase):
                                                _):
         load_pubkeys_mock.return_value = self.public_keys
         result = self.result
-        result['ui'] = (False, 'ui')
+        result['ui'] = {
+            "valid": False,
+            "failed_element": "ui",
+        }
         att_cert = Mock()
         att_cert.validate_and_get_values = Mock(return_value=result)
         certificate_mock.from_jsonfile = Mock(return_value=att_cert)
@@ -308,7 +326,10 @@ class TestVerifyLedgerAttestation(TestCase):
                                                    _):
         load_pubkeys_mock.return_value = self.public_keys
         result = self.result
-        result['signer'] = (False, 'signer')
+        result['signer'] = {
+            "valid": False,
+            "failed_element": "signer",
+        }
         att_cert = Mock()
         att_cert.validate_and_get_values = Mock(return_value=result)
         certificate_mock.from_jsonfile = Mock(return_value=att_cert)
@@ -327,7 +348,12 @@ class TestVerifyLedgerAttestation(TestCase):
                                                           certificate_mock, _):
         load_pubkeys_mock.return_value = self.public_keys
         signer_header = b"POWHSM:AAA::somerandomstuff".hex()
-        self.result["signer"] = (True, signer_header, self.signer_hash.hex())
+        self.result["signer"] = {
+            "valid": True,
+            "value": signer_header,
+            "tweak": self.signer_hash.hex(),
+            "collateral": {},
+        }
         att_cert = Mock()
         att_cert.validate_and_get_values = Mock(return_value=self.result)
         certificate_mock.from_jsonfile = Mock(return_value=att_cert)
@@ -346,7 +372,12 @@ class TestVerifyLedgerAttestation(TestCase):
                                                                 certificate_mock, _):
         load_pubkeys_mock.return_value = self.public_keys
         signer_header = (b"POWHSM:5.9::" + b"aa"*300).hex()
-        self.result["signer"] = (True, signer_header, self.signer_hash.hex())
+        self.result["signer"] = {
+            "valid": True,
+            "value": signer_header,
+            "tweak": self.signer_hash.hex(),
+            "collateral": {},
+        }
         att_cert = Mock()
         att_cert.validate_and_get_values = Mock(return_value=self.result)
         certificate_mock.from_jsonfile = Mock(return_value=att_cert)
