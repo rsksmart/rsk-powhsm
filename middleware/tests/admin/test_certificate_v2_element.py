@@ -77,3 +77,6 @@ class TestHSMCertificateV2Element(TestCase):
     def test_is_valid_notimplemented(self):
         with self.assertRaises(NotImplementedError):
             self.instance.is_valid("a-certifier")
+
+    def test_get_collateral_none(self):
+        self.assertIsNone(self.instance.get_collateral())

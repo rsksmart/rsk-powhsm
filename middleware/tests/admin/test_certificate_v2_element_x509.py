@@ -306,3 +306,19 @@ class TestHSMCertificateV2ElementX509(TestCase):
 
         self.assertIn("Certificate validator not set", str(e.exception))
         self.mock_x509_validator.validate.assert_not_called()
+
+    @patch("admin.certificate_v2.x509.load_pem_x509_certificate")
+    def test_get_collateral_when_set(self, load_pem_x509_certificate):
+        load_pem_x509_certificate.return_value = "mock-certificate"
+        collateral_getter = Mock()
+        collateral_getter.return_value = "the-collateral"
+        HSMCertificateV2ElementX509.set_collateral_getter(collateral_getter)
+
+        self.assertEqual("the-collateral", self.elem.get_collateral())
+
+        collateral_getter.assert_called_with("mock-certificate")
+
+    def test_get_collateral_when_not_set(self):
+        with self.assertRaises(RuntimeError) as e:
+            self.elem.get_collateral()
+        self.assertIn("not set", str(e.exception))

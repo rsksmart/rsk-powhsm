@@ -77,6 +77,9 @@ class HSMCertificateV2Element:
     def get_tweak(self):
         return None
 
+    def get_collateral(self):
+        return None
+
 
 class HSMCertificateV2ElementSGXQuote(HSMCertificateV2Element):
     def __init__(self, element_map):
@@ -223,6 +226,12 @@ class HSMCertificateV2ElementX509(HSMCertificateV2Element):
     def set_certificate_validator(cls, certificate_validator):
         cls._certificate_validator = certificate_validator
 
+    _collateral_getter = None
+
+    @classmethod
+    def set_collateral_getter(cls, collateral_getter):
+        cls._collateral_getter = collateral_getter
+
     @classmethod
     def from_pemfile(cls, pem_path, name, signed_by):
         return cls.from_pem(Path(pem_path).read_text(), name, signed_by)
@@ -320,6 +329,13 @@ class HSMCertificateV2ElementX509(HSMCertificateV2Element):
             "message": self.message,
             "signed_by": self.signed_by,
         }
+
+    def get_collateral(self):
+        if type(self)._collateral_getter is None:
+            raise RuntimeError("Collateral getter for X509 certificate elements not set")
+
+        cg = type(self)._collateral_getter
+        return cg(self.certificate)
 
 
 # Element type mappings

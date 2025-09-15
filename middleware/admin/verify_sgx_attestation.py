@@ -25,6 +25,7 @@ from .attestation_utils import PowHsmAttestationMessage, load_pubkeys, \
                                compute_pubkeys_hash, compute_pubkeys_output, \
                                get_sgx_root_of_trust
 from .x509_utils import get_intel_pcs_x509_crl
+from .sgx_utils import get_sgx_extensions, get_tcb_info, validate_tcb_info
 from .x509_validator import X509CertificateValidator
 from .certificate import HSMCertificate, HSMCertificateV2ElementX509
 
@@ -40,6 +41,14 @@ DEFAULT_ROOT_AUTHORITY = "https://certificates.trustedservices.intel.com/"\
 
 # ###################################################################################
 
+# #######################################################################################
+# SGX TCB information endpoint as per
+# https://api.portal.trustedservices.intel.com/content/documentation.html#pcs-tcb-info-v4
+
+SGX_TCB_INFO_ENDPOINT = "https://api.trustedservices.intel.com/sgx/certification/v4/tcb"
+
+# #######################################################################################
+
 
 def do_verify_attestation(options):
     head("### -> Verify powHSM attestation", fill="#")
@@ -53,6 +62,9 @@ def do_verify_attestation(options):
     # Certificate validator with Intel SGX PCS CRL getter
     certificate_validator = X509CertificateValidator(get_intel_pcs_x509_crl)
     HSMCertificateV2ElementX509.set_certificate_validator(certificate_validator)
+
+    # SGX extensions collateral getter
+    HSMCertificateV2ElementX509.set_collateral_getter(get_sgx_extensions)
 
     # Load root authority
     root_authority = options.root_authority or DEFAULT_ROOT_AUTHORITY
@@ -85,16 +97,42 @@ def do_verify_attestation(options):
     # CA certificate)
     result = att_cert.validate_and_get_values(root_of_trust)
 
-    # powHSM specific validations
     if "quote" not in result:
         raise AdminError("Certificate does not contain a powHSM attestation")
 
     powhsm_result = result["quote"]
-    if not powhsm_result[0]:
+    if not powhsm_result["valid"]:
         raise AdminError(
-            f"Invalid powHSM attestation: error validating '{powhsm_result[1]}'")
-    powhsm_result = powhsm_result[1]
+            f"Invalid powHSM attestation: error "
+            f"validating '{powhsm_result["failed_element"]}'")
+    powhsm_collateral = powhsm_result["collateral"]
+    powhsm_result = powhsm_result["value"]
 
+    # Grab and verify TCB information
+    try:
+        if "quoting_enclave" not in powhsm_collateral:
+            raise AdminError("Certificate does not contain PCK collateral")
+        pck_collateral = powhsm_collateral["quoting_enclave"]
+
+        tcb_info_res = get_tcb_info(
+            SGX_TCB_INFO_ENDPOINT,
+            pck_collateral["fmspc"],
+            root_of_trust.certificate)
+        tcb_info = tcb_info_res["tcb_info"]["tcbInfo"]
+
+        tcb_validation_result = validate_tcb_info(pck_collateral, tcb_info)
+        if not tcb_validation_result["valid"]:
+            raise AdminError(f"TCB error: {tcb_validation_result["reason"]}")
+
+        if len(tcb_info_res["warnings"]) > 0:
+            info("***** TCB INFO WARNINGS *****")
+            for w in tcb_info_res["warnings"]:
+                info(w)
+            info("*****************************")
+    except Exception as e:
+        raise AdminError(f"While trying to verify TCB information: {e}")
+
+    # powHSM specific validations
     sgx_quote = powhsm_result["sgx_quote"]
     powhsm_message = bytes.fromhex(powhsm_result["message"])
     if not PowHsmAttestationMessage.is_header(powhsm_message):
@@ -129,7 +167,22 @@ def do_verify_attestation(options):
         f"Timestamp: {powhsm_message.timestamp}",
     ]
 
+    tcb_info = [
+        f"Status: {tcb_validation_result["status"]}",
+        f"Issued: {tcb_validation_result["date"]}",
+        f"Advisories: {", ".join(tcb_validation_result["advisories"])}",
+        f"TCB evaluation data number: {tcb_validation_result["edn"]}",
+        "SVNs:"
+    ]
+
+    tcb_info += map(lambda svn: f"  - {svn}", tcb_validation_result["svns"])
+
     head(
         ["powHSM verified with public keys:"] + pubkeys_output + signer_info,
+        fill="-",
+    )
+
+    head(
+        ["TCB Information:"] + tcb_info,
         fill="-",
     )
