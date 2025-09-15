@@ -37,6 +37,7 @@
 
 #define OE_PACK_BEGIN _Pragma("pack(push, 1)")
 #define OE_PACK_END _Pragma("pack(pop)")
+#define OE_ENUM_MAX 0xffffffff
 
 // Taken from OpenEnclave's include/openenclave/bits/result.h
 
@@ -241,6 +242,86 @@ typedef struct _oe_policy {
     void* policy;
     size_t policy_size;
 } oe_policy_t;
+
+// Taken from OpenEnclave's include/openenclave/bits/types.h
+
+typedef void* oe_enclave_t;
+
+typedef enum _oe_enclave_type {
+    /**
+     * OE_ENCLAVE_TYPE_AUTO will pick the type
+     * based on the target platform that is being built, such that x64 binaries
+     * will use SGX.
+     */
+    OE_ENCLAVE_TYPE_AUTO = 1,
+    /**
+     * OE_ENCLAVE_TYPE_SGX will force the platform to use SGX, but any platform
+     * other than x64 will not support this and will generate errors.
+     */
+    OE_ENCLAVE_TYPE_SGX = 2,
+    /**
+     * OE_ENCLAVE_TYPE_OPTEE will force the platform to use OP-TEE, but any
+     * platform other than one that implements ARM TrustZone with OP-TEE as its
+     * secure kernel will not support this and will generate errors.
+     */
+    OE_ENCLAVE_TYPE_OPTEE = 3,
+    /**
+     * Unused
+     */
+    __OE_ENCLAVE_TYPE_MAX = OE_ENUM_MAX,
+} oe_enclave_type_t;
+
+// Taken from OpenEnclave's include/openenclave/host.h
+
+typedef enum _oe_enclave_setting_type {
+    OE_ENCLAVE_SETTING_CONTEXT_SWITCHLESS = 0xdc73a628,
+#ifdef OE_WITH_EXPERIMENTAL_EEID
+    OE_EXTENDED_ENCLAVE_INITIALIZATION_DATA = 0x976a8f66,
+#endif
+    OE_SGX_ENCLAVE_CONFIG_DATA = 0x78b5b41d
+} oe_enclave_setting_type_t;
+
+typedef struct _oe_enclave_setting_context_switchless {
+    /**
+     * The max number of worker threads for context-switchless ocalls.
+     * The actual number of threads launched could be capped for performance
+     * reasons.
+     */
+    size_t max_host_workers;
+    /**
+     * Context-switchless ecalls are not enabled yet. The max number of enclave
+     * workers should be 0.
+     */
+    size_t max_enclave_workers;
+} oe_enclave_setting_context_switchless_t;
+
+typedef struct _oe_sgx_enclave_setting_config_data {
+    uint8_t config_id[64];
+    uint16_t config_svn;
+    bool ignore_if_unsupported;
+} oe_sgx_enclave_setting_config_data;
+
+typedef struct _oe_enclave_setting {
+    /**
+     * The type of the setting in **u**
+     */
+    oe_enclave_setting_type_t setting_type;
+    /**
+     * The specific setting for the enclave, such as for configuring
+     * context-switchless calls.
+     */
+    union {
+        const oe_enclave_setting_context_switchless_t*
+            context_switchless_setting;
+#ifdef OE_WITH_EXPERIMENTAL_EEID
+        oe_eeid_t* eeid;
+#endif
+        const oe_sgx_enclave_setting_config_data* config_data;
+        /* Add new setting types here. */
+    } u;
+} oe_enclave_setting_t;
+
+oe_result_t oe_terminate_enclave(oe_enclave_t* enclave);
 
 // Taken from OpenEnclave's include/openenclave/attestation/attester.h
 
