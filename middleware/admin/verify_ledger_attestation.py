@@ -94,11 +94,12 @@ def do_verify_attestation(options):
         raise AdminError("Certificate does not contain a UI attestation")
 
     ui_result = result["ui"]
-    if not ui_result[0]:
-        raise AdminError(f"Invalid UI attestation: error validating '{ui_result[1]}'")
+    if not ui_result["valid"]:
+        raise AdminError(f"Invalid UI attestation: error "
+                         f"validating '{ui_result["failed_element"]}'")
 
-    ui_message = bytes.fromhex(ui_result[1])
-    ui_hash = bytes.fromhex(ui_result[2])
+    ui_message = bytes.fromhex(ui_result["value"])
+    ui_hash = bytes.fromhex(ui_result["tweak"])
     mh_match = UI_MESSAGE_HEADER_REGEX.match(ui_message)
     if mh_match is None:
         raise AdminError(
@@ -141,12 +142,13 @@ def do_verify_attestation(options):
         raise AdminError("Certificate does not contain a Signer attestation")
 
     signer_result = result["signer"]
-    if not signer_result[0]:
+    if not signer_result["valid"]:
         raise AdminError(
-            f"Invalid Signer attestation: error validating '{signer_result[1]}'")
+            f"Invalid Signer attestation: error "
+            f"validating '{signer_result["failed_element"]}'")
 
-    signer_message = bytes.fromhex(signer_result[1])
-    signer_hash = bytes.fromhex(signer_result[2])
+    signer_message = bytes.fromhex(signer_result["value"])
+    signer_hash = bytes.fromhex(signer_result["tweak"])
     lmh_match = SIGNER_LEGACY_MESSAGE_HEADER_REGEX.match(signer_message)
     if lmh_match is None and not PowHsmAttestationMessage.is_header(signer_message):
         raise AdminError(
