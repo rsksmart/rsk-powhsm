@@ -25,7 +25,8 @@ from .attestation_utils import PowHsmAttestationMessage, load_pubkeys, \
                                compute_pubkeys_hash, compute_pubkeys_output, \
                                get_sgx_root_of_trust
 from .x509_utils import get_intel_pcs_x509_crl
-from .sgx_utils import get_sgx_extensions, get_tcb_info, validate_tcb_info
+from .sgx_utils import get_sgx_extensions, get_tcb_info, validate_tcb_info, \
+                       get_qeid_info, validate_qeid_info
 from .x509_validator import X509CertificateValidator
 from .certificate import HSMCertificate, HSMCertificateV2ElementX509
 
@@ -46,6 +47,16 @@ DEFAULT_ROOT_AUTHORITY = "https://certificates.trustedservices.intel.com/"\
 # https://api.portal.trustedservices.intel.com/content/documentation.html#pcs-tcb-info-v4
 
 SGX_TCB_INFO_ENDPOINT = "https://api.trustedservices.intel.com/sgx/certification/v4/tcb"
+
+# #######################################################################################
+
+# #######################################################################################
+# SGX QE identity information endpoint as per
+# https://api.portal.trustedservices.intel.com/content/
+# documentation.html#pcs-enclave-identity-v4
+
+SGX_QE_ID_ENDPOINT = "https://api.trustedservices.intel.com/sgx/certification/v4/"\
+                     "qe/identity"
 
 # #######################################################################################
 
@@ -132,6 +143,29 @@ def do_verify_attestation(options):
     except Exception as e:
         raise AdminError(f"While trying to verify TCB information: {e}")
 
+    # Grab and verify QE identity
+    try:
+        if "attestation" not in powhsm_collateral:
+            raise AdminError("Certificate does not contain QE collateral")
+        qe_collateral = powhsm_collateral["attestation"]
+
+        qeid_info_res = get_qeid_info(
+            SGX_QE_ID_ENDPOINT,
+            root_of_trust.certificate)
+        qeid_info = qeid_info_res["qeid_info"]["enclaveIdentity"]
+
+        qeid_validation_result = validate_qeid_info(qe_collateral, qeid_info)
+        if not qeid_validation_result["valid"]:
+            raise AdminError(f"QE ID error: {qeid_validation_result["reason"]}")
+
+        if len(qeid_info_res["warnings"]) > 0:
+            info("***** QE ID INFO WARNINGS *****")
+            for w in qeid_info_res["warnings"]:
+                info(w)
+            info("*****************************")
+    except Exception as e:
+        raise AdminError(f"While trying to verify QE ID information: {e}")
+
     # powHSM specific validations
     sgx_quote = powhsm_result["sgx_quote"]
     powhsm_message = bytes.fromhex(powhsm_result["message"])
@@ -170,12 +204,20 @@ def do_verify_attestation(options):
     tcb_info = [
         f"Status: {tcb_validation_result["status"]}",
         f"Issued: {tcb_validation_result["date"]}",
-        f"Advisories: {", ".join(tcb_validation_result["advisories"])}",
+        f"Advisories: {", ".join(tcb_validation_result["advisories"]) or "None"}",
         f"TCB evaluation data number: {tcb_validation_result["edn"]}",
         "SVNs:"
     ]
 
     tcb_info += map(lambda svn: f"  - {svn}", tcb_validation_result["svns"])
+
+    qeid_info = [
+        f"Status: {qeid_validation_result["status"]}",
+        f"Issued: {qeid_validation_result["date"]}",
+        f"Advisories: {", ".join(qeid_validation_result["advisories"]) or "None"}",
+        f"TCB evaluation data number: {qeid_validation_result["edn"]}",
+        f"ISVSVN: {qeid_validation_result["isvsvn"]}",
+    ]
 
     head(
         ["powHSM verified with public keys:"] + pubkeys_output + signer_info,
@@ -184,5 +226,10 @@ def do_verify_attestation(options):
 
     head(
         ["TCB Information:"] + tcb_info,
+        fill="-",
+    )
+
+    head(
+        ["QE Identity Information:"] + qeid_info,
         fill="-",
     )
