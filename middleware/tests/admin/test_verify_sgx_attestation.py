@@ -37,6 +37,8 @@ logging.disable(logging.CRITICAL)
 
 @patch("sys.stdout.write")
 @patch("admin.verify_sgx_attestation.head")
+@patch("admin.verify_sgx_attestation.validate_qeid_info")
+@patch("admin.verify_sgx_attestation.get_qeid_info")
 @patch("admin.verify_sgx_attestation.validate_tcb_info")
 @patch("admin.verify_sgx_attestation.get_tcb_info")
 @patch("admin.verify_sgx_attestation.HSMCertificate")
@@ -93,6 +95,8 @@ class TestVerifySgxAttestation(TestCase):
             "important": "stuff",
         }
 
+        self.mock_qe_collateral = "qe-collateral"
+
         self.validate_result = {"quote": {
             "valid": True,
             "value": {
@@ -100,11 +104,15 @@ class TestVerifySgxAttestation(TestCase):
                 "message": self.powhsm_msg.hex(),
             },
             "tweak": None,
-            "collateral": {"quoting_enclave": self.mock_pck_collateral},
+            "collateral": {
+                "quoting_enclave": self.mock_pck_collateral,
+                "attestation": self.mock_qe_collateral,
+            },
         }}
 
     def configure_mocks(self, get_sgx_root_of_trust, load_pubkeys,
-                        HSMCertificate, get_tcb_info, validate_tcb_info, head):
+                        HSMCertificate, get_tcb_info, validate_tcb_info,
+                        get_qeid_info, validate_qeid_info, head):
         self.root_of_trust = Mock()
         self.root_of_trust.is_valid.return_value = True
         self.root_of_trust.certificate = "rot-certificate"
@@ -129,6 +137,22 @@ class TestVerifySgxAttestation(TestCase):
             "edn": 123,
             "svns": ["one: 34", "two: 17", "three: 87"],
         }
+        self.get_qeid_info = get_qeid_info
+        get_qeid_info.return_value = {
+            "qeid_info": {
+                "enclaveIdentity": "the enclave identity"
+            },
+            "warnings": ["w3", "w4"],
+        }
+        self.validate_qeid_info = validate_qeid_info
+        validate_qeid_info.return_value = {
+            "valid": True,
+            "status": "another status",
+            "date": "another date",
+            "advisories": ["adv-3", "adv-4"],
+            "edn": 456,
+            "isvsvn": 789
+        }
 
     @parameterized.expand([
         ("default_root", None),
@@ -136,9 +160,11 @@ class TestVerifySgxAttestation(TestCase):
     ])
     def test_verify_attestation(self, get_sgx_root_of_trust, load_pubkeys,
                                 HSMCertificate, get_tcb_info, validate_tcb_info,
+                                get_qeid_info, validate_qeid_info,
                                 head, _, __, custom_root):
         self.configure_mocks(get_sgx_root_of_trust, load_pubkeys, HSMCertificate,
-                             get_tcb_info, validate_tcb_info, head)
+                             get_tcb_info, validate_tcb_info,
+                             get_qeid_info, validate_qeid_info, head)
         if custom_root:
             self.options.root_authority = custom_root
 
@@ -162,10 +188,6 @@ class TestVerifySgxAttestation(TestCase):
             HSMCertificateV2ElementX509.set_certificate_validator.assert_called_with(
                 "the-cert-validator")
 
-        # HSMCertificateV2ElementX509.set_certificate_validator.assert_called_with()
-        HSMCertificateV2ElementX509.set_collateral_getter.assert_called_with(
-            get_sgx_extensions)
-
         if custom_root:
             get_sgx_root_of_trust.assert_called_with(custom_root)
         else:
@@ -182,6 +204,12 @@ class TestVerifySgxAttestation(TestCase):
         )
         self.validate_tcb_info.assert_called_with(
             self.mock_pck_collateral, "the tcb info")
+        self.get_qeid_info.assert_called_with(
+            "https://api.trustedservices.intel.com/sgx/certification/v4/qe/identity",
+            "rot-certificate"
+        )
+        self.validate_qeid_info.assert_called_with(
+            self.mock_qe_collateral, "the enclave identity")
 
         self.assertEqual(head.call_args_list[1], call([
             "powHSM verified with public keys:"
@@ -211,9 +239,11 @@ class TestVerifySgxAttestation(TestCase):
 
     def test_verify_attestation_err_get_root(self, get_sgx_root_of_trust, load_pubkeys,
                                              HSMCertificate, get_tcb_info,
-                                             validate_tcb_info, head, _):
+                                             validate_tcb_info,
+                                             get_qeid_info, validate_qeid_info, head, _):
         self.configure_mocks(get_sgx_root_of_trust, load_pubkeys, HSMCertificate,
-                             get_tcb_info, validate_tcb_info, head)
+                             get_tcb_info, validate_tcb_info,
+                             get_qeid_info, validate_qeid_info, head)
         get_sgx_root_of_trust.side_effect = ValueError("root of trust error")
 
         with self.assertRaises(AdminError) as e:
@@ -227,13 +257,17 @@ class TestVerifySgxAttestation(TestCase):
         self.mock_certificate.validate_and_get_values.assert_not_called()
         self.get_tcb_info.assert_not_called()
         self.validate_tcb_info.assert_not_called()
+        self.get_qeid_info.assert_not_called()
+        self.validate_qeid_info.assert_not_called()
 
     def test_verify_attestation_err_root_invalid(self, get_sgx_root_of_trust,
                                                  load_pubkeys, HSMCertificate,
                                                  get_tcb_info, validate_tcb_info,
+                                                 get_qeid_info, validate_qeid_info,
                                                  head, _):
         self.configure_mocks(get_sgx_root_of_trust, load_pubkeys, HSMCertificate,
-                             get_tcb_info, validate_tcb_info, head)
+                             get_tcb_info, validate_tcb_info,
+                             get_qeid_info, validate_qeid_info, head)
         self.root_of_trust.is_valid.return_value = False
 
         with self.assertRaises(AdminError) as e:
@@ -247,13 +281,17 @@ class TestVerifySgxAttestation(TestCase):
         self.mock_certificate.validate_and_get_values.assert_not_called()
         self.get_tcb_info.assert_not_called()
         self.validate_tcb_info.assert_not_called()
+        self.get_qeid_info.assert_not_called()
+        self.validate_qeid_info.assert_not_called()
 
     def test_verify_attestation_err_load_pubkeys(self, get_sgx_root_of_trust,
                                                  load_pubkeys, HSMCertificate,
                                                  get_tcb_info, validate_tcb_info,
+                                                 get_qeid_info, validate_qeid_info,
                                                  head, _):
         self.configure_mocks(get_sgx_root_of_trust, load_pubkeys, HSMCertificate,
-                             get_tcb_info, validate_tcb_info, head)
+                             get_tcb_info, validate_tcb_info,
+                             get_qeid_info, validate_qeid_info, head)
         load_pubkeys.side_effect = ValueError("pubkeys error")
 
         with self.assertRaises(AdminError) as e:
@@ -267,12 +305,16 @@ class TestVerifySgxAttestation(TestCase):
         self.mock_certificate.validate_and_get_values.assert_not_called()
         self.get_tcb_info.assert_not_called()
         self.validate_tcb_info.assert_not_called()
+        self.get_qeid_info.assert_not_called()
+        self.validate_qeid_info.assert_not_called()
 
     def test_verify_attestation_err_load_cert(self, get_sgx_root_of_trust, load_pubkeys,
                                               HSMCertificate, get_tcb_info,
-                                              validate_tcb_info, head, _):
+                                              validate_tcb_info,
+                                              get_qeid_info, validate_qeid_info, head, _):
         self.configure_mocks(get_sgx_root_of_trust, load_pubkeys, HSMCertificate,
-                             get_tcb_info, validate_tcb_info, head)
+                             get_tcb_info, validate_tcb_info,
+                             get_qeid_info, validate_qeid_info, head)
         HSMCertificate.from_jsonfile.side_effect = ValueError("load cert error")
 
         with self.assertRaises(AdminError) as e:
@@ -286,13 +328,17 @@ class TestVerifySgxAttestation(TestCase):
         self.mock_certificate.validate_and_get_values.assert_not_called()
         self.get_tcb_info.assert_not_called()
         self.validate_tcb_info.assert_not_called()
+        self.get_qeid_info.assert_not_called()
+        self.validate_qeid_info.assert_not_called()
 
     def test_verify_attestation_validation_noquote(self, get_sgx_root_of_trust,
                                                    load_pubkeys, HSMCertificate,
                                                    get_tcb_info, validate_tcb_info,
+                                                   get_qeid_info, validate_qeid_info,
                                                    head, _):
         self.configure_mocks(get_sgx_root_of_trust, load_pubkeys, HSMCertificate,
-                             get_tcb_info, validate_tcb_info, head)
+                             get_tcb_info, validate_tcb_info,
+                             get_qeid_info, validate_qeid_info, head)
         self.mock_certificate.validate_and_get_values.return_value = {"something": "else"}
 
         with self.assertRaises(AdminError) as e:
@@ -307,13 +353,17 @@ class TestVerifySgxAttestation(TestCase):
             .assert_called_with(self.root_of_trust)
         self.get_tcb_info.assert_not_called()
         self.validate_tcb_info.assert_not_called()
+        self.get_qeid_info.assert_not_called()
+        self.validate_qeid_info.assert_not_called()
 
     def test_verify_attestation_validation_failed(self, get_sgx_root_of_trust,
                                                   load_pubkeys, HSMCertificate,
                                                   get_tcb_info, validate_tcb_info,
+                                                  get_qeid_info, validate_qeid_info,
                                                   head, _):
         self.configure_mocks(get_sgx_root_of_trust, load_pubkeys, HSMCertificate,
-                             get_tcb_info, validate_tcb_info, head)
+                             get_tcb_info, validate_tcb_info,
+                             get_qeid_info, validate_qeid_info, head)
         self.mock_certificate.validate_and_get_values.return_value = {
             "quote": {
                 "valid": False,
@@ -333,12 +383,16 @@ class TestVerifySgxAttestation(TestCase):
             .assert_called_with(self.root_of_trust)
         self.get_tcb_info.assert_not_called()
         self.validate_tcb_info.assert_not_called()
+        self.get_qeid_info.assert_not_called()
+        self.validate_qeid_info.assert_not_called()
 
     def test_verify_attestation_get_tcb_err(self, get_sgx_root_of_trust, load_pubkeys,
                                             HSMCertificate, get_tcb_info,
-                                            validate_tcb_info, head, _):
+                                            validate_tcb_info,
+                                            get_qeid_info, validate_qeid_info, head, _):
         self.configure_mocks(get_sgx_root_of_trust, load_pubkeys, HSMCertificate,
-                             get_tcb_info, validate_tcb_info, head)
+                             get_tcb_info, validate_tcb_info,
+                             get_qeid_info, validate_qeid_info, head)
         self.get_tcb_info.side_effect = RuntimeError("oops tcb info")
 
         with self.assertRaises(AdminError) as e:
@@ -358,12 +412,17 @@ class TestVerifySgxAttestation(TestCase):
             "rot-certificate"
         )
         self.validate_tcb_info.assert_not_called()
+        self.get_qeid_info.assert_not_called()
+        self.validate_qeid_info.assert_not_called()
 
     def test_verify_attestation_verify_tcb_err(self, get_sgx_root_of_trust, load_pubkeys,
                                                HSMCertificate, get_tcb_info,
-                                               validate_tcb_info, head, _):
+                                               validate_tcb_info,
+                                               get_qeid_info, validate_qeid_info,
+                                               head, _):
         self.configure_mocks(get_sgx_root_of_trust, load_pubkeys, HSMCertificate,
-                             get_tcb_info, validate_tcb_info, head)
+                             get_tcb_info, validate_tcb_info,
+                             get_qeid_info, validate_qeid_info, head)
         self.validate_tcb_info.return_value = {
             "valid": False,
             "reason": "This is the verification error",
@@ -387,12 +446,88 @@ class TestVerifySgxAttestation(TestCase):
         )
         self.validate_tcb_info.assert_called_with(
             self.mock_pck_collateral, "the tcb info")
+        self.get_qeid_info.assert_not_called()
+        self.validate_qeid_info.assert_not_called()
+
+    def test_verify_attestation_get_qeid_err(self, get_sgx_root_of_trust, load_pubkeys,
+                                             HSMCertificate, get_tcb_info,
+                                             validate_tcb_info,
+                                             get_qeid_info, validate_qeid_info, head, _):
+        self.configure_mocks(get_sgx_root_of_trust, load_pubkeys, HSMCertificate,
+                             get_tcb_info, validate_tcb_info,
+                             get_qeid_info, validate_qeid_info, head)
+        self.get_qeid_info.side_effect = RuntimeError("oops qeid info")
+
+        with self.assertRaises(AdminError) as e:
+            do_verify_attestation(self.options)
+        self.assertIn("While trying to verify QE ID", str(e.exception))
+        self.assertIn("oops qeid info", str(e.exception))
+
+        get_sgx_root_of_trust.assert_called_with(DEFAULT_ROOT_AUTHORITY)
+        self.root_of_trust.is_valid.assert_called_with(self.root_of_trust)
+        load_pubkeys.assert_called_with(self.pubkeys_path)
+        HSMCertificate.from_jsonfile.assert_called_with(self.certification_path)
+        self.mock_certificate.validate_and_get_values \
+            .assert_called_with(self.root_of_trust)
+        self.get_tcb_info.assert_called_with(
+            "https://api.trustedservices.intel.com/sgx/certification/v4/tcb",
+            "aabbccddeeff",
+            "rot-certificate"
+        )
+        self.validate_tcb_info.assert_called_with(
+            self.mock_pck_collateral, "the tcb info")
+        self.get_qeid_info.assert_called_with(
+            "https://api.trustedservices.intel.com/sgx/certification/v4/qe/identity",
+            "rot-certificate"
+        )
+        self.validate_qeid_info.assert_not_called()
+
+    def test_verify_attestation_verify_qeid_err(self, get_sgx_root_of_trust, load_pubkeys,
+                                                HSMCertificate, get_tcb_info,
+                                                validate_tcb_info,
+                                                get_qeid_info, validate_qeid_info,
+                                                head, _):
+        self.configure_mocks(get_sgx_root_of_trust, load_pubkeys, HSMCertificate,
+                             get_tcb_info, validate_tcb_info,
+                             get_qeid_info, validate_qeid_info, head)
+        self.validate_qeid_info.return_value = {
+            "valid": False,
+            "reason": "This is the verification error",
+        }
+
+        with self.assertRaises(AdminError) as e:
+            do_verify_attestation(self.options)
+        self.assertIn("While trying to verify QE ID", str(e.exception))
+        self.assertIn("the verification error", str(e.exception))
+
+        get_sgx_root_of_trust.assert_called_with(DEFAULT_ROOT_AUTHORITY)
+        self.root_of_trust.is_valid.assert_called_with(self.root_of_trust)
+        load_pubkeys.assert_called_with(self.pubkeys_path)
+        HSMCertificate.from_jsonfile.assert_called_with(self.certification_path)
+        self.mock_certificate.validate_and_get_values \
+            .assert_called_with(self.root_of_trust)
+        self.get_tcb_info.assert_called_with(
+            "https://api.trustedservices.intel.com/sgx/certification/v4/tcb",
+            "aabbccddeeff",
+            "rot-certificate"
+        )
+        self.validate_tcb_info.assert_called_with(
+            self.mock_pck_collateral, "the tcb info")
+        self.get_qeid_info.assert_called_with(
+            "https://api.trustedservices.intel.com/sgx/certification/v4/qe/identity",
+            "rot-certificate"
+        )
+        self.validate_qeid_info.assert_called_with(
+            self.mock_qe_collateral, "the enclave identity")
 
     def test_verify_attestation_invalid_header(self, get_sgx_root_of_trust, load_pubkeys,
                                                HSMCertificate, get_tcb_info,
-                                               validate_tcb_info, head, _):
+                                               validate_tcb_info,
+                                               get_qeid_info, validate_qeid_info,
+                                               head, _):
         self.configure_mocks(get_sgx_root_of_trust, load_pubkeys, HSMCertificate,
-                             get_tcb_info, validate_tcb_info, head)
+                             get_tcb_info, validate_tcb_info,
+                             get_qeid_info, validate_qeid_info, head)
         self.validate_result["quote"]["value"]["message"] = "aabbccdd"
 
         with self.assertRaises(AdminError) as e:
@@ -412,12 +547,21 @@ class TestVerifySgxAttestation(TestCase):
         )
         self.validate_tcb_info.assert_called_with(
             self.mock_pck_collateral, "the tcb info")
+        self.get_qeid_info.assert_called_with(
+            "https://api.trustedservices.intel.com/sgx/certification/v4/qe/identity",
+            "rot-certificate"
+        )
+        self.validate_qeid_info.assert_called_with(
+            self.mock_qe_collateral, "the enclave identity")
 
     def test_verify_attestation_invalid_message(self, get_sgx_root_of_trust, load_pubkeys,
                                                 HSMCertificate, get_tcb_info,
-                                                validate_tcb_info, head, _):
+                                                validate_tcb_info,
+                                                get_qeid_info, validate_qeid_info,
+                                                head, _):
         self.configure_mocks(get_sgx_root_of_trust, load_pubkeys, HSMCertificate,
-                             get_tcb_info, validate_tcb_info, head)
+                             get_tcb_info, validate_tcb_info,
+                             get_qeid_info, validate_qeid_info, head)
         self.validate_result["quote"]["value"]["message"] = b"POWHSM:5.5::plf".hex()
 
         with self.assertRaises(AdminError) as e:
@@ -437,12 +581,20 @@ class TestVerifySgxAttestation(TestCase):
         )
         self.validate_tcb_info.assert_called_with(
             self.mock_pck_collateral, "the tcb info")
+        self.get_qeid_info.assert_called_with(
+            "https://api.trustedservices.intel.com/sgx/certification/v4/qe/identity",
+            "rot-certificate"
+        )
+        self.validate_qeid_info.assert_called_with(
+            self.mock_qe_collateral, "the enclave identity")
 
     def test_verify_attestation_pkh_mismatch(self, get_sgx_root_of_trust, load_pubkeys,
                                              HSMCertificate, get_tcb_info,
-                                             validate_tcb_info, head, _):
+                                             validate_tcb_info,
+                                             get_qeid_info, validate_qeid_info, head, _):
         self.configure_mocks(get_sgx_root_of_trust, load_pubkeys, HSMCertificate,
-                             get_tcb_info, validate_tcb_info, head)
+                             get_tcb_info, validate_tcb_info,
+                             get_qeid_info, validate_qeid_info, head)
         self.public_keys.popitem()
 
         with self.assertRaises(AdminError) as e:
@@ -462,3 +614,9 @@ class TestVerifySgxAttestation(TestCase):
         )
         self.validate_tcb_info.assert_called_with(
             self.mock_pck_collateral, "the tcb info")
+        self.get_qeid_info.assert_called_with(
+            "https://api.trustedservices.intel.com/sgx/certification/v4/qe/identity",
+            "rot-certificate"
+        )
+        self.validate_qeid_info.assert_called_with(
+            self.mock_qe_collateral, "the enclave identity")

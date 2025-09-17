@@ -24,13 +24,14 @@
 from unittest import TestCase
 from unittest.mock import patch, Mock
 from parameterized import parameterized
+from types import SimpleNamespace
 from datetime import datetime
 from cryptography import x509
 from cryptography.hazmat.primitives.serialization import PublicFormat, Encoding
 from hashlib import sha256
 import ecdsa
 from admin.sgx_utils import get_sgx_extensions, get_tcb_info, validate_tcb_info, \
-                            get_intel_pcs_x509_crl
+                            get_qeid_info, validate_qeid_info, get_intel_pcs_x509_crl
 import logging
 
 logging.disable(logging.CRITICAL)
@@ -551,3 +552,340 @@ class TestSgxUtilsValidateTcbInfo(TestCase):
         res = validate_tcb_info(self.pck_info, self.tcb_info["tcbInfo"])
         self.assertFalse(res["valid"])
         self.assertIn("While validating TCB information", res["reason"])
+
+
+@patch("admin.sgx_utils.X509CertificateValidator")
+@patch("admin.sgx_utils.x509")
+@patch("admin.sgx_utils.split_pem_certificates")
+@patch("admin.sgx_utils.requests")
+class TestSgxUtilsGetQeIdInfo(TestCase):
+    def configure_mocks(self, requests, split_pem_certificates, mock_x509,
+                        X509CertificateValidator, issuer_sig=None):
+        mock_response = Mock()
+        requests.get.return_value = mock_response
+        mock_response.status_code = 200
+        mock_response.headers = {
+            "Content-Type": "application/json",
+            "warning": "this is a warning",
+            "SGX-Enclave-Identity-Issuer-Chain": "the issuer chain",
+        }
+        mock_response.text = """
+            {
+                "enclaveIdentity": {
+                    "a": 1,
+                    "b": 2,
+                    "c": 3
+                },
+                "something": "else",
+                "another": "thing",
+                "signature": "<SIG>"
+            }
+            """
+        self.mock_response = mock_response
+
+        issuer_privkey = ecdsa.SigningKey.generate(curve=ecdsa.NIST256p)
+        issuer_pubkey = issuer_privkey.verifying_key
+        qeid_info_digest = sha256('{"a":1,"b":2,"c":3}'.encode()).digest()
+        if issuer_sig is None:
+            self.issuer_sig = issuer_privkey.sign_digest(
+                qeid_info_digest, sigencode=ecdsa.util.sigencode_string)
+        else:
+            self.issuer_sig = issuer_sig
+        mock_response.text = mock_response.text.replace("<SIG>", self.issuer_sig.hex())
+
+        split_pem_certificates.return_value = ["cert-0", "cert-1"]
+        self.cert0 = Mock()
+        self.cert1 = Mock()
+
+        self.cert0pk = Mock()
+        self.cert0.public_key.return_value = self.cert0pk
+        self.cert0pk.public_bytes.return_value = issuer_pubkey.to_string("compressed")
+
+        def load_cert(pem):
+            if pem == b"cert-0":
+                return self.cert0
+            elif pem == b"cert-1":
+                return self.cert1
+            else:
+                raise Exception("Unknown cert")
+
+        mock_x509.load_pem_x509_certificate.side_effect = load_cert
+
+        self.validator = Mock()
+        self.validator.validate.return_value = {
+            "valid": True,
+            "warnings": ["w1", "w2"],
+        }
+        X509CertificateValidator.return_value = self.validator
+
+    @parameterized.expand([
+        ("early"),
+        ("standard"),
+    ])
+    def test_get_qeid_info_ok(self, requests, split_pem_certificates, mock_x509,
+                              X509CertificateValidator, update):
+        self.configure_mocks(requests, split_pem_certificates, mock_x509,
+                             X509CertificateValidator)
+
+        self.assertEqual({
+            "qeid_info": {
+                "enclaveIdentity": {
+                    "a": 1,
+                    "b": 2,
+                    "c": 3,
+                },
+                "something": "else",
+                "another": "thing",
+                "signature": self.issuer_sig.hex(),
+            },
+            "warnings": [f"Getting the-url?update={update}: "
+                         "this is a warning", "w1", "w2"],
+        }, get_qeid_info("the-url", self.cert1, update=update))
+
+        requests.get.assert_called_with(f"the-url?update={update}")
+        X509CertificateValidator.assert_called_with(get_intel_pcs_x509_crl)
+        self.validator.validate.assert_called_once()
+        self.assertEqual(self.cert0, self.validator.validate.call_args_list[0].args[0])
+        self.assertEqual(self.cert1, self.validator.validate.call_args_list[0].args[1])
+        self.assertIsInstance(self.validator.validate.call_args_list[0].args[2], datetime)
+        self.cert0pk.public_bytes.assert_called_once()
+        self.cert0pk.public_bytes.assert_called_with(
+            Encoding.X962, PublicFormat.CompressedPoint)
+
+    def test_get_qeid_info_err_get(self, requests, split_pem_certificates, mock_x509,
+                                   X509CertificateValidator):
+        self.configure_mocks(requests, split_pem_certificates, mock_x509,
+                             X509CertificateValidator)
+        self.mock_response.status_code = 404
+
+        with self.assertRaises(RuntimeError) as e:
+            get_qeid_info("the-url", self.cert1, update="upd")
+        self.assertIn("replied with status", str(e.exception))
+
+        requests.get.assert_called_with("the-url?update=upd")
+        X509CertificateValidator.assert_not_called()
+        self.validator.validate.assert_not_called()
+        self.cert0pk.public_bytes.assert_not_called()
+
+    def test_get_qeid_info_err_ctype(self, requests, split_pem_certificates, mock_x509,
+                                     X509CertificateValidator):
+        self.configure_mocks(requests, split_pem_certificates, mock_x509,
+                             X509CertificateValidator)
+        self.mock_response.headers["Content-Type"] = "not/json"
+
+        with self.assertRaises(RuntimeError) as e:
+            get_qeid_info("the-url", self.cert1, update="upd")
+        self.assertIn("content-type", str(e.exception))
+
+        requests.get.assert_called_with("the-url?update=upd")
+        X509CertificateValidator.assert_not_called()
+        self.validator.validate.assert_not_called()
+        self.cert0pk.public_bytes.assert_not_called()
+
+    def test_get_qeid_info_err_nochain(self, requests, split_pem_certificates, mock_x509,
+                                       X509CertificateValidator):
+        self.configure_mocks(requests, split_pem_certificates, mock_x509,
+                             X509CertificateValidator)
+        self.mock_response.headers["SGX-Enclave-Identity-Issuer-Chain"] = None
+
+        with self.assertRaises(RuntimeError) as e:
+            get_qeid_info("the-url", self.cert1, update="upd")
+        self.assertIn("certification chain", str(e.exception))
+
+        requests.get.assert_called_with("the-url?update=upd")
+        X509CertificateValidator.assert_not_called()
+        self.validator.validate.assert_not_called()
+        self.cert0pk.public_bytes.assert_not_called()
+
+    def test_get_qeid_info_err_shortchain(self, requests, split_pem_certificates,
+                                          mock_x509, X509CertificateValidator):
+        self.configure_mocks(requests, split_pem_certificates, mock_x509,
+                             X509CertificateValidator)
+        split_pem_certificates.return_value = ["cert-0"]
+
+        with self.assertRaises(RuntimeError) as e:
+            get_qeid_info("the-url", self.cert1, update="upd")
+        self.assertIn("at least two certificates", str(e.exception))
+
+        requests.get.assert_called_with("the-url?update=upd")
+        X509CertificateValidator.assert_not_called()
+        self.validator.validate.assert_not_called()
+        self.cert0pk.public_bytes.assert_not_called()
+
+    def test_get_qeid_info_err_rot(self, requests, split_pem_certificates,
+                                   mock_x509, X509CertificateValidator):
+        self.configure_mocks(requests, split_pem_certificates, mock_x509,
+                             X509CertificateValidator)
+
+        other_root = Mock()
+        other_root.subject = "other root"
+
+        with self.assertRaises(RuntimeError) as e:
+            get_qeid_info("the-url", other_root, update="upd")
+        self.assertIn("does not match", str(e.exception))
+        self.assertIn("other root", str(e.exception))
+
+        requests.get.assert_called_with("the-url?update=upd")
+        X509CertificateValidator.assert_not_called()
+        self.validator.validate.assert_not_called()
+        self.cert0pk.public_bytes.assert_not_called()
+
+    def test_get_qeid_info_err_chain_iv(self, requests, split_pem_certificates,
+                                        mock_x509, X509CertificateValidator):
+        self.configure_mocks(requests, split_pem_certificates, mock_x509,
+                             X509CertificateValidator)
+
+        self.validator.validate.return_value = {
+            "valid": False,
+            "reason": "oops"
+        }
+
+        with self.assertRaises(RuntimeError) as e:
+            get_qeid_info("the-url", self.cert1, update="upd")
+        self.assertIn("issuer chain", str(e.exception))
+        self.assertIn("oops", str(e.exception))
+
+        requests.get.assert_called_with("the-url?update=upd")
+        X509CertificateValidator.assert_called_with(get_intel_pcs_x509_crl)
+        self.validator.validate.assert_called_once()
+        self.assertEqual(self.cert0, self.validator.validate.call_args_list[0].args[0])
+        self.assertEqual(self.cert1, self.validator.validate.call_args_list[0].args[1])
+        self.assertIsInstance(self.validator.validate.call_args_list[0].args[2], datetime)
+        self.cert0pk.public_bytes.assert_not_called()
+
+    def test_get_qeid_info_err_qeid_sig(self, requests, split_pem_certificates,
+                                        mock_x509, X509CertificateValidator):
+        isig = bytes.fromhex("aa"*32+"bb"*32)
+        self.configure_mocks(requests, split_pem_certificates, mock_x509,
+                             X509CertificateValidator, issuer_sig=isig)
+
+        with self.assertRaises(RuntimeError) as e:
+            get_qeid_info("the-url", self.cert1, update="upd")
+        self.assertIn("Signature verification failed", str(e.exception))
+
+        requests.get.assert_called_with("the-url?update=upd")
+        X509CertificateValidator.assert_called_with(get_intel_pcs_x509_crl)
+        self.validator.validate.assert_called_once()
+        self.assertEqual(self.cert0, self.validator.validate.call_args_list[0].args[0])
+        self.assertEqual(self.cert1, self.validator.validate.call_args_list[0].args[1])
+        self.assertIsInstance(self.validator.validate.call_args_list[0].args[2], datetime)
+        self.cert0pk.public_bytes.assert_called_once()
+        self.cert0pk.public_bytes.assert_called_with(
+            Encoding.X962, PublicFormat.CompressedPoint)
+
+
+class TestSgxUtilsValidateQeIdInfo(TestCase):
+    def setUp(self):
+        self.qe_report_info = SimpleNamespace(**{
+            "mrsigner": bytes.fromhex("aa"*32),
+            "isvprodid": 789,
+            "isvsvn": 123,
+            "miscselect": 0xcd6789ab,
+            "attributes": SimpleNamespace(**{
+                "flags": 0x44aa33bb22cc11,
+                "xfrm": 0x88dd77ee66ff55ee,
+            })
+        })
+
+        self.qeid_info = {
+            "id": "QE",
+            "version": 2,
+            "issueDate": "the issue date",
+            "nextUpdate": "the next update",
+            "tcbEvaluationDataNumber": 456,
+            "miscselect": "ab0000cd",
+            "miscselectMask": "FF0000FF",
+            "attributes": "11002200330044000055006600770088",
+            "attributesMask": "FF00FF00FF00FF0000FF00FF00FF00FF",
+            "mrsigner": "AA"*32,
+            "isvprodid": 789,
+            "tcbLevels": [
+                {
+                    "tcb": {
+                        "isvsvn": 130
+                    },
+                    "tcbDate": "2024-03-13T00:00:00Z",
+                    "tcbStatus": "UpToDate"
+                },
+                {
+                    "tcb": {
+                        "isvsvn": 125
+                    },
+                    "tcbDate": "2021-11-10T00:00:00Z",
+                    "tcbStatus": "OutOfDate",
+                    "advisoryIDs": ["we don't", "care", "at", "all"]
+                },
+                {
+                    "tcb": {
+                        "isvsvn": 120
+                    },
+                    "tcbDate": "the tcb date",
+                    "tcbStatus": "the tcb status",
+                    "advisoryIDs": [
+                        "advisory-1",
+                        "advisory-2"
+                    ]
+                }
+            ]
+        }
+
+    def test_validate_qeid_info_ok(self):
+        self.assertEqual({
+            "valid": True,
+            "status": "the tcb status",
+            "date": "the tcb date",
+            "advisories": ["advisory-1", "advisory-2"],
+            "edn": 456,
+            "isvsvn": "123 >= 120",
+        }, validate_qeid_info(self.qe_report_info, self.qeid_info))
+
+    def test_validate_qeid_info_mrsigner(self):
+        self.qe_report_info.mrsigner = "bb"*32
+
+        res = validate_qeid_info(self.qe_report_info, self.qeid_info)
+        self.assertFalse(res["valid"])
+        self.assertIn("QE MRSIGNER", res["reason"])
+
+    def test_validate_qeid_info_isvprodid(self):
+        self.qe_report_info.isvprodid = 444
+
+        res = validate_qeid_info(self.qe_report_info, self.qeid_info)
+        self.assertFalse(res["valid"])
+        self.assertIn("QE ISVPRODID", res["reason"])
+
+    def test_validate_qeid_info_miscselect(self):
+        self.qe_report_info.miscselect = 555
+
+        res = validate_qeid_info(self.qe_report_info, self.qeid_info)
+        self.assertFalse(res["valid"])
+        self.assertIn("QE MISCSELECT", res["reason"])
+
+    def test_validate_qeid_info_attribute_flags(self):
+        self.qe_report_info.attributes.flags = 666
+
+        res = validate_qeid_info(self.qe_report_info, self.qeid_info)
+        self.assertFalse(res["valid"])
+        self.assertIn("QE ATTRIBUTES", res["reason"])
+
+    def test_validate_qeid_info_attribute_xfrm(self):
+        self.qe_report_info.attributes.xfrm = 777
+
+        res = validate_qeid_info(self.qe_report_info, self.qeid_info)
+        self.assertFalse(res["valid"])
+        self.assertIn("QE ATTRIBUTES", res["reason"])
+
+    def test_validate_qeid_info_level_notfound(self):
+        self.qe_report_info.isvsvn = 119
+
+        res = validate_qeid_info(self.qe_report_info, self.qeid_info)
+        self.assertFalse(res["valid"])
+        self.assertIn("QE TCB level is not supported", res["reason"])
+
+    def test_validate_qeid_info_malformed(self):
+        self.qe_report_info = {
+                "something": "else"
+        }
+
+        res = validate_qeid_info(self.qe_report_info, self.qeid_info)
+        self.assertFalse(res["valid"])
+        self.assertIn("While validating QE identity information", res["reason"])
