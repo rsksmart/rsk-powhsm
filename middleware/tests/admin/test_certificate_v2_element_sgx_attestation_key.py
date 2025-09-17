@@ -25,6 +25,7 @@ from unittest import TestCase
 from unittest.mock import Mock
 from admin.certificate_v2 import HSMCertificateV2Element, \
                                  HSMCertificateV2ElementSGXAttestationKey
+from sgx.envelope import SgxReportBody
 from .test_certificate_v2_resources import TEST_CERTIFICATE
 
 
@@ -167,5 +168,8 @@ class TestHSMCertificateV2ElementSGXAttestationKey(TestCase):
             })
         self.assertFalse(self.elem.is_valid(self.valid_certifier))
 
-    def test_get_collateral_none(self):
-        self.assertIsNone(self.elem.get_collateral())
+    def test_get_collateral_message(self):
+        self.assertEqual(SgxReportBody, type(self.elem.get_collateral()))
+        self.assertEqual(
+            self.elem.message.get_raw_data(),
+            self.elem.get_collateral().get_raw_data())

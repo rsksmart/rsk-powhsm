@@ -215,6 +215,9 @@ class HSMCertificateV2ElementSGXAttestationKey(HSMCertificateV2Element):
             "signed_by": self.signed_by,
         }
 
+    def get_collateral(self):
+        return self.message
+
 
 class HSMCertificateV2ElementX509(HSMCertificateV2Element):
     HEADER_BEGIN = "-----BEGIN CERTIFICATE-----"
