@@ -31,6 +31,6 @@
 // Version and patchlevel
 #define VERSION_MAJOR 5
 #define VERSION_MINOR 5
-#define VERSION_PATCH 1
+#define VERSION_PATCH 2
 
 #endif // __DEFS_H
