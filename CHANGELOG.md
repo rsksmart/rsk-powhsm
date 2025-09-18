@@ -1,5 +1,30 @@
 # Changelog
 
+## [5.5.2] - 18/09/2025
+
+### Features/enhancements
+
+- SGX attestation validation: added CRLs, TCB and QE identity validations
+- Added output pointer size parameter and check to hmac_sha512
+- Added checks for the return value of oe_malloc throughout the SGX implementation
+- Failsafe verification of the custom claims hash when verifying evidence in SGX's evidence module
+- Added input checks on der_encode_uint
+- Using secp256k1 context randomisation in SGX HAL's implementation
+- Added return value checks for secp256k1_ecdsa_sign and secp256k1_ecdsa_signature_serialize_der in SGX HAL's seed module
+- Unit tested common module's bigdigits library, using mbed_tls as a reference for results
+
+### Fixes
+
+- Fixed middleware docker image build
+- Fixed incorrect deallocation of format settings throughout the SGX implementation
+- Fixed SGX evidence claim deallocation to prevent potential memory leaks
+- Fixed CATCH_L definition on exception library (both for Ledger and SGX)
+- Fixed potential dangling pointers in main SGX upgrade function
+- Fixed potential integer underflow in P1_BTC and P1_RECEIPT
+- Fixed file ownership after performing an SGX upgrade
+- Removed usage of deprecated secp256k1_context_create specific context parameter
+- Fixed code coverage badges on README.md
+
 ## [5.5.1] - 02/06/2025
 
 ### Fixes
