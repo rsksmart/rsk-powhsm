@@ -21,7 +21,6 @@ jobs:
 
       - name: Run static analysis
         id: static-analysis
-        continue-on-error: true
         run: |
           firmware/static-analysis/gen-static-analysis
       
