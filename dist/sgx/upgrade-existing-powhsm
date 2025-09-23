@@ -30,6 +30,7 @@ cleanup() {
 		rm -rf $ADMIN_DIR
 	fi
 	if [[ -d $MIGRATION_DIR ]]; then
+		POWHSM_UPGRADE_SUFFIX=_tmp $MIGRATION_DIR/bin/stop >/dev/null 2>&1
 		rm -rf $MIGRATION_DIR
 	fi
 }
