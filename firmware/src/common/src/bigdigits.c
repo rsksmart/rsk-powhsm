@@ -46,6 +46,9 @@
 /* No asserts in stripped down version of this library */
 #define assert(x)
 
+// Disable static analyzer for this third-party library file
+#ifndef __clang_analyzer__
+
 #include "bigdigits.h"
 
 #define BITS_PER_HALF_DIGIT (BITS_PER_DIGIT / 2)
@@ -763,6 +766,8 @@ DIGIT_T spDivide(DIGIT_T *q, DIGIT_T *r, const DIGIT_T u[2], DIGIT_T v)
     *r = uu[0];
     return q2;
 }
+
+#endif // __clang_analyzer__
 
 // Platform-dependent code
 #ifndef HSM_PLATFORM_LEDGER

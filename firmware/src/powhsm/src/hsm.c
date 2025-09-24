@@ -317,16 +317,17 @@ void hsm_init() {
 
 unsigned int hsm_process_apdu(unsigned int rx) {
     unsigned int tx = 0;
+    unsigned short ex = APDU_OK;
 
     BEGIN_TRY {
         TRY {
             tx = hsm_process_command(rx);
-            THROW(0x9000);
         }
         CATCH_OTHER(e) {
-            tx = hsm_process_exception(e, tx);
+            ex = e;
         }
         FINALLY {
+            tx = hsm_process_exception(ex, tx);
         }
     }
     END_TRY;
