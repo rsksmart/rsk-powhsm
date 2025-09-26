@@ -22,44 +22,48 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __MOCK_H
-#define __MOCK_H
+#include <assert.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <string.h>
 
-#include <stdint.h>
-#include <stddef.h>
+#include "hal/nvmem.h"
 
-// Endorsement functions
-unsigned int os_endorsement_key2_derive_sign_data(unsigned char *src,
-                                                  unsigned int srcLength,
-                                                  unsigned char *signature);
+// Mocks and globals
+struct {
+    bool nvm_write_called;
+    void *dst;
+    void *src;
+    unsigned int length;
+} G_nvmem;
 
-unsigned int os_endorsement_get_code_hash(unsigned char *buffer);
+void nvm_write(void *dst, void *src, unsigned int src_len) {
+    G_nvmem.nvm_write_called = true;
+    G_nvmem.dst = dst;
+    G_nvmem.src = src;
+    G_nvmem.length = src_len;
+}
 
-unsigned int os_endorsement_get_public_key(unsigned char index,
-                                           unsigned char *buffer);
+void setup() {
+    memset(&G_nvmem, 0, sizeof(G_nvmem));
+}
 
-// Hash type definitions and constants
-#define CX_LAST 1
-#define HASH_LENGTH 32
+void test_nvmem_write_ok() {
+    printf("Testing nvmem_write succeeds...\n");
+    setup();
+    char dst[10], src[10] = "123456789";
+    unsigned int len = sizeof(src);
 
-typedef struct cx_hash_s {
-    unsigned char hash[HASH_LENGTH];
-    int size_in_bytes;
-} cx_hash_t;
+    assert(nvmem_write(dst, src, len));
 
-typedef cx_hash_t cx_sha256_t;
-typedef cx_hash_t cx_sha3_t;
+    assert(G_nvmem.nvm_write_called);
+    assert(G_nvmem.dst == dst);
+    assert(G_nvmem.src == src);
+    assert(G_nvmem.length == len);
+}
 
-// Hash functions
-int cx_sha256_init(cx_sha256_t *hash);
-int cx_keccak_init(cx_sha3_t *hash, int size);
-int cx_hash(cx_hash_t *hash,
-            int mode,
-            unsigned char *in,
-            unsigned int len,
-            unsigned char *out);
-
-// NVM functions
-void nvm_write(void *dst_adr, void *src_adr, unsigned int src_len);
-
-#endif // __MOCK_H
+int main() {
+    test_nvmem_write_ok();
+    printf("All Ledger HAL nvmem tests passed!\n");
+    return 0;
+}
