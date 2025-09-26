@@ -28,6 +28,14 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#include "exc.h"
+
+// General definitions
+#define CX_RND_RFC6979 (3 << 9)
+#define CX_LAST (1 << 0)
+
+void os_memmove(void *dst, const void *src, unsigned int length);
+
 // Endorsement functions
 unsigned int os_endorsement_key2_derive_sign_data(unsigned char *src,
                                                   unsigned int srcLength,
@@ -39,7 +47,6 @@ unsigned int os_endorsement_get_public_key(unsigned char index,
                                            unsigned char *buffer);
 
 // Hash type definitions and constants
-#define CX_LAST 1
 #define HASH_LENGTH 32
 
 typedef struct cx_hash_s {
@@ -61,5 +68,58 @@ int cx_hash(cx_hash_t *hash,
 
 // NVM functions
 void nvm_write(void *dst_adr, void *src_adr, unsigned int src_len);
+
+// Seed type definitions and constants
+enum cx_md_e {
+    CX_SHA256 = 123,
+};
+typedef enum cx_md_e cx_md_t;
+
+enum cx_curve_e {
+    CX_CURVE_SECP256K1 = 456,
+    CX_CURVE_256K1 = CX_CURVE_SECP256K1,
+};
+typedef enum cx_curve_e cx_curve_t;
+
+struct cx_ecfp_public_key_s {
+    cx_curve_t curve;
+    unsigned int W_len;
+    unsigned char W[65];
+};
+
+struct cx_ecfp_private_key_s {
+    cx_curve_t curve;
+    unsigned int d_len;
+    unsigned char d[32];
+};
+
+typedef struct cx_ecfp_public_key_s cx_ecfp_public_key_t;
+typedef struct cx_ecfp_private_key_s cx_ecfp_private_key_t;
+
+// Seed-related functions
+unsigned int os_perso_isonboarded();
+
+void os_perso_derive_node_bip32(cx_curve_t curve,
+                                unsigned int *path,
+                                unsigned int pathLength,
+                                unsigned char *privateKey,
+                                unsigned char *chain);
+
+int cx_ecdsa_init_private_key(cx_curve_t curve,
+                              unsigned char *rawkey,
+                              unsigned int key_len,
+                              cx_ecfp_private_key_t *key);
+
+int cx_ecfp_generate_pair(cx_curve_t curve,
+                          cx_ecfp_public_key_t *pubkey,
+                          cx_ecfp_private_key_t *privkey,
+                          int keepprivate);
+
+int cx_ecdsa_sign(cx_ecfp_private_key_t *key,
+                  int mode,
+                  cx_md_t hashID,
+                  unsigned char *hash,
+                  unsigned int hash_len,
+                  unsigned char *sig);
 
 #endif // __MOCK_H
