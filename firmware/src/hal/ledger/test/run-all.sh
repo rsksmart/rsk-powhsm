@@ -2,7 +2,7 @@
 
 if [[ $1 == "exec" ]]; then
     BASEDIR=$(realpath $(dirname $0))
-    TESTDIRS="endorsement"
+    TESTDIRS="endorsement hash"
     for d in $TESTDIRS; do
         echo "******************************"
         echo "Testing $d..."
