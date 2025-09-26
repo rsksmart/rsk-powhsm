@@ -75,6 +75,7 @@ bool seed_derive_pubkey(uint32_t* path,
         }
         CATCH_OTHER(e) {
             // Cleanup key data and fail
+            (void)e; // Suppress unused variable warning
             explicit_bzero((void*)private_key_data, sizeof(private_key_data));
             explicit_bzero((void*)&private_key, sizeof(private_key));
             explicit_bzero((void*)&public_key, sizeof(public_key));
@@ -126,6 +127,7 @@ bool seed_sign(uint32_t* path,
             explicit_bzero((void*)&private_key, sizeof(private_key));
         }
         CATCH_OTHER(e) {
+            (void)e; // Suppress unused variable warning
             // Cleanup key data and fail
             explicit_bzero((void*)private_key_data, sizeof(private_key_data));
             explicit_bzero((void*)&private_key, sizeof(private_key));
