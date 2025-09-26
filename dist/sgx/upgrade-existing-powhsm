@@ -105,6 +105,8 @@ error "Could not remove the temporary installation directory."
 systemctl start $SERVICE_NAME
 error "Unable to start the service."
 
+sleep 5
+
 $ROOT_DIR/scripts/run_with_docker ./scripts/attest
 error "Unable to gather powHSM upgrade attestation."
 

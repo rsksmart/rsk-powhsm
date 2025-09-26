@@ -20,6 +20,8 @@ if [ $? -ne 0 ]; then
 	exit 1
 fi
 
+sleep 5
+
 $ROOT_DIR/scripts/run_with_docker ./scripts/setup $1
 if [ $? -ne 0 ]; then
 	print_error "Error during the powhsm setup, aborting"
