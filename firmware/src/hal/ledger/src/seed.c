@@ -73,7 +73,7 @@ bool seed_derive_pubkey(uint32_t* path,
             // Cleanup public key
             explicit_bzero((void*)&public_key, sizeof(public_key));
         }
-        CATCH_OTHER(e) {
+        CATCH_ALL {
             // Cleanup key data and fail
             explicit_bzero((void*)private_key_data, sizeof(private_key_data));
             explicit_bzero((void*)&private_key, sizeof(private_key));
@@ -125,7 +125,7 @@ bool seed_sign(uint32_t* path,
             // Cleanup private key
             explicit_bzero((void*)&private_key, sizeof(private_key));
         }
-        CATCH_OTHER(e) {
+        CATCH_ALL {
             // Cleanup key data and fail
             explicit_bzero((void*)private_key_data, sizeof(private_key_data));
             explicit_bzero((void*)&private_key, sizeof(private_key));

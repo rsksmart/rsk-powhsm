@@ -12,12 +12,16 @@ if [[ $1 == "exec" ]]; then
     # Run unit tests with coverage generation
     # The `exec` argument is used for all scripts, since we are running them inside a docker container
     COVERAGE=y $REPOROOT/firmware/src/common/test/run-all.sh exec
+    COVERAGE=y $REPOROOT/firmware/src/hal/common_linked/test/run-all.sh exec
+    COVERAGE=y $REPOROOT/firmware/src/hal/ledger/test/run-all.sh exec
+    COVERAGE=y $REPOROOT/firmware/src/hal/sgx/test/run-all.sh exec
+    COVERAGE=y $REPOROOT/firmware/src/hal/x86/test/run-all.sh exec
+    COVERAGE=y $REPOROOT/firmware/src/ledger/signer/test/run-all.sh exec
+    COVERAGE=y $REPOROOT/firmware/src/ledger/ui/test/run-all.sh exec
     COVERAGE=y $REPOROOT/firmware/src/powhsm/test/run-all.sh exec
     COVERAGE=y $REPOROOT/firmware/src/sgx/test/run-all.sh exec
-    COVERAGE=y $REPOROOT/firmware/src/ledger/ui/test/run-all.sh exec
-    COVERAGE=y $REPOROOT/firmware/src/ledger/signer/test/run-all.sh exec
-    COVERAGE=y $REPOROOT/firmware/src/hal/common_linked/test/run-all.sh exec
-    COVERAGE=y $REPOROOT/firmware/src/hal/sgx/test/run-all.sh exec
+    
+    
 
     # Run tcpsigner test suite
     pushd $REPOROOT/firmware/src/tcpsigner > /dev/null
