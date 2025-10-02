@@ -29,6 +29,7 @@ jobs:
         id: sgx-static-analysis
         continue-on-error: true
         run: |
+          docker/sgx/do-notty /hsm2/firmware/src/sgx "make generate-private-key"
           firmware/static-analysis/gen-static-analysis sgx
       
       - name: Upload static analysis reports
