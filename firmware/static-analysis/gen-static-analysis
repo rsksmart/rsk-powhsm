@@ -30,12 +30,31 @@ staticAnalysisUI() {
         $BUILD_CMD
 }
 
+staticAnalysisSGX() {
+    SGX_SRC_DIR=$REPOROOT/firmware/src/sgx
+    echo Running static analysis on $SGX_SRC_DIR...
+    cd $SGX_SRC_DIR
+    BUILD_CMD="make build-debug CHECKPOINT=$CHECKPOINT TARGET_DIFFICULTY=$TARGET_DIFFICULTY NETWORK=$NETWORK SIGNERS_FILE=$SIGNERS_FILE"
+
+    $SGX_ENVSETUP
+    make clean
+    scan-build \
+        --show-description \
+        --status-bugs \
+        --exclude /opt \
+        --exclude src/untrusted/generated \
+        --exclude src/trusted/generated \
+        -o $SGX_OUTPUT \
+        $BUILD_CMD
+}
+
 if [[ $1 == "exec" ]]; then
     BASEDIR=$(realpath $(dirname $0))
     SRCDIR=$(realpath $BASEDIR/../src)
     REPOROOT=$(realpath $BASEDIR/../..)
     SIGNER_OUTPUT=$BASEDIR/output/signer
     UI_OUTPUT=$BASEDIR/output/ui
+    SGX_OUTPUT=$BASEDIR/output/sgx
 
     # Build parameters
     CHECKPOINT=e108960a242ad7bd45c21aff9c7ed9c516789e9cffacdd895502727d8f460d2c
@@ -45,22 +64,61 @@ if [[ $1 == "exec" ]]; then
     SIGNER_ITERATION=1
     SIGNERS_FILE=testing
 
-    # Remove any existing static analysis data
-    rm -rf $SIGNER_OUTPUT $UI_OUTPUT
+    if [[ $2 == "ledger" ]]; then
+        # Remove any existing static analysis data
+        rm -rf $SIGNER_OUTPUT $UI_OUTPUT $SGX_OUTPUT
 
-    staticAnalysisSigner
-    signer_err_code=$?
+        staticAnalysisSigner
+        signer_err_code=$?
 
-    staticAnalysisUI
-    ui_err_code=$?
+        staticAnalysisUI
+        ui_err_code=$?
 
-    err_code=$((signer_err_code | ui_err_code))
+        err_code=$((signer_err_code | ui_err_code))
+    elif [[ $2 == "sgx" ]]; then
+        # Remove any existing static analysis data
+        rm -rf $SGX_OUTPUT
+
+        staticAnalysisSGX
+        err_code=$?
+    else
+        echo "Invalid argument: $2"
+        echo "Usage: $0 [ledger|sgx]"
+        echo "Run with no arguments to run both ledger and sgx analysis"
+        exit 1
+    fi
 else
    # Script directory
     REPOROOT=$(realpath $(dirname $0)/../..)
     SCRIPT=$(realpath $0 --relative-to=$REPOROOT)
 
-    $REPOROOT/docker/ledger/do-notty /hsm2 "./$SCRIPT exec"
+    run_ledger=false
+    run_sxg=false
+    if [[ $# -eq 0 ]]; then
+        run_ledger=true
+        run_sgx=true
+    elif [[ $1 == "ledger" ]]; then
+        run_ledger=true
+    elif [[ $1 == "sgx" ]]; then
+        run_sgx=true
+    else
+        echo "Invalid argument: $1"
+        echo "Usage: $0 [ledger|sgx]"
+        echo "Run with no arguments to run both ledger and sgx analysis"
+        exit 1
+    fi
+
+    if [[ $run_ledger == true ]]; then
+        $REPOROOT/docker/ledger/do-notty /hsm2 "./$SCRIPT exec ledger"
+        ledger_err_code=$?
+    fi
+
+    if [[ $run_sgx == true ]]; then
+        $REPOROOT/docker/sgx/do-notty /hsm2 "./$SCRIPT exec sgx"
+        sgx_err_code=$?
+    fi
+
+    err_code=$((ledger_err_code | sgx_err_code))
 fi
 
 exit $err_code
