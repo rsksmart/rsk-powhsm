@@ -46,10 +46,10 @@
 /* No asserts in stripped down version of this library */
 #define assert(x)
 
+#include "bigdigits.h"
+
 // Disable static analyzer for this third-party library file
 #ifndef __clang_analyzer__
-
-#include "bigdigits.h"
 
 #define BITS_PER_HALF_DIGIT (BITS_PER_DIGIT / 2)
 #define LOHALF(x) ((DIGIT_T)((x) & MAX_HALF_DIGIT))
