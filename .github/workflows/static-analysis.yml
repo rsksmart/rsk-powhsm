@@ -7,7 +7,7 @@ permissions: read-all
 
 jobs:
   static-analysis:
-    name: Run ledger static analysis
+    name: Run static analysis
     runs-on: ubuntu-latest
 
     steps:
@@ -17,10 +17,19 @@ jobs:
       - name: Build the ledger docker image
         run: docker/ledger/build
 
-      - name: Run static analysis
-        id: static-analysis
+      - name: Build the SGX docker image
+        run: docker/sgx/build
+      
+      - name: Run Ledger static analysis
+        id: ledger-static-analysis
         run: |
-          firmware/static-analysis/gen-static-analysis
+          firmware/static-analysis/gen-static-analysis ledger
+      
+      - name: Run SGX static analysis
+        id: sgx-static-analysis
+        continue-on-error: true
+        run: |
+          firmware/static-analysis/gen-static-analysis sgx
       
       - name: Upload static analysis reports
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 #v4.6.2
@@ -29,7 +38,7 @@ jobs:
           path: firmware/static-analysis/output
 
       - name: Report static analysis findings
-        if: steps.static-analysis.outcome != 'success'
+        if: steps.ledger-static-analysis.outcome != 'success' || steps.sgx-static-analysis.outcome != 'success'
         run: |
           echo "Static analysis reported findings. Check static-analysis-reports for a complete report." \
             > $GITHUB_STEP_SUMMARY
