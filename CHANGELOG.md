@@ -1,5 +1,13 @@
 # Changelog
 
+## [5.2.5] - 03/10/2025
+
+### Fixes
+
+- Fixed CATCH_L definition on exception library
+- Fixed middleware docker image build
+- Bumped integration tests version
+
 ## [5.2.4] - 12/06/2025
 
 ### Fixes
