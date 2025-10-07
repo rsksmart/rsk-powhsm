@@ -63,6 +63,7 @@
 #ifndef __HMAC_SHA512_H
 #define __HMAC_SHA512_H
 
+#include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
 
