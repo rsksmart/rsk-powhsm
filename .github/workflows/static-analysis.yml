@@ -7,7 +7,7 @@ permissions: read-all
 
 jobs:
   static-analysis:
-    name: Run ledger static analysis
+    name: Run static analysis
     runs-on: ubuntu-latest
 
     steps:
@@ -17,9 +17,13 @@ jobs:
       - name: Build the ledger docker image
         run: docker/ledger/build
 
+      - name: Build the SGX docker image
+        run: docker/sgx/build
+
       - name: Run static analysis
         id: static-analysis
         run: |
+          docker/sgx/do-notty /hsm2/firmware/src/sgx "make generate-private-key"
           firmware/static-analysis/gen-static-analysis
       
       - name: Upload static analysis reports
