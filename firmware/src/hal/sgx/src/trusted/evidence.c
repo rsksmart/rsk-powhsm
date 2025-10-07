@@ -201,6 +201,11 @@ bool evidence_verify_and_extract_claims(oe_uuid_t format_id,
         return false;
     }
 
+    if (!evidence_buffer) {
+        LOG("Invalid evidence buffer pointer\n");
+        return false;
+    }
+
     if (!claims || !claims_length) {
         claims = NULL;
         claims_length = NULL;
