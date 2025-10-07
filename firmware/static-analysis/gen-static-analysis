@@ -66,7 +66,7 @@ if [[ $1 == "exec" ]]; then
 
     if [[ $2 == "ledger" ]]; then
         # Remove any existing static analysis data
-        rm -rf $SIGNER_OUTPUT $UI_OUTPUT $SGX_OUTPUT
+        rm -rf $SIGNER_OUTPUT $UI_OUTPUT
 
         staticAnalysisSigner
         signer_err_code=$?
