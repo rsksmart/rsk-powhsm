@@ -181,6 +181,8 @@ generate_evidence_error:
     if (evidence_buffer && *evidence_buffer) {
         oe_free_evidence(*evidence_buffer);
         *evidence_buffer = NULL;
+    }
+    if (evidence_buffer_size) {
         *evidence_buffer_size = 0;
     }
     if (gathered_settings && format->settings) {
