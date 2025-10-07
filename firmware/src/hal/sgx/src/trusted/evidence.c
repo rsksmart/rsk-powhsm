@@ -264,7 +264,7 @@ bool evidence_verify_and_extract_claims(oe_uuid_t format_id,
         goto evidence_verify_and_extract_claims_fail;
     }
 
-    if (*claims) {
+    if (claims && *claims) {
         // Extract the custom claims buffer from the extracted claims
         oe_claim_t* custom_claim =
             evidence_get_custom_claim(*claims, *claims_length);
@@ -322,7 +322,7 @@ bool evidence_verify_and_extract_claims(oe_uuid_t format_id,
 
     return true;
 evidence_verify_and_extract_claims_fail:
-    if (*claims) {
+    if (claims && *claims) {
         oe_free_claims(*claims, *claims_length);
         *claims = NULL;
         *claims_length = 0;
