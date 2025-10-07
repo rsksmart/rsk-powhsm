@@ -125,7 +125,7 @@ bool evidence_generate(evidence_format_t* format,
                        uint8_t** evidence_buffer,
                        size_t* evidence_buffer_size) {
     oe_result_t result;
-    bool gathered_settings;
+    bool gathered_settings = false;
 
     if (!G_evidence_ctx.initialised) {
         LOG("Evidence module not initialised\n");
