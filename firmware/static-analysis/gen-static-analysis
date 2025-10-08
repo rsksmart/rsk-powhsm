@@ -1,23 +1,9 @@
 #!/bin/bash
 
-if [[ $1 == "exec" ]]; then
-    BASEDIR=$(realpath $(dirname $0))
-    SRCDIR=$(realpath $BASEDIR/../src)
-    REPOROOT=$(realpath $BASEDIR/../..)
+staticAnalysisSigner() {
     SIGNER_SRC_DIR=$REPOROOT/firmware/src/ledger/signer
-    UI_SRC_DIR=$REPOROOT/firmware/src/ledger/ui
-    SIGNER_OUTPUT=$BASEDIR/output/signer
-    UI_OUTPUT=$BASEDIR/output/ui
-
-    # Remove any existing static analysis data
-    rm -rf $SIGNER_OUTPUT $UI_OUTPUT
-
-    # Generate Signer static analysis report
     echo Running static analysis on $SIGNER_SRC_DIR...
     cd $SIGNER_SRC_DIR
-    CHECKPOINT=e108960a242ad7bd45c21aff9c7ed9c516789e9cffacdd895502727d8f460d2c
-    TARGET_DIFFICULTY=0x6e
-    NETWORK=regtest
     BUILD_CMD="make CHECKPOINT=$CHECKPOINT TARGET_DIFFICULTY=$TARGET_DIFFICULTY NETWORK=$NETWORK"
     make clean
     scan-build \
@@ -27,14 +13,12 @@ if [[ $1 == "exec" ]]; then
         --status-bugs \
         -o $SIGNER_OUTPUT \
         $BUILD_CMD
-    signer_err_code=$?
+}
 
-    # Generate UI static analysis report
+staticAnalysisUI() {
+    UI_SRC_DIR=$REPOROOT/firmware/src/ledger/ui
     echo Running static analysis on $UI_SRC_DIR...
     cd $UI_SRC_DIR
-    SIGNER_HASH=5f25813b2c5db0bb803bccb6b56707dd7c2ec60434e674c6dcc8da8e7121bad2
-    SIGNER_ITERATION=1
-    SIGNERS_FILE=testing
     BUILD_CMD="make SIGNER_HASH=$SIGNER_HASH SIGNER_ITERATION=$SIGNER_ITERATION SIGNERS_FILE=$SIGNERS_FILE"
     make clean
     scan-build \
@@ -44,15 +28,97 @@ if [[ $1 == "exec" ]]; then
         --status-bugs \
         -o $UI_OUTPUT \
         $BUILD_CMD
-    ui_err_code=$?
+}
 
-    err_code=$((signer_err_code | ui_err_code))
+staticAnalysisSGX() {
+    SGX_SRC_DIR=$REPOROOT/firmware/src/sgx
+    echo Running static analysis on $SGX_SRC_DIR...
+    cd $SGX_SRC_DIR
+    BUILD_CMD="make build-debug CHECKPOINT=$CHECKPOINT TARGET_DIFFICULTY=$TARGET_DIFFICULTY NETWORK=$NETWORK SIGNERS_FILE=$SIGNERS_FILE"
+
+    $SGX_ENVSETUP
+    make clean
+    scan-build \
+        --show-description \
+        --status-bugs \
+        --exclude /opt \
+        --exclude src/untrusted/generated \
+        --exclude src/trusted/generated \
+        -o $SGX_OUTPUT \
+        $BUILD_CMD
+}
+
+if [[ $1 == "exec" ]]; then
+    BASEDIR=$(realpath $(dirname $0))
+    SRCDIR=$(realpath $BASEDIR/../src)
+    REPOROOT=$(realpath $BASEDIR/../..)
+    SIGNER_OUTPUT=$BASEDIR/output/signer
+    UI_OUTPUT=$BASEDIR/output/ui
+    SGX_OUTPUT=$BASEDIR/output/sgx
+
+    # Build parameters
+    CHECKPOINT=e108960a242ad7bd45c21aff9c7ed9c516789e9cffacdd895502727d8f460d2c
+    TARGET_DIFFICULTY=0x6e
+    NETWORK=regtest
+    SIGNER_HASH=5f25813b2c5db0bb803bccb6b56707dd7c2ec60434e674c6dcc8da8e7121bad2
+    SIGNER_ITERATION=1
+    SIGNERS_FILE=testing
+
+    if [[ $2 == "ledger" ]]; then
+        # Remove any existing static analysis data
+        rm -rf $SIGNER_OUTPUT $UI_OUTPUT
+
+        staticAnalysisSigner
+        signer_err_code=$?
+
+        staticAnalysisUI
+        ui_err_code=$?
+
+        err_code=$((signer_err_code | ui_err_code))
+    elif [[ $2 == "sgx" ]]; then
+        # Remove any existing static analysis data
+        rm -rf $SGX_OUTPUT
+
+        staticAnalysisSGX
+        err_code=$?
+    else
+        echo "Invalid argument: $2"
+        echo "Usage: $0 [ledger|sgx]"
+        echo "Run with no arguments to run both ledger and sgx analysis"
+        exit 1
+    fi
 else
    # Script directory
     REPOROOT=$(realpath $(dirname $0)/../..)
     SCRIPT=$(realpath $0 --relative-to=$REPOROOT)
 
-    $REPOROOT/docker/ledger/do-notty /hsm2 "./$SCRIPT exec"
+    run_ledger=false
+    run_sxg=false
+    if [[ $# -eq 0 ]]; then
+        run_ledger=true
+        run_sgx=true
+    elif [[ $1 == "ledger" ]]; then
+        run_ledger=true
+    elif [[ $1 == "sgx" ]]; then
+        run_sgx=true
+    else
+        echo "Invalid argument: $1"
+        echo "Usage: $0 [ledger|sgx]"
+        echo "Run with no arguments to run both ledger and sgx analysis"
+        exit 1
+    fi
+
+    if [[ $run_ledger == true ]]; then
+        $REPOROOT/docker/ledger/do-notty /hsm2 "./$SCRIPT exec ledger"
+        ledger_err_code=$?
+    fi
+
+    if [[ $run_sgx == true ]]; then
+        $REPOROOT/docker/sgx/do-notty /hsm2 "./$SCRIPT exec sgx"
+        sgx_err_code=$?
+    fi
+
+    err_code=$((ledger_err_code | sgx_err_code))
 fi
 
 exit $err_code

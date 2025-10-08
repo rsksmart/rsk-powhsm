@@ -65,7 +65,7 @@ unsigned int do_meta_advupd(unsigned int rx) {
     unsigned int data_offset = 0;
     unsigned int chunk_size =
         total_data < MAX_CHUNK_SIZE ? total_data : MAX_CHUNK_SIZE;
-    unsigned int irx;
+    unsigned int irx = 0;
 
     BEGIN_TRY {
         TRY {

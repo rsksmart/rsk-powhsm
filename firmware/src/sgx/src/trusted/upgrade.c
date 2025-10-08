@@ -481,7 +481,6 @@ unsigned int upgrade_process_apdu(volatile unsigned int rx) {
             reset_upgrade();
             THROW(ERR_UPGRADE_SIGNATURE);
         }
-        signature_valid = 0;
         for (unsigned int i = 0; i < TOTAL_AUTHORIZERS; i++) {
             // Attempt to verify against this public key
             if (!secp256k1_ec_pubkey_parse(

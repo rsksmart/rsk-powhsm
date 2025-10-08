@@ -125,7 +125,7 @@ bool evidence_generate(evidence_format_t* format,
                        uint8_t** evidence_buffer,
                        size_t* evidence_buffer_size) {
     oe_result_t result;
-    bool gathered_settings;
+    bool gathered_settings = false;
 
     if (!G_evidence_ctx.initialised) {
         LOG("Evidence module not initialised\n");
@@ -181,6 +181,8 @@ generate_evidence_error:
     if (evidence_buffer && *evidence_buffer) {
         oe_free_evidence(*evidence_buffer);
         *evidence_buffer = NULL;
+    }
+    if (evidence_buffer_size) {
         *evidence_buffer_size = 0;
     }
     if (gathered_settings && format->settings) {
@@ -198,6 +200,11 @@ bool evidence_verify_and_extract_claims(oe_uuid_t format_id,
                                         size_t* claims_length) {
     if (!G_evidence_ctx.initialised) {
         LOG("Evidence module not initialised\n");
+        return false;
+    }
+
+    if (!evidence_buffer) {
+        LOG("Invalid evidence buffer pointer\n");
         return false;
     }
 
@@ -257,7 +264,7 @@ bool evidence_verify_and_extract_claims(oe_uuid_t format_id,
         goto evidence_verify_and_extract_claims_fail;
     }
 
-    if (*claims) {
+    if (claims && *claims) {
         // Extract the custom claims buffer from the extracted claims
         oe_claim_t* custom_claim =
             evidence_get_custom_claim(*claims, *claims_length);
@@ -315,7 +322,7 @@ bool evidence_verify_and_extract_claims(oe_uuid_t format_id,
 
     return true;
 evidence_verify_and_extract_claims_fail:
-    if (*claims) {
+    if (claims && *claims) {
         oe_free_claims(*claims, *claims_length);
         *claims = NULL;
         *claims_length = 0;
