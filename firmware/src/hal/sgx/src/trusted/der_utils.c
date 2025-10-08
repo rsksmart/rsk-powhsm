@@ -35,12 +35,12 @@ static size_t der_encode_uint(uint8_t* dest,
     // Disallow zero-length uints
     if (src_len == 0)
         return 0;
-    // Check if we need a leading zero byte
-    bool lz = src[0] & 0x80;
     // Start of source: remove leading zeroes
     size_t trim = 0;
     while (!src[trim] && trim < (src_len - 1))
         trim++;
+    // Check if we need a leading zero byte
+    bool lz = src[trim] & 0x80;
     // Validate destination buffer size
     if (dest_len < (2 + (lz ? 1 : 0) + src_len - trim))
         return 0;
