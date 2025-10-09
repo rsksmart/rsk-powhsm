@@ -1,5 +1,49 @@
 # Changelog
 
+## [5.6.0] - 09/10/2025
+
+### Features/enhancements
+
+- Improved performance on SGX powHSM's advance blockchain and update ancestor operations
+- Firmware tests now support running on SGX simulator
+- Removed unnecessary port exposure in SGX powHSM service
+- Unit tested SGX trusted ecall and sync modules
+- Unit tested SGX HAL trusted access and hash modules
+- Unit tested SGX untrusted enclave_provider and enclave_proxy modules
+- Unit tested common_linked communication, hash and exception modules
+- Unit tested Ledger HAL endorsement, hash, nvmem and seed modules
+- Unit tested common bigdigits module
+- Ensuring temporary powHSM docker container is stopped upon a failed SGX upgrade
+- SGX setup and upgrade: make sure the service is running before proceeding
+- Added SGX static analysis
+- Enforced static analysis on CI for both Ledger and SGX codebase
+- Added return value checks for `secp256k1_ecdsa_sign` and `secp256k1_ecdsa_signature_serialize_der` in SGX HAL seed module
+- Using secp256k1 context randomisation throughout SGX HAL
+- Added input checks on der_encode_uint
+- Failsafe verification of the custom claims hash when verifying evidence
+- Added checks for the return value of oe_malloc throughout the SGX implementation
+- Added output pointer size parameter and check to hmac_sha512
+- SGX attestation validation improvements: validate CRLs, verify TCB and QE identity
+
+### Fixes
+
+- Fixed broken format-python script
+- Fixed broken firmware and middleware coverage badges
+- Added missing unit tests to coverage report
+- Fixed SGX I/O protocol desynchronisation issue
+- Fixed file ownership after an SGX upgrade
+- Fixed exception library for Ledger, SGX and x86
+- Fixed middleware docker image build
+- Fixed all static analysis findings, both for Ledger and SGX codebases
+- Fixed missing SGX build documentation
+- Removed usage of deprecated secp256k1_context_create specific context parameter
+- Fixed potential integer underflow in P1_BTC and P1_RECEIPT
+- Fixed potential dangling pointers in main SGX upgrade function
+- Fixed SGX evidence claim deallocation to prevent potential memory leaks
+- Fixed incorrect deallocation of format settings throughout the SGX implementation
+- Bumped python libraries: `requests`, `urllib3`, `ledgerblue`, `protobuf`
+- Bumped CI dependencies: `actions/checkout`, `aws-actions/configure-aws-credentials`, `actions/dependency-review-action`, `github/codeql-action`, `ossf/scorecard-action`
+
 ## [5.5.1] - 02/06/2025
 
 ### Fixes

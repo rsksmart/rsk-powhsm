@@ -29,7 +29,7 @@
 
 // Version and patchlevel
 #define VERSION_MAJOR 5
-#define VERSION_MINOR 5
-#define VERSION_PATCH 1
+#define VERSION_MINOR 6
+#define VERSION_PATCH 0
 
 #endif // __DEFS_H

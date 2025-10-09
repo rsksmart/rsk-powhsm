@@ -45,7 +45,7 @@ typedef enum {
 } err_code_heartbeat_t;
 
 // Heartbeat message prefix
-#define HEARTBEAT_MSG_PREFIX "HSM:SIGNER:HB:5.5:"
+#define HEARTBEAT_MSG_PREFIX "HSM:SIGNER:HB:5.6:"
 #define HEARTBEAT_MSG_PREFIX_LENGTH (sizeof(HEARTBEAT_MSG_PREFIX) - sizeof(""))
 
 // User-defined value size
