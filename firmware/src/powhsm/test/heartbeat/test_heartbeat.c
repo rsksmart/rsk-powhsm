@@ -136,43 +136,6 @@ void setup(state_heartbeat_t initial_state, op_code_heartbeat_t op) {
     SET_APDU_OP(op);
 }
 
-void mock_set_best_block(const uint8_t *best_block,
-                         unsigned int best_block_size) {
-    assert(best_block_size <= HASH_SIZE);
-    memcpy(N_bc_state_var.best_block, best_block, best_block_size);
-}
-
-void mock_set_last_auth_signed_btc_tx_hash(const uint8_t *tx_hash,
-                                           unsigned int tx_hash_size) {
-    assert(tx_hash_size <= HASH_SIZE);
-    memcpy(N_bc_state_var.last_auth_signed_btc_tx_hash, tx_hash, tx_hash_size);
-}
-
-void mock_set_hb_state(state_heartbeat_t state) {
-    G_hbt_ctx.state = state;
-}
-
-void mock_set_msg(const uint8_t *msg, unsigned int msg_size) {
-    memcpy(G_hbt_ctx.msg, msg, msg_size);
-    G_hbt_ctx.msg_offset = msg_size;
-}
-
-void mock_set_app_hash(const uint8_t *app_hash, unsigned int app_hash_size) {
-    memcpy(G_mock_app_hash, app_hash, app_hash_size);
-}
-
-void mock_set_pubkey(const uint8_t *pubkey, unsigned int pubkey_size) {
-    memcpy(G_mock_pubkey, pubkey, pubkey_size);
-}
-
-void assert_hb_state(state_heartbeat_t expected_state) {
-    assert(G_hbt_ctx.state == expected_state);
-}
-
-void assert_msg_offset(uint8_t expected_offset) {
-    assert(G_hbt_ctx.msg_offset == expected_offset);
-}
-
 // Test cases
 void test_ud_value_success() {
     printf("Testing OP_HBT_UD_VALUE success...\n");
@@ -182,10 +145,10 @@ void test_ud_value_success() {
     uint8_t last_auth_signed_btc_tx_hash[HASH_SIZE];
     memset(best_block, 0xAA, HASH_SIZE);
     memset(last_auth_signed_btc_tx_hash, 0xBB, HASH_SIZE);
-
-    mock_set_best_block(best_block, HASH_SIZE);
-    mock_set_last_auth_signed_btc_tx_hash(last_auth_signed_btc_tx_hash,
-                                          HASH_SIZE);
+    memcpy(N_bc_state_var.best_block, best_block, HASH_SIZE);
+    memcpy(N_bc_state_var.last_auth_signed_btc_tx_hash,
+           last_auth_signed_btc_tx_hash,
+           HASH_SIZE);
 
     uint8_t ud_value[UD_VALUE_SIZE];
     memset(ud_value, 0x11, UD_VALUE_SIZE);
@@ -197,10 +160,9 @@ void test_ud_value_success() {
         assert(tx == TX_FOR_DATA_SIZE(0));
     });
 
-    assert_hb_state(STATE_HEARTBEAT_READY);
-
-    assert_msg_offset(HEARTBEAT_MSG_PREFIX_LENGTH + HASH_SIZE +
-                      LAST_SIGNED_TX_BYTES + UD_VALUE_SIZE);
+    assert(G_hbt_ctx.state == STATE_HEARTBEAT_READY);
+    assert(G_hbt_ctx.msg_offset == HEARTBEAT_MSG_PREFIX_LENGTH + HASH_SIZE +
+                                       LAST_SIGNED_TX_BYTES + UD_VALUE_SIZE);
 
     unsigned int offset = 0;
     ASSERT_MEMCMP(G_hbt_ctx.msg + offset,
@@ -233,8 +195,8 @@ void test_ud_value_ud_size_too_small() {
         },
         ERR_HBT_PROT_INVALID);
 
-    assert_hb_state(STATE_HEARTBEAT_WAIT_UD_VALUE);
-    assert_msg_offset(0);
+    assert(G_hbt_ctx.state == STATE_HEARTBEAT_WAIT_UD_VALUE);
+    assert(G_hbt_ctx.msg_offset == 0);
 }
 
 void test_ud_value_ud_size_too_large() {
@@ -251,8 +213,8 @@ void test_ud_value_ud_size_too_large() {
         },
         ERR_HBT_PROT_INVALID);
 
-    assert_hb_state(STATE_HEARTBEAT_WAIT_UD_VALUE);
-    assert_msg_offset(0);
+    assert(G_hbt_ctx.state == STATE_HEARTBEAT_WAIT_UD_VALUE);
+    assert(G_hbt_ctx.msg_offset == 0);
 }
 
 void test_get_success() {
@@ -285,7 +247,7 @@ void test_get_invalid_state() {
         ERR_HBT_PROT_INVALID);
 
     assert(G_called.endorsement_sign_calls == 0);
-    assert_hb_state(STATE_HEARTBEAT_WAIT_UD_VALUE);
+    assert(G_hbt_ctx.state == STATE_HEARTBEAT_WAIT_UD_VALUE);
 }
 
 void test_get_endorsement_sign_fails() {
@@ -301,7 +263,7 @@ void test_get_endorsement_sign_fails() {
         ERR_HBT_INTERNAL);
 
     assert(G_called.endorsement_sign_calls == 1);
-    assert_hb_state(STATE_HEARTBEAT_READY);
+    assert(G_hbt_ctx.state == STATE_HEARTBEAT_READY);
 }
 
 void test_get_message_success() {
@@ -310,7 +272,8 @@ void test_get_message_success() {
 
     const uint8_t *expected_msg = "the-expected-message";
     unsigned int expected_msg_size = strlen(expected_msg);
-    mock_set_msg(expected_msg, expected_msg_size);
+    memcpy(G_hbt_ctx.msg, expected_msg, expected_msg_size);
+    G_hbt_ctx.msg_offset = expected_msg_size;
 
     ASSERT_DOESNT_THROW({
         unsigned int tx = TX_FOR_DATA_SIZE(0);
@@ -318,10 +281,9 @@ void test_get_message_success() {
         assert(tx == TX_FOR_DATA_SIZE(expected_msg_size));
     });
 
-    assert_msg_offset(expected_msg_size);
+    assert(G_hbt_ctx.msg_offset == expected_msg_size);
     ASSERT_MEMCMP(APDU_DATA_PTR, expected_msg, expected_msg_size);
-
-    assert_hb_state(STATE_HEARTBEAT_READY);
+    assert(G_hbt_ctx.state == STATE_HEARTBEAT_READY);
 }
 
 void test_get_message_invalid_state() {
@@ -335,8 +297,8 @@ void test_get_message_invalid_state() {
         },
         ERR_HBT_PROT_INVALID);
 
-    assert_msg_offset(0);
-    assert_hb_state(STATE_HEARTBEAT_WAIT_UD_VALUE);
+    assert(G_hbt_ctx.msg_offset == 0);
+    assert(G_hbt_ctx.state == STATE_HEARTBEAT_WAIT_UD_VALUE);
 }
 
 void test_get_message_large_message_success() {
@@ -345,7 +307,8 @@ void test_get_message_large_message_success() {
 
     uint8_t large_msg[MAX_HEARTBEAT_MESSAGE_SIZE];
     memset(large_msg, 0xDD, sizeof(large_msg));
-    mock_set_msg(large_msg, sizeof(large_msg));
+    memcpy(G_hbt_ctx.msg, large_msg, sizeof(large_msg));
+    G_hbt_ctx.msg_offset = sizeof(large_msg);
 
     ASSERT_DOESNT_THROW({
         unsigned int tx = TX_FOR_DATA_SIZE(0);
@@ -353,10 +316,9 @@ void test_get_message_large_message_success() {
         assert(tx == TX_FOR_DATA_SIZE(sizeof(large_msg)));
     });
 
-    assert_msg_offset(sizeof(large_msg));
+    assert(G_hbt_ctx.msg_offset == sizeof(large_msg));
     ASSERT_MEMCMP(APDU_DATA_PTR, large_msg, sizeof(large_msg));
-
-    assert_hb_state(STATE_HEARTBEAT_READY);
+    assert(G_hbt_ctx.state == STATE_HEARTBEAT_READY);
 }
 
 void test_get_message_offset_too_large_fails() {
@@ -374,7 +336,7 @@ void test_get_message_offset_too_large_fails() {
         },
         ERR_HBT_INTERNAL);
 
-    assert_hb_state(STATE_HEARTBEAT_READY);
+    assert(G_hbt_ctx.state == STATE_HEARTBEAT_READY);
 }
 
 void test_app_hash_success() {
@@ -382,7 +344,7 @@ void test_app_hash_success() {
     setup(STATE_HEARTBEAT_READY, OP_HBT_APP_HASH);
 
     const uint8_t *app_hash = "1234567890abcdef1234567890abcdef";
-    mock_set_app_hash(app_hash, HASH_SIZE);
+    memcpy(G_mock_app_hash, app_hash, HASH_SIZE);
 
     ASSERT_DOESNT_THROW({
         unsigned int tx = TX_FOR_DATA_SIZE(0);
@@ -392,8 +354,7 @@ void test_app_hash_success() {
 
     assert(G_called.endorsement_get_code_hash_calls == 1);
     ASSERT_MEMCMP(APDU_DATA_PTR, app_hash, HASH_SIZE);
-
-    assert_hb_state(STATE_HEARTBEAT_READY);
+    assert(G_hbt_ctx.state == STATE_HEARTBEAT_READY);
 }
 
 void test_app_hash_endorsement_get_code_hash_fails() {
@@ -401,7 +362,7 @@ void test_app_hash_endorsement_get_code_hash_fails() {
     setup(STATE_HEARTBEAT_READY, OP_HBT_APP_HASH);
 
     const uint8_t *app_hash = "1234567890abcdef1234567890abcdef";
-    mock_set_app_hash(app_hash, HASH_SIZE);
+    memcpy(G_mock_app_hash, app_hash, HASH_SIZE);
     G_mocks.endorsement_get_code_hash = false;
 
     ASSERT_THROWS(
@@ -412,8 +373,8 @@ void test_app_hash_endorsement_get_code_hash_fails() {
         ERR_HBT_INTERNAL);
 
     assert(G_called.endorsement_get_code_hash_calls == 1);
-    assert_msg_offset(0);
-    assert_hb_state(STATE_HEARTBEAT_READY);
+    assert(G_hbt_ctx.msg_offset == 0);
+    assert(G_hbt_ctx.state == STATE_HEARTBEAT_READY);
 }
 
 void test_pubkey_success() {
@@ -422,7 +383,7 @@ void test_pubkey_success() {
 
     const uint8_t *pubkey =
         "01234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
-    mock_set_pubkey(pubkey, PUBKEY_UNCMP_LENGTH);
+    memcpy(G_mock_pubkey, pubkey, PUBKEY_UNCMP_LENGTH);
 
     ASSERT_DOESNT_THROW({
         unsigned int tx = TX_FOR_DATA_SIZE(0);
@@ -432,8 +393,7 @@ void test_pubkey_success() {
 
     assert(G_called.endorsement_get_public_key_calls == 1);
     ASSERT_MEMCMP(APDU_DATA_PTR, pubkey, PUBKEY_UNCMP_LENGTH);
-
-    assert_hb_state(STATE_HEARTBEAT_READY);
+    assert(G_hbt_ctx.state == STATE_HEARTBEAT_READY);
 }
 
 void test_pubkey_endorsement_get_public_key_fails() {
@@ -442,7 +402,7 @@ void test_pubkey_endorsement_get_public_key_fails() {
 
     const uint8_t *pubkey =
         "01234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
-    mock_set_pubkey(pubkey, PUBKEY_UNCMP_LENGTH);
+    memcpy(G_mock_pubkey, pubkey, PUBKEY_UNCMP_LENGTH);
     G_mocks.endorsement_get_public_key = false;
 
     ASSERT_THROWS(
@@ -453,8 +413,7 @@ void test_pubkey_endorsement_get_public_key_fails() {
         ERR_HBT_INTERNAL);
 
     assert(G_called.endorsement_get_public_key_calls == 1);
-
-    assert_hb_state(STATE_HEARTBEAT_READY);
+    assert(G_hbt_ctx.state == STATE_HEARTBEAT_READY);
 }
 
 void test_invalid_operation() {
@@ -463,7 +422,7 @@ void test_invalid_operation() {
 
     ASSERT_THROWS({ get_heartbeat(0, &G_hbt_ctx); }, ERR_HBT_PROT_INVALID);
 
-    assert_hb_state(STATE_HEARTBEAT_WAIT_UD_VALUE);
+    assert(G_hbt_ctx.state == STATE_HEARTBEAT_WAIT_UD_VALUE);
 }
 
 int main() {
