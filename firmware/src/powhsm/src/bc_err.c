@@ -79,7 +79,7 @@ void show_error(err_code_t errcode) {
     LOG("*** ERROR: %s\n", msg);
 }
 
-#else // DEBUG_BUILD || ENCLAVE_LOGS
+#else  // DEBUG_BUILD || ENCLAVE_LOGS
 void show_error(err_code_t errcode) {
     (void)errcode;
 }

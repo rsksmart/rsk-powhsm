@@ -253,7 +253,7 @@ static unsigned int hsm_process_command(volatile unsigned int rx) {
 
     case INS_EXIT:
         REQUIRE_UNLOCKED();
-        
+
         bc_backup_partial_state();
         app_exit();
         tx = TX_FOR_DATA_SIZE(0);
