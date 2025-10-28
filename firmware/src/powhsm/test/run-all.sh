@@ -2,7 +2,7 @@
 
 if [[ $1 == "exec" ]]; then
     BASEDIR=$(realpath $(dirname $0))
-    TESTDIRS="btcscript btctx difficulty srlp svarint trie"
+    TESTDIRS="btcscript btctx difficulty heartbeat srlp svarint trie"
     for d in $TESTDIRS; do
         echo "******************************"
         echo "Testing $d..."
