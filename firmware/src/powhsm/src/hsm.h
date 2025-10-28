@@ -46,7 +46,7 @@ typedef struct {
 // Macro that throws an error if
 // the device is onboarded
 #define REQUIRE_NOT_ONBOARDED() \
-    if (seed_available())  \
+    if (seed_available())       \
         THROW(ERR_DEVICE_ONBOARDED);
 
 // Macro that throws an error unless

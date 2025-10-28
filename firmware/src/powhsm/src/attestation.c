@@ -49,15 +49,15 @@ const char att_msg_prefix[ATT_MSG_PREFIX_LENGTH] = ATT_MSG_PREFIX;
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 #define MAX_PAGESIZE (APDU_TOTAL_DATA_SIZE_OUT - 1)
 #define PAGECOUNT(itemcount) (((itemcount) + MAX_PAGESIZE - 1) / MAX_PAGESIZE)
-#define CURPAGESIZE(itemcount, page) (MIN(MAX_PAGESIZE, (itemcount) - ((page) * MAX_PAGESIZE)))
+#define CURPAGESIZE(itemcount, page) \
+    (MIN(MAX_PAGESIZE, (itemcount) - ((page)*MAX_PAGESIZE)))
 
 static void reset_attestation(att_t* att_ctx) {
     explicit_bzero(att_ctx, sizeof(att_t));
     att_ctx->state = STATE_ATTESTATION_WAIT_SIGN;
 }
 
-static void check_state(att_t* att_ctx,
-                        state_attestation_t expected) {
+static void check_state(att_t* att_ctx, state_attestation_t expected) {
     if (att_ctx->state != expected) {
         reset_attestation(att_ctx);
         THROW(ERR_ATT_PROT_INVALID);
@@ -103,7 +103,7 @@ hash_public_key_error:
     THROW(ERR_ATT_INTERNAL);
 }
 
-static void write_uint64_be(uint8_t *out, uint64_t in) {
+static void write_uint64_be(uint8_t* out, uint64_t in) {
     out[0] = (uint8_t)(in >> 56);
     out[1] = (uint8_t)(in >> 48);
     out[2] = (uint8_t)(in >> 40);
@@ -194,7 +194,8 @@ static void generate_message_to_sign(att_t* att_ctx, unsigned char* ud_value) {
     att_ctx->msg_length += ATT_LAST_SIGNED_TX_BYTES;
 
     // Copy the current timestamp
-    write_uint64_be(&att_ctx->msg[att_ctx->msg_length], platform_get_timestamp());
+    write_uint64_be(&att_ctx->msg[att_ctx->msg_length],
+                    platform_get_timestamp());
     att_ctx->msg_length += sizeof(uint64_t);
 }
 
@@ -226,8 +227,10 @@ unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx) {
 
         // Attest message
         uint8_t endorsement_size = (uint8_t)MIN(APDU_TOTAL_DATA_SIZE_OUT, 0xFF);
-        if (!endorsement_sign(
-                att_ctx->msg, att_ctx->msg_length, APDU_DATA_PTR, &endorsement_size)) {
+        if (!endorsement_sign(att_ctx->msg,
+                              att_ctx->msg_length,
+                              APDU_DATA_PTR,
+                              &endorsement_size)) {
             THROW(ERR_ATT_INTERNAL);
         }
 
@@ -258,7 +261,7 @@ unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx) {
         uint8_t page = APDU_DATA_PTR[0];
 
         // Copy the page into the APDU buffer (no need to check for limits since
-        // the chunk size is based directly on the APDU size)        
+        // the chunk size is based directly on the APDU size)
         SAFE_MEMMOVE(APDU_DATA_PTR,
                      APDU_TOTAL_DATA_SIZE_OUT,
                      1,
@@ -269,11 +272,10 @@ unsigned int get_attestation(volatile unsigned int rx, att_t* att_ctx) {
                      THROW(ERR_ATT_INTERNAL));
         APDU_DATA_PTR[0] = page < (PAGECOUNT(buf_length) - 1);
 
-        return TX_FOR_DATA_SIZE(
-            CURPAGESIZE(buf_length, page) + 1);
+        return TX_FOR_DATA_SIZE(CURPAGESIZE(buf_length, page) + 1);
     case OP_ATT_APP_HASH:
         check_state(att_ctx, STATE_ATTESTATION_READY);
-        
+
         buf_length = MIN(APDU_TOTAL_DATA_SIZE_OUT, 0xFF);
         if (!endorsement_get_code_hash(APDU_DATA_PTR, (uint8_t*)&buf_length)) {
             THROW(ERR_ATT_INTERNAL);

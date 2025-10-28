@@ -155,7 +155,7 @@ static void list_end() {
 
 static void str_start(const uint16_t size) {
     UNUSED(size);
-    
+
     // Top level must be a list
     if (auth.receipt.level == 0) {
         LOG("[E] Receipt not a list\n");
