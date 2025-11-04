@@ -168,7 +168,8 @@ static unsigned int hsm_process_command(volatile unsigned int rx) {
                      sizeof(auth.path),
                      THROW(ERR_INVALID_PATH));
 
-        pubkey_length = (uint8_t)MIN(communication_get_msg_buffer_size(), 0xFF);
+        pubkey_length = (uint8_t)MIN(
+            communication_get_msg_buffer_size() - APDU_RESULT_CODE_SIZE, 0xFF);
         if (!seed_derive_pubkey(auth.path,
                                 sizeof(auth.path) / sizeof(auth.path[0]),
                                 communication_get_msg_buffer(),
@@ -318,7 +319,6 @@ void hsm_init() {
 unsigned int hsm_process_apdu(unsigned int rx) {
     unsigned int tx = 0;
     unsigned short ex = APDU_OK;
-
     BEGIN_TRY {
         TRY {
             tx = hsm_process_command(rx);

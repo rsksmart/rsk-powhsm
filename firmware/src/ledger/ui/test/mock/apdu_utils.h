@@ -39,6 +39,10 @@ extern unsigned char G_io_apdu_buffer[IO_APDU_BUFFER_SIZE];
 #define ASSERT_APDU(str_literal) \
     assert(0 == memcmp(G_io_apdu_buffer, str_literal, sizeof(str_literal) - 1))
 
+#define ASSERT_APDU_RX(str_literal, rx)    \
+    assert(rx == sizeof(str_literal) - 1); \
+    ASSERT_APDU(str_literal);
+
 #define SET_APDU(str_literal, rx)                                   \
     memcpy(G_io_apdu_buffer, str_literal, sizeof(str_literal) - 1); \
     rx = (sizeof(str_literal) - 1)
