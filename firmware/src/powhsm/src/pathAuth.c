@@ -113,6 +113,9 @@ bool pathDontRequireAuth(unsigned char *path) {
 }
 
 const char *get_ordered_path(unsigned int index) {
+    if (index >= TOTAL_AUTHORIZED_PATHS)
+        return NULL;
+
     if (ordered_paths[index] & 0xFF00) {
         // No auth path
         return noAuthPaths[ordered_paths[index] & 0xFF];
