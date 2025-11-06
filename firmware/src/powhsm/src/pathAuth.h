@@ -37,10 +37,9 @@ extern const char noAuthPaths[][21];
 extern const int ordered_paths[TOTAL_AUTHORIZED_PATHS];
 
 bool pathRequireAuth(unsigned char *path);
+
 bool pathDontRequireAuth(unsigned char *path);
 
 const char *get_ordered_path(unsigned int index);
-
-#define KEY_PATH_COUNT() (sizeof(ordered_paths) / sizeof(ordered_paths[0]))
 
 #endif // __PATHAUTH_H

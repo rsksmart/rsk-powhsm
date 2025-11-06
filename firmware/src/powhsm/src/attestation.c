@@ -163,7 +163,7 @@ static void generate_message_to_sign(att_t* att_ctx, unsigned char* ud_value) {
     SHA256_INIT(&att_ctx->hash_ctx);
 
     // Retrieve and hash the public keys in order
-    for (unsigned int i = 0; i < KEY_PATH_COUNT(); i++) {
+    for (unsigned int i = 0; i < TOTAL_AUTHORIZED_PATHS; i++) {
         hash_public_key(get_ordered_path(i), SINGLE_PATH_SIZE_BYTES, att_ctx);
     }
 
