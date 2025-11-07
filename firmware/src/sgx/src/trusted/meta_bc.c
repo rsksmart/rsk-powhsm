@@ -61,7 +61,7 @@ unsigned int do_meta_advupd(unsigned int rx) {
     communication_set_msg_buffer(internal_buffer, sizeof(internal_buffer));
 
     // Send data in chunks
-    unsigned int total_data = rx - DATA;
+    unsigned int total_data = APDU_DATA_SIZE(rx);
     unsigned int data_offset = 0;
     unsigned int chunk_size =
         total_data < MAX_CHUNK_SIZE ? total_data : MAX_CHUNK_SIZE;
@@ -69,6 +69,11 @@ unsigned int do_meta_advupd(unsigned int rx) {
 
     BEGIN_TRY {
         TRY {
+            // Initialize internal buffer for soundness
+            memcpy(internal_buffer, old_buffer, rx < DATA ? rx : DATA);
+            if (rx < DATA)
+                SET_APDU_OP(0);
+
             while (data_offset < total_data) {
                 SET_APDU_CLA();
                 SET_APDU_CMD(cmd);
