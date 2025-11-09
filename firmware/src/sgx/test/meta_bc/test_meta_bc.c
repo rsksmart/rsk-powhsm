@@ -143,6 +143,7 @@ void setup() {
     communication_msg_buffer = G_io_apdu_buffer;
     communication_msg_buffer_size = sizeof(G_io_apdu_buffer);
     communication_set_msg_buffer_callcount = 0;
+    bc_throw = 0;
     bc_advance_callcount = 0;
     bc_upd_ancestor_callcount = 0;
     bc_request_count = 0;
@@ -151,6 +152,7 @@ void setup() {
     bc_add_extra_response = false;
     bc_change_cla = false;
     bc_change_cmd = false;
+    bc_change_op = false;
 }
 
 void assert_buffer_changed_and_restored() {
@@ -389,6 +391,29 @@ void test_meta_advupd_upd_ancestor_throws() {
     ASSERT_BC_REQUEST(0, "\x80\x30\x44" BS_B_50);
 }
 
+void test_meta_advupd_only_cmd() {
+    unsigned int rx;
+
+    setup();
+    printf("Test meta_advupd when only command is sent...\n");
+
+    // Setup mocks
+    // In case a bc operation is actually invoked, make it fail
+    bc_throw = 0x6A00;
+
+    ASSERT_DOESNT_THROW({
+        // Send command
+        SET_APDU("\x80\x10", rx);
+        rx = do_meta_advupd(rx);
+        ASSERT_APDU_RX("\x80\x10\x00", 3);
+    });
+
+    assert_buffer_changed_and_restored();
+    assert(0 == bc_advance_callcount);
+    assert(0 == bc_upd_ancestor_callcount);
+    assert(0 == bc_request_count);
+}
+
 void test_meta_advupd_unexpected_cmd() {
     unsigned int rx;
 
@@ -510,6 +535,8 @@ int main() {
 
     test_meta_advupd_advance_throws();
     test_meta_advupd_upd_ancestor_throws();
+
+    test_meta_advupd_only_cmd();
 
     test_meta_advupd_unexpected_cmd();
     test_meta_advupd_unexpected_bc_response_size();
