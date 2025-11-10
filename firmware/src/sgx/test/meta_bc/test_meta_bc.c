@@ -62,6 +62,7 @@ static bool bc_change_op;
 static unsigned char bc_tx_len;
 static unsigned char bc_force_tx_len;
 static unsigned int bc_force_tx_len_when_btpleq;
+static bool bc_force_zero_tx_len;
 static unsigned int bc_throw;
 static unsigned int bc_total_bytes_to_process;
 static bool bc_add_extra_response;
@@ -94,9 +95,11 @@ static unsigned int bc_op(volatile unsigned int rx) {
     if (bc_force_tx_len &&
         bc_total_bytes_to_process <= bc_force_tx_len_when_btpleq) {
         SET_APDU_TXLEN(bc_force_tx_len);
-    } else if (bc_total_bytes_to_process) {
+    } else if (bc_total_bytes_to_process && !bc_force_zero_tx_len) {
         SET_APDU_TXLEN(
             bc_total_bytes_to_process > 80 ? 80 : bc_total_bytes_to_process);
+    } else if (bc_force_zero_tx_len) {
+        SET_APDU_TXLEN(0);
     } else if (bc_tx_len) {
         SET_APDU_TXLEN(bc_tx_len);
     }
@@ -107,7 +110,8 @@ static unsigned int bc_op(volatile unsigned int rx) {
         SET_APDU_AT(0, 0x70);
     if (bc_change_cmd)
         SET_APDU_AT(1, 0x88);
-    return ((bc_force_tx_len || bc_total_bytes_to_process || bc_tx_len)
+    return ((bc_force_tx_len || bc_force_zero_tx_len ||
+             bc_total_bytes_to_process || bc_tx_len)
                 ? TX_FOR_TXLEN()
                 : TX_NO_DATA()) +
            (bc_add_extra_response ? 1 : 0);
@@ -149,6 +153,7 @@ void setup() {
     bc_request_count = 0;
     bc_total_bytes_to_process = 0;
     bc_force_tx_len = 0;
+    bc_force_zero_tx_len = false;
     bc_add_extra_response = false;
     bc_change_cla = false;
     bc_change_cmd = false;
@@ -414,6 +419,31 @@ void test_meta_advupd_only_cmd() {
     assert(0 == bc_request_count);
 }
 
+void test_meta_advupd_op_stalls() {
+    unsigned int rx;
+
+    setup();
+    printf("Test meta_advupd when underlying operation stalls...\n");
+
+    // Setup mocks
+    bc_total_bytes_to_process = 100;
+    bc_force_zero_tx_len = true;
+
+    ASSERT_THROWS(
+        {
+            // Send command
+            SET_APDU("\x80\x10\x01" BS_A_50 BS_B_50, rx);
+            rx = do_meta_advupd(rx);
+        },
+        0x6A99);
+
+    assert_buffer_changed_and_restored();
+    assert(1 == bc_advance_callcount);
+    assert(0 == bc_upd_ancestor_callcount);
+    assert(1 == bc_request_count);
+    ASSERT_BC_REQUEST(0, "\x80\x10\x01" BS_A_50 BS_B BS_B BS_B);
+}
+
 void test_meta_advupd_unexpected_cmd() {
     unsigned int rx;
 
@@ -537,6 +567,7 @@ int main() {
     test_meta_advupd_upd_ancestor_throws();
 
     test_meta_advupd_only_cmd();
+    test_meta_advupd_op_stalls();
 
     test_meta_advupd_unexpected_cmd();
     test_meta_advupd_unexpected_bc_response_size();
