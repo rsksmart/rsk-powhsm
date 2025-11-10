@@ -78,7 +78,7 @@ unsigned int do_meta_advupd(unsigned int rx) {
                 SET_APDU_CLA();
                 SET_APDU_CMD(cmd);
                 SET_APDU_OP(old_buffer[OP]);
-                if (chunk_size > APDU_TOTAL_DATA_SIZE) {
+                if (chunk_size == 0 || chunk_size > APDU_TOTAL_DATA_SIZE) {
                     // This shouldn't happen
                     THROW(ERR_INTERNAL);
                 }
