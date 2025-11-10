@@ -471,11 +471,11 @@ void test_hsm_process_apdu__rsk_is_onboard() {
     setup_and_init();
 
     G_mocks.seed_available = 1;
-    ASSERT_PROCESS_APDU("\x80\x06", "\x80\x01\x05\x06\x00\x90\x00");
+    ASSERT_PROCESS_APDU("\x80\x06", "\x80\x01\x05\x06\x01\x90\x00");
     assert_state_reset();
     assert_bc_state_kept();
     G_mocks.seed_available = 0;
-    ASSERT_PROCESS_APDU("\x80\x06", "\x80\x00\x05\x06\x00\x90\x00");
+    ASSERT_PROCESS_APDU("\x80\x06", "\x80\x00\x05\x06\x01\x90\x00");
     assert_state_kept();
     assert_bc_state_kept();
 }
