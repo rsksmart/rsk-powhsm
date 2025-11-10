@@ -1,5 +1,22 @@
 # Changelog
 
+## [5.6.1] - 10/11/2025
+
+### Features/enhancements
+
+- Unit tested powHSM main APDU processor
+- Unit tested powHSM path authorization policy
+- Unit tested powHSM attestation
+- Unit tested powHSM heartbeat
+- Achieved 90%+ coverage on firmware codebase
+
+### Fixes
+
+- Fixed potential integer underflow and uninitialized OP read in meta_bc operation
+- Fixed potential infinite loop on meta_bc operation in case underlying op stalls
+- Added missing firmware directories to C linting and formatting script
+- Bumped CI dependencies: `actions/dependency-review-action`, `github/codeql-action`, `actions/upload-artifact`
+
 ## [5.6.0] - 09/10/2025
 
 ### Features/enhancements
