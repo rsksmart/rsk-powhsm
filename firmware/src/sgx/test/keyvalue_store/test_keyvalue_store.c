@@ -273,11 +273,163 @@ void test_sanitize_key() {
     }
 }
 
+void test_exists_null_key() {
+    printf("Test exists with null key...\n");
+    setup();
+
+    // Attempting to check existence with a null key should fail gracefully
+    assert(!kvstore_exists(NULL));
+}
+
+void test_save_null_key() {
+    printf("Test save with null key...\n");
+    setup();
+
+    uint8_t data[] = "test";
+
+    // Attempting to save with a null key should fail
+    assert(!kvstore_save(NULL, data, sizeof(data)));
+}
+
+void test_save_null_data() {
+    printf("Test save with null data...\n");
+    setup();
+
+    // Attempting to save with a null data buffer should fail
+    assert(!kvstore_save("null-data-key", NULL, 10));
+}
+
+void test_save_zero_length_data() {
+    printf("Test save with zero-length data...\n");
+    setup();
+
+    uint8_t data[] = "test";
+
+    // Attempting to save zero-length data should fail
+    assert(!kvstore_save("zero-length-key", data, 0));
+    assert(!kvstore_exists("zero-length-key"));
+}
+
+void test_truncate_key() {
+    printf("Test truncate key...\n");
+    setup();
+
+    // Create a key longer than KVSTORE_MAX_KEY_LEN (150)
+    char long_key[200];
+    memset(long_key, 'a', sizeof(long_key) - 1);
+    long_key[sizeof(long_key) - 1] = '\0';
+
+    uint8_t data[] = "data for oversized key";
+
+    // Should successfully save and retrieve despite oversized key
+    save_and_assert_success(long_key, data, sizeof(data));
+    assert_key_value(long_key, data, sizeof(data));
+}
+
+void test_get_null_key() {
+    printf("Test get with null key...\n");
+    setup();
+
+    uint8_t data[] = "test";
+    uint8_t buf[BUFSIZ];
+
+    save_and_assert_success("null-key-data", data, sizeof(data));
+
+    // Attempting to get with a null key should fail gracefully
+    assert(kvstore_get(NULL, buf, sizeof(buf)) == 0);
+}
+
+void test_get_null_data_buf() {
+    printf("Test get with null data buffer...\n");
+    setup();
+
+    uint8_t data[] = "test";
+    uint8_t buf[BUFSIZ];
+    save_and_assert_success("null-data-buf-key", data, sizeof(data));
+
+    // Attempting to get with a null data buffer should fail gracefully
+    assert(kvstore_get("null-data-buf-key", NULL, sizeof(buf)) == 0);
+}
+
+void test_get_buffer_too_small() {
+    printf("Test buffer too small for get...\n");
+    setup();
+
+    uint8_t data[] = "this is a long piece of data";
+    uint8_t small_buf[5];
+
+    // Save the data successfully
+    save_and_assert_success("large-data-key", data, sizeof(data));
+
+    // Attempting to read into too-small buffer should fail
+    assert(kvstore_get("large-data-key", small_buf, sizeof(small_buf)) == 0);
+
+    // Attempting to read into a buffer with enough space should succeed
+    assert_key_value("large-data-key", data, sizeof(data));
+}
+
+void test_get_nonexistent_key() {
+    printf("Test get nonexistent key...\n");
+    setup();
+
+    uint8_t buf[BUFSIZ];
+
+    // Attempting to get a key that doesn't exist should return 0
+    assert(kvstore_get("nonexistent-key", buf, sizeof(buf)) == 0);
+}
+
+void test_remove_nonexistent() {
+    printf("Test remove nonexistent key...\n");
+    setup();
+
+    // Attempting to remove a key that doesn't exist should return false
+    assert(!kvstore_remove("key-that-does-not-exist"));
+}
+
+void test_remove_null_key() {
+    printf("Test remove with null key...\n");
+    setup();
+
+    // Attempting to remove with a null key should fail gracefully
+    assert(!kvstore_remove(NULL));
+}
+
+void test_zero_length_file() {
+    printf("Test zero-length file handling...\n");
+    setup();
+
+    // Manually create an empty kvstore file
+    FILE* empty_file = fopen("./kvstore-emptyfile.dat", "wb");
+    assert(empty_file != NULL);
+    fclose(empty_file);
+
+    uint8_t buf[BUFSIZ];
+
+    // File exists but has zero length - should fail to read
+    assert(kvstore_exists("emptyfile"));
+    assert(kvstore_get("emptyfile", buf, sizeof(buf)) == 0);
+
+    // Clean up
+    remove("./kvstore-emptyfile.dat");
+}
+
 int main() {
     test_save_retrieve();
     test_kvstore_exists();
     test_save_remove();
     test_filename();
     test_sanitize_key();
+    test_exists_null_key();
+    test_save_null_key();
+    test_save_null_data();
+    test_save_zero_length_data();
+    test_truncate_key();
+    test_get_null_key();
+    test_get_null_data_buf();
+    test_get_buffer_too_small();
+    test_get_nonexistent_key();
+    test_remove_nonexistent();
+    test_remove_null_key();
+    test_zero_length_file();
     return 0;
 }
