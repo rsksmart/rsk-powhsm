@@ -33,6 +33,12 @@
 #define KVSTORE_SUFFIX ".dat"
 #define KVSTORE_MAX_KEY_LEN 150
 
+#define CHECK_POINTER_OR_RETURN(ptr, retval)        \
+    if (!ptr) {                                     \
+        LOG("NULL pointer given for <%s>\n", #ptr); \
+        return retval;                              \
+    }
+
 // Sanitizes a key by allowing only [a-zA-Z0-9]. If one or more invalid
 // characters are found, Replace them with a single hyphen.
 static void sanitize_key(char* key, char* sanitized_key) {
@@ -85,6 +91,8 @@ static FILE* open_file_for(char* key, char* mode, size_t* file_size) {
 }
 
 bool kvstore_save(char* key, uint8_t* data, size_t data_size) {
+    CHECK_POINTER_OR_RETURN(key, false);
+    CHECK_POINTER_OR_RETURN(data, false);
     LOG("Attempting to write data for %s...\n", key);
     if (!data_size) {
         LOG("Invalid zero-length data given for key <%s>\n", key);
@@ -108,6 +116,7 @@ bool kvstore_save(char* key, uint8_t* data, size_t data_size) {
 }
 
 bool kvstore_exists(char* key) {
+    CHECK_POINTER_OR_RETURN(key, false);
     LOG("Attempting to determine existence for key <%s>...\n", key);
     size_t file_size = 0;
     FILE* file = open_file_for(key, "rb", &file_size);
@@ -119,6 +128,8 @@ bool kvstore_exists(char* key) {
 }
 
 size_t kvstore_get(char* key, uint8_t* data_buf, size_t buffer_size) {
+    CHECK_POINTER_OR_RETURN(key, 0);
+    CHECK_POINTER_OR_RETURN(data_buf, 0);
     LOG("Attempting to read data for key <%s>...\n", key);
     size_t file_size = 0;
     FILE* file = open_file_for(key, "rb", &file_size);
@@ -150,6 +161,7 @@ size_t kvstore_get(char* key, uint8_t* data_buf, size_t buffer_size) {
 }
 
 bool kvstore_remove(char* key) {
+    CHECK_POINTER_OR_RETURN(key, false);
     char* filename = filename_for(key);
     int result = remove(filename);
     if (result)
