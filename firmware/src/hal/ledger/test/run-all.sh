@@ -2,7 +2,7 @@
 
 if [[ $1 == "exec" ]]; then
     BASEDIR=$(realpath $(dirname $0))
-    TESTDIRS="endorsement hash nvmem seed"
+    TESTDIRS="endorsement hash nvmem platform seed"
     for d in $TESTDIRS; do
         echo "******************************"
         echo "Testing $d..."

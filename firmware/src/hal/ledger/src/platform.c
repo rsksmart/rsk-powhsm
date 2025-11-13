@@ -22,6 +22,7 @@
  * IN THE SOFTWARE.
  */
 
+#include "os.h"
 #include "hal/platform.h"
 #include "hal/exceptions.h"
 
@@ -33,6 +34,8 @@ void platform_request_exit() {
     BEGIN_TRY_L(exit) {
         TRY_L(exit) {
             os_sched_exit(-1);
+        }
+        CATCH_ALL_L(exit) {
         }
         FINALLY_L(exit) {
         }

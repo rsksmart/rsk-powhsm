@@ -36,6 +36,8 @@
 
 void os_memmove(void *dst, const void *src, unsigned int length);
 
+void os_sched_exit(unsigned int exit_code);
+
 // Endorsement functions
 unsigned int os_endorsement_key2_derive_sign_data(unsigned char *src,
                                                   unsigned int srcLength,
