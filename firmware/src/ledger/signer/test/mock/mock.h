@@ -63,6 +63,15 @@ typedef struct {
 typedef mock_signer_ux_element_t bagl_element_t;
 
 // Nano S SDK functions and macros used by the signer ux components
-void UX_DISPLAY(const mock_signer_ux_element_t *elements_array, void *callback);
+#define UX_DISPLAY(element, callback)                                \
+    {                                                                \
+        unsigned int (*button_handler)(unsigned int, unsigned int) = \
+            element##_button;                                        \
+        ux_display_do(element, callback, button_handler);            \
+    }
+
+void ux_display_do(const mock_signer_ux_element_t *elements_array,
+                   void *callback,
+                   unsigned int (*button_handler)(unsigned int, unsigned int));
 
 #endif // __SIGNER_MOCK_H

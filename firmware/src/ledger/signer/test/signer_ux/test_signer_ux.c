@@ -33,11 +33,16 @@ static unsigned int G_mock_screensaver_timeout_ms;
 // The arguments passed to the last call to UX_DISPLAY
 static mock_signer_ux_element_t *G_elements_array_arg;
 static void *G_callback_arg;
-// Mock implementation of UX_DISPLAY
-void UX_DISPLAY(const mock_signer_ux_element_t *elements_array,
-                void *callback) {
+
+// Mock implementation of UX_DISPLAY via ux_display_do
+void ux_display_do(const mock_signer_ux_element_t *elements_array,
+                   void *callback,
+                   unsigned int (*button_handler)(unsigned int, unsigned int)) {
     G_elements_array_arg = (mock_signer_ux_element_t *)elements_array;
     G_callback_arg = callback;
+    for (unsigned int mask = 0; mask < 100; mask++)
+        for (unsigned int counter = 0; counter < 100; counter++)
+            assert(!button_handler(mask, counter));
 }
 
 // Helper functions
