@@ -20,19 +20,19 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-SRCDIR = ../../src
-COMMONSRCDIR = ../../../../common/src
-HALINCDIR = ../../../../hal/include
-MOCKDIR = ../mock
-TESTCOMMONDIR = ../common
-CFLAGS = -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-function
-CFLAGS += -iquote $(SRCDIR) -iquote $(COMMONSRCDIR) -iquote $(HALINCDIR)
-CFLAGS += -iquote $(TESTCOMMONDIR)
-CFLAGS += -I$(MOCKDIR)
-CFLAGS += -DHSM_PLATFORM_LEDGER
+include ../common/common.mk
 
-VPATH += $(MOCKDIR):$(SRCDIR):$(COMMONSRCDIR):$(TESTCOMMONDIR)
+PROG = test.out
+OBJS = test_platform.o platform.o
 
-include ../../../../../coverage/coverage.mk
+all: $(PROG)
 
-CFLAGS += $(COVFLAGS)
+$(PROG): $(OBJS)
+	$(CC) $(COVFLAGS) -o $@ $^
+
+.PHONY: clean test
+clean:
+	rm -f $(PROG) ./*.o $(COVFILES)
+
+test: all
+	./$(PROG) 

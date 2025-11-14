@@ -22,31 +22,43 @@
  * IN THE SOFTWARE.
  */
 
-#include "os.h"
+#include <stdio.h>
+#include <assert.h>
+#include <string.h>
+
 #include "hal/platform.h"
-#include "hal/exceptions.h"
 
-void platform_memmove(void *dst, const void *src, unsigned int length) {
-    os_memmove(dst, src, length);
+// Unit tests
+void test_platform_memmove() {
+    printf("Test platform_memmove()...\n");
+
+    const char src[] = "this is a test string";
+    char dest[sizeof(src)];
+
+    memset(dest, 0, sizeof(dest));
+    assert(memcmp(src, dest, sizeof(src)));
+
+    platform_memmove(dest, src, sizeof(dest));
+
+    assert(!memcmp(src, dest, sizeof(src)));
 }
 
-void platform_request_exit() {
-    BEGIN_TRY_L(exit) {
-        TRY_L(exit) {
-            os_sched_exit(-1);
-        }
-        CATCH_ALL_L(exit) {
-        }
-        FINALLY_L(exit) {
-        }
-    }
-    END_TRY_L(exit);
+void test_platform_getid() {
+    printf("Test platform_get_id()...\n");
+
+    assert(!memcmp("sgx", platform_get_id(), strlen("led")));
 }
 
-const char *platform_get_id() {
-    return "led";
+void test_platform_get_timestamp() {
+    printf("Test platform_get_timestamp()...\n");
+
+    assert(platform_get_timestamp() == 0);
 }
 
-uint64_t platform_get_timestamp() {
-    return (uint64_t)0;
+int main() {
+    test_platform_memmove();
+    test_platform_getid();
+    test_platform_get_timestamp();
+
+    return 0;
 }
