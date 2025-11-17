@@ -57,11 +57,17 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <string.h>
 #include <assert.h>
 #include <time.h>
 #include "bip32.h"
 #include "test_helpers.h"
+
+// Mock function behavior
+struct {
+    bool random_getrandom_fail;
+} G_mocks;
 
 /** Length of write canary (for testing writing beyond the end of an array),
  * in bytes. */
@@ -349,9 +355,16 @@ static void printf_hex(uint8_t *buf, size_t len) {
 }
 
 bool random_getrandom(void *buffer, size_t length) {
+    if (G_mocks.random_getrandom_fail)
+        return false;
+
     for (size_t i = 0; i < length; i++)
         ((uint8_t *)buffer)[i] = (uint8_t)(rand() & 0xFF);
     return true;
+}
+
+void setup() {
+    memset(&G_mocks, 0, sizeof(G_mocks));
 }
 
 void test_derivation() {
@@ -361,6 +374,7 @@ void test_derivation() {
     unsigned int i;
 
     printf("Testing derivation is ok...\n");
+    setup();
     init_tests(__FILE__);
 
     for (i = 0; i < (sizeof(test_cases) / sizeof(struct BIP32TestVector));
@@ -406,6 +420,7 @@ void test_derivation_fails_if_output_buffer_too_small() {
     uint8_t out_error[31];
 
     printf("Testing derivation fails if output buffer is too small...\n");
+    setup();
 
     const struct BIP32TestVector *test_case = &test_cases[0];
 
@@ -424,11 +439,37 @@ void test_derivation_fails_if_output_buffer_too_small() {
                                  test_case->path_length));
 }
 
+void test_derivation_fails_if_getrandom_fails() {
+    uint8_t out_ok[32];
+
+    printf("Testing derivation fails if getrandom fails...\n");
+    setup();
+
+    const struct BIP32TestVector *test_case = &test_cases[0];
+
+    assert(bip32_derive_private(out_ok,
+                                sizeof(out_ok),
+                                test_case->master,
+                                test_case->master_length,
+                                test_case->path,
+                                test_case->path_length));
+
+    G_mocks.random_getrandom_fail = true;
+
+    assert(bip32_derive_private(out_ok,
+                                sizeof(out_ok),
+                                test_case->master,
+                                test_case->master_length,
+                                test_case->path,
+                                test_case->path_length));
+}
+
 int main() {
     srand(time(NULL));
 
     test_derivation();
     test_derivation_fails_if_output_buffer_too_small();
+    test_derivation_fails_if_getrandom_fails();
 
     return 0;
 }
