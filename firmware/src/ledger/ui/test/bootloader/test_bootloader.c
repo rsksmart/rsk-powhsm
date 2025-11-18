@@ -32,6 +32,7 @@
 #include "ux_handlers.h"
 #include "defs.h"
 #include "modes.h"
+#include "ui_instructions.h"
 #include "ui_err.h"
 #include "bootloader_mock.h"
 #include "ui_comm.h"
@@ -56,6 +57,8 @@ static bool G_reset_attestation_called = false;
 static bool G_reset_signer_authorization_called = false;
 static bool G_reset_onboard_called = false;
 static bool G_is_onboarded_called = false;
+static bool G_init_signer_authorization_called = false;
+static unsigned G_io_exchange_call_num = 0;
 
 #define RESET_IF_STARTED_CALLED()                                         \
     (G_reset_attestation_called && G_reset_signer_authorization_called && \
@@ -78,6 +81,8 @@ static void reset_flags() {
     G_reset_signer_authorization_called = false;
     G_reset_onboard_called = false;
     G_is_onboarded_called = false;
+    G_init_signer_authorization_called = false;
+    G_io_exchange_call_num = 0;
 }
 
 // Mock function calls
@@ -143,6 +148,7 @@ unsigned int do_authorize_signer(volatile unsigned int rx,
 
 unsigned int get_retries() {
     G_get_retries_called = true;
+    SET_APDU_OP(0x34);
     return 3;
 }
 
@@ -167,18 +173,60 @@ void set_dashboard_action(dashboard_action_t action) {
     G_dashboard_action = action;
 }
 
-// Function definitions required for compiling bootloader.c
 void init_signer_authorization() {
+    G_init_signer_authorization_called = true;
 }
 
 unsigned short io_exchange(unsigned char channel, unsigned short tx_len) {
     assert(CHANNEL_APDU == channel);
-    return 0;
+    assert(G_init_signer_authorization_called);
+    switch (G_io_exchange_call_num) {
+    case 0:
+        assert(tx_len == 0);
+        assert(!G_is_onboarded_called);
+        G_io_apdu_buffer[0] = CLA;
+        G_io_apdu_buffer[1] = RSK_IS_ONBOARD;
+        G_io_exchange_call_num++;
+        return 2;
+    case 1:
+        assert(tx_len == 5);
+        assert(!G_get_retries_called);
+        G_io_apdu_buffer[0] = CLA;
+        G_io_apdu_buffer[1] = RSK_RETRIES;
+        G_io_exchange_call_num++;
+        return 2;
+    default:
+        assert(G_io_exchange_call_num == 2);
+        G_io_exchange_call_num++;
+        THROW(EX_BOOTLOADER_RSK_END);
+    }
 }
 
 unsigned int ui_process_exception(unsigned short ex,
                                   unsigned int tx,
                                   comm_reset_cb_t comm_reset_cb) {
+    switch (G_io_exchange_call_num) {
+    case 1:
+        assert(ex == APDU_OK);
+        assert(tx == 5);
+        ASSERT_APDU("\x80\x01");
+        return tx;
+    case 2:
+        assert(ex == APDU_OK);
+        assert(tx == 3);
+        ASSERT_APDU("\x80\x45\x34");
+        // Test reset callback expected behavior
+        G_reset_attestation_called = false;
+        G_reset_signer_authorization_called = false;
+        G_reset_onboard_called = false;
+        comm_reset_cb();
+        assert(G_reset_attestation_called);
+        assert(G_reset_signer_authorization_called);
+        assert(G_reset_onboard_called);
+        return tx;
+    default:
+        assert(false);
+    }
     return 0;
 }
 
@@ -694,6 +742,26 @@ void test_onboard_mode() {
     END_TRY;
 }
 
+void test_bootloader_main() {
+    printf("Test bootloader_main...\n");
+    reset_flags();
+    G_is_onboarded = true;
+
+    BEGIN_TRY {
+        TRY {
+            bootloader_main(BOOTLOADER_MODE_DEFAULT);
+        }
+        CATCH_ALL {
+        }
+        FINALLY {
+            assert(3 == G_io_exchange_call_num);
+            assert(G_is_onboarded_called);
+            assert(G_get_retries_called);
+        }
+    }
+    END_TRY;
+}
+
 int main() {
     test_init();
     test_seed();
@@ -718,6 +786,7 @@ int main() {
     test_buffer_too_big();
     test_no_cla();
     test_onboard_mode();
+    test_bootloader_main();
 
     return 0;
 }
