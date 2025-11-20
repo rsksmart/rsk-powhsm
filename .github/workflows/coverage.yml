@@ -1,8 +1,6 @@
 name: "Code coverage"
 
-on:
-  push:
-    branches: [ "master" ]
+on: [push]
 
 # Declare default permissions as read only.
 permissions: read-all
@@ -11,8 +9,22 @@ jobs:
   coverage:
     name: Run tests and generate coverage reports
     runs-on: ubuntu-latest
+    env:
+      # Branches on which to upload coverage results and pass workflow regardless of result
+      UPLOAD_BRANCHES: '^(master|develop-.+)$'
+      # Minimum required code coverage percentage
+      MIN_COVERAGE: 90
 
     steps:
+      - name: Check branch name
+        id: check_branch
+        run: |
+          if [[ "$1" =~ $UPLOAD_BRANCHES ]]; then
+            echo "match=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "match=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Checkout this repo
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 #v5.0.0
 
@@ -20,6 +32,7 @@ jobs:
         run: docker/mware/build
 
       - name: Configure AWS credentials
+        if: steps.check_branch.outputs.match == 'true'
         uses: aws-actions/configure-aws-credentials@00943011d9042930efac3dcd3a170e4273319bc8 #v5.1.0
         with:
           aws-access-key-id: ${{ secrets.CODECOVERAGE_AWS_ACCESS_KEY_ID }}
@@ -32,8 +45,10 @@ jobs:
           COVPCT=$(cat middleware/coverage/total)
           COVCOL=$(utils/coverage-color.sh $COVPCT)
           echo "{ \"schemaVersion\": 1, \"label\": \"Middleware coverage\", \"message\": \"$COVPCT%\", \"color\": \"$COVCOL\" }" > middleware/coverage/badge.json
+          echo "Middleware code coverage is currently at $COVPCT%" > $GITHUB_STEP_SUMMARY
 
-      - name: "Upload middleware coverage report"
+      - name: Upload middleware coverage report
+        if: steps.check_branch.outputs.match == 'true'
         run: |
           aws s3 sync \
             middleware/coverage/ \
@@ -47,8 +62,10 @@ jobs:
           COVPCT=$(cat firmware/coverage/output/total)
           COVCOL=$(utils/coverage-color.sh $COVPCT)
           echo "{ \"schemaVersion\": 1, \"label\": \"Firmware coverage\", \"message\": \"$COVPCT%\", \"color\": \"$COVCOL\" }" > firmware/coverage/output/badge.json
+          echo "Firmware code coverage is currently at $COVPCT%" > $GITHUB_STEP_SUMMARY
 
-      - name: "Upload firmware coverage report"
+      - name: Upload firmware coverage report
+        if: steps.check_branch.outputs.match == 'true'
         run: |
           aws s3 sync \
             firmware/coverage/output/ \
@@ -57,6 +74,23 @@ jobs:
             --no-progress --follow-symlinks --delete --only-show-errors
 
       - name: Invalidate CloudFront cache
+        if: steps.check_branch.outputs.match == 'true'
         run: |
           aws cloudfront create-invalidation \
             --distribution-id ${{ secrets.CODECOVERAGE_CLOUDFRONT_DIST_ID }} --paths "/*"
+
+      - name: Check middleware code coverage is at a minimum level
+        if: steps.check_branch.outputs.match == 'false'
+        run: |
+          if ! awk -v mincov=$MIN_COVERAGE '$0 ~ /^[0-9]+/ && $0 >= mincov {exit 0} {exit 1}' middleware/coverage/total; then
+            echo "Middleware code coverage below $MIN_COVERAGE%" > $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+      - name: Check firmware code coverage is at a minimum level
+        if: steps.check_branch.outputs.match == 'false'
+        run: |
+          if ! awk -v mincov=$MIN_COVERAGE '$0 ~ /^[0-9]+/ && $0 >= mincov {exit 0} {exit 1}' firmware/coverage/output/total; then
+            echo "Firmware code coverage below $MIN_COVERAGE%" > $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
