@@ -1,3 +1,4 @@
+For develop-5.2 testing purposes only!
 # powHSM
 
 ![Tests](https://github.com/rsksmart/rsk-powhsm/actions/workflows/run-tests.yml/badge.svg)
