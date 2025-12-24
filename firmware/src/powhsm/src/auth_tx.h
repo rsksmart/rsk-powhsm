@@ -30,34 +30,21 @@
 #include "hal/hash.h"
 
 #include "btctx.h"
-#include "btcscript.h"
 
 #define BTCTX_LENGTH_SIZE 4
-#define SIGHASH_COMP_MODE_SIZE 1
 #define EXTRADATA_SIZE 2
 #define SIGHASH_ALL_SIZE 4
 #define SIGHASH_ALL_BYTES \
     { 0x01, 0x00, 0x00, 0x00 }
 
-enum {
-    SIGHASH_COMPUTE_MODE_LEGACY,
-    SIGHASH_COMPUTE_MODE_SEGWIT,
-};
-
 typedef struct {
     uint32_t remaining_bytes;
     bool finalise;
     btctx_ctx_t ctx;
-    btcscript_ctx_t script_ctx;
     hash_sha256_ctx_t tx_hash_ctx;
     hash_sha256_ctx_t sig_hash_ctx;
-
-    uint8_t sighash_computation_mode;
-
-    // Specifically for segwit
-    // sighash computation mode
-    bool segwit_processing_extradata;
-    uint16_t segwit_extradata_size;
+    bool processing_extradata;
+    uint16_t extradata_size;
     union {
         hash_sha256_ctx_t prevouts_hash_ctx;
         hash_sha256_ctx_t outputs_hash_ctx;

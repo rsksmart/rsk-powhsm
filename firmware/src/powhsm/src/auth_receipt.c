@@ -58,7 +58,7 @@
 // - a specific address (hardcoded, predefined) - the bridge address
 // - exactly three topics, topic_0, topic_1 and topic_2, of which:
 //   - topic_0 (aka the event signature) must match a specific
-//     value (harcoded, predefined)
+//     value (hardcoded, predefined)
 //   - topic_2 must match the current BTC tx hash
 
 // RSK receipt constants
@@ -200,8 +200,9 @@ static void str_end() {
                 auth.receipt.aux_offset == sizeof(EVENT_EMITTER) &&
                 !memcmp(auth.receipt.aux,
                         (void*)PIC(EVENT_EMITTER),
-                        sizeof(EVENT_EMITTER)))
+                        sizeof(EVENT_EMITTER))) {
                 SET_FLAG(auth.receipt.flags, IS_VALID_EMITTER);
+            }
             break;
         case TOPIC_LEVEL:
             if (auth.receipt.index[LOG_LEVEL - 1] == TOPICS_INDEX) {
@@ -210,15 +211,16 @@ static void str_end() {
                     auth.receipt.aux_offset == sizeof(EVENT_SIGNATURE) &&
                     !memcmp(auth.receipt.aux,
                             (void*)PIC(EVENT_SIGNATURE),
-                            sizeof(EVENT_SIGNATURE)))
+                            sizeof(EVENT_SIGNATURE))) {
                     SET_FLAG(auth.receipt.flags, IS_VALID_SIGNATURE);
-                else if (auth.receipt.index[TOPIC_LEVEL - 1] ==
-                             TOPIC_TXHASH_INDEX &&
-                         auth.receipt.aux_offset == sizeof(auth.tx_hash) &&
-                         !memcmp(auth.receipt.aux,
-                                 auth.tx_hash,
-                                 sizeof(auth.tx_hash)))
+                } else if (auth.receipt.index[TOPIC_LEVEL - 1] ==
+                               TOPIC_TXHASH_INDEX &&
+                           auth.receipt.aux_offset == sizeof(auth.tx_hash) &&
+                           !memcmp(auth.receipt.aux,
+                                   auth.tx_hash,
+                                   sizeof(auth.tx_hash))) {
                     SET_FLAG(auth.receipt.flags, IS_VALID_TXHASH);
+                }
             }
             break;
         }
