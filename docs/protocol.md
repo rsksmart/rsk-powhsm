@@ -38,47 +38,17 @@ For this operation, depending on the `keyId` parameter, there's two possible for
 ##### Authorized format
 
 This format is only valid for the BTC and tBTC key ids (see corresponding section for
-details). In addition, there are two different sub-formats that can be used for authorized
-signing: legacy and segwit. These are shown in the following subsections.
-
-###### Legacy BTC transactions
-
-This sub-format is to be used when signing legacy (i.e., non-segwit) Bitcoin transaction
-inputs.
+details).
 
 ```
 {
     "command": "sign",
-    "keyId": "xxxxx", // (*)
+    "keyId": "xxxxx", // (i)
     "message": {
-        "sighashComputationMode": "legacy",
-        "tx": "hhhh", // (**)
-        "input": i // (***)
-    },
-    "auth": {
-        "receipt": "hhhh",
-        "receipt_merkle_proof": [
-            "hhhh", "hhhh", ..., "hhhh"
-        ]
-    },
-    "version": 5
-}
-```
-
-###### Segwit BTC transactions
-
-This sub-format is to be used when signing segwit Bitcoin transaction inputs.
-
-```
-{
-    "command": "sign",
-    "keyId": "xxxxx", // (*)
-    "message": {
-        "sighashComputationMode": "segwit",
-        "tx": "hhhh", // (**)
-        "input": i,  // (***)
-        "witnessScript": "hhhh", // (x)
-        "outpointValue": i // (xx)
+        "tx": "hhhh", // (ii)
+        "input": i,  // (iii)
+        "witnessScript": "hhhh", // (iv)
+        "outpointValue": i // (v)
     },
     "auth": {
         "receipt": "hhhh",
@@ -91,15 +61,15 @@ This sub-format is to be used when signing segwit Bitcoin transaction inputs.
 ```
 
 ```
-// (*) the given string must be the
+// (i) the given string must be the
 // BIP44 path of the key to use for signing.
 // See valid BIP44 paths below (BTC and tBTC for this format).
-// (**) the fully serialized BTC transaction
+// (ii) the fully serialized BTC transaction
 // that needs to be signed.
-// (***) the input index of the BTC transaction
+// (iii) the input index of the BTC transaction
 // that needs to be signed.
-// (x) the witness script for the input that needs to be signed.
-// (xx) the outpoint value (i.e., amount of the UTXO) for the input 
+// (iv) the witness script for the input that needs to be signed.
+// (v) the outpoint value (i.e., amount of the UTXO) for the input 
 // that needs to be signed.
 //
 // For the signing process to be successful, the computed receipts trie root
