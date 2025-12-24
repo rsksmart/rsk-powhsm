@@ -6,6 +6,8 @@
     "fake_ancestor_receipts_root": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "btcTx": "",
     "btcTxInput": 0,
+    "witnessScript": "",
+    "outpointValue": 0,
     "receipt": "",
     "receiptMp": []
 }
