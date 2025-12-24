@@ -21,7 +21,7 @@
 # SOFTWARE.
 
 import struct
-from enum import IntEnum, Enum, auto
+from enum import IntEnum, auto
 from ledgerblue.comm import getDongle
 from ledgerblue.commException import CommException
 import hid
@@ -191,7 +191,6 @@ class _SignError(IntEnum):
     RECEIPT_HASH_MISMATCH = auto()
     NODE_CHAINING_MISMATCH = auto()
     RECEIPT_ROOT_MISMATCH = auto()
-    INVALID_SIGHASH_COMPUTATION_MODE = auto()
     INVALID_EXTRADATA_SIZE = auto()
 
 
@@ -319,18 +318,6 @@ class _Response:
 class _Onboarding(IntEnum):
     SEED_LENGTH = 32
     TIMEOUT = 10
-
-
-# Sighash computation modes
-class SighashComputationMode(Enum):
-    def __new__(cls, *args, **kwds):
-        obj = object.__new__(cls)
-        obj._value_ = args[0]
-        obj.netvalue = args[1]
-        return obj
-
-    LEGACY = "legacy", 0
-    SEGWIT = "segwit", 1
 
 
 class HSM2DongleBaseError(RuntimeError):
@@ -613,19 +600,18 @@ class HSM2Dongle:
         publicKey = self._send_command(self.CMD.GET_PUBLIC_KEY, key_id.to_binary())
         return publicKey.hex()
 
-    # Ask the device to sign a specific input of a given unsigned bitcoin transaction
-    # using the given RSK transaction receipt as an authorization for the signature.
+    # Ask the device to sign a specific input of a given bitcoin transaction using the
+    # given RSK transaction receipt as an authorization for the signature.
     # key_id: BIP32Path
     # rsk_tx_receipt: hex string
     # btc_tx: hex string
     # receipt_merkle_proof: list
     # input_index: int
-    # sighash_computation_mode: a SighashComputationMode instance
     # witness_script: hex string
     # outpoint_value: int
     def sign_authorized(
         self, key_id, rsk_tx_receipt, receipt_merkle_proof, btc_tx, input_index,
-        sighash_computation_mode, witness_script, outpoint_value
+        witness_script, outpoint_value
     ):
         # *** Signing protocol ***
         # The order in which things are required and then sent is:
@@ -674,33 +660,23 @@ class HSM2Dongle:
         # Step 2. Send BTC transaction and extra data
         # Prefix the BTC transaction with the total length of the payload encoded as a
         # 4 bytes little endian unsigned integer. The total length should include
-        # those 4 bytes plus 2 bytes for the length of the extradata and 1 byte for
-        # the sighash computation mode
+        # those 4 bytes plus 2 bytes for the length of the extradata
         try:
             PAYLOADLENGTH_LENGTH = 4
-            SIGHASH_COMPUTATION_MODE_LENGTH = 1
             EXTRADATALENGTH_LENGTH = 2
             OUTPOINT_VALUE_LENGTH = 8
 
             btc_tx_bytes = bytes.fromhex(btc_tx)
 
-            scm_bytes = sighash_computation_mode.netvalue.to_bytes(
-                SIGHASH_COMPUTATION_MODE_LENGTH,
+            ov_bytes = outpoint_value.to_bytes(
+                OUTPOINT_VALUE_LENGTH,
                 byteorder='little', signed=False
             )
 
-            ed_bytes = b""
+            ws_bytes = bytes.fromhex(witness_script)
+            ws_length_bytes = bytes.fromhex(encode_varint(len(ws_bytes)))
 
-            if sighash_computation_mode == SighashComputationMode.SEGWIT:
-                ov_bytes = outpoint_value.to_bytes(
-                    OUTPOINT_VALUE_LENGTH,
-                    byteorder='little', signed=False
-                )
-
-                ws_bytes = bytes.fromhex(witness_script)
-                ws_length_bytes = bytes.fromhex(encode_varint(len(ws_bytes)))
-
-                ed_bytes = ws_length_bytes + ws_bytes + ov_bytes
+            ed_bytes = ws_length_bytes + ws_bytes + ov_bytes
 
             edl_bytes = len(ed_bytes).to_bytes(
                 EXTRADATALENGTH_LENGTH,
@@ -709,7 +685,6 @@ class HSM2Dongle:
 
             payload_length = \
                 PAYLOADLENGTH_LENGTH + \
-                SIGHASH_COMPUTATION_MODE_LENGTH + \
                 EXTRADATALENGTH_LENGTH + \
                 len(btc_tx_bytes)
 
@@ -717,7 +692,7 @@ class HSM2Dongle:
                 PAYLOADLENGTH_LENGTH, byteorder="little", signed=False
             )
 
-            data = payload_length_bytes + scm_bytes + edl_bytes + btc_tx_bytes + ed_bytes
+            data = payload_length_bytes + edl_bytes + btc_tx_bytes + ed_bytes
 
             response = self._send_data_in_chunks(
                 command=self.CMD.SIGN,
@@ -741,7 +716,6 @@ class HSM2Dongle:
                 self.ERR.SIGN.DATA_SIZE,
                 self.ERR.SIGN.TX_HASH_MISMATCH,
                 self.ERR.SIGN.TX_VERSION,
-                self.ERR.SIGN.INVALID_SIGHASH_COMPUTATION_MODE,
                 self.ERR.SIGN.INVALID_EXTRADATA_SIZE,
             ]:
                 return (False, self.RESPONSE.SIGN.ERROR_BTC_TX)

@@ -23,54 +23,6 @@
 import bitcoin.core
 
 
-def get_unsigned_tx(raw_tx_hex, hex=True):
-    unsigned_bytes = _unsign_tx(raw_tx_hex).serialize()
-
-    if hex:
-        return unsigned_bytes.hex()
-
-    return unsigned_bytes
-
-
-def get_tx_hash(raw_tx_hex):
-    return _deserialize_tx(raw_tx_hex).GetHash()[::-1].hex()
-
-
-def get_tx_hash_for_unsigned_tx(raw_tx_hex):
-    return _unsign_tx(raw_tx_hex).GetHash()[::-1].hex()
-
-
-def get_tx_version(raw_tx_hex):
-    tx = _deserialize_tx(raw_tx_hex)
-    return tx.nVersion
-
-
-def _unsign_tx(raw_tx_hex):
-    # Given a p2sh-only inputs transaction (all of them corresponding
-    # to multisig outputs), this method clears any
-    # existent signatures in all the inputs and then computes
-    # the hash of the resulting transaction
-
-    tx = _deserialize_tx(raw_tx_hex)
-
-    tx.vin = list(map(_clear_all_but_last_op_from_scriptsig, tx.vin))
-
-    return tx
-
-
-def _clear_all_but_last_op_from_scriptsig(txin):
-    # Given a transaction input, this returns a copy
-    # with its scriptSig replaced by a script with all
-    # its operations as ZERO, excepting
-    # the last operation, which is left untouched.
-
-    new_txin = bitcoin.core.CMutableTxIn.from_txin(txin)
-    ops = list(new_txin.scriptSig)
-    new_ops = ([0] * (len(ops) - 1)) + [ops[-1]]
-    new_txin.scriptSig = bitcoin.core.CScript(new_ops)
-    return new_txin
-
-
 def get_signature_hash_for_p2sh_input(raw_tx_hex, input_index):
     # Given a raw BTC transaction and an input index,
     # this method computes the sighash corresponding to the given
@@ -98,6 +50,8 @@ def get_signature_hash_for_p2sh_input(raw_tx_hex, input_index):
 
     try:
         redeem_script = bitcoin.core.CScript(last_chunk_operand)
+        if not redeem_script.is_valid():
+            raise ValueError()
     except Exception:
         raise ValueError("Invalid redeem script: %s" % last_chunk_operand.hex())
 

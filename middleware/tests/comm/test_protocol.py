@@ -94,6 +94,22 @@ class TestHSM2Protocol(TestCase):
             {"errorcode": -903},
         )
 
+    def test_version_4_not_supported(self):
+        self.assertEqual(
+            self.protocol.handle_request({
+                "command": "whatever",
+                "version": 4
+            }),
+            {"errorcode": -904},
+        )
+        self.assertEqual(
+            self.protocol.handle_request({
+                "command": "whatever",
+                "version": 5
+            }),
+            {"errorcode": -903},
+        )
+
     def test_invalid_command(self):
         self.assertEqual(
             self.protocol.handle_request({
@@ -392,7 +408,7 @@ class TestHSM2Protocol(TestCase):
             {"errorcode": -102},
         )
 
-    def test_sign_legacy_message_value(self):
+    def test_sign_message_value(self):
         self.assertEqual(
             self.protocol.handle_request({
                 "version": 5,
@@ -402,9 +418,7 @@ class TestHSM2Protocol(TestCase):
                     "receipt": "aabbcc",
                     "receipt_merkle_proof": ["aa"]
                 },
-                "message": {
-                    "any": "thing"
-                },
+                "message": {}
             }),
             {"errorcode": -102},
         )
@@ -419,163 +433,6 @@ class TestHSM2Protocol(TestCase):
                     "receipt_merkle_proof": ["aa"]
                 },
                 "message": {
-                    "sighashComputationMode": "legacy"
-                },
-            }),
-            {"errorcode": -102},
-        )
-
-        self.assertEqual(
-            self.protocol.handle_request({
-                "version": 5,
-                "command": "sign",
-                "keyId": "m/0/0/0/0/0",
-                "auth": {
-                    "receipt": "aabbcc",
-                    "receipt_merkle_proof": ["aa"]
-                },
-                "message": {
-                    "sighashComputationMode": "legacy",
-                    "tx": "001122"
-                },
-            }),
-            {"errorcode": -102},
-        )
-
-        self.assertEqual(
-            self.protocol.handle_request({
-                "version": 5,
-                "command": "sign",
-                "keyId": "m/0/0/0/0/0",
-                "auth": {
-                    "receipt": "aabbcc",
-                    "receipt_merkle_proof": ["aa"]
-                },
-                "message": {
-                    "sighashComputationMode": "legacy",
-                    "input": 123
-                },
-            }),
-            {"errorcode": -102},
-        )
-
-        self.assertEqual(
-            self.protocol.handle_request({
-                "version": 5,
-                "command": "sign",
-                "keyId": "m/0/0/0/0/0",
-                "auth": {
-                    "receipt": "aabbcc",
-                    "receipt_merkle_proof": ["aa"]
-                },
-                "message": {
-                    "tx": "001122",
-                    "input": 123
-                },
-            }),
-            {"errorcode": -102},
-        )
-
-        self.assertEqual(
-            self.protocol.handle_request({
-                "version": 5,
-                "command": "sign",
-                "keyId": "m/0/0/0/0/0",
-                "auth": {
-                    "receipt": "aabbcc",
-                    "receipt_merkle_proof": ["aa"]
-                },
-                "message": {
-                    "sighashComputationMode": "legacy",
-                    "tx": "001122",
-                    "input": "not-an-input"
-                },
-            }),
-            {"errorcode": -102},
-        )
-
-        self.assertEqual(
-            self.protocol.handle_request({
-                "version": 5,
-                "command": "sign",
-                "keyId": "m/0/0/0/0/0",
-                "auth": {
-                    "receipt": "aabbcc",
-                    "receipt_merkle_proof": ["aa"]
-                },
-                "message": {
-                    "sighashComputationMode": "legacy",
-                    "tx": "",
-                    "input": 123
-                },
-            }),
-            {"errorcode": -102},
-        )
-
-        self.assertEqual(
-            self.protocol.handle_request({
-                "version": 5,
-                "command": "sign",
-                "keyId": "m/0/0/0/0/0",
-                "auth": {
-                    "receipt": "aabbcc",
-                    "receipt_merkle_proof": ["aa"]
-                },
-                "message": {
-                    "sighashComputationMode": "legacy",
-                    "tx": "not-a-hex",
-                    "input": 123
-                },
-            }),
-            {"errorcode": -102},
-        )
-
-        self.assertEqual(
-            self.protocol.handle_request({
-                "version": 5,
-                "command": "sign",
-                "keyId": "m/0/0/0/0/0",
-                "auth": {
-                    "receipt": "aabbcc",
-                    "receipt_merkle_proof": ["aa"]
-                },
-                "message": {
-                    "sighashComputationMode": "somethingelse",
-                    "tx": "001122",
-                    "input": 123
-                },
-            }),
-            {"errorcode": -102},
-        )
-
-    def test_sign_segwit_message_value(self):
-        self.assertEqual(
-            self.protocol.handle_request({
-                "version": 5,
-                "command": "sign",
-                "keyId": "m/0/0/0/0/0",
-                "auth": {
-                    "receipt": "aabbcc",
-                    "receipt_merkle_proof": ["aa"]
-                },
-                "message": {
-                    "sighashComputationMode": "segwit"
-                },
-            }),
-            {"errorcode": -102},
-        )
-
-        self.assertEqual(
-            self.protocol.handle_request({
-                "version": 5,
-                "command": "sign",
-                "keyId": "m/0/0/0/0/0",
-                "auth": {
-                    "receipt": "aabbcc",
-                    "receipt_merkle_proof": ["aa"]
-                },
-                "message": {
-                    "sighashComputationMode": "segwit",
                     "tx": "001122",
                     "witnessScript": "33445566",
                     "outpointValue": 123000
@@ -594,7 +451,6 @@ class TestHSM2Protocol(TestCase):
                     "receipt_merkle_proof": ["aa"]
                 },
                 "message": {
-                    "sighashComputationMode": "segwit",
                     "input": 123,
                     "witnessScript": "33445566",
                     "outpointValue": 123000
@@ -613,7 +469,6 @@ class TestHSM2Protocol(TestCase):
                     "receipt_merkle_proof": ["aa"]
                 },
                 "message": {
-                    "sighashComputationMode": "segwit",
                     "tx": "001122",
                     "input": 123,
                     "outpointValue": 123000
@@ -632,7 +487,6 @@ class TestHSM2Protocol(TestCase):
                     "receipt_merkle_proof": ["aa"]
                 },
                 "message": {
-                    "sighashComputationMode": "segwit",
                     "tx": "001122",
                     "input": 123,
                     "witnessScript": "33445566",
@@ -653,8 +507,6 @@ class TestHSM2Protocol(TestCase):
                 "message": {
                     "tx": "001122",
                     "input": 123,
-                    "witnessScript": "33445566",
-                    "outpointValue": 123000
                 },
             }),
             {"errorcode": -102},
@@ -670,7 +522,6 @@ class TestHSM2Protocol(TestCase):
                     "receipt_merkle_proof": ["aa"]
                 },
                 "message": {
-                    "sighashComputationMode": "segwit",
                     "tx": "001122",
                     "input": "not-an-input",
                     "witnessScript": "33445566",
@@ -690,7 +541,6 @@ class TestHSM2Protocol(TestCase):
                     "receipt_merkle_proof": ["aa"]
                 },
                 "message": {
-                    "sighashComputationMode": "segwit",
                     "tx": "",
                     "input": 123,
                     "witnessScript": "33445566",
@@ -710,7 +560,6 @@ class TestHSM2Protocol(TestCase):
                     "receipt_merkle_proof": ["aa"]
                 },
                 "message": {
-                    "sighashComputationMode": "segwit",
                     "tx": "not-a-hex",
                     "input": 123,
                     "witnessScript": "33445566",
@@ -730,7 +579,6 @@ class TestHSM2Protocol(TestCase):
                     "receipt_merkle_proof": ["aa"]
                 },
                 "message": {
-                    "sighashComputationMode": "segwit",
                     "tx": "001122",
                     "input": 123,
                     "witnessScript": "not-a-hex",
@@ -750,7 +598,6 @@ class TestHSM2Protocol(TestCase):
                     "receipt_merkle_proof": ["aa"]
                 },
                 "message": {
-                    "sighashComputationMode": "segwit",
                     "tx": "001122",
                     "input": 123,
                     "witnessScript": "33445566",
@@ -770,7 +617,6 @@ class TestHSM2Protocol(TestCase):
                     "receipt_merkle_proof": ["aa"]
                 },
                 "message": {
-                    "sighashComputationMode": "segwit",
                     "tx": "001122",
                     "input": 123,
                     "witnessScript": "33445566",
@@ -790,7 +636,6 @@ class TestHSM2Protocol(TestCase):
                     "receipt_merkle_proof": ["aa"]
                 },
                 "message": {
-                    "sighashComputationMode": "segwit",
                     "tx": "001122",
                     "input": 123,
                     "witnessScript": "33445566",
@@ -810,7 +655,6 @@ class TestHSM2Protocol(TestCase):
                     "receipt_merkle_proof": ["aa"]
                 },
                 "message": {
-                    "sighashComputationMode": "segwit",
                     "tx": "001122",
                     "input": 123,
                     "witnessScript": "33445566",
@@ -821,7 +665,6 @@ class TestHSM2Protocol(TestCase):
         )
 
     def test_sign_hash_message_value(self):
-
         self.assertEqual(
             self.protocol.handle_request({
                 "version": 5,
@@ -889,29 +732,9 @@ class TestHSM2Protocol(TestCase):
     def test_sign_notimplemented(self):
         with self.assertRaises(NotImplementedError):
             self.protocol.handle_request({
-                "command": "sign",
                 "version": 5,
-                "keyId": "m/0/0/0/0/0",
-                "auth": {
-                    "receipt": "ddeeff",
-                    "receipt_merkle_proof": ["aa"]
-                },
-                "message": {
-                    "sighashComputationMode": "legacy",
-                    "tx": "001122",
-                    "input": 123
-                },
-            })
-
-        with self.assertRaises(NotImplementedError):
-            self.protocol.handle_request({
                 "command": "sign",
-                "version": 5,
                 "keyId": "m/0/0/0/0/0",
-                "auth": {
-                    "receipt": "ddeeff",
-                    "receipt_merkle_proof": ["aa"]
-                },
                 "message": {
                     "hash": "bb"*32
                 },
@@ -923,19 +746,6 @@ class TestHSM2Protocol(TestCase):
                 "command": "sign",
                 "keyId": "m/0/0/0/0/0",
                 "message": {
-                    "sighashComputationMode": "legacy",
-                    "tx": "001122",
-                    "input": 123
-                },
-            })
-
-        with self.assertRaises(NotImplementedError):
-            self.protocol.handle_request({
-                "version": 5,
-                "command": "sign",
-                "keyId": "m/0/0/0/0/0",
-                "message": {
-                    "sighashComputationMode": "segwit",
                     "tx": "001122",
                     "input": 123,
                     "witnessScript": "3344556677",
@@ -945,11 +755,32 @@ class TestHSM2Protocol(TestCase):
 
         with self.assertRaises(NotImplementedError):
             self.protocol.handle_request({
+                "command": "sign",
+                "version": 5,
+                "keyId": "m/0/0/0/0/0",
+                "message": {
+                    "hash": "bb"*32
+                },
+                "auth": {
+                    "receipt": "ddeeff",
+                    "receipt_merkle_proof": ["aa"]
+                },
+            })
+
+        with self.assertRaises(NotImplementedError):
+            self.protocol.handle_request({
                 "version": 5,
                 "command": "sign",
                 "keyId": "m/0/0/0/0/0",
                 "message": {
-                    "hash": "bb"*32
+                    "tx": "001122",
+                    "input": 123,
+                    "witnessScript": "3344556677",
+                    "outpointValue": 123000,
+                },
+                "auth": {
+                    "receipt": "ddeeff",
+                    "receipt_merkle_proof": ["aa"]
                 },
             })
 
