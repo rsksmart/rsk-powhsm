@@ -1,0 +1,3 @@
+#!/bin/bash
+
+$(dirname $0)/do /hsm2 /bin/bash

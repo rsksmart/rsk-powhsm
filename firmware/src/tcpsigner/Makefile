@@ -38,9 +38,10 @@ CFLAGS += -iquote $(POWHSMSRCPATH)
 CFLAGS += -iquote $(COMMONPATH)
 CFLAGS += -iquote $(HALINCPATH) -iquote $(HALSRCPATH) 
 CFLAGS += -I /usr/local/include -Werror
+CFLAGS += -I$(TCPSIGNER_SECP256K1)/include
 CFLAGS += -DHSM_PLATFORM_X86
 
-LDFLAGS = -lsecp256k1
+LDFLAGS = -lsecp256k1 -L$(TCPSIGNER_STATIC_LIBS)
 
 OBJDIR := objs
 PROG = tcpsigner
