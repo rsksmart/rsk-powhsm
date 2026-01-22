@@ -25,3 +25,7 @@ firmware/fuzz/output
 
 # Ignore SGX data files
 **/kvstore-*.dat
+
+# Ignore Nitro Enclaves build artifacts
+docker/nitro-enclaves/output
+docker/nitro-enclaves/tcpsigner

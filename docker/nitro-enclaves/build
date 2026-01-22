@@ -1,0 +1,26 @@
+#!/bin/bash
+
+DOCKER_DIR=$(realpath $(dirname $0))
+DOCKER_IMAGE=hsm:ane-enclave
+TCPSIGNER_BINARY=$DOCKER_DIR/tcpsigner
+FIRMWARE_DIR=$DOCKER_DIR/../../firmware
+EIF_OUTPUT_PATH=$DOCKER_DIR/output
+
+# Build tcpsigner and target image
+$FIRMWARE_DIR/build/build-tcpsigner-static
+cp -f $FIRMWARE_DIR/src/tcpsigner/tcpsigner $TCPSIGNER_BINARY
+touch -d@0 $TCPSIGNER_BINARY
+docker buildx build --build-arg SOURCE_DATE_EPOCH=0 --output type=image,name=$DOCKER_IMAGE,rewrite-timestamp=true --no-cache -f $DOCKER_DIR/Dockerfile.enclave $DOCKER_DIR
+
+# Build EIF builder image
+docker build -t eif-builder -f $DOCKER_DIR/Dockerfile.eifbuilder $DOCKER_DIR
+
+# Create output directory (remove any existing directory and contents)
+rm -rf $EIF_OUTPUT_PATH
+mkdir $EIF_OUTPUT_PATH
+
+# Get local docker socket path
+DOCKER_SOCK_PATH=$(docker context inspect | jq -r '.[0].Endpoints.docker.Host' | sed "s^unix://^^")
+
+# Run EIF builder with Docker-in-Docker
+docker run -v ${DOCKER_SOCK_PATH}:/var/run/docker.sock -v ${EIF_OUTPUT_PATH}:/output -e DOCKER_IMAGE_TAG=${DOCKER_IMAGE} eif-builder

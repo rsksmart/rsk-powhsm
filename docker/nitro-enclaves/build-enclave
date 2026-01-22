@@ -1,0 +1,5 @@
+#!/bin/bash
+
+nitro-cli build-enclave --docker-uri $DOCKER_IMAGE_TAG --output-file /output/enclave.eif && \
+nitro-cli describe-eif --eif-path /output/enclave.eif > /output/enclave-info.txt
+
