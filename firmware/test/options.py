@@ -28,11 +28,13 @@ class OptionParser:
         self,
         description,
         default_tests_path="./resources",
+        default_cid=1111,
         default_port=8888,
         default_host="localhost",
     ):
         self.description = description
         self.default_tests_path = default_tests_path
+        self.default_cid = default_cid
         self.default_port = default_port
         self.default_host = default_host
 
@@ -61,6 +63,14 @@ class OptionParser:
             dest="tests_filter",
             default="",
             help="Tests filter (comma-separated list of filename prefixes)",
+        )
+        parser.add_argument(
+            "-c",
+            "--cid",
+            dest="cid",
+            type=int,
+            default=self.default_cid,
+            help=f"Listening CID (default {self.default_cid})",
         )
         parser.add_argument(
             "-p",

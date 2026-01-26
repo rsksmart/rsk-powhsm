@@ -20,22 +20,22 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from ledgerblue.commTCP import getDongle
+from nitro_enclaves.comm_vsock import getDongle
 from ledgerblue.commException import CommException
 from .hsm2dongle import HSM2Dongle, HSM2DongleCommError
 
 
 class HSM2DongleTCP(HSM2Dongle):
-    def __init__(self, host, port, debug):
-        self.host = host
+    def __init__(self, cid, port, debug):
+        self.cid = cid
         self.port = port
         super().__init__(debug)
 
     # Connect to the TCP "dongle"
     def connect(self):
         try:
-            self.logger.info(f"Connecting to {self.host}:{self.port}")
-            self.dongle = getDongle(self.host, self.port, self.debug)
+            self.logger.info(f"Connecting to {self.cid}:{self.port}")
+            self.dongle = getDongle(self.cid, self.port, self.debug)
             self.logger.info("Connected")
         except CommException as e:
             msg = "Error connecting: %s" % e.message

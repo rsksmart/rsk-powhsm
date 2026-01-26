@@ -35,6 +35,7 @@ class UserOptionParser:
         default_pin_file="pin.txt",
         default_logging_config_path="logging.cfg",
         default_tcpconn_host="localhost",
+        default_tcpconn_cid=1111,
         default_tcpconn_port=8888,
     ):
         self.description = description
@@ -45,6 +46,7 @@ class UserOptionParser:
         self.default_host = default_host
         self.default_pin_file = default_pin_file
         self.default_logging_config_path = default_logging_config_path
+        self.default_tcpconn_cid = default_tcpconn_cid
         self.default_tcpconn_port = default_tcpconn_port
         self.default_tcpconn_host = default_tcpconn_host
 
@@ -105,6 +107,15 @@ class UserOptionParser:
         )
 
         if self.with_tcpconn:
+            parser.add_argument(
+                f"-{self.host_name.lower()[0]}c",
+                f"--{self.host_name.lower()}-cid",
+                dest="tcpconn_cid",
+                help=f"{self.host_name} listening CID (default "
+                     f"{self.default_tcpconn_cid})",
+                type=int,
+                default=self.default_tcpconn_cid,
+            )
             parser.add_argument(
                 f"-{self.host_name.lower()[0]}p",
                 f"--{self.host_name.lower()}-port",

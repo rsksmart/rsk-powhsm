@@ -66,7 +66,7 @@ void hsmsim_io_set_external_module_process(
  * @param port the port on which to listen for connections
  * @param host the interface to bind to
  */
-void hsmsim_io_set_and_start_server(int port, const char *host);
+void hsmsim_io_set_and_start_server(unsigned int port);
 
 /**
  * @brief Sets the input file from which communication_io_exchange

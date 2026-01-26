@@ -34,7 +34,7 @@ if __name__ == "__main__":
                                     host_name="TCPSigner").parse()
 
     runner = ManagerRunner("powHSM manager for TCPSigner",
-                           lambda options: HSM2DongleTCP(options.tcpconn_host,
+                           lambda options: HSM2DongleTCP(options.tcpconn_cid,
                                                          options.tcpconn_port,
                                                          options.io_debug),
                            load_pin=lambda options: None)

@@ -28,8 +28,7 @@
 #include <unistd.h>
 #include <limits.h>
 #include <netdb.h>
-#include <netinet/in.h>
-#include <netinet/tcp.h>
+#include <linux/vm_sockets.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
@@ -54,7 +53,7 @@ enum io_mode_e io_mode;
  */
 int server;
 int connfd;
-struct sockaddr_in servaddr, cliaddr;
+struct sockaddr_vm servaddr, cliaddr;
 
 /**
  * For the file input mode
@@ -87,45 +86,22 @@ void hsmsim_io_set_external_module_process(
 /**
  * @brief Start server, return a socket on connection
  *
- * @arg[in] PORT   tcp port
- * @arg[in] HOST   HOST string
- *
  * @returns socket file descriptor
  */
-static int start_server(int port, const char *host) {
+static int start_server(unsigned int port) {
     int sockfd;
-    struct hostent *hostinfo;
-    hostinfo = gethostbyname(host);
-
-    if (hostinfo == NULL) {
-        LOG("Host not found.\n");
-        exit(1);
-    }
 
     // socket create and verification
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    sockfd = socket(AF_VSOCK, SOCK_STREAM, 0);
     if (sockfd == -1) {
         LOG("Socket creation failed...\n");
         exit(1);
     }
 
     bzero(&servaddr, sizeof(servaddr));
-
-    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) <
-        0) {
-        LOG("Socket option setting failed failed\n");
-        exit(1);
-    }
-
-    if (setsockopt(sockfd, SOL_TCP, TCP_NODELAY, &(int){1}, sizeof(int)) < 0) {
-        LOG("Socket option setting failed failed\n");
-        exit(1);
-    }
-
-    // Set address and port
-    servaddr.sin_family = AF_INET;
-    memcpy(&servaddr.sin_addr, hostinfo->h_addr_list[0], hostinfo->h_length);
-    servaddr.sin_port = htons(port);
+    servaddr.svm_family = AF_VSOCK;
+    servaddr.svm_cid = VMADDR_CID_ANY;
+    servaddr.svm_port = port;
 
     // Binding newly created socket to given IP and verification
     if ((bind(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr))) != 0) {
@@ -166,8 +142,8 @@ void hsmsim_io_init() {
     communication_init(io_apdu_buffer, sizeof(io_apdu_buffer));
 }
 
-void hsmsim_io_set_and_start_server(int port, const char *host) {
-    server = start_server(port, host);
+void hsmsim_io_set_and_start_server(unsigned int port) {
+    server = start_server(port);
     connfd = 0;
     io_mode = IO_MODE_SERVER;
     io_exchange_write_only = false;

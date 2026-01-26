@@ -430,10 +430,8 @@ void main(int argc, char **argv) {
 
             hsmsim_io_set_input_file(inputfd);
         } else {
-            LOG("Starting TCP server on %s:%i\n",
-                arguments.bind,
-                arguments.port);
-            hsmsim_io_set_and_start_server(arguments.port, arguments.bind);
+            LOG("Starting VSOCK server on port 3333\n");
+            hsmsim_io_set_and_start_server(3333);
         }
 
         FILE *replicafd;
