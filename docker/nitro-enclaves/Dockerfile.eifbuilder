@@ -1,5 +1,5 @@
-# amazonlinux:2023.5.20240624.0 linux/amd64
-FROM amazonlinux@sha256:5bf791027b4659e73c33a88a3fa2b314b8e2c0ee60cb1088a097171ee7f180db
+# amazonlinux:2023.10.20260105.0
+FROM amazonlinux@sha256:808df4d068adf02dadb815bdb32bd2b132ce70260571401adf3ff8a19e99ce82
 
 # Install nitro-cli
 RUN dnf install aws-nitro-enclaves-cli aws-nitro-enclaves-cli-devel -y
