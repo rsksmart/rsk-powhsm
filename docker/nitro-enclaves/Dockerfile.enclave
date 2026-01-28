@@ -1,4 +1,4 @@
-FROM debian:bookworm@sha256:c66c66fac809bfb56a8001b12f08181a49b6db832d2c8ddabe22b6374264055f
+FROM debian:bookworm-slim@sha256:56ff6d36d4eb3db13a741b342ec466f121480b5edded42e4b7ee850ce7a418ee
 
 COPY --chown=0:0 --chmod=770 tcpsigner /tcpsigner
 
