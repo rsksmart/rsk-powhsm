@@ -33,10 +33,10 @@
 #include "hal/log.h"
 #include "random.h"
 
-#include "json.h"
 #include "bip32_path.h"
 #include "cJSON.h"
 #include "hex_reader.h"
+#include "hsmsim_kvstore.h"
 
 #define SEED_DEFAULT_IS_ONBOARDED (true)
 
@@ -68,7 +68,11 @@ static bool write_key_file(const char* key_file_path) {
         cJSON_AddStringToObject(json, private_keys[i].bip32_path, hex_key);
     }
 
-    return write_json_file(key_file_path, json);
+    char* json_s = cJSON_Print(json);
+    bool result = hsmsim_kvstore_save((char*)key_file_path, json_s, strlen(json_s));
+    cJSON_free(json_s);
+    cJSON_Delete(json);
+    return result;
 }
 
 /**
@@ -144,8 +148,13 @@ bool seed_init(const char* key_file_path,
     }
 
     // Load keys
-    LOG("Loading key file '%s'\n", key_file_path);
-    cJSON* json = read_json_file(key_file_path);
+    uint8_t buffer[UINT16_MAX];
+    LOG("Loading keys from storage slot '%s'\n", key_file_path);
+    size_t buffer_size = hsmsim_kvstore_get((char*)key_file_path, buffer, sizeof(buffer));
+    cJSON* json = NULL;
+    if (buffer_size) {
+        json = cJSON_ParseWithLength(buffer, buffer_size);
+    }
 
     if (json == NULL) {
         LOG("Keyfile not found or file format incorrect. Creating a new "

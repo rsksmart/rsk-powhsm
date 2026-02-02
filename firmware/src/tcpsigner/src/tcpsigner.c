@@ -45,6 +45,7 @@
 #include "hsmsim_io.h"
 #include "hsmsim_nu.h"
 #include "hsmsim_admin.h"
+#include "hsmsim_kvstore.h"
 
 #include "hsm.h"
 #include "ui_heartbeat.h"
@@ -269,6 +270,7 @@ static struct argp argp = {
 
 static void finalise() {
     LOG("Caught termination signal. Bye.\n");
+    hsmsim_kvstore_finalise();
     exit(0);
 }
 
@@ -394,8 +396,13 @@ void main(int argc, char **argv) {
             activations[i].activation_bn);
     }
 
+    if (!hsmsim_kvstore_init(3, 1234)) {
+        LOG("Error during KV store module initialization\n");
+        exit(1);
+    }
+
     // Initialize the seed module
-    if (!seed_init(arguments.key_file_path, BIP32_PATHS, BIP32_PATHS_COUNT)) {
+    if (!seed_init("theseed", BIP32_PATHS, BIP32_PATHS_COUNT)) {
         LOG("Error during seed module initialization\n");
         exit(1);
     }
