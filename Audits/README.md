@@ -4,7 +4,7 @@
 
 This directory contains public security audits performed on the PowHSM project.
 
-PowHSM is a critical component of the Rootstock PowPeg infrastructure. It protects private keys holded by the pegnatories, used to authorize Bitcoin peg-out transactions and enforces authorization rules based on accumulated proof-of-work.
+PowHSM is a critical component of the Rootstock PowPeg infrastructure. It protects private keys held by the pegnatories, used to authorize Bitcoin peg-out transactions and enforces authorization rules based on accumulated proof-of-work.
 
 Given its security-critical role, PowHSM has undergone independent third-party security assessments.
 
@@ -33,4 +33,4 @@ Control Audit Period: December 15 – December 19, 2025
 
 Scope: Security review of the Intel SGX implementation of PowHSM (introduced in v5.4.0)
 
-Report [25-07-2216-REP-v1.1.pdf](./25-07-2216-REP-v1.1.pdf)
+Report: [25-07-2216-REP-v1.1.pdf](./25-07-2216-REP-v1.1.pdf)
