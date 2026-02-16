@@ -16,7 +16,7 @@ Auditor: NCC Group
 
 Date: October 2022
 
-Scope: Security assessment of IOV Labs PowHSM
+Scope: Security assessment of Ledger PowHSM (v3.0.1)
 
 Report:
 https://research.nccgroup.com/2022/10/05/public-report-iov-labs-powhsm-security-assessment/
