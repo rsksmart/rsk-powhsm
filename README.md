@@ -60,6 +60,10 @@ Refer to the following documents for details on specifics:
 - [Ledger distribution](./dist/ledger/README.md)
 - [SGX distribution](./dist/sgx/README.md)
 
+## Audits
+
+The RSK PowHSM project has undergone security audits. The audit reports can be found on the [audits](./audits/) directory.
+
 ## Report Security Vulnerabilities
 
 To report a vulnerability, please use the [vulnerability reporting guideline](./SECURITY.md) for details on how to do it.
