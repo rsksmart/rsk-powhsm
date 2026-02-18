@@ -62,7 +62,7 @@ Refer to the following documents for details on specifics:
 
 ## Audits
 
-The RSK PowHSM project has undergone security audits. The audit reports can be found on the [audits](./audits/) directory.
+The RSK PowHSM project has undergone security audits. The audit reports can be found in the [audits](./audits/) directory.
 
 ## Report Security Vulnerabilities
 
