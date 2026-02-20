@@ -202,7 +202,6 @@ class TestHSM2DongleBase(TestCase):
             receipt_merkle_proof=spec["mp"],
             btc_tx=spec["tx"],
             input_index=spec["input"],
-            sighash_computation_mode=spec["mode"],
             witness_script=spec["ws"],
             outpoint_value=spec["ov"],
         )
@@ -225,7 +224,7 @@ class TestHSM2Dongle(TestHSM2DongleBase):
         self.assertEqual(0x6A8F, self.hsm2dongle.ERR.SIGN.INVALID_PATH)
         self.assertEqual(
             0x6A97,
-            self.hsm2dongle.ERR.SIGN.INVALID_SIGHASH_COMPUTATION_MODE.value
+            self.hsm2dongle.ERR.SIGN.INVALID_EXTRADATA_SIZE.value
         )
 
     def test_connects_ok(self):

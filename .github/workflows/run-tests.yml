@@ -81,7 +81,7 @@ jobs:
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 #v5.0.0
         with:
           repository: rootstock/hsm-integration-test
-          ref: 5.4.0.plus
+          ref: enhancement/add-segwit-tests
           path: hsm-integration-test
           ssh-key: ${{ secrets.HSM_INTEGRATION_TEST_SSH_KEY }}
 
@@ -123,7 +123,7 @@ jobs:
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 #v5.0.0
         with:
           repository: rootstock/hsm-integration-test
-          ref: 5.4.0.plus
+          ref: enhancement/add-segwit-tests
           path: hsm-integration-test
           ssh-key: ${{ secrets.HSM_INTEGRATION_TEST_SSH_KEY }}
 

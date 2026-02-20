@@ -23,10 +23,7 @@
 from unittest.mock import Mock, patch, call
 from parameterized import parameterized
 from tests.ledger.test_hsm2dongle import TestHSM2DongleBase, HSM2DongleTestMode
-from ledger.hsm2dongle import (
-    HSM2DongleError,
-    SighashComputationMode,
-)
+from ledger.hsm2dongle import HSM2DongleError
 from ledgerblue.commException import CommException
 
 import logging
@@ -34,15 +31,15 @@ import logging
 logging.disable(logging.CRITICAL)
 
 
-class TestHSM2DongleSignAuthorizedSegwit(TestHSM2DongleBase):
+class TestHSM2DongleSignAuthorized(TestHSM2DongleBase):
     def setUp(self):
         super().setUp()
 
-        self.SEGWIT_SPEC = {
+        self.SPEC = {
             "exchanges": [
                 "q-path >02 01 11223344 D2040000",
-                "a-tx0  <02 02 0C",
-                "q-tx0  >02 02 0F000000 01 0E00 AABBCCDDEE",
+                "a-tx0  <02 02 0B",
+                "q-tx0  >02 02 0E000000 0E00 AABBCCDDEE",
                 "a-tx1  <02 02 03",
                 "q-tx1  >02 02 FF7788",
                 "a-tx2  <02 02 05",
@@ -61,7 +58,6 @@ class TestHSM2DongleSignAuthorizedSegwit(TestHSM2DongleBase):
                 "q-mp2  >02 08 77 05 aabbccddee",
                 "a-sig  <02 81 AABBCCDD",
             ],
-            "mode": SighashComputationMode.SEGWIT,
             "tx": "aabbccddeeff7788",
             "input": 1234,
             "ws": "22446688aa",
@@ -73,7 +69,7 @@ class TestHSM2DongleSignAuthorizedSegwit(TestHSM2DongleBase):
     @patch("ledger.hsm2dongle.HSM2DongleSignature")
     def test_ok(self, HSM2DongleSignatureMock):
         key_id = Mock(**{"to_binary.return_value": bytes.fromhex("11223344")})
-        spec = self.process_sign_auth_spec({**self.SEGWIT_SPEC, "keyid": key_id})
+        spec = self.process_sign_auth_spec({**self.SPEC, "keyid": key_id})
         HSM2DongleSignatureMock.return_value = "the-signature"
 
         self.assertEqual(
@@ -89,8 +85,8 @@ class TestHSM2DongleSignAuthorizedSegwit(TestHSM2DongleBase):
     def test_long_witness_script_length(self):
         exchanges = [
                 "q-path >02 01 11223344 D2040000",
-                "a-tx0  <02 02 0C",
-                "q-tx0  >02 02 0F000000 01 0D01 AABBCCDDEE",
+                "a-tx0  <02 02 0B",
+                "q-tx0  >02 02 0E000000 0D01 AABBCCDDEE",
                 "a-tx1  <02 02 03",
                 "q-tx1  >02 02 FF7788",
                 "a-tx2  <02 02 08",
@@ -99,7 +95,7 @@ class TestHSM2DongleSignAuthorizedSegwit(TestHSM2DongleBase):
         ]
         key_id = Mock(**{"to_binary.return_value": bytes.fromhex("11223344")})
         spec = self.process_sign_auth_spec({
-                **self.SEGWIT_SPEC, "exchanges": exchanges,
+                **self.SPEC, "exchanges": exchanges,
                 "keyid": key_id, "ws": self.buf(258).hex()
             }, stop="a-tx3", replace=CommException("forced-stop", 0xFFFF)
         )
@@ -112,8 +108,7 @@ class TestHSM2DongleSignAuthorizedSegwit(TestHSM2DongleBase):
         ("input", "a-tx1", 0x6A88, -2),
         ("tx_hash_mismatch", "a-tx3", 0x6A8D, -2),
         ("tx_version", "a-tx2", 0x6A8E, -2),
-        ("invalid_sighash_computation_mode", "a-tx3", 0x6A97, -2),
-        ("invalid_extradata_size", "a-tx1", 0x6A98, -2),
+        ("invalid_extradata_size", "a-tx1", 0x6A97, -2),
         ("unknown", "a-tx2", 0x6AFF, -10),
         ("unexpected", "a-tx3", [0, 0, 0xFF], -10),
     ])
@@ -125,7 +120,7 @@ class TestHSM2DongleSignAuthorizedSegwit(TestHSM2DongleBase):
 
         key_id = Mock(**{"to_binary.return_value": bytes.fromhex("11223344")})
         spec = self.process_sign_auth_spec(
-            {**self.SEGWIT_SPEC, "keyid": key_id},
+            {**self.SPEC, "keyid": key_id},
             stop=stop,
             replace=last_response
         )
@@ -139,7 +134,7 @@ class TestHSM2DongleSignAuthorizedSegwit(TestHSM2DongleBase):
     def test_btctx_unexpected_error_exc(self):
         key_id = Mock(**{"to_binary.return_value": bytes.fromhex("11223344")})
         spec = self.process_sign_auth_spec(
-            {**self.SEGWIT_SPEC, "keyid": key_id},
+            {**self.SPEC, "keyid": key_id},
             stop="a-tx2",
             replace=CommException("", 0xFF)
         )
@@ -149,6 +144,6 @@ class TestHSM2DongleSignAuthorizedSegwit(TestHSM2DongleBase):
         self.assert_exchange(spec["requests"])
 
 
-class TestHSM2DongleSGXSignAuthorizedSegwit(TestHSM2DongleSignAuthorizedSegwit):
+class TestHSM2DongleSGXSignAuthorized(TestHSM2DongleSignAuthorized):
     def get_test_mode(self):
         return HSM2DongleTestMode.SGX

@@ -54,8 +54,11 @@ class TestCase:
 
     @classmethod
     def from_json_file(cls, path):
-        with open(path, "r") as f:
-            return cls.create(json.load(f))
+        try:
+            with open(path, "r") as f:
+                return cls.create(json.load(f))
+        except Exception as e:
+            raise RuntimeError(f"While loading test case from {path}: {e}")
 
     @classmethod
     def create(cls, spec):

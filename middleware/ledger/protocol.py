@@ -31,9 +31,7 @@ from ledger.hsm2dongle import (
     HSM2DongleTimeoutError,
     HSM2DongleCommError,
     HSM2FirmwareVersion,
-    SighashComputationMode,
 )
-from comm.bitcoin import get_unsigned_tx, get_tx_hash
 
 
 class HSM2ProtocolLedger(HSM2Protocol):
@@ -298,27 +296,16 @@ class HSM2ProtocolLedger(HSM2Protocol):
             # Shorthand
             msg = request["message"]
 
-            # Make sure the transaction
-            # is fully unsigned before sending.
-            try:
-                unsigned_btc_tx = get_unsigned_tx(msg["tx"])
-                self.logger.debug("Unsigned BTC tx: %s", get_tx_hash(unsigned_btc_tx))
-            except Exception as e:
-                self.logger.error("Error unsigning BTC tx: %s", str(e))
-                return (self.ERROR_CODE_INVALID_MESSAGE,)
-
             try:
                 self.ensure_connection()
                 sign_result = self.hsm2dongle.sign_authorized(
                     key_id=request["keyId"],
                     rsk_tx_receipt=request["auth"]["receipt"],
                     receipt_merkle_proof=request["auth"]["receipt_merkle_proof"],
-                    btc_tx=unsigned_btc_tx,
+                    btc_tx=msg["tx"],
                     input_index=msg["input"],
-                    sighash_computation_mode=SighashComputationMode(
-                        msg["sighashComputationMode"]),
-                    witness_script=msg.get("witnessScript"),
-                    outpoint_value=msg.get("outpointValue")
+                    witness_script=msg["witnessScript"],
+                    outpoint_value=msg["outpointValue"]
                 )
             except HSM2DongleTimeoutError:
                 self.logger.error("Dongle timeout signing")
