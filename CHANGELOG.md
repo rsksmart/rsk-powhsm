@@ -1,5 +1,25 @@
 # Changelog
 
+## [5.6.2] - 20/07/2026
+
+### Features/enhancements
+
+- Pinned middleware docker image apt sources to snapshot.debian.org
+- Added copilot instructions for code reviewing
+- Added security audits information
+- Updated bug bounty program
+- Added unit tests to key/value store
+- Added unit tests to Ledger Signer button behavior within info and screensaver screens
+- Added unit tests to Ledger and SGX platform modules
+- Added getrandom failure unit test case to SGX BIP32 unit tests
+- Added bootloader_main unit test case to Ledger UI bootloader unit tests
+- Failing code coverage task if coverage falls below a threshold either for middleware or firmware
+
+### Fixes
+
+- Fixed logic in block utils' BLOCK_ALREADY_VALID() macro
+- Fixed X509 CRL type detection upon download
+
 ## [5.6.1] - 10/11/2025
 
 ### Features/enhancements
