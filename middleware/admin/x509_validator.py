@@ -39,17 +39,22 @@ class X509CertificateValidator:
             if len(crldps) == 0:
                 raise RuntimeError("No CRL distribution points found in certificate")
 
+            errors = []
             for crldp in crldps:
                 url = crldp.full_name[0].value
                 try:
                     crl_info = crl_getter(url)
                     break
-                except RuntimeError:
-                    pass
+                except RuntimeError as e:
+                    errors.append(str(e))
 
             if crl_info is None:
+                error_str = ""
+                if len(errors) > 0:
+                    error_str = " The following errors were recorded: " + \
+                                "; ".join(errors)
                 raise RuntimeError("None of the distribution points "
-                                   "provided a valid CRL")
+                                   f"provided a valid CRL.{error_str}")
 
             return crl_info
         except Exception as e:
