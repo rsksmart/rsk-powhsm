@@ -38,14 +38,31 @@ def get_intel_pcs_x509_crl(url):
         raise RuntimeError(f"Error fetching CRL from {url}")
 
     try:
-        # Parse CRL
-        ctype = ra_res.headers["Content-Type"]
-        if ctype in ["application/x-pem-file"]:
-            crl = x509.load_pem_x509_crl(ra_res.content)
-        elif ctype in ["application/pkix-crl", "application/x-x509-ca-cert"]:
-            crl = x509.load_der_x509_crl(ra_res.content)
+        # Parse CRL. PCS endpoints may return generic MIME types (e.g.
+        # application/octet-stream) even when the payload is DER.
+        raw_ctype = ra_res.headers.get("Content-Type", "")
+        ctype = raw_ctype.split(";", 1)[0].strip().lower()
+        pem_types = {
+            "application/x-pem-file"
+        }
+        der_types = {
+            "application/pkix-crl",
+            "application/x-x509-ca-cert",
+        }
+        content = ra_res.content
+        content_stripped = content.lstrip()
+        pem_hint = \
+            content_stripped.startswith(b"-----BEGIN") or \
+            url.lower().endswith(".pem")
+        der_hint = \
+            url.lower().endswith(".der")
+
+        if ctype in pem_types or pem_hint:
+            crl = x509.load_pem_x509_crl(content)
+        elif ctype in der_types or der_hint:
+            crl = x509.load_der_x509_crl(content)
         else:
-            raise RuntimeError(f"Unknown CRL encoding: {ctype}")
+            raise RuntimeError(f"Unable to parse CRL with content-type <{raw_ctype}>")
 
         # Parse certification chain (if any)
         issuer_chain = ra_res.headers.get("SGX-PCK-CRL-Issuer-Chain")
