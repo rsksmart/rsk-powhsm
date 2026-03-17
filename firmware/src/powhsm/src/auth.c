@@ -70,11 +70,15 @@ unsigned int auth_sign(volatile unsigned int rx) {
                         sizeof(auth.tx_hash));
 
     // Check we receive the amount of bytes we requested
-    // (this is an extra check on the legacy protocol, not
-    // really adding much validation)
     if (auth.state != STATE_AUTH_START &&
         auth.state != STATE_AUTH_MERKLEPROOF &&
         APDU_DATA_SIZE(rx) != auth.expected_bytes)
+        THROW(ERR_AUTH_INVALID_DATA_SIZE);
+
+    // Special case for the merkle proof step: we request each
+    // chunk to be at most the expected bytes
+    if (auth.state == STATE_AUTH_MERKLEPROOF &&
+        APDU_DATA_SIZE(rx) > auth.expected_bytes)
         THROW(ERR_AUTH_INVALID_DATA_SIZE);
 
     switch (APDU_OP() & 0xF) {
