@@ -78,7 +78,7 @@ unsigned int auth_sign(volatile unsigned int rx) {
     // Special case for the merkle proof step: we request each
     // chunk to be at most the expected bytes
     if (auth.state == STATE_AUTH_MERKLEPROOF &&
-        APDU_DATA_SIZE(rx) > auth.expected_bytes)
+        (APDU_DATA_SIZE(rx) == 0 || APDU_DATA_SIZE(rx) > auth.expected_bytes))
         THROW(ERR_AUTH_INVALID_DATA_SIZE);
 
     switch (APDU_OP() & 0xF) {
