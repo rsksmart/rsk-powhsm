@@ -186,6 +186,10 @@ unsigned int auth_sign_handle_merkleproof(volatile unsigned int rx) {
         // Read number of nodes (single byte)
         if (auth.trie.total_nodes == 0) {
             auth.trie.total_nodes = APDU_DATA_PTR[apdu_offset++];
+            if (auth.trie.total_nodes == 0) {
+                LOG("[E] Expected a nonempty MP\n");
+                THROW(ERR_AUTH_INVALID_DATA_SIZE);
+            }
             auth.trie.current_node = 0;
             auth.trie.state = AUTH_TRIE_STATE_NODE_LENGTH;
 
