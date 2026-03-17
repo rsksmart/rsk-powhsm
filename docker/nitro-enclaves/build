@@ -2,14 +2,43 @@
 
 DOCKER_DIR=$(realpath $(dirname $0))
 DOCKER_IMAGE=hsm:ane-enclave
-TCPSIGNER_BINARY=$DOCKER_DIR/tcpsigner
+THE_BINARY=$DOCKER_DIR/thebinary
+THE_CERTIFICATES=$DOCKER_DIR/ca-certificates.crt
 FIRMWARE_DIR=$DOCKER_DIR/../../firmware
 EIF_OUTPUT_PATH=$DOCKER_DIR/output
 
-# Build tcpsigner and target image
-$FIRMWARE_DIR/build/build-tcpsigner-static
-cp -f $FIRMWARE_DIR/src/tcpsigner/tcpsigner $TCPSIGNER_BINARY
-touch -d@0 $TCPSIGNER_BINARY
+print_usage() {
+    echo "Usage: $0 [tcpsigner|kmsclient|binary]"
+    exit 1
+}
+
+if [ -z "$1" ]; then
+    print_usage
+fi
+
+if [[ "$1" == "tcpsigner" ]]; then
+    # Build tcpsigner and target image
+    $FIRMWARE_DIR/build/build-tcpsigner-static
+    cp -f $FIRMWARE_DIR/src/tcpsigner/tcpsigner $THE_BINARY
+    rm -f $THE_CERTIFICATES
+elif [[ "$1" == "kmsclient" ]]; then
+    $FIRMWARE_DIR/src/kms-client/build
+    cp -f $FIRMWARE_DIR/src/kms-client/kms_client $THE_BINARY
+    rm -f $THE_CERTIFICATES
+
+    docker run --name tcpstatic-build hsm:tcpstatic
+    docker cp tcpstatic-build:/etc/ssl/certs/ca-certificates.crt $THE_CERTIFICATES
+    docker rm tcpstatic-build
+elif [[ "$1" == "binary" ]]; then
+    rm -f $THE_CERTIFICATES
+    docker cp tcpstatic-build:/etc/ssl/certs/ca-certificates.crt $THE_CERTIFICATES
+else
+    print_usage
+fi
+
+
+touch -d@0 $THE_BINARY
+touch -d@0 $THE_CERTIFICATES
 docker buildx build --build-arg SOURCE_DATE_EPOCH=0 --output type=image,name=$DOCKER_IMAGE,rewrite-timestamp=true --no-cache -f $DOCKER_DIR/Dockerfile.enclave $DOCKER_DIR
 
 # Build EIF builder image

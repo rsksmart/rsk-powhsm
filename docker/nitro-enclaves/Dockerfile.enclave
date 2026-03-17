@@ -1,5 +1,6 @@
 FROM debian:bookworm-slim@sha256:56ff6d36d4eb3db13a741b342ec466f121480b5edded42e4b7ee850ce7a418ee
 
-COPY --chown=0:0 --chmod=770 tcpsigner /tcpsigner
+COPY --chown=0:0 --chmod=770 thebinary /thebinary
+COPY --chown=0:0 --chmod=660 ca-certificates.crt /ca-certificates.crt
 
-ENTRYPOINT ["/tcpsigner"]
+ENTRYPOINT ["/thebinary"]

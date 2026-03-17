@@ -22,3 +22,17 @@ RUN curl -L -o secp256k1.tar.gz \
     make && \
     ln -s $(realpath src/libsecp256k1.a) $TCPSIGNER_STATIC_LIBS/libsecp256k1.a
 
+# Build mbedtls
+ENV TCPSIGNER_MBEDTLS=/opt/mbedtls
+RUN curl -L -o mbedtls.tar.bz2 \
+    https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-3.6.5/mbedtls-3.6.5.tar.bz2 && \
+    mkdir $TCPSIGNER_MBEDTLS && \
+    tar -xjf mbedtls.tar.bz2 --strip-components=1 -C $TCPSIGNER_MBEDTLS && \
+    rm -f mbedtls.tar.bz2 && \
+    cd $TCPSIGNER_MBEDTLS && \
+    cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_TESTING=Off . && \
+    cmake --build . && \
+    ln -s $(realpath library/libmbedtls.a) $TCPSIGNER_STATIC_LIBS/libmbedtls.a && \
+    ln -s $(realpath library/libmbedcrypto.a) $TCPSIGNER_STATIC_LIBS/libmbedcrypto.a && \
+    ln -s $(realpath library/libmbedx509.a) $TCPSIGNER_STATIC_LIBS/libmbedx509.a
+

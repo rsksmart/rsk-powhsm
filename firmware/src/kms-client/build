@@ -1,0 +1,16 @@
+#!/bin/bash
+
+if [[ $1 == "exec" ]]; then
+    cd firmware/src/kms-client
+    make clean $2
+else
+    # Script directory
+    pushd $(dirname $0) > /dev/null
+    REPO_ROOT=$(pwd)/../../..
+    popd > /dev/null
+
+    SCRIPT=$(realpath $0 --relative-to $REPO_ROOT)
+
+    $REPO_ROOT/docker/tcpstatic/do /hsm2 "$SCRIPT exec $1"
+fi
+
