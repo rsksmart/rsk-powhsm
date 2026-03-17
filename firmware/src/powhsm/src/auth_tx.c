@@ -39,11 +39,22 @@ static void btctx_cb(const btctx_cb_event_t event) {
         &auth.tx.tx_hash_ctx, auth.tx.ctx.raw, auth.tx.ctx.raw_size);
 
     if (event == BTCTX_EV_VERSION) {
+        if (auth.tx.ctx.parsed.version != 1 &&
+            auth.tx.ctx.parsed.version != 2) {
+            LOG("[E] Unsupported TX Version: %u\n", auth.tx.ctx.parsed.version);
+            THROW(ERR_AUTH_INVALID_TX_VERSION);
+        }
+
         hash_sha256_update(
             &auth.tx.sig_hash_ctx, auth.tx.ctx.raw, auth.tx.ctx.raw_size);
     }
 
     if (event == BTCTX_EV_VIN_COUNT) {
+        if (auth.input_index_to_sign >= auth.tx.ctx.parsed.varint.value) {
+            LOG("[E] Input index to sign > number of inputs.\n");
+            THROW(ERR_AUTH_INVALID_TX_INPUT_INDEX);
+        }
+
         hash_sha256_init(&auth.tx.prevouts_hash_ctx);
         hash_sha256_init(&auth.tx.sequence_hash_ctx);
         auth.tx.aux_offset = 0;
@@ -164,8 +175,7 @@ unsigned int auth_sign_handle_btctx(volatile unsigned int rx) {
                 THROW(ERR_AUTH_INVALID_DATA_SIZE);
             }
             // BTC tx length includes the length of the length
-            // and the length of the sighash computation mode and
-            // extradata length
+            // and the extradata length
             auth.tx.remaining_bytes -= TX_METADATA_SIZE;
             // Init both hash operations
             hash_sha256_init(&auth.tx.tx_hash_ctx);
