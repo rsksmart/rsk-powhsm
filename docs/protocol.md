@@ -68,9 +68,9 @@ details).
 // that needs to be signed.
 // (iii) the input index of the BTC transaction
 // that needs to be signed.
-// (iv) the witness script for the input that needs to be signed.
+// (iv) the non-empty witness script for the input that needs to be signed.
 // (v) the outpoint value (i.e., amount of the UTXO) for the input 
-// that needs to be signed.
+// that needs to be signed; must be > 0 and <= 0xffffffffffffffff
 //
 // For the signing process to be successful, the computed receipts trie root
 // must match the device's current 'ancestor_receipts_root'.
