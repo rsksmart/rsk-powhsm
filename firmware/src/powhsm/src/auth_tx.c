@@ -187,12 +187,12 @@ unsigned int auth_sign_handle_btctx(volatile unsigned int rx) {
             auth.tx.extradata_size = 0;
             auth.tx.extradata_size += APDU_DATA_PTR[apdu_offset++];
             auth.tx.extradata_size += APDU_DATA_PTR[apdu_offset++] << 8;
-            // Validate computation mode and init tx parsing context
-            btctx_init(&auth.tx.ctx, &btctx_cb);
+            // Validate extradata size and init tx parsing context
             if (!auth.tx.extradata_size) {
                 LOG("[E] Invalid extradata size");
                 THROW(ERR_AUTH_INVALID_EXTRADATA_SIZE);
             }
+            btctx_init(&auth.tx.ctx, &btctx_cb);
         }
 
         auth.tx.remaining_bytes -= btctx_consume(
