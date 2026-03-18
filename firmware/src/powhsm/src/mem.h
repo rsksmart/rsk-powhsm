@@ -32,7 +32,6 @@
 #include "bc_block.h"
 #include "bc_state.h"
 #include "btctx.h"
-#include "btcscript.h"
 #include "auth.h"
 #include "attestation.h"
 #include "heartbeat.h"
