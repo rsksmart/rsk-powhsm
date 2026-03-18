@@ -251,7 +251,7 @@ unsigned int auth_sign_handle_btctx(volatile unsigned int rx) {
         // Add SIGHASH_ALL hash type at the end
         hash_sha256_update(&auth.tx.sig_hash_ctx,
                            (uint8_t[])SIGHASH_ALL_BYTES,
-                           sizeof(SIGHASH_ALL_SIZE));
+                           SIGHASH_ALL_SIZE);
         hash_sha256_final(&auth.tx.sig_hash_ctx, auth.sig_hash);
 
         hash_sha256_init(&auth.tx.sig_hash_ctx);
