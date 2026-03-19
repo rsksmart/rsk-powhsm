@@ -422,6 +422,13 @@ DIGIT_T mpShiftLeft(DIGIT_T a[], const DIGIT_T *b,
     size_t i, y, nw, bits;
     DIGIT_T mask, carry, nextcarry;
 
+    // Special case handling: no shift
+    if (shift == 0)
+    {
+        mpSetEqual(a, b, ndigits);
+        return 0;
+    }
+
     /* Do we shift whole digits? */
     if (shift >= BITS_PER_DIGIT)
     {
@@ -466,6 +473,13 @@ DIGIT_T mpShiftRight(DIGIT_T a[], const DIGIT_T b[], size_t shift, size_t ndigit
     /* [v2.1] Modified to cope with shift > BITS_PERDIGIT */
     size_t i, y, nw, bits;
     DIGIT_T mask, carry, nextcarry;
+
+    // Special case handling: no shift
+    if (shift == 0)
+    {
+        mpSetEqual(a, b, ndigits);
+        return 0;
+    }
 
     /* Do we shift whole digits? */
     if (shift >= BITS_PER_DIGIT)
