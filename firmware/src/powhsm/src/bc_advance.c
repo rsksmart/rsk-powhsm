@@ -241,7 +241,7 @@ static void validate_mm_hash() {
         FAIL(BTC_CB_TXN_INVALID);
     }
 
-    if (ptr + RSK_TAG_LEN + HASH_SIZE > last) {
+    if (ptr + RSK_TAG_LEN + HASH_SIZE > last + 1) {
         FAIL(BTC_CB_TXN_INVALID);
     }
 
