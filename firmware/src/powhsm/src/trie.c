@@ -160,6 +160,10 @@ uint8_t trie_consume(uint8_t *buf, const uint8_t len) {
             switch (svarint_result()) {
             case SVARINT_ST_DONE:
                 ctx->length = ctx->varint.value;
+                if (ctx->length == 0) {
+                    ctx->state = TRIE_ERR_INVALID;
+                    return i + 1;
+                }
                 ctx->callback(TRIE_EV_SHARED_PREFIX_LENGTH);
                 SHARED_PREFIX_TO_BYTES();
                 ctx->state = TRIE_ST_SHARED_PREFIX;
