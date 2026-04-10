@@ -6,19 +6,19 @@ WORKDIR /hsm2
 
 RUN apt-get update && \
     apt-get install -y apt-utils vim procps && \
-    apt-get install -y build-essential=12.9 && \
+    apt-get install -y build-essential && \
     apt-get install -y git && \
     apt-get install -y lcov && \
-    apt-get install -y libmbedtls-dev=2.28.3-1
+    apt-get install -y libmbedtls-dev
 
 # Python package prerequisites
 RUN apt-get install -y \
-    libsecp256k1-dev=0.2.0-2 \
-    libudev1=252.39-1~deb12u1 \
-    libudev-dev=252.39-1~deb12u1 \
-    libusb-1.0-0-dev=2:1.0.26-1 \
-    libffi-dev=3.4.4-1 \
-    libjpeg-dev=1:2.1.5-2
+    libsecp256k1-dev \
+    libudev1 \
+    libudev-dev \
+    libusb-1.0-0-dev \
+    libffi-dev \
+    libjpeg-dev
 
 COPY requirements.txt /hsm2/requirements.txt
 RUN pip install --timeout=${PIP_TIMEOUT} -r requirements.txt --require-hashes
