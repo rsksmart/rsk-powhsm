@@ -1,5 +1,6 @@
 FROM debian:bookworm@sha256:c66c66fac809bfb56a8001b12f08181a49b6db832d2c8ddabe22b6374264055f
 
+SHELL ["/bin/bash", "-c"]
 WORKDIR /hsm2
 
 RUN apt-get update && \
@@ -35,4 +36,21 @@ RUN curl -L -o mbedtls.tar.bz2 \
     ln -s $(realpath library/libmbedtls.a) $TCPSIGNER_STATIC_LIBS/libmbedtls.a && \
     ln -s $(realpath library/libmbedcrypto.a) $TCPSIGNER_STATIC_LIBS/libmbedcrypto.a && \
     ln -s $(realpath library/libmbedx509.a) $TCPSIGNER_STATIC_LIBS/libmbedx509.a
+
+# Install rust and cargo
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain 1.95.0
+
+# Clone AWS Nitro Enclaves NSM API
+ENV TCPSIGNER_NSM=/opt/nsm-api
+RUN curl -L -o nsm-api.tar.gz \
+    https://github.com/aws/aws-nitro-enclaves-nsm-api/archive/refs/tags/v0.5.0.tar.gz && \
+    mkdir $TCPSIGNER_NSM && \
+    tar -xzf nsm-api.tar.gz --strip-components=1 -C $TCPSIGNER_NSM && \
+    rm -f nsm-api.tar.gz
+
+# Build NSM API
+RUN source $HOME/.cargo/env && \
+    cd $TCPSIGNER_NSM && \
+    make nsm-lib && \
+    ln -s $(realpath target/release/libnsm.a) $TCPSIGNER_STATIC_LIBS/libnsm.a
 
