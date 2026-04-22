@@ -270,7 +270,8 @@ class HSM2ProtocolLedger(HSM2Protocol):
                 return (message_validation,)
 
             self.logger.info(
-                "Sign unauthorized hash request for key id '%s'", request["keyId"]
+                "Sign unauthorized hash request for key id '%s' (hash '%s')",
+                request["keyId"], request["message"]["hash"],
             )
             try:
                 self.ensure_connection()
@@ -480,7 +481,7 @@ class HSM2ProtocolLedger(HSM2Protocol):
             return (self.ERROR_CODE_DEVICE,)
 
     def _signer_heartbeat(self, request):
-        self.logger.info("Signer heartbeat")
+        self.logger.info("Signer heartbeat (udValue '%s')", request["udValue"])
         try:
             self.ensure_connection()
 
@@ -509,7 +510,7 @@ class HSM2ProtocolLedger(HSM2Protocol):
             return (self.ERROR_CODE_DEVICE,)
 
     def _ui_heartbeat(self, request):
-        self.logger.info("UI heartbeat")
+        self.logger.info("UI heartbeat (udValue '%s')", request["udValue"])
         try:
             self.ensure_connection()
 
