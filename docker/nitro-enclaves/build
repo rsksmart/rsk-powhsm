@@ -22,7 +22,7 @@ if [[ "$1" == "tcpsigner" ]]; then
     cp -f $FIRMWARE_DIR/src/tcpsigner/tcpsigner $THE_BINARY
     rm -f $THE_CERTIFICATES
 elif [[ "$1" == "kmsclient" ]]; then
-    $FIRMWARE_DIR/src/kms-client/build
+    $FIRMWARE_DIR/src/kms-client/build vsock
     cp -f $FIRMWARE_DIR/src/kms-client/kms_client $THE_BINARY
     rm -f $THE_CERTIFICATES
 

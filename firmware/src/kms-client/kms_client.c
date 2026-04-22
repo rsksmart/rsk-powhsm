@@ -26,6 +26,8 @@
 #include <mbedtls/sha256.h>
 #include <mbedtls/md.h>
 
+#include <nsm.h>
+
 #include "cJSON.h"
 
 #define REGION            "us-east-2"
@@ -460,8 +462,48 @@ static void free_credentials() {
     free(G_session_token);
 }
 
+static void print_hex(const uint8_t *data, size_t len) {
+    for (size_t i = 0; i < len; i++) {
+        printf("%02x", data[i]);
+    }
+    printf("\n");
+}
+
+/* Maximum size of the attestation document */
+#define NSM_MAX_ATTESTATION_DOC_SIZE (16 * 1024)
+
+static void get_attestation() {
+    printf("Getting attestation document from NSM...\n");
+
+    int nsm_fd = nsm_lib_init();
+    if (nsm_fd < 0) {
+        printf("NSM lib init failed\n");
+        return;
+    }
+
+    /* Get the attestation document. */
+    uint8_t att_doc[NSM_MAX_ATTESTATION_DOC_SIZE];
+    uint32_t att_doc_len = NSM_MAX_ATTESTATION_DOC_SIZE;
+    int rc = nsm_get_attestation_doc(nsm_fd, NULL, 0, NULL, 0, NULL, 0, att_doc, &att_doc_len);
+    if (rc) {
+        nsm_lib_exit(nsm_fd);
+        printf("Failed to get attestation document: %d\n", rc);
+        return;
+    }
+
+    printf("Attestation document:\n");
+    print_hex(att_doc, att_doc_len);
+
+    nsm_lib_exit(nsm_fd);
+}
+
 int main(void)
 {
+
+#ifndef USE_TCP
+    get_attestation();
+#endif
+
     load_credentials();
 
     const char *kms_host = "kms." REGION ".amazonaws.com";

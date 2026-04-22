@@ -23,7 +23,7 @@
 PROG = kms_client
 PROG_TCP = kms_client_tcp
 OBJS = kms_client.o cJSON.o
-CFLAGS += -I$(TCPSIGNER_MBEDTLS)/include
+CFLAGS += -I$(TCPSIGNER_MBEDTLS)/include -I$(TCPSIGNER_NSM)/target/release
 
 all: vsock
 
@@ -32,7 +32,7 @@ vsock: $(PROG)
 tcp: $(PROG_TCP)
 
 $(PROG): $(OBJS)
-	$(CC) -o $@ $^ -L$(TCPSIGNER_STATIC_LIBS) -lmbedtls -lmbedx509 -lmbedcrypto
+	$(CC) -o $@ $^ -L$(TCPSIGNER_STATIC_LIBS) -lmbedtls -lmbedx509 -lmbedcrypto -lnsm
 
 $(PROG_TCP): CFLAGS += -DUSE_TCP
 $(PROG_TCP): $(OBJS)
