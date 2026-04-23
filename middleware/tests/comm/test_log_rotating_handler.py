@@ -34,6 +34,7 @@ from comm.log_rotating_handler import LogRotatingHandler
 class TestLogRotatingHandler(TestCase):
 
     def setUp(self):
+        self._saved_disable_level = logging.root.manager.disable
         logging.disable(logging.NOTSET)
         self.tmpdir = tempfile.mkdtemp()
         self.log_path = os.path.join(self.tmpdir, "test.log")
@@ -52,7 +53,7 @@ class TestLogRotatingHandler(TestCase):
         self.logger.removeHandler(self.handler)
         self.handler.close()
         shutil.rmtree(self.tmpdir, ignore_errors=True)
-        logging.disable(logging.CRITICAL)
+        logging.disable(self._saved_disable_level)
 
     def test_ok(self):
         self.logger.info("hello")

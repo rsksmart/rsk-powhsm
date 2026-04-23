@@ -59,11 +59,13 @@ class LogRotatingHandler(logging.handlers.TimedRotatingFileHandler):
                 shutil.copyfileobj(f_in, f_out)
             shutil.copystat(source, tmp_path)
             os.replace(tmp_path, dest)
-        except BaseException:
-            try:
-                os.remove(tmp_path)
-            except OSError:
-                # Best-effort cleanup; do not mask the outer exception.
-                pass
-            raise
+        finally:
+            # On success os.replace already consumed tmp_path, so this
+            # block is a no-op; on any failure it removes the partial
+            # temp without masking the outer exception.
+            if os.path.exists(tmp_path):
+                try:
+                    os.remove(tmp_path)
+                except OSError:
+                    pass
         os.remove(source)
