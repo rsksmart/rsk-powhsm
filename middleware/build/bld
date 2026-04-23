@@ -5,7 +5,7 @@ if [[ -z "$1" ]]; then
     exit 1
 fi
 
-HIDDENIMPORTS="--hiddenimport _cffi_backend"
+HIDDENIMPORTS="--hiddenimport _cffi_backend --hiddenimport comm.log_rotating_handler"
 if [[ "$1" == "lbutils" ]]; then
     HIDDENIMPORTS="--hiddenimport ledgerblue.loadApp --hiddenimport ledgerblue.deleteApp --hiddenimport ledgerblue.setupCustomCA --hiddenimport ledgerblue.resetCustomCA --hiddenimport ledgerblue.genCAPair --hiddenimport ledgerblue.listApps"
 fi
