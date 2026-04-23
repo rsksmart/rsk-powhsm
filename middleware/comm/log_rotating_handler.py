@@ -46,6 +46,9 @@ class LogRotatingHandler(logging.handlers.TimedRotatingFileHandler):
         # it, then atomically move it into place. This guarantees that a
         # failure mid-compression cannot leave a partial .gz at `dest` or
         # destroy `source` before the compressed copy is durable.
+        # No-op when source is missing, mirroring the stdlib default path.
+        if not os.path.exists(source):
+            return
         dest_dir = os.path.dirname(dest) or "."
         fd, tmp_path = tempfile.mkstemp(
             prefix=os.path.basename(dest) + ".",
@@ -54,8 +57,7 @@ class LogRotatingHandler(logging.handlers.TimedRotatingFileHandler):
         )
         os.close(fd)
         try:
-            with open(source, "rb") as f_in, \
-                    gzip.open(tmp_path, "wb") as f_out:
+            with open(source, "rb") as f_in, gzip.open(tmp_path, "wb") as f_out:
                 shutil.copyfileobj(f_in, f_out)
             shutil.copystat(source, tmp_path)
             os.replace(tmp_path, dest)
