@@ -67,5 +67,6 @@ class LogRotatingHandler(logging.handlers.TimedRotatingFileHandler):
                 try:
                     os.remove(tmp_path)
                 except OSError:
+                    # Best-effort; do not mask the outer exception.
                     pass
         os.remove(source)
