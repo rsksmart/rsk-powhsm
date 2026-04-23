@@ -90,8 +90,9 @@ class TestLogRotatingHandler(TestCase):
         self.handler.flush()
 
         with patch(
-                "comm.log_rotating_handler.shutil.copyfileobj",
-                side_effect=OSError("disk full")):
+            "comm.log_rotating_handler.shutil.copyfileobj",
+            side_effect=OSError("disk full")
+        ):
             with self.assertRaises(OSError):
                 self.handler.doRollover()
 
@@ -100,11 +101,9 @@ class TestLogRotatingHandler(TestCase):
             self.assertEqual("before-failure\n", f.read())
 
         # No .gz backup was produced for this rollover
-        gz_entries = [e for e in os.listdir(self.tmpdir)
-                      if e.endswith(".gz")]
+        gz_entries = [e for e in os.listdir(self.tmpdir) if e.endswith(".gz")]
         self.assertEqual([], gz_entries)
 
         # No leftover .tmp files from the compression attempt
-        tmp_entries = [e for e in os.listdir(self.tmpdir)
-                       if e.endswith(".tmp")]
+        tmp_entries = [e for e in os.listdir(self.tmpdir) if e.endswith(".tmp")]
         self.assertEqual([], tmp_entries)
