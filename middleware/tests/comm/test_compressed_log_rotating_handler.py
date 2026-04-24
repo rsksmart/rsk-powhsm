@@ -28,20 +28,20 @@ import tempfile
 from unittest import TestCase
 from unittest.mock import patch
 
-from comm.log_rotating_handler import LogRotatingHandler
+from comm.compressed_log_rotating_handler import CompressedLogRotatingHandler
 
 
-class TestLogRotatingHandler(TestCase):
+class TestCompressedLogRotatingHandler(TestCase):
 
     def setUp(self):
         self._saved_disable_level = logging.root.manager.disable
         logging.disable(logging.NOTSET)
         self.tmpdir = tempfile.mkdtemp()
         self.log_path = os.path.join(self.tmpdir, "test.log")
-        self.logger = logging.getLogger("test_log_rotating_handler")
+        self.logger = logging.getLogger("test_compressed_log_rotating_handler")
         self.logger.setLevel(logging.DEBUG)
         self.logger.propagate = False
-        self.handler = LogRotatingHandler(
+        self.handler = CompressedLogRotatingHandler(
             self.log_path,
             when="midnight",
             interval=1,
@@ -90,7 +90,7 @@ class TestLogRotatingHandler(TestCase):
         self.handler.flush()
 
         with patch(
-            "comm.log_rotating_handler.shutil.copyfileobj",
+            "comm.compressed_log_rotating_handler.shutil.copyfileobj",
             side_effect=OSError("disk full")
         ):
             with self.assertRaises(OSError):
