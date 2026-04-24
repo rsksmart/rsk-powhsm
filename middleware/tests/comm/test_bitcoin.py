@@ -26,7 +26,7 @@ from comm.bitcoin import (
     get_signature_hash_for_p2sh_p2wsh_input,
     get_block_hash_as_int,
     get_merkle_root,
-    get_tx_hash_for_unsigned_tx,
+    get_tx_hash,
 )
 
 import logging
@@ -88,20 +88,6 @@ f0b6ef81b2bde55140e8700000000
 
 SAMPLE_3_SIGHASH_I0 = "db4ca3f81a68996e7c51e7e138524a53ab9770410f628199dc6ab5a5bac73e5c"
 
-SAMPLE_3_PARTIALLY_SIGNED = """
-010000000187ace6cb83436c876dd2233dfadf537068ecb1b9a0000d3590c9072d46d2bf4c00000000b60
-048304502210084ddb5c7c6b57405c4068fa6634c8dd736d53ebf1ea878ad962026eecb86b57502206988
-e345a0af65ca5a72418580896028cdd1834404fe97774234725e494a18f101004c69522102cd53fc53a07
-f211641a677d250f6de99caf620e8e77071e811a28b3bcddf0be1210362634ab57dae9cb373a5d536e66a
-8c4f67468bbcfb063809bab643072d78a1242103c5946b3fbae03a654237da863c9ed534e0878657175b1
-32b8ca630f245df04db53aeffffffff02b030eb0b000000001976a914f6b794549667efd57f083e018c1a
-4726c73ccb4388ac00301a1e0100000017a914896ed9f3446d51b5510f7f0b6ef81b2bde55140e8700000
-000
-""".replace("\n", "").replace("\r", "")
-
-SAMPLE_3_UNSIGNED_HASH = (
-    "f7e2b314eb12bd13481c5325ae3839fdbe5c508dbc7e24a44aac5e9992d07718")
-
 SAMPLE_4 = """
 01000000025cc070156cd1487db3c0c0d22affe09f208950bbe1bd6d2bc4a7c65749cee0c1000000006e000000
 4c69522102cd53fc53a07f211641a677d250f6de99caf620e8e77071e811a28b3bcddf0be1210362634ab57dae
@@ -117,24 +103,6 @@ b5510f7f0b6ef81b2bde55140e8700000000
 SAMPLE_4_SIGHASH_I0 = "ef95325f9c819476a54097abe466374f8293f26637af3686833d73dc29be2093"
 SAMPLE_4_SIGHASH_I1 = "20d8b8e413868c08e987ae11c7280b95293c05f0e191ef847a6060593b759814"
 
-SAMPLE_4_PARTIALLY_SIGNED = """
-01000000025cc070156cd1487db3c0c0d22affe09f208950bbe1bd6d2bc4a7c65749cee0c100000000b5004730
-4402203743f5bc4632b46fa261de4bdeaa1b3d617bd9dcaaf9fb3f9272c95c7f7b8b11022055464b2dae639037
-b42b3bc559bcf7580a7aa3e421c1511a6419ae7338029cc601004c69522102cd53fc53a07f211641a677d250f6
-de99caf620e8e77071e811a28b3bcddf0be1210362634ab57dae9cb373a5d536e66a8c4f67468bbcfb063809ba
-b643072d78a1242103c5946b3fbae03a654237da863c9ed534e0878657175b132b8ca630f245df04db53aeffff
-ffffbe6be3ddaf27e9609c9b319db9c97eae36e88dcda760ff4e0b77ccd086c7f4c600000000b5004730440220
-046b94168f1181a81ac8b4d7543b6392743d81a5b0c494db95be12ce2d9ba91002201dc5ad6c9f7b6171678a78
-a910fbd59150d8f86ef39f3244a82761cbf87670c801004c69522102cd53fc53a07f211641a677d250f6de99ca
-f620e8e77071e811a28b3bcddf0be1210362634ab57dae9cb373a5d536e66a8c4f67468bbcfb063809bab64307
-2d78a1242103c5946b3fbae03a654237da863c9ed534e0878657175b132b8ca630f245df04db53aeffffffff02
-1044d871020000001976a914f6b794549667efd57f083e018c1a4726c73ccb4388ac008d380c0100000017a914
-896ed9f3446d51b5510f7f0b6ef81b2bde55140e8700000000
-""".replace("\n", "").replace("\r", "")
-
-SAMPLE_4_UNSIGNED_HASH = (
-    "f8318d6c071efd988411cd63ee7d3fbf736d5ed38ba0679fa0be7acddb1bddda")
-
 SAMPLE_5 = """
 01000000024c62cd14e351b13b960e76502307cf26fc1dcf8681e4b0d9d1bb6ca69156d90f030000
 00220020a16b5755f7f6f96dbd65f5f0d6ab9418b89af4b1f14a1bb8a09062c35f0dcb54ffffffff
@@ -143,6 +111,36 @@ bed83438cf3f837ab484b29426bb643fd36b1c800fb37076a3e9d50fbf3845ffffffff0200e9a435
 000000001976a914389ffce9cd9ae88dcc0631e88a821ffdbe9bfe2688acc0832f05000000001976
 a9147480a33f950689af511e6e84c138dbbd3c3ee41588ac00000000
 """.replace("\n", "").replace("\r", "")
+
+# Mainnet tx at block 170 (legacy, non-segwit)
+# https://blockstream.info/tx/f4184fc596403b9d638783cf57adfe4c75c605f6356fbc91338530e9831e9e16
+MAINNET_LEGACY_TX = """
+0100000001c997a5e56e104102fa209c6a852dd90660a20b2d9c352423edce25857fcd3704000000
+004847304402204e45e16932b8af514961a1d3a1a25fdf3f4f7732e9d624c6c61548ab5fb8cd4102
+20181522ec8eca07de4860a4acdd12909d831cc56cbbac4622082221a8768d1d0901ffffffff0200
+ca9a3b00000000434104ae1a62fe09c5f51b13905f07f06b99a2f7159b2225f374cd378d71302fa2
+8414e7aab37397f554a7df5f142c21c1b7303b8a0626f1baded5c72a704f7e6cd84cac00286bee00
+00000043410411db93e1dcdb8a016b49840f8c53bc1eb68a382e97b1482ecad7b148a6909a5cb2e0
+eaddfb84ccf9744464f82e160bfa9b8b64f9d4c03f999b8643f656b412a3ac00000000
+""".replace("\n", "").replace("\r", "")
+
+MAINNET_LEGACY_TX_HASH = (
+    "f4184fc596403b9d638783cf57adfe4c75c605f6356fbc91338530e9831e9e16")
+
+# Mainnet tx at block 800000 (P2SH-P2WPKH segwit)
+# https://blockstream.info/tx/7110dd4fbc69136c243988d415a210fde0ad460fcd74080ebc83f330c45bf45f
+MAINNET_SEGWIT_TX = """
+020000000001011aad797ee1f04ee744a36ccbd399c71e981717f586eb03ccd163b4d2f0bb525700
+0000001716001474d064027dd228e80a49957c744532e91fe8bc7affffffff0218790000000000002
+251208c92e5000e6e02c459f5da1508b8b51df6d375e4f6997c8c2f02fb9051c5e4750c6200000000
+000017a9147ebd5e5726b9f53038176541ad99d34a87c6667c8702483045022100cf8412f9114bd48
+3c58cdba5d95ea3764c82dd05839127dead7c1a67d69945490220030ea21e373c339b0e1f3c5dfb3d
+207d358b6881ed4b22891c6431f59a45c7cb0121032961838aee846d4ca1ac6f0dcf77c616eeaf979
+8e249b6e9ebab5ff9c8ccd63200000000
+""".replace("\n", "").replace("\r", "")
+
+MAINNET_SEGWIT_TX_HASH = (
+    "7110dd4fbc69136c243988d415a210fde0ad460fcd74080ebc83f330c45bf45f")
 
 
 class TestBitcoin(TestCase):
@@ -178,23 +176,15 @@ class TestBitcoin(TestCase):
             get_signature_hash_for_p2sh_input(SAMPLE_5, 0)
         self.assertIn("Invalid redeem script", str(err.exception))
 
-    def test_get_tx_hash_for_unsigned_sample_3(self):
-        self.assertEqual(SAMPLE_3_UNSIGNED_HASH,
-                         get_tx_hash_for_unsigned_tx(SAMPLE_3))
+    def test_get_tx_hash_mainnet_legacy(self):
+        self.assertEqual(MAINNET_LEGACY_TX_HASH, get_tx_hash(MAINNET_LEGACY_TX))
 
-    def test_get_tx_hash_for_unsigned_sample_3_partially_signed(self):
-        self.assertNotEqual(SAMPLE_3, SAMPLE_3_PARTIALLY_SIGNED)
-        self.assertEqual(SAMPLE_3_UNSIGNED_HASH,
-                         get_tx_hash_for_unsigned_tx(SAMPLE_3_PARTIALLY_SIGNED))
+    def test_get_tx_hash_mainnet_segwit(self):
+        self.assertEqual(MAINNET_SEGWIT_TX_HASH, get_tx_hash(MAINNET_SEGWIT_TX))
 
-    def test_get_tx_hash_for_unsigned_sample_4(self):
-        self.assertEqual(SAMPLE_4_UNSIGNED_HASH,
-                         get_tx_hash_for_unsigned_tx(SAMPLE_4))
-
-    def test_get_tx_hash_for_unsigned_sample_4_partially_signed(self):
-        self.assertNotEqual(SAMPLE_4, SAMPLE_4_PARTIALLY_SIGNED)
-        self.assertEqual(SAMPLE_4_UNSIGNED_HASH,
-                         get_tx_hash_for_unsigned_tx(SAMPLE_4_PARTIALLY_SIGNED))
+    def test_get_tx_hash_malformed(self):
+        with self.assertRaises(ValueError):
+            get_tx_hash("aabbcc")
 
     # Taken from https://www.blockchain.com/btc/block/624147
     # Raw taken from first 80 bytes of https://blockchain.info/block/624147?format=hex

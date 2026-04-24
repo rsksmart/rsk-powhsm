@@ -176,7 +176,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertFalse(self.dongle.sign_authorized.called)
         self.assertFalse(self.dongle.disconnect.called)
 
-    @patch("ledger.protocol.get_tx_hash_for_unsigned_tx")
+    @patch("ledger.protocol.get_tx_hash")
     @patch("comm.protocol.BIP32Path")
     def test_sign_authorized_ok(self, BIP32PathMock, get_tx_hash_mock):
         BIP32PathMock.return_value = "the-key-id"
@@ -232,7 +232,7 @@ class TestHSM2ProtocolLedger(TestCase):
         ("unexpected", -10, -905),
         ("unknown", -100, -906),
     ])
-    @patch("ledger.protocol.get_tx_hash_for_unsigned_tx")
+    @patch("ledger.protocol.get_tx_hash")
     @patch("comm.protocol.BIP32Path")
     def test_sign_authorized_error(
         self,
@@ -280,7 +280,7 @@ class TestHSM2ProtocolLedger(TestCase):
         )
         self.assertFalse(self.dongle.disconnect.called)
 
-    @patch("ledger.protocol.get_tx_hash_for_unsigned_tx")
+    @patch("ledger.protocol.get_tx_hash")
     @patch("comm.protocol.BIP32Path")
     def test_sign_authorized_timeout(self, BIP32PathMock, get_tx_hash_mock):
         BIP32PathMock.return_value = "the-key-id"
@@ -321,7 +321,7 @@ class TestHSM2ProtocolLedger(TestCase):
         )
         self.assertFalse(self.dongle.disconnect.called)
 
-    @patch("ledger.protocol.get_tx_hash_for_unsigned_tx")
+    @patch("ledger.protocol.get_tx_hash")
     @patch("comm.protocol.BIP32Path")
     def test_sign_authorized_commerror_reconnection(
         self, BIP32PathMock, get_tx_hash_mock
@@ -396,7 +396,7 @@ class TestHSM2ProtocolLedger(TestCase):
 
         self._assert_reconnected()
 
-    @patch("ledger.protocol.get_tx_hash_for_unsigned_tx")
+    @patch("ledger.protocol.get_tx_hash")
     @patch("comm.protocol.BIP32Path")
     def test_sign_authorized_exception(self, BIP32PathMock, get_tx_hash_mock):
         BIP32PathMock.return_value = "the-key-id"
@@ -436,11 +436,19 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertFalse(self.dongle.disconnect.called)
 
     @patch("comm.protocol.BIP32Path")
-    def test_sign_authorized_malformed_tx(self, BIP32PathMock):
+    def test_sign_authorized_tx_hash_error(self, BIP32PathMock):
         BIP32PathMock.return_value = "the-key-id"
+        signature = Mock(r="this-is-r", s="this-is-s")
+        self.dongle.sign_authorized.return_value = (True, signature)
 
         self.assertEqual(
-            {"errorcode": -102},
+            {
+                "errorcode": 0,
+                "signature": {
+                    "r": "this-is-r",
+                    "s": "this-is-s"
+                }
+            },
             self.protocol.handle_request({
                 "version": 5,
                 "command": "sign",
@@ -458,7 +466,20 @@ class TestHSM2ProtocolLedger(TestCase):
             }),
         )
 
-        self.assertFalse(self.dongle.sign_authorized.called)
+        self.assertEqual(
+            [
+                call(
+                    key_id="the-key-id",
+                    rsk_tx_receipt="aa",
+                    receipt_merkle_proof=["cc", "dd"],
+                    btc_tx="eeff",
+                    input_index=12,
+                    witness_script="aabbccddeeff",
+                    outpoint_value=123000456,
+                )
+            ],
+            self.dongle.sign_authorized.call_args_list,
+        )
         self.assertFalse(self.dongle.disconnect.called)
 
     @patch("comm.protocol.BIP32Path")

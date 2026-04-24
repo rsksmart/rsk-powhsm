@@ -21,7 +21,7 @@
 # SOFTWARE.
 
 import time
-from comm.bitcoin import get_tx_hash_for_unsigned_tx
+from comm.bitcoin import get_tx_hash
 from comm.protocol import HSM2Protocol, HSM2ProtocolError, HSM2ProtocolInterrupt
 from comm.platform import Platform
 from ledger.hsm2dongle import (
@@ -302,12 +302,11 @@ class HSM2ProtocolLedger(HSM2Protocol):
             # Shorthand
             msg = request["message"]
 
-            # Compute the unsigned tx hash for the log line
             try:
-                tx_hash = get_tx_hash_for_unsigned_tx(msg["tx"])
+                tx_hash = get_tx_hash(msg["tx"])
             except ValueError as e:
-                self.logger.error("Error computing tx hash: %s", str(e))
-                return (self.ERROR_CODE_INVALID_MESSAGE,)
+                self.logger.warning("Could not compute tx hash: %s", str(e))
+                tx_hash = "unknown"
 
             self.logger.info(
                 "Sign authorized tx request for key id '%s'"
