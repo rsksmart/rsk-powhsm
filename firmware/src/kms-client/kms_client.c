@@ -25,6 +25,8 @@
 #include <mbedtls/x509_crt.h>
 #include <mbedtls/sha256.h>
 #include <mbedtls/md.h>
+#include <mbedtls/rsa.h>
+#include <mbedtls/pk.h>
 
 #include <nsm.h>
 
@@ -472,7 +474,11 @@ static void print_hex(const uint8_t *data, size_t len) {
 /* Maximum size of the attestation document */
 #define NSM_MAX_ATTESTATION_DOC_SIZE (16 * 1024)
 
-static void get_attestation() {
+static void get_attestation(
+    uint8_t* pub_der,
+    uint32_t pub_der_len,
+    uint8_t *att_doc,
+    uint32_t *att_doc_len) {
     printf("Getting attestation document from NSM...\n");
 
     int nsm_fd = nsm_lib_init();
@@ -482,9 +488,7 @@ static void get_attestation() {
     }
 
     /* Get the attestation document. */
-    uint8_t att_doc[NSM_MAX_ATTESTATION_DOC_SIZE];
-    uint32_t att_doc_len = NSM_MAX_ATTESTATION_DOC_SIZE;
-    int rc = nsm_get_attestation_doc(nsm_fd, NULL, 0, NULL, 0, NULL, 0, att_doc, &att_doc_len);
+    int rc = nsm_get_attestation_doc(nsm_fd, NULL, 0, NULL, 0, pub_der, pub_der_len, att_doc, att_doc_len);
     if (rc) {
         nsm_lib_exit(nsm_fd);
         printf("Failed to get attestation document: %d\n", rc);
@@ -492,16 +496,83 @@ static void get_attestation() {
     }
 
     printf("Attestation document:\n");
-    print_hex(att_doc, att_doc_len);
+    print_hex(att_doc, *att_doc_len);
 
     nsm_lib_exit(nsm_fd);
 }
 
+static bool generate_rsa_keypair(
+    mbedtls_ctr_drbg_context *ctr_drbg,
+    mbedtls_pk_context *pk,
+    unsigned char *pub_der,
+    size_t pub_der_size,
+    unsigned char **pub_start,
+    uint32_t *pub_len) {
+
+    mbedtls_pk_init(pk);
+    *pub_start = NULL;
+
+    if (mbedtls_pk_setup(pk, mbedtls_pk_info_from_type(MBEDTLS_PK_RSA)) != 0) {
+        fprintf(stderr, "pk_setup failed\n");
+        return false;
+    }
+
+    if (mbedtls_rsa_gen_key(
+            mbedtls_pk_rsa(*pk),
+            mbedtls_ctr_drbg_random,
+            ctr_drbg,
+            2048,
+            65537
+        ) != 0) {
+        fprintf(stderr, "rsa_gen_key failed\n");
+        return false;
+    }
+
+    memset(pub_der, 0, pub_der_size);
+    *pub_len = mbedtls_pk_write_pubkey_der(pk, pub_der, pub_der_size);
+    if (*pub_len < 0) {
+        fprintf(stderr, "pk_write_pubkey_der failed\n");
+        return false;
+    }
+
+    *pub_start = pub_der + pub_der_size - *pub_len;
+    return true;
+}
+
 int main(void)
 {
+    /* ---------------- mbedTLS init ---------------- */
+    mbedtls_ssl_context ssl;
+    mbedtls_ssl_config conf;
+    mbedtls_x509_crt cacert;
+    mbedtls_ctr_drbg_context ctr_drbg;
+    mbedtls_entropy_context entropy;
+    char errbuf[200];
+
+    mbedtls_ssl_init(&ssl);
+    mbedtls_ssl_config_init(&conf);
+    mbedtls_x509_crt_init(&cacert);
+    mbedtls_ctr_drbg_init(&ctr_drbg);
+    mbedtls_entropy_init(&entropy);
+
+    if (mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy,
+                              NULL, 0) != 0) { fprintf(stderr, "DRBG seed failed\n"); return 1; }
+
+    mbedtls_pk_context pk;
+    unsigned char pub_der[2048]; /* should be enough for 2048-bit RSA public key */
+    unsigned char *pub_der_start;
+    uint32_t pub_der_len;
+    if (!generate_rsa_keypair(&ctr_drbg, &pk, pub_der, sizeof(pub_der), &pub_der_start, &pub_der_len)) {
+        fprintf(stderr, "RSA key generation failed\n");
+        return 1;
+    }
+    printf("RSA public key:\n");
+    print_hex(pub_der_start, pub_der_len);
 
 #ifndef USE_TCP
-    get_attestation();
+    uint8_t att_doc[NSM_MAX_ATTESTATION_DOC_SIZE];
+    uint32_t att_doc_len = NSM_MAX_ATTESTATION_DOC_SIZE;
+    get_attestation(pub_der_start, pub_der_len, att_doc, &att_doc_len);
 #endif
 
     load_credentials();
@@ -549,23 +620,6 @@ int main(void)
         "\r\n"
         "%s",
         kms_host, amz_date, G_session_token, authorization, strlen(payload), payload);
-
-    /* ---------------- mbedTLS init ---------------- */
-    mbedtls_ssl_context ssl;
-    mbedtls_ssl_config conf;
-    mbedtls_x509_crt cacert;
-    mbedtls_ctr_drbg_context ctr_drbg;
-    mbedtls_entropy_context entropy;
-    char errbuf[200];
-
-    mbedtls_ssl_init(&ssl);
-    mbedtls_ssl_config_init(&conf);
-    mbedtls_x509_crt_init(&cacert);
-    mbedtls_ctr_drbg_init(&ctr_drbg);
-    mbedtls_entropy_init(&entropy);
-
-    if (mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy,
-                              NULL, 0) != 0) { fprintf(stderr, "DRBG seed failed\n"); return 1; }
 
     /* Load CA */
     if (mbedtls_x509_crt_parse_file(&cacert, CA_PEM_PATH) != 0) {
@@ -675,6 +729,7 @@ int main(void)
     mbedtls_ssl_config_free(&conf);
     mbedtls_ctr_drbg_free(&ctr_drbg);
     mbedtls_entropy_free(&entropy);
+    mbedtls_pk_free(&pk);
     free_credentials();
 
     return 0;
