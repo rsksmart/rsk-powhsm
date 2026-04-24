@@ -25,6 +25,7 @@ import logging
 import os
 import shutil
 import tempfile
+import time
 from unittest import TestCase
 from unittest.mock import patch
 
@@ -84,6 +85,45 @@ class TestCompressedLogRotatingHandler(TestCase):
         # Backup is valid gzip and holds the pre-rollover record
         with gzip.open(os.path.join(self.tmpdir, entries[1]), "rb") as f:
             self.assertEqual(b"before\n", f.read())
+
+    def test_multiple_rollovers_respect_backup_count(self):
+        # Rebuild the handler with a tight backupCount so pruning kicks
+        # in within the scope of a single test.
+        self.logger.removeHandler(self.handler)
+        self.handler.close()
+        self.handler = CompressedLogRotatingHandler(
+            self.log_path,
+            when="S",
+            interval=1,
+            backupCount=2,
+        )
+        self.logger.addHandler(self.handler)
+
+        # Each rollover must produce a .gz with a distinct dated suffix;
+        # otherwise the stdlib removes the existing dfn before rotation
+        # and we would be exercising overwrites, not backupCount pruning.
+        # The dated suffix is derived from (rolloverAt - interval), so
+        # we force it forward one day per rollover.
+        base = int(time.time())
+        for i, record in enumerate(("first", "second", "third")):
+            self.logger.info(record)
+            self.handler.flush()
+            self.handler.rolloverAt = base + self.handler.interval + i * 86400
+            self.handler.doRollover()
+
+        # Only the most recent backupCount backups survive; the oldest
+        # one must have been pruned by getFilesToDelete().
+        gz_entries = sorted(e for e in os.listdir(self.tmpdir) if e.endswith(".gz"))
+        self.assertEqual(2, len(gz_entries))
+
+        # The two survivors hold the two newest records in chronological
+        # order, verifying that rollovers with our .gz namer neither
+        # overwrite each other nor confuse getFilesToDelete().
+        contents = []
+        for name in gz_entries:
+            with gzip.open(os.path.join(self.tmpdir, name), "rb") as f:
+                contents.append(f.read())
+        self.assertEqual([b"second\n", b"third\n"], contents)
 
     def test_rollover_failure_preserves_source_and_cleans_up(self):
         self.logger.info("before-failure")
