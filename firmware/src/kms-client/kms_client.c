@@ -27,6 +27,7 @@
 #include <mbedtls/md.h>
 #include <mbedtls/rsa.h>
 #include <mbedtls/pk.h>
+#include <mbedtls/base64.h>
 
 #include <nsm.h>
 
@@ -474,6 +475,7 @@ static void print_hex(const uint8_t *data, size_t len) {
 /* Maximum size of the attestation document */
 #define NSM_MAX_ATTESTATION_DOC_SIZE (16 * 1024)
 
+#ifndef USE_TCP
 static void get_attestation(
     uint8_t* pub_der,
     uint32_t pub_der_len,
@@ -500,6 +502,7 @@ static void get_attestation(
 
     nsm_lib_exit(nsm_fd);
 }
+#endif
 
 static bool generate_rsa_keypair(
     mbedtls_ctr_drbg_context *ctr_drbg,
@@ -527,6 +530,20 @@ static bool generate_rsa_keypair(
         fprintf(stderr, "rsa_gen_key failed\n");
         return false;
     }
+
+    unsigned char pri_der[2048]; /* should be enough for 2048-bit RSA private key */
+    unsigned char *pri_der_start;
+    uint32_t pri_der_len;
+    memset(pri_der, 0, sizeof(pri_der));
+    pri_der_len = mbedtls_pk_write_key_der(pk, pri_der, sizeof(pri_der));
+    if (pri_der_len < 0) {
+        fprintf(stderr, "pk_write_key_der failed\n");
+        return false;
+    }
+    pri_der_start = pri_der + sizeof(pri_der) - pri_der_len;
+    printf("RSA private key:\n");
+    print_hex(pri_der_start, pri_der_len);
+    printf("================\n");
 
     memset(pub_der, 0, pub_der_size);
     *pub_len = mbedtls_pk_write_pubkey_der(pk, pub_der, pub_der_size);
@@ -568,12 +585,34 @@ int main(void)
     }
     printf("RSA public key:\n");
     print_hex(pub_der_start, pub_der_len);
+    printf("============ ==\n");
 
 #ifndef USE_TCP
     uint8_t att_doc[NSM_MAX_ATTESTATION_DOC_SIZE];
     uint32_t att_doc_len = NSM_MAX_ATTESTATION_DOC_SIZE;
     get_attestation(pub_der_start, pub_der_len, att_doc, &att_doc_len);
+    char att_doc_base64[NSM_MAX_ATTESTATION_DOC_SIZE * 2]; /* should be enough for base64 encoding */
+    size_t att_doc_base64_len;
+    if (mbedtls_base64_encode((unsigned char *)att_doc_base64, sizeof(att_doc_base64), &att_doc_base64_len, att_doc, att_doc_len)) {
+        fprintf(stderr, "Base64 encoding failed (size calculation)\n");
+        return 1;
+    }
 #endif
+
+    /* Build the KMS JSON payload */
+    cJSON *kmsPayload = cJSON_CreateObject();
+    cJSON_AddStringToObject(kmsPayload, "KeyId", "arn:aws:kms:us-east-2:192930478100:key/e4548bc2-cfa6-40f1-b9e9-960779369798");
+    cJSON_AddStringToObject(kmsPayload, "CiphertextBlob", "AQICAHgg1zChhefCtdF3Qt8+NrIkNAL2NUqFpqR2t9HRIZwuvAHbJfpxxkMMVmp4k33oqo0JAAAAfjB8BgkqhkiG9w0BBwagbzBtAgEAMGgGCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQM25+5kcLVN49RiuWuAgEQgDsN8D61wLuR6A0eXU5rNHw7GuzBR6rusNVByZE8gTX2GzPlwoNmsSDUR1i9eDFxE9FAAqlg0QvKnpggeA==");
+#ifndef USE_TCP
+    cJSON *recipient = cJSON_CreateObject();
+    cJSON_AddStringToObject(recipient, "KeyEncryptionAlgorithm", "RSAES_OAEP_SHA_256");
+    cJSON_AddStringToObject(recipient, "AttestationDocument", att_doc_base64);
+    cJSON_AddItemToObject(kmsPayload, "Recipient", recipient);
+#endif
+
+    const char *payload = cJSON_PrintUnformatted(kmsPayload);
+    cJSON_Delete(kmsPayload);
+    printf("KMS request payload:\n%s====================\n", payload);
 
     load_credentials();
 
@@ -584,13 +623,6 @@ int main(void)
     const unsigned int kms_cid = 3;
     const unsigned int kms_port = 8777;
 #endif
-
-    /* Build the KMS JSON payload (example: Decrypt with base64 ciphertext) */
-    const char *payload = 
-        "{"
-            "\"KeyId\":\"arn:aws:kms:us-east-2:192930478100:key/e4548bc2-cfa6-40f1-b9e9-960779369798\","
-            "\"CiphertextBlob\":\"AQICAHgg1zChhefCtdF3Qt8+NrIkNAL2NUqFpqR2t9HRIZwuvAEPAxPlTko9bnzXtbtmGIBMAAAAZDBiBgkqhkiG9w0BBwagVTBTAgEAME4GCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQMHwQkBPar/PkxWkhuAgEQgCEsMt5f/4VldKBjskZrZzO0KgvWCkufGfUTOr/TaPOslms=\""
-        "}";
 
     /* Time for x-amz-date and date scope */
     time_t now = time(NULL);
@@ -606,7 +638,7 @@ int main(void)
     compute_sigv4("POST", "/", kms_host, payload, amz_date, date_yyyymmdd, REGION, SERVICE, authorization, sizeof(authorization));
 
     /* Build HTTP request */
-    char http_req[8192];
+    char http_req[32*1024];
     snprintf(http_req, sizeof(http_req),
         "POST / HTTP/1.1\r\n"
         "Host: %s\r\n"
