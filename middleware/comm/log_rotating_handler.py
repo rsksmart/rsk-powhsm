@@ -45,7 +45,8 @@ class LogRotatingHandler(logging.handlers.TimedRotatingFileHandler):
         # Compress into a sibling temp file, copy source's mode/mtime onto
         # it, then atomically move it into place. This guarantees that a
         # failure mid-compression cannot leave a partial .gz at `dest` or
-        # destroy `source` before the compressed copy is durable.
+        # destroy `source` before the compressed copy is fully written
+        # and closed.
         # No-op when source is missing, mirroring the stdlib default path.
         if not os.path.exists(source):
             return
