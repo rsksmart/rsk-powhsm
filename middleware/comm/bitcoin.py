@@ -23,6 +23,10 @@
 import bitcoin.core
 
 
+def get_tx_hash(raw_tx_hex):
+    return _deserialize_tx(raw_tx_hex).GetTxid()[::-1].hex()
+
+
 def get_signature_hash_for_p2sh_input(raw_tx_hex, input_index):
     # Given a raw BTC transaction and an input index,
     # this method computes the sighash corresponding to the given

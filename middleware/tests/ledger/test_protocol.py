@@ -176,8 +176,9 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertFalse(self.dongle.sign_authorized.called)
         self.assertFalse(self.dongle.disconnect.called)
 
+    @patch("ledger.protocol.get_tx_hash")
     @patch("comm.protocol.BIP32Path")
-    def test_sign_authorized_ok(self, BIP32PathMock):
+    def test_sign_authorized_ok(self, BIP32PathMock, get_tx_hash_mock):
         BIP32PathMock.return_value = "the-key-id"
         signature = Mock(r="this-is-r", s="this-is-s")
         self.dongle.sign_authorized.return_value = (True, signature)
@@ -231,13 +232,15 @@ class TestHSM2ProtocolLedger(TestCase):
         ("unexpected", -10, -905),
         ("unknown", -100, -906),
     ])
+    @patch("ledger.protocol.get_tx_hash")
     @patch("comm.protocol.BIP32Path")
     def test_sign_authorized_error(
         self,
         _,
         dongle_error_code,
         protocol_error_code,
-        BIP32PathMock
+        BIP32PathMock,
+        get_tx_hash_mock
     ):
         BIP32PathMock.return_value = "the-key-id"
         self.dongle.sign_authorized.return_value = (False, dongle_error_code)
@@ -277,8 +280,9 @@ class TestHSM2ProtocolLedger(TestCase):
         )
         self.assertFalse(self.dongle.disconnect.called)
 
+    @patch("ledger.protocol.get_tx_hash")
     @patch("comm.protocol.BIP32Path")
-    def test_sign_authorized_timeout(self, BIP32PathMock):
+    def test_sign_authorized_timeout(self, BIP32PathMock, get_tx_hash_mock):
         BIP32PathMock.return_value = "the-key-id"
         self.dongle.sign_authorized.side_effect = HSM2DongleTimeoutError()
 
@@ -317,8 +321,11 @@ class TestHSM2ProtocolLedger(TestCase):
         )
         self.assertFalse(self.dongle.disconnect.called)
 
+    @patch("ledger.protocol.get_tx_hash")
     @patch("comm.protocol.BIP32Path")
-    def test_sign_authorized_commerror_reconnection(self, BIP32PathMock):
+    def test_sign_authorized_commerror_reconnection(
+        self, BIP32PathMock, get_tx_hash_mock
+    ):
         BIP32PathMock.return_value = "the-key-id"
         self.dongle.sign_authorized.side_effect = HSM2DongleCommError()
 
@@ -389,8 +396,9 @@ class TestHSM2ProtocolLedger(TestCase):
 
         self._assert_reconnected()
 
+    @patch("ledger.protocol.get_tx_hash")
     @patch("comm.protocol.BIP32Path")
-    def test_sign_authorized_exception(self, BIP32PathMock):
+    def test_sign_authorized_exception(self, BIP32PathMock, get_tx_hash_mock):
         BIP32PathMock.return_value = "the-key-id"
         self.dongle.sign_authorized.side_effect = HSM2DongleError()
 
@@ -410,6 +418,53 @@ class TestHSM2ProtocolLedger(TestCase):
                     "outpointValue": 123000456
                 },
             })
+
+        self.assertEqual(
+            [
+                call(
+                    key_id="the-key-id",
+                    rsk_tx_receipt="aa",
+                    receipt_merkle_proof=["cc", "dd"],
+                    btc_tx="eeff",
+                    input_index=12,
+                    witness_script="aabbccddeeff",
+                    outpoint_value=123000456,
+                )
+            ],
+            self.dongle.sign_authorized.call_args_list,
+        )
+        self.assertFalse(self.dongle.disconnect.called)
+
+    @patch("comm.protocol.BIP32Path")
+    def test_sign_authorized_tx_hash_error(self, BIP32PathMock):
+        BIP32PathMock.return_value = "the-key-id"
+        signature = Mock(r="this-is-r", s="this-is-s")
+        self.dongle.sign_authorized.return_value = (True, signature)
+
+        self.assertEqual(
+            {
+                "errorcode": 0,
+                "signature": {
+                    "r": "this-is-r",
+                    "s": "this-is-s"
+                }
+            },
+            self.protocol.handle_request({
+                "version": 5,
+                "command": "sign",
+                "keyId": "m/44'/1'/2'/3/4",
+                "auth": {
+                    "receipt": "aa",
+                    "receipt_merkle_proof": ["cc", "dd"]
+                },
+                "message": {
+                    "tx": "eeff",
+                    "input": 12,
+                    "witnessScript": "aabbccddeeff",
+                    "outpointValue": 123000456
+                },
+            }),
+        )
 
         self.assertEqual(
             [

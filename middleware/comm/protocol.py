@@ -98,9 +98,9 @@ class HSM2Protocol:
         self._init_mappings()
 
     def handle_request(self, request):
-        self.logger.info("In %s", request)
+        self.logger.debug("In %s", request)
         response = self.__internal_handle_request(request)
-        self.logger.info("Out %s", response)
+        self.logger.debug("Out %s", response)
         return response
 
     def __internal_handle_request(self, request):
