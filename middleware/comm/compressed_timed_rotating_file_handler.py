@@ -29,7 +29,7 @@ import tempfile
 
 # TimedRotatingFileHandler variant that gzip-compresses rotated log files
 # on rollover.
-class CompressedLogRotatingHandler(logging.handlers.TimedRotatingFileHandler):
+class CompressedTimedRotatingFileHandler(logging.handlers.TimedRotatingFileHandler):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

@@ -29,20 +29,22 @@ import time
 from unittest import TestCase
 from unittest.mock import patch
 
-from comm.compressed_log_rotating_handler import CompressedLogRotatingHandler
+from comm.compressed_timed_rotating_file_handler import (
+    CompressedTimedRotatingFileHandler,
+)
 
 
-class TestCompressedLogRotatingHandler(TestCase):
+class TestCompressedTimedRotatingFileHandler(TestCase):
 
     def setUp(self):
         self._saved_disable_level = logging.root.manager.disable
         logging.disable(logging.NOTSET)
         self.tmpdir = tempfile.mkdtemp()
         self.log_path = os.path.join(self.tmpdir, "test.log")
-        self.logger = logging.getLogger("test_compressed_log_rotating_handler")
+        self.logger = logging.getLogger("test_compressed_timed_rotating_file_handler")
         self.logger.setLevel(logging.DEBUG)
         self.logger.propagate = False
-        self.handler = CompressedLogRotatingHandler(
+        self.handler = CompressedTimedRotatingFileHandler(
             self.log_path,
             when="midnight",
             interval=1,
@@ -91,7 +93,7 @@ class TestCompressedLogRotatingHandler(TestCase):
         # in within the scope of a single test.
         self.logger.removeHandler(self.handler)
         self.handler.close()
-        self.handler = CompressedLogRotatingHandler(
+        self.handler = CompressedTimedRotatingFileHandler(
             self.log_path,
             when="S",
             interval=1,
@@ -130,7 +132,7 @@ class TestCompressedLogRotatingHandler(TestCase):
         self.handler.flush()
 
         with patch(
-            "comm.compressed_log_rotating_handler.shutil.copyfileobj",
+            "comm.compressed_timed_rotating_file_handler.shutil.copyfileobj",
             side_effect=OSError("disk full")
         ):
             with self.assertRaises(OSError):
