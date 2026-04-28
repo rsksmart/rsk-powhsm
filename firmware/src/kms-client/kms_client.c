@@ -48,6 +48,25 @@ char *G_session_token = NULL;
 
 static void die(const char *msg) { perror(msg); exit(1); }
 
+static int fd_output = 0;
+FILE *file_output;
+FILE* standard_output;
+FILE* standard_error;
+
+static void DEBUG(const char *fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    vfprintf(standard_output, fmt, args);
+    va_end(args);
+}
+
+static void DEBUG_ERROR(const char *fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    vfprintf(standard_error, fmt, args);
+    va_end(args);
+}
+
 /* Helpers: hex encode */
 static void hex_encode(const unsigned char *in, size_t inlen, char *out)
 {
@@ -326,6 +345,25 @@ static int vsock_connect(unsigned int cid, unsigned int port) {
 }
 #endif
 
+static void setup_output() {
+#ifdef USE_TCP
+    standard_output = stdout;
+    standard_error = stderr;
+#else
+    fd_output = vsock_connect(3, 4333);
+    if (!fd_output) {
+        die("vsock_connect");
+    }
+    file_output = fdopen(fd_output, "w");
+    if (!file_output) {
+        close(fd_output);
+        die("fdopen");
+    }
+    standard_output = file_output;
+    standard_error = file_output;
+#endif
+}
+
 const char *G_crg_host = "169.254.169.254";
 #ifdef USE_TCP
     const char *G_crg_port = "80";
@@ -434,12 +472,12 @@ static void load_credentials() {
     if (!json) {
         die("credentials JSON parsing");
     }
-    printf("Credentials JSON:\n%s\n", credentials_json);
+    DEBUG("Credentials JSON:\n%s\n", credentials_json);
     cJSON *akid = cJSON_GetObjectItemCaseSensitive(json, "AccessKeyId");
     cJSON *sakey = cJSON_GetObjectItemCaseSensitive(json, "SecretAccessKey");
     cJSON *stoken = cJSON_GetObjectItemCaseSensitive(json, "Token");
     if (!cJSON_IsString(akid) || !cJSON_IsString(sakey) || !cJSON_IsString(stoken)) {
-        fprintf(stderr, "Missing AccessKeyId, SecretAccessKey, or SessionToken in credentials JSON\n");
+        DEBUG_ERROR("Missing AccessKeyId, SecretAccessKey, or SessionToken in credentials JSON\n");
         cJSON_Delete(json);
         exit(1);
     }
@@ -448,9 +486,9 @@ static void load_credentials() {
     G_session_token = strdup(stoken->valuestring);
     cJSON_Delete(json);
 
-    printf("Access key id: %s\n", G_access_key_id);
-    printf("Secret access key: %s\n", G_secret_access_key);
-    printf("Session token: %s\n", G_session_token);
+    DEBUG("Access key id: %s\n", G_access_key_id);
+    DEBUG("Secret access key: %s\n", G_secret_access_key);
+    DEBUG("Session token: %s\n", G_session_token);
 
     free(credentials_json);
     free(credentials_path);
@@ -465,11 +503,11 @@ static void free_credentials() {
     free(G_session_token);
 }
 
-static void print_hex(const uint8_t *data, size_t len) {
+static void DEBUG_HEX(const uint8_t *data, size_t len) {
     for (size_t i = 0; i < len; i++) {
-        printf("%02x", data[i]);
+        DEBUG("%02x", data[i]);
     }
-    printf("\n");
+    DEBUG("\n");
 }
 
 /* Maximum size of the attestation document */
@@ -481,11 +519,11 @@ static void get_attestation(
     uint32_t pub_der_len,
     uint8_t *att_doc,
     uint32_t *att_doc_len) {
-    printf("Getting attestation document from NSM...\n");
+    DEBUG("Getting attestation document from NSM...\n");
 
     int nsm_fd = nsm_lib_init();
     if (nsm_fd < 0) {
-        printf("NSM lib init failed\n");
+        DEBUG("NSM lib init failed\n");
         return;
     }
 
@@ -493,12 +531,12 @@ static void get_attestation(
     int rc = nsm_get_attestation_doc(nsm_fd, NULL, 0, NULL, 0, pub_der, pub_der_len, att_doc, att_doc_len);
     if (rc) {
         nsm_lib_exit(nsm_fd);
-        printf("Failed to get attestation document: %d\n", rc);
+        DEBUG("Failed to get attestation document: %d\n", rc);
         return;
     }
 
-    printf("Attestation document:\n");
-    print_hex(att_doc, *att_doc_len);
+    DEBUG("Attestation document:\n");
+    DEBUG_HEX(att_doc, *att_doc_len);
 
     nsm_lib_exit(nsm_fd);
 }
@@ -516,7 +554,7 @@ static bool generate_rsa_keypair(
     *pub_start = NULL;
 
     if (mbedtls_pk_setup(pk, mbedtls_pk_info_from_type(MBEDTLS_PK_RSA)) != 0) {
-        fprintf(stderr, "pk_setup failed\n");
+        DEBUG_ERROR("pk_setup failed\n");
         return false;
     }
 
@@ -527,7 +565,7 @@ static bool generate_rsa_keypair(
             2048,
             65537
         ) != 0) {
-        fprintf(stderr, "rsa_gen_key failed\n");
+        DEBUG_ERROR("rsa_gen_key failed\n");
         return false;
     }
 
@@ -537,18 +575,18 @@ static bool generate_rsa_keypair(
     memset(pri_der, 0, sizeof(pri_der));
     pri_der_len = mbedtls_pk_write_key_der(pk, pri_der, sizeof(pri_der));
     if (pri_der_len < 0) {
-        fprintf(stderr, "pk_write_key_der failed\n");
+        DEBUG_ERROR("pk_write_key_der failed\n");
         return false;
     }
     pri_der_start = pri_der + sizeof(pri_der) - pri_der_len;
-    printf("RSA private key:\n");
-    print_hex(pri_der_start, pri_der_len);
-    printf("================\n");
+    DEBUG("RSA private key:\n");
+    DEBUG_HEX(pri_der_start, pri_der_len);
+    DEBUG("================\n");
 
     memset(pub_der, 0, pub_der_size);
     *pub_len = mbedtls_pk_write_pubkey_der(pk, pub_der, pub_der_size);
     if (*pub_len < 0) {
-        fprintf(stderr, "pk_write_pubkey_der failed\n");
+        DEBUG_ERROR("pk_write_pubkey_der failed\n");
         return false;
     }
 
@@ -558,6 +596,8 @@ static bool generate_rsa_keypair(
 
 int main(void)
 {
+    setup_output();
+
     /* ---------------- mbedTLS init ---------------- */
     mbedtls_ssl_context ssl;
     mbedtls_ssl_config conf;
@@ -573,19 +613,19 @@ int main(void)
     mbedtls_entropy_init(&entropy);
 
     if (mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy,
-                              NULL, 0) != 0) { fprintf(stderr, "DRBG seed failed\n"); return 1; }
+                              NULL, 0) != 0) { DEBUG_ERROR("DRBG seed failed\n"); return 1; }
 
     mbedtls_pk_context pk;
     unsigned char pub_der[2048]; /* should be enough for 2048-bit RSA public key */
     unsigned char *pub_der_start;
     uint32_t pub_der_len;
     if (!generate_rsa_keypair(&ctr_drbg, &pk, pub_der, sizeof(pub_der), &pub_der_start, &pub_der_len)) {
-        fprintf(stderr, "RSA key generation failed\n");
+        DEBUG_ERROR("RSA key generation failed\n");
         return 1;
     }
-    printf("RSA public key:\n");
-    print_hex(pub_der_start, pub_der_len);
-    printf("============ ==\n");
+    DEBUG("RSA public key:\n");
+    DEBUG_HEX(pub_der_start, pub_der_len);
+    DEBUG("==============\n");
 
 #ifndef USE_TCP
     uint8_t att_doc[NSM_MAX_ATTESTATION_DOC_SIZE];
@@ -594,7 +634,7 @@ int main(void)
     char att_doc_base64[NSM_MAX_ATTESTATION_DOC_SIZE * 2]; /* should be enough for base64 encoding */
     size_t att_doc_base64_len;
     if (mbedtls_base64_encode((unsigned char *)att_doc_base64, sizeof(att_doc_base64), &att_doc_base64_len, att_doc, att_doc_len)) {
-        fprintf(stderr, "Base64 encoding failed (size calculation)\n");
+        DEBUG_ERROR("Base64 encoding failed (size calculation)\n");
         return 1;
     }
 #endif
@@ -612,7 +652,7 @@ int main(void)
 
     const char *payload = cJSON_PrintUnformatted(kmsPayload);
     cJSON_Delete(kmsPayload);
-    printf("KMS request payload:\n%s====================\n", payload);
+    DEBUG("KMS request payload:\n%s====================\n", payload);
 
     load_credentials();
 
@@ -655,7 +695,7 @@ int main(void)
 
     /* Load CA */
     if (mbedtls_x509_crt_parse_file(&cacert, CA_PEM_PATH) != 0) {
-        fprintf(stderr, "Failed to load CA file: %s\n", CA_PEM_PATH);
+        DEBUG_ERROR("Failed to load CA file: %s\n", CA_PEM_PATH);
         return 1;
     }
 
@@ -663,7 +703,7 @@ int main(void)
                 MBEDTLS_SSL_IS_CLIENT,
                 MBEDTLS_SSL_TRANSPORT_STREAM,
                 MBEDTLS_SSL_PRESET_DEFAULT) != 0) {
-        fprintf(stderr, "ssl_config_defaults failed\n");
+        DEBUG_ERROR("ssl_config_defaults failed\n");
         return 1;
     }
     mbedtls_ssl_conf_authmode(&conf, MBEDTLS_SSL_VERIFY_REQUIRED);
@@ -671,13 +711,13 @@ int main(void)
     mbedtls_ssl_conf_rng(&conf, mbedtls_ctr_drbg_random, &ctr_drbg);
 
     if (mbedtls_ssl_setup(&ssl, &conf) != 0) {
-        fprintf(stderr, "ssl_setup failed\n");
+        DEBUG_ERROR("ssl_setup failed\n");
         return 1;
     }
 
     /* SNI: set server hostname for cert verification and SNI extension */
     if (mbedtls_ssl_set_hostname(&ssl, kms_host) != 0) {
-        fprintf(stderr, "ssl_set_hostname failed\n");
+        DEBUG_ERROR("ssl_set_hostname failed\n");
         return 1;
     }
 
@@ -701,7 +741,7 @@ int main(void)
     while ((ret = mbedtls_ssl_handshake(&ssl)) != 0) {
         if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
             mbedtls_strerror(ret, errbuf, sizeof(errbuf));
-            fprintf(stderr, "ssl_handshake error: %s\n", errbuf);
+            DEBUG_ERROR("ssl_handshake error: %s\n", errbuf);
             return 1;
         }
     }
@@ -711,19 +751,19 @@ int main(void)
     if (flags != 0) {
         char vrfybuf[512];
         mbedtls_x509_crt_verify_info(vrfybuf, sizeof(vrfybuf), "  ! ", flags);
-        fprintf(stderr, "Certificate verification failed: %s\n", vrfybuf);
+        DEBUG_ERROR("Certificate verification failed: %s\n", vrfybuf);
         return 1;
     }
 
     /* Send HTTP request (no ALPN; using HTTP/1.1) */
     size_t written = 0;
     size_t req_len = strlen(http_req);
-    printf("=== Request ===\n%s\n", http_req);
+    DEBUG("=== Request ===\n%s\n", http_req);
     while (written < req_len) {
         ret = mbedtls_ssl_write(&ssl, (const unsigned char*)http_req + written, req_len - written);
         if (ret > 0) written += ret;
         else if (ret == MBEDTLS_ERR_SSL_WANT_READ || ret == MBEDTLS_ERR_SSL_WANT_WRITE) continue;
-        else { mbedtls_strerror(ret, errbuf, sizeof(errbuf)); fprintf(stderr, "ssl_write error: %s\n", errbuf); break; }
+        else { mbedtls_strerror(ret, errbuf, sizeof(errbuf)); DEBUG_ERROR("ssl_write error: %s\n", errbuf); break; }
     }
 
     /* Read response (simple) */
@@ -734,20 +774,20 @@ int main(void)
         ret = mbedtls_ssl_read(&ssl, buf, sizeof(buf)-1);
         if (ret > 0) {
             if (first)
-                printf("=== Response ===\n");
+                DEBUG("=== Response ===\n");
 
             buf[ret] = '\0';
-            printf("%s", buf);
+            DEBUG("%s", buf);
             fflush(stdout);
         } else if (ret == 0) {
             if (first)
-                printf("Connection closed by server\n");
+                DEBUG("Connection closed by server\n");
             else
-                printf("\n");
+                DEBUG("\n");
             done = 1;
         } else {
             mbedtls_strerror(ret, errbuf, sizeof(errbuf));
-            fprintf(stderr, "ssl_read error: %s\n", errbuf);
+            DEBUG_ERROR("ssl_read error: %s\n", errbuf);
             done = 1;
         }
         first = 0;
@@ -763,6 +803,12 @@ int main(void)
     mbedtls_entropy_free(&entropy);
     mbedtls_pk_free(&pk);
     free_credentials();
+
+#ifndef USE_TCP
+    fflush(file_output);
+    fclose(file_output);
+    close(fd_output);
+#endif
 
     return 0;
 }
