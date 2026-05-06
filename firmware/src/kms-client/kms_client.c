@@ -31,6 +31,8 @@
 
 #include <nsm.h>
 
+#include "kms_decrypt.h"
+
 #include "cJSON.h"
 
 #define REGION            "us-east-2"
@@ -594,8 +596,39 @@ static bool generate_rsa_keypair(
     return true;
 }
 
+void parse_hex(char* hex_str, uint8_t* out_buf, size_t out_buf_size, size_t* out_len) {
+    size_t hex_len = strlen(hex_str);
+    if (hex_len % 2 != 0 || hex_len / 2 > out_buf_size) {
+        *out_len = 0;
+        return;
+    }
+    for (size_t i = 0; i < hex_len / 2; i++) {
+        sscanf(hex_str + i*2, "%2hhx", &out_buf[i]);
+    }
+    *out_len = hex_len / 2;
+}
+
 int main(void)
 {
+    uint8_t ct[] = "MIAGCSqGSIb3DQEHA6CAMIACAQIxggFrMIIBZwIBAoAgG23bE5ekDf9hvsOnh9/mDsP32NIWbAEDt9nxA4/BhWYwPAYJKoZIhvcNAQEHMC+gDzANBglghkgBZQMEAgEFAKEcMBoGCSqGSIb3DQEBCDANBglghkgBZQMEAgEFAASCAQBA4L9kALB1lQvL9JQd7l3wE+XsrFgORQciI9RIorF5xslB3KSr0en7S7GTmgTgPRAf4TTyeQQ2cwF4Ow2KfGcllNkEqH0eSR0dNV0yz19xYroEPBGgIPGlLOHiLWY1S5oIRtNed3SE2vV6E4NEwz8sr0EosFdFAZTcEwJYBRYSw/ul/1n/pQDulobv0U4zfqlUGSc67Z36DaxW2gWjTM1RmSOiczqJFMMrWQ6XZTU5SbU1pJluIM5XIX4lKsLSJTvuhSOvuJ9IVrBjBGuNyJqQbA+wUGGz5ck857Ivh167zbz3NaBL69Y4BLo81UF3HXMcSVOnZMNagui4MSJ1Jm1WMIAGCSqGSIb3DQEHATAdBglghkgBZQMEASoEEJLJ9TmJnWZCr/XnMgXwS8eggAQwE+V4TGpgSr461NUy6Ii/ztZhROl5V9saBN4YSgOqcAvihuOWFGyeGK76+HKEztTKAAAAAAAAAAAAAA==";
+    char hex_key_data[] = "308204a40201000282010100b1ff9ea2b7133b319ec92b645bdf2f35fad982c3e56a5e6037ec04abaf67a00ef93ef63d4a7af38319ccb37198c40dfad885c06a11ab563d79f592ebfe2aafe235a2417f66fbe0916825be663854392f283d335048eb6365376a82947afb4f82d8299695f869100e139f6a2f53958b638dbc454b1d7bde3fdfc87dd7faadcb50ddbefaa51c1774ac8891b8728ca2e4e782837c19198b8fd7840615d1dbca68f4f25b17530d1215a4489d9f330df53ccb75b999a786c5521b5f3f2bbf6c4e662972bb60cfc42e69d5c1c7f687075726c81b2c4c4c38f6f750455ec5818cdb7f1fbc5cd9950e7cdf30a5fb6a970df794a32caa8635e2171bf38735447e1499c9c102030100010282010011b58a00ff5682fad9be8306face302f2b2dda343a4177a5473b0ca2b62c22743e1f6e9c7776d717fe886b7bff84092e07be2e19b2ab565e17a1b36aafe705221f4e20704b2fff816e6518890f336f8fd76d8b57b59b24ea25f5fe8ade3ddd9e937a109271c2d960c527380766c5fb0357e925a0f372e69046e7f67faa60018c914485784559d589c50bc2f297b7dc43e7d3fb1b1765db9d398b0b1e4a4f85125cb2497cfe48dff6a3833d4ac7cd12d7ebb8e835178ef5174f7f42e863848472cef1924251926bbdcd91fa42ec71d94bf3da10c84aa4356079d83d7f2a5d99667916d5c5639a152c5fc1768d75eda2aed6e730a15cff63402364ddae0869ecef02818100e162756370dc9d0c4f16d90f919f90e0dcfa3ad0bdad925719a5b538bc3a4f72c0684f2b4c97749f92adad9ad4222a01dd5505c4eef4e209e8960b33c50fbdf31360cb4c07965550206e58037176d017cb97c620de18917dd24ddbca3262f2d17b5e3e75e2a319af74ae845c9f111cdec808f0adb9d65b78ab775460d15f9a5f02818100ca2d5a872a6c3dfe5811592fdfe07fe30a4971f0ee1ab860ac83b9f7086de8353f2c7e60fb31522e05ea3211e5286655537ead89f8e1346225bb22ec3ea28573e6778a270eba86314079cd0f1e5117f1ae2053ae1bb63e6855d1b515d5bf419f62a2486d5cd4c43dfb95a7c8f8807f03114be3ba57406082c394776e4ab14fdf0281807da9a3c1b9df8740a1a81f85eaaf88db96d97d897cf815abb2850db180611282ec7c3c07ec4055a9d2e23af5246997fa4a29697a0fb141863cc3cba325b04d3c0605e5d392376381b55350873aefffbe04a9aeb20ca2ae1bf4f1ac25e449ff1085345aa6e7a200642f2e4e6645da08babdd51e3bfe6d61bab9ff627048cc810902818100aeda9ab8dbcfd1adefacd15dbe5a0340f0dca456a31728ef334499c934d9194333e7df4530fa6f00aecce590e488143927851fc17c26098ff8e1e84a39c18579bf911342c4523d4ccb5e8c22cf2d836fda10cb4e8159149057e88e9cdbc815912b54ff1ed6728d66adf7b8acef7ef25a4cd33d99236ce20b35eb697f51ca1831028181009f53c704b024d9e6b34d7e04af8510d30500ecac0eec8e6e67d7be4d302662864cc3b18e0208a6e068f59150700f4208fbd61b74d29170fc4b296e913ed7b5a24ee2ac2d9a6f63f98d963432fd181f4b3cbbc17a0528f9659712589c02321b2247e9d776a22a0ec3141ed0be30d6e1cc9e970aac6f46302a7f56a05501141bc6";
+    uint8_t key_data[2048];
+    size_t key_data_len;
+    parse_hex(hex_key_data, key_data, sizeof(key_data), &key_data_len);
+
+    uint8_t *plaintext;
+    size_t plaintext_len;
+    int decrypt_res;
+    if (decrypt_res = decrypt_kms_ct_for_recipient(ct, strlen(ct), key_data, key_data_len, &plaintext, &plaintext_len)) {
+        printf("Decrypt error: 0x%x\n", -decrypt_res);
+        return 1;
+    }
+
+    printf("Plaintext: %s\n", plaintext);
+    free(plaintext);
+
+    return 0;
+
     setup_output();
 
     /* ---------------- mbedTLS init ---------------- */

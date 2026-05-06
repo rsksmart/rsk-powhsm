@@ -22,7 +22,7 @@
 
 PROG = kms_client
 PROG_TCP = kms_client_tcp
-OBJS = kms_client.o cJSON.o
+OBJS = kms_client.o cJSON.o kms_decrypt.o
 CFLAGS += -I$(TCPSIGNER_MBEDTLS)/include -I$(TCPSIGNER_NSM)/target/release
 
 all: vsock
