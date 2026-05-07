@@ -120,12 +120,11 @@ static void derive_signing_key(const char *secret,
 /* Build canonical request and string-to-sign and compute signature */
 static void compute_sigv4(const char *method, const char *uri, const char *host,
                           const char *payload, const char *amz_date, const char *date_yyyymmdd,
-                          const char *region, const char *service,
+                          const char *region, const char *service, const char *target,
                           char *out_authorization_header, size_t auth_size)
 {
     /* Simple canonical headers: host and x-amz-date (and x-amz-target / content-type if used) */
     const char *content_type = "application/x-amz-json-1.1";
-    const char *amz_target = "TrentService.Decrypt"; /* adjust for other KMS ops */
 
     char payload_hash_hex[65];
     sha256_hex((const unsigned char*)payload, strlen(payload), payload_hash_hex);
@@ -138,7 +137,7 @@ static void compute_sigv4(const char *method, const char *uri, const char *host,
     char canonical_headers[1024];
     snprintf(canonical_headers, sizeof(canonical_headers),
              "content-type:%s\nhost:%s\nx-amz-date:%s\nx-amz-target:%s\n",
-             content_type, host, amz_date, amz_target);
+             content_type, host, amz_date, target);
 
     /* Signed headers */
     const char *signed_headers = "content-type;host;x-amz-date;x-amz-target";
@@ -305,6 +304,7 @@ static bool parse_http_response(read_fn_t read_fn, void *ctx, http_response_t *r
 
 void free_http_response(http_response_t *resp) {
     if (resp->body) free(resp->body);
+    resp->body = NULL;
 }
 
 #ifdef USE_TCP
@@ -352,23 +352,26 @@ static int vsock_connect(unsigned int cid, unsigned int port) {
 }
 #endif
 
-static void setup_output() {
+static bool setup_output() {
 #ifdef USE_TCP
     standard_output = stdout;
     standard_error = stderr;
 #else
     fd_output = vsock_connect(3, 4333);
     if (!fd_output) {
-        die("vsock_connect");
+        DEBUG_ERROR("vsock_connect");
+        return false;
     }
     file_output = fdopen(fd_output, "w");
     if (!file_output) {
         close(fd_output);
-        die("fdopen");
+        DEBUG_ERROR("fdopen");
+        return false;
     }
     standard_output = file_output;
     standard_error = file_output;
 #endif
+    return true;
 }
 
 const char *G_crg_host = "169.254.169.254";
@@ -392,7 +395,7 @@ static int connect_to_iam_server() {
     return sockfd;
 }
 
-static void load_credentials() {
+static bool load_credentials() {
     int sockfd;
     char request_buffer[1024];
     int request_len;
@@ -412,16 +415,19 @@ static void load_credentials() {
     request_len = build_http_request(request, request_buffer, sizeof(request_buffer));
     if (send(sockfd, request_buffer, request_len, 0) != request_len) {
         close(sockfd);
-        die("token request");
+        DEBUG_ERROR("token request");
+        return false;
     }
     if (!parse_http_response(recv_wrapper, &sockfd, &response)) {
         close(sockfd);
-        die("token response");
+        DEBUG_ERROR("token response");
+        return false;
     }
     if (response.code != 200) {
         free_http_response(&response);
         close(sockfd);
-        die("token response code");
+        DEBUG_ERROR("token response code");
+        return false;
     }
     token = strdup(response.body);
     free_http_response(&response);
@@ -436,16 +442,19 @@ static void load_credentials() {
     request_len = build_http_request(request, request_buffer, sizeof(request_buffer));
     if (send(sockfd, request_buffer, request_len, 0) != request_len) {
         close(sockfd);
-        die("role request");
+        DEBUG_ERROR("role request");
+        return false;
     }
     if (!parse_http_response(recv_wrapper, &sockfd, &response)) {
         close(sockfd);
-        die("role response");
+        DEBUG_ERROR("role response");
+        return false;
     }
     if (response.code != 200) {
         free_http_response(&response);
         close(sockfd);
-        die("role response code");
+        DEBUG_ERROR("role response code");
+        return false;
     }
     role = strdup(response.body);
     free_http_response(&response);
@@ -460,16 +469,19 @@ static void load_credentials() {
     request_len = build_http_request(request, request_buffer, sizeof(request_buffer));
     if (send(sockfd, request_buffer, request_len, 0) != request_len) {
         close(sockfd);
-        die("credentials request");
+        DEBUG_ERROR("credentials request");
+        return false;
     }
     if (!parse_http_response(recv_wrapper, &sockfd, &response)) {
         close(sockfd);
-        die("credentials response");
+        DEBUG_ERROR("credentials response");
+        return false;
     }
     if (response.code != 200) {
         free_http_response(&response);
         close(sockfd);
-        die("credentials response code");
+        DEBUG_ERROR("credentials response code");
+        return false;
     }
     credentials_json = strdup(response.body);
     free_http_response(&response);
@@ -477,22 +489,24 @@ static void load_credentials() {
 
     cJSON *json = cJSON_Parse(credentials_json);
     if (!json) {
-        die("credentials JSON parsing");
+        DEBUG_ERROR("credentials JSON parsing");
+        return false;
     }
-    DEBUG("Credentials JSON:\n%s\n", credentials_json);
+    DEBUG("\n=== Credentials JSON ===\n%s\n", credentials_json);
     cJSON *akid = cJSON_GetObjectItemCaseSensitive(json, "AccessKeyId");
     cJSON *sakey = cJSON_GetObjectItemCaseSensitive(json, "SecretAccessKey");
     cJSON *stoken = cJSON_GetObjectItemCaseSensitive(json, "Token");
     if (!cJSON_IsString(akid) || !cJSON_IsString(sakey) || !cJSON_IsString(stoken)) {
         DEBUG_ERROR("Missing AccessKeyId, SecretAccessKey, or SessionToken in credentials JSON\n");
         cJSON_Delete(json);
-        exit(1);
+        return false;
     }
     G_access_key_id = strdup(akid->valuestring);
     G_secret_access_key = strdup(sakey->valuestring);
     G_session_token = strdup(stoken->valuestring);
     cJSON_Delete(json);
 
+    DEBUG("\n=== Loaded Credentials ===\n");
     DEBUG("Access key id: %s\n", G_access_key_id);
     DEBUG("Secret access key: %s\n", G_secret_access_key);
     DEBUG("Session token: %s\n", G_session_token);
@@ -502,6 +516,8 @@ static void load_credentials() {
     free(token_header);
     free(role);
     free(token);
+
+    return true;
 }
 
 static void free_credentials() {
@@ -520,13 +536,17 @@ static void DEBUG_HEX(const uint8_t *data, size_t len) {
 /* Maximum size of the attestation document */
 #define NSM_MAX_ATTESTATION_DOC_SIZE (16 * 1024)
 
+uint8_t G_att_doc[NSM_MAX_ATTESTATION_DOC_SIZE];
+uint32_t G_att_doc_len = NSM_MAX_ATTESTATION_DOC_SIZE;
+char G_att_doc_base64[NSM_MAX_ATTESTATION_DOC_SIZE * 2]; /* should be enough for base64 encoding */
+size_t G_att_doc_base64_len;
+
 #ifndef USE_TCP
 static void get_attestation(
     uint8_t* pub_der,
     uint32_t pub_der_len,
     uint8_t *att_doc,
     uint32_t *att_doc_len) {
-    DEBUG("Getting attestation document from NSM...\n");
 
     int nsm_fd = nsm_lib_init();
     if (nsm_fd < 0) {
@@ -542,7 +562,7 @@ static void get_attestation(
         return;
     }
 
-    DEBUG("Attestation document:\n");
+    DEBUG("\n=== Attestation document ===\n");
     DEBUG_HEX(att_doc, *att_doc_len);
 
     nsm_lib_exit(nsm_fd);
@@ -554,15 +574,16 @@ static bool generate_rsa_keypair(
     mbedtls_pk_context *pk,
     unsigned char *pri_der,
     size_t pri_der_size,
-    unsigned char** pri_start,
+    unsigned char** pri_der_start,
     uint32_t *pri_len,
     unsigned char *pub_der,
     size_t pub_der_size,
-    unsigned char **pub_start,
+    unsigned char **pub_der_start,
     uint32_t *pub_len) {
 
     mbedtls_pk_init(pk);
-    *pub_start = NULL;
+    *pri_der_start = NULL;
+    *pub_der_start = NULL;
 
     if (mbedtls_pk_setup(pk, mbedtls_pk_info_from_type(MBEDTLS_PK_RSA)) != 0) {
         DEBUG_ERROR("pk_setup failed\n");
@@ -586,9 +607,9 @@ static bool generate_rsa_keypair(
         DEBUG_ERROR("pk_write_key_der failed\n");
         return false;
     }
-    *pri_start = pri_der + pri_der_size - *pri_len;
+    *pri_der_start = pri_der + pri_der_size - *pri_len;
     DEBUG("RSA private key:\n");
-    DEBUG_HEX(*pri_start, *pri_len);
+    DEBUG_HEX(*pri_der_start, *pri_len);
     DEBUG("================\n");
 
     memset(pub_der, 0, pub_der_size);
@@ -598,7 +619,7 @@ static bool generate_rsa_keypair(
         return false;
     }
 
-    *pub_start = pub_der + pub_der_size - *pub_len;
+    *pub_der_start = pub_der + pub_der_size - *pub_len;
     return true;
 }
 
@@ -614,81 +635,27 @@ void parse_hex(char* hex_str, uint8_t* out_buf, size_t out_buf_size, size_t* out
     *out_len = hex_len / 2;
 }
 
-int main(void)
-{
-    setup_output();
+mbedtls_ctr_drbg_context G_ctr_drbg;
+mbedtls_entropy_context G_entropy;
 
-    /* ---------------- mbedTLS init ---------------- */
-    mbedtls_ssl_context ssl;
-    mbedtls_ssl_config conf;
-    mbedtls_x509_crt cacert;
-    mbedtls_ctr_drbg_context ctr_drbg;
-    mbedtls_entropy_context entropy;
-    char errbuf[200];
-
-    mbedtls_ssl_init(&ssl);
-    mbedtls_ssl_config_init(&conf);
-    mbedtls_x509_crt_init(&cacert);
-    mbedtls_ctr_drbg_init(&ctr_drbg);
-    mbedtls_entropy_init(&entropy);
-
-    if (mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy,
-                              NULL, 0) != 0) { DEBUG_ERROR("DRBG seed failed\n"); return 1; }
-
-    mbedtls_pk_context pk;
-    unsigned char pri_der[2048]; /* should be enough for 2048-bit RSA private key */
-    unsigned char pub_der[2048]; /* should be enough for 2048-bit RSA public key */
-    unsigned char *pub_der_start;
-    unsigned char *pri_der_start;
-    uint32_t pub_der_len;
-    uint32_t pri_der_len;
-    if (!generate_rsa_keypair(&ctr_drbg, &pk, pri_der, sizeof(pri_der), &pri_der_start, &pri_der_len, pub_der, sizeof(pub_der), &pub_der_start, &pub_der_len)) {
-        DEBUG_ERROR("RSA key generation failed\n");
-        return 1;
+static bool mbedtls_ctr_drbg_init_global() {
+    mbedtls_ctr_drbg_init(&G_ctr_drbg);
+    mbedtls_entropy_init(&G_entropy);
+    if (mbedtls_ctr_drbg_seed(&G_ctr_drbg, mbedtls_entropy_func, &G_entropy,
+                              NULL, 0) != 0) {
+        DEBUG_ERROR("mbedtls DRBG seed failed");
+        return false;
     }
-    DEBUG("RSA private key:\n");
-    DEBUG_HEX(pri_der_start, pri_der_len);
-    DEBUG("==============\n");
-    DEBUG("RSA public key:\n");
-    DEBUG_HEX(pub_der_start, pub_der_len);
-    DEBUG("==============\n");
 
-#ifndef USE_TCP
-    uint8_t att_doc[NSM_MAX_ATTESTATION_DOC_SIZE];
-    uint32_t att_doc_len = NSM_MAX_ATTESTATION_DOC_SIZE;
-    get_attestation(pub_der_start, pub_der_len, att_doc, &att_doc_len);
-    char att_doc_base64[NSM_MAX_ATTESTATION_DOC_SIZE * 2]; /* should be enough for base64 encoding */
-    size_t att_doc_base64_len;
-    if (mbedtls_base64_encode((unsigned char *)att_doc_base64, sizeof(att_doc_base64), &att_doc_base64_len, att_doc, att_doc_len)) {
-        DEBUG_ERROR("Base64 encoding failed (size calculation)\n");
-        return 1;
-    }
-#endif
+    return true;
+}
 
-    /* Build the KMS JSON payload */
-    cJSON *kmsPayload = cJSON_CreateObject();
-    cJSON_AddStringToObject(kmsPayload, "KeyId", "arn:aws:kms:us-east-2:192930478100:key/e4548bc2-cfa6-40f1-b9e9-960779369798");
-    cJSON_AddStringToObject(kmsPayload, "CiphertextBlob", "AQICAHgg1zChhefCtdF3Qt8+NrIkNAL2NUqFpqR2t9HRIZwuvAHbJfpxxkMMVmp4k33oqo0JAAAAfjB8BgkqhkiG9w0BBwagbzBtAgEAMGgGCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQM25+5kcLVN49RiuWuAgEQgDsN8D61wLuR6A0eXU5rNHw7GuzBR6rusNVByZE8gTX2GzPlwoNmsSDUR1i9eDFxE9FAAqlg0QvKnpggeA==");
-#ifndef USE_TCP
-    cJSON *recipient = cJSON_CreateObject();
-    cJSON_AddStringToObject(recipient, "KeyEncryptionAlgorithm", "RSAES_OAEP_SHA_256");
-    cJSON_AddStringToObject(recipient, "AttestationDocument", att_doc_base64);
-    cJSON_AddItemToObject(kmsPayload, "Recipient", recipient);
-#endif
-
-    const char *payload = cJSON_PrintUnformatted(kmsPayload);
-    cJSON_Delete(kmsPayload);
-    DEBUG("KMS request payload:\n%s====================\n", payload);
-
-    load_credentials();
-
-    const char *kms_host = "kms." REGION ".amazonaws.com";
-#ifdef USE_TCP
-    const char *kms_port = "443";
-#else
-    const unsigned int kms_cid = 3;
-    const unsigned int kms_port = 8777;
-#endif
+static bool do_kms_request(int sockfd,
+                           const char* kms_host,
+                           const char* target,
+                           const char* payload,
+                           http_response_t *kms_response) {
+    bool fn_ret = true;
 
     /* Time for x-amz-date and date scope */
     time_t now = time(NULL);
@@ -701,7 +668,10 @@ int main(void)
 
     /* Compute SigV4 Authorization header */
     char authorization[1024];
-    compute_sigv4("POST", "/", kms_host, payload, amz_date, date_yyyymmdd, REGION, SERVICE, authorization, sizeof(authorization));
+    compute_sigv4("POST", "/", kms_host, payload,
+                  amz_date, date_yyyymmdd, REGION,
+                  SERVICE, target, authorization,
+                  sizeof(authorization));
 
     /* Build HTTP request */
     char http_req[32*1024];
@@ -710,52 +680,56 @@ int main(void)
         "Host: %s\r\n"
         "Content-Type: application/x-amz-json-1.1\r\n"
         "X-Amz-Date: %s\r\n"
-        "X-Amz-Target: TrentService.Decrypt\r\n"
+        "X-Amz-Target: %s\r\n"
         "X-Amz-Security-Token: %s\r\n"
         "Accept: application/json\r\n"
         "Authorization: %s\r\n"
         "Content-Length: %zu\r\n"
         "\r\n"
         "%s",
-        kms_host, amz_date, G_session_token, authorization, strlen(payload), payload);
+        kms_host, amz_date, target, G_session_token, authorization, strlen(payload), payload);
+
+    mbedtls_ssl_context ssl;
+    mbedtls_ssl_config ssl_conf;
+    mbedtls_x509_crt cacert;
+    char errbuf[200];
+
+    mbedtls_ssl_init(&ssl);
+    mbedtls_ssl_config_init(&ssl_conf);
+    mbedtls_x509_crt_init(&cacert);
 
     /* Load CA */
     if (mbedtls_x509_crt_parse_file(&cacert, CA_PEM_PATH) != 0) {
         DEBUG_ERROR("Failed to load CA file: %s\n", CA_PEM_PATH);
-        return 1;
+        fn_ret = false;
+        goto cleanup;
     }
 
-    if (mbedtls_ssl_config_defaults(&conf,
+    if (mbedtls_ssl_config_defaults(&ssl_conf,
                 MBEDTLS_SSL_IS_CLIENT,
                 MBEDTLS_SSL_TRANSPORT_STREAM,
                 MBEDTLS_SSL_PRESET_DEFAULT) != 0) {
         DEBUG_ERROR("ssl_config_defaults failed\n");
-        return 1;
+        fn_ret = false;
+        goto cleanup;
     }
-    mbedtls_ssl_conf_authmode(&conf, MBEDTLS_SSL_VERIFY_REQUIRED);
-    mbedtls_ssl_conf_ca_chain(&conf, &cacert, NULL);
-    mbedtls_ssl_conf_rng(&conf, mbedtls_ctr_drbg_random, &ctr_drbg);
+    mbedtls_ssl_conf_authmode(&ssl_conf, MBEDTLS_SSL_VERIFY_REQUIRED);
+    mbedtls_ssl_conf_ca_chain(&ssl_conf, &cacert, NULL);
+    mbedtls_ssl_conf_rng(&ssl_conf, mbedtls_ctr_drbg_random, &G_ctr_drbg);
 
-    if (mbedtls_ssl_setup(&ssl, &conf) != 0) {
+    if (mbedtls_ssl_setup(&ssl, &ssl_conf) != 0) {
         DEBUG_ERROR("ssl_setup failed\n");
-        return 1;
+        fn_ret = false;
+        goto cleanup;
     }
 
     /* SNI: set server hostname for cert verification and SNI extension */
     if (mbedtls_ssl_set_hostname(&ssl, kms_host) != 0) {
         DEBUG_ERROR("ssl_set_hostname failed\n");
-        return 1;
+        fn_ret = false;
+        goto cleanup;
     }
 
-#ifdef USE_TCP
-    /* Connect TCP and hand off socket to mbedtls net layer */
-    int sockfd = tcp_connect(kms_host, kms_port);
-    if (sockfd < 0) die("tcp_connect");
-#else
-    /* Connect TCP and hand off socket to mbedtls net layer */
-    int sockfd = vsock_connect(kms_cid, kms_port);
-    if (sockfd < 0) die("vsock_connect");
-#endif
     mbedtls_net_context server_fd;
     mbedtls_net_init(&server_fd);
     server_fd.fd = sockfd;
@@ -768,7 +742,8 @@ int main(void)
         if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
             mbedtls_strerror(ret, errbuf, sizeof(errbuf));
             DEBUG_ERROR("ssl_handshake error: %s\n", errbuf);
-            return 1;
+            fn_ret = false;
+            goto cleanup;
         }
     }
 
@@ -778,13 +753,14 @@ int main(void)
         char vrfybuf[512];
         mbedtls_x509_crt_verify_info(vrfybuf, sizeof(vrfybuf), "  ! ", flags);
         DEBUG_ERROR("Certificate verification failed: %s\n", vrfybuf);
-        return 1;
+        fn_ret = false;
+        goto cleanup;
     }
 
     /* Send HTTP request (no ALPN; using HTTP/1.1) */
     size_t written = 0;
     size_t req_len = strlen(http_req);
-    DEBUG("=== Request ===\n%s\n", http_req);
+    DEBUG("\n=== Request ===\n%s\n", http_req);
     while (written < req_len) {
         ret = mbedtls_ssl_write(&ssl, (const unsigned char*)http_req + written, req_len - written);
         if (ret > 0) written += ret;
@@ -792,52 +768,257 @@ int main(void)
         else { mbedtls_strerror(ret, errbuf, sizeof(errbuf)); DEBUG_ERROR("ssl_write error: %s\n", errbuf); break; }
     }
 
-    http_response_t kms_response;
-
-    if (!parse_http_response(ssl_read_wrapper, &ssl, &kms_response)) {
+    if (!parse_http_response(ssl_read_wrapper, &ssl, kms_response)) {
         DEBUG_ERROR("KMS response\n");
+        fn_ret = false;
         goto cleanup;
     }
-    if (kms_response.code != 200) {
-        DEBUG_ERROR("KMS response code: %d\n", kms_response.code);
-        goto cleanup;
-    }
-    DEBUG("KMS response body: %s\n", kms_response.body);
 
-    cJSON *kms_response_json = cJSON_Parse(kms_response.body);
-    if (!kms_response_json) {
-        die("KMS response JSON parsing");
-    }
-    cJSON *ct_item = cJSON_GetObjectItemCaseSensitive(kms_response_json, "CiphertextForRecipient");
-    if (!cJSON_IsString(ct_item)) {
-        DEBUG_ERROR("Missing CiphertextForRecipient in KMS response JSON\n");
+cleanup:
+    if (!fn_ret) free_http_response(kms_response);
+    mbedtls_ssl_close_notify(&ssl);
+    mbedtls_net_free(&server_fd);
+    mbedtls_x509_crt_free(&cacert);
+    mbedtls_ssl_free(&ssl);
+    mbedtls_ssl_config_free(&ssl_conf);
+    return fn_ret;
+}
+
+static bool perform_kms_operation(const char* name, cJSON* request, const char* target,
+                                  cJSON **kms_response_json) {
+    bool fn_ret = true;
+    *kms_response_json = NULL;
+
+    const char *kms_host = "kms." REGION ".amazonaws.com";
+#ifdef USE_TCP
+    const char *kms_port = "443";
+    /* Connect TCP and hand off socket to mbedtls net layer */
+    int sockfd = tcp_connect(kms_host, kms_port);
+    if (sockfd < 0) {
+        fn_ret = false;
+        DEBUG_ERROR("tcp_connect");
         goto cleanup;
     }
-    char *ct = strdup(ct_item->valuestring);
+#else
+    const unsigned int kms_cid = 3;
+    const unsigned int kms_port = 8777;
+    /* Connect TCP and hand off socket to mbedtls net layer */
+    int sockfd = vsock_connect(kms_cid, kms_port);
+    if (sockfd < 0) {
+        fn_ret = false;
+        DEBUG_ERROR("vsock_connect");
+        goto cleanup;
+    }
+#endif
+
+    http_response_t kms_response;
+#ifndef USE_TCP
+    cJSON* recipient = cJSON_CreateObject();
+    cJSON_AddStringToObject(recipient, "KeyEncryptionAlgorithm", "RSAES_OAEP_SHA_256");
+    cJSON_AddStringToObject(recipient, "AttestationDocument", G_att_doc_base64);
+    cJSON_AddItemToObject(request, "Recipient", recipient);
+#endif
+    char* request_str = cJSON_PrintUnformatted(request);
+    DEBUG("\n=== %s request ===\n%s\n", name, request_str);
+    if (!do_kms_request(sockfd, kms_host, target, request_str, &kms_response)) {
+        fn_ret = false;
+        DEBUG_ERROR("KMS request failed\n");
+        goto cleanup;
+    }
+
+    if (kms_response.code != 200) {
+        fn_ret = false;
+        DEBUG_ERROR("KMS response code: %d\n", kms_response.code);
+        DEBUG_ERROR("KMS response body:\n%s\n", kms_response.body);
+        goto cleanup;
+    }
+
+    *kms_response_json = cJSON_Parse(kms_response.body);
+    char* response_str = cJSON_PrintUnformatted(*kms_response_json);
+    DEBUG("\n=== %s response ===\n%s\n", name, response_str);
+    if (!*kms_response_json) {
+        fn_ret = false;
+        DEBUG_ERROR("KMS response JSON parsing failed\n");
+        goto cleanup;
+    }
+
+cleanup:
+    if (!fn_ret && *kms_response_json) cJSON_Delete(*kms_response_json);
+    free_http_response(&kms_response);
+    if (sockfd) close(sockfd);
+    if (request_str) free(request_str);
+    if (response_str) free(response_str);
+    return fn_ret;
+}
+
+int main(void)
+{
+    if (!setup_output()) {
+        DEBUG_ERROR("Output setup failed\n");
+        return 1;
+    }
+
+    if (!load_credentials()) {
+        DEBUG_ERROR("Credential loading failed\n");
+        return 1;
+    }
+
+    if (!mbedtls_ctr_drbg_init_global()) {
+        DEBUG_ERROR("mbedtls CTR_DRBG initialization failed\n");
+        return 1;
+    }
+
+#ifndef USE_TCP
+    // Generate ephemeral RSA key pair
+    mbedtls_pk_context pk;
+    unsigned char pri_der[2048]; /* should be enough for 2048-bit RSA private key */
+    unsigned char pub_der[2048]; /* should be enough for 2048-bit RSA public key */
+    unsigned char *pub_der_start;
+    unsigned char *pri_der_start;
+    uint32_t pub_der_len;
+    uint32_t pri_der_len;
+    if (!generate_rsa_keypair(&G_ctr_drbg, &pk, pri_der, sizeof(pri_der), &pri_der_start, &pri_der_len, pub_der, sizeof(pub_der), &pub_der_start, &pub_der_len)) {
+        DEBUG_ERROR("RSA key generation failed\n");
+        return 1;
+    }
+    DEBUG("\n=== Ephemeral RSA private key ===\n");
+    DEBUG_HEX(pri_der_start, pri_der_len);
+    DEBUG("\n=== Ephemeral RSA public key ===\n");
+    DEBUG_HEX(pub_der_start, pub_der_len);
+
+    // Generate attestation document
+    get_attestation(pub_der_start, pub_der_len, G_att_doc, &G_att_doc_len);
+    if (mbedtls_base64_encode((unsigned char *)G_att_doc_base64, sizeof(G_att_doc_base64), &G_att_doc_base64_len, G_att_doc, G_att_doc_len)) {
+        DEBUG_ERROR("Base64 encoding failed (size calculation)\n");
+        return false;
+    }
+#else
+    unsigned char *pub_der_start = NULL;
+    uint32_t pub_der_len = 0;
+#endif
+
+    // Generate random text to encrypt
+    srand((unsigned int)time(NULL));
+    char random_plaintext[128];
+    const char charset[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    for (size_t i = 0; i < sizeof(random_plaintext) - 1; i++) {
+        random_plaintext[i] = charset[rand() % (sizeof(charset) - 1)];
+    }
+    random_plaintext[sizeof(random_plaintext) - 1] = '\0';
+    DEBUG("\n=== Random plaintext to encrypt ===\n%s\n", random_plaintext);
+
+#define KMS_KEY_ID "arn:aws:kms:us-east-2:192930478100:key/e4548bc2-cfa6-40f1-b9e9-960779369798"
+
+    // ************* BEGIN DESCRIBE ************* // 
+    cJSON *kms_describe_request = cJSON_CreateObject();
+    cJSON *kms_describe_response;
+    cJSON_AddStringToObject(kms_describe_request, "KeyId", KMS_KEY_ID);
+
+    if (!perform_kms_operation("Describe key", kms_describe_request, "TrentService.DescribeKey", &kms_describe_response)) {
+        DEBUG_ERROR("KMS Describe operation failed\n");
+        return 1;
+    }
+
+    cJSON_Delete(kms_describe_request);
+    cJSON_Delete(kms_describe_response);
+    // ************* END DESCRIBE ************* //
+
+    // ************* BEGIN POLICY READ ************* // 
+    cJSON *kms_get_policy_request = cJSON_CreateObject();
+    cJSON *kms_get_policy_response;
+    cJSON_AddStringToObject(kms_get_policy_request, "KeyId", KMS_KEY_ID);
+
+    if (!perform_kms_operation("Get key policy", kms_get_policy_request, "TrentService.GetKeyPolicy", &kms_get_policy_response)) {
+        DEBUG_ERROR("KMS Get Policy operation failed\n");
+        return 1;
+    }
+
+    cJSON_Delete(kms_get_policy_request);
+    cJSON_Delete(kms_get_policy_response);
+    // ************* END POLICY READ ************* //
+
+    // ************* BEGIN ENCRYPTION ************* // 
+    cJSON *kms_encrypt_request = cJSON_CreateObject();
+    cJSON *kms_encrypt_response;
+    cJSON_AddStringToObject(kms_encrypt_request, "KeyId", KMS_KEY_ID);
+    cJSON_AddStringToObject(kms_encrypt_request, "EncryptionAlgorithm", "SYMMETRIC_DEFAULT");
+    char plaintext_base64_encoded[sizeof(random_plaintext)*2]; /* should be enough for base64 encoding of random_plaintext */
+    size_t plaintext_base64_encoded_len;
+    mbedtls_base64_encode((unsigned char *)plaintext_base64_encoded, sizeof(plaintext_base64_encoded), &plaintext_base64_encoded_len, (unsigned char *)random_plaintext, strlen(random_plaintext));
+    cJSON_AddStringToObject(kms_encrypt_request, "Plaintext", plaintext_base64_encoded);
+
+    if (!perform_kms_operation("Encrypt", kms_encrypt_request, "TrentService.Encrypt", &kms_encrypt_response)) {
+        DEBUG_ERROR("KMS Encrypt operation failed\n");
+        return 1;
+    }
+
+    char* ciphertext;
+    cJSON *ct_item = cJSON_GetObjectItemCaseSensitive(kms_encrypt_response, "CiphertextBlob");
+    if (!cJSON_IsString(ct_item)) {
+        DEBUG_ERROR("Missing CiphertextBlob in KMS Encrypt response JSON\n");
+        return 1;
+    }
+    ciphertext = strdup(ct_item->valuestring);
+    DEBUG("\n=== Ciphertext ===\n%s\n", ciphertext);
+
+    cJSON_Delete(kms_encrypt_request);
+    cJSON_Delete(kms_encrypt_response);
+    // ************* END ENCRYPTION ************* // 
+
+    // ************* BEGIN DECRYPTION ************* // 
+    cJSON *kms_decrypt_request = cJSON_CreateObject();
+    cJSON *kms_decrypt_response;
+    cJSON_AddStringToObject(kms_decrypt_request, "KeyId", KMS_KEY_ID);
+    cJSON_AddStringToObject(kms_decrypt_request, "CiphertextBlob", ciphertext);
+
+    if (!perform_kms_operation("Decrypt", kms_decrypt_request, "TrentService.Decrypt", &kms_decrypt_response)) {
+        DEBUG_ERROR("KMS Decrypt operation failed\n");
+        return 1;
+    }
+
+#ifdef USE_TCP
+    cJSON *pt_item = cJSON_GetObjectItemCaseSensitive(kms_decrypt_response, "Plaintext");
+    if (!cJSON_IsString(pt_item)) {
+        DEBUG_ERROR("Missing Plaintext in KMS response JSON\n");
+        return 1;
+    }
+    char *plaintext_base64 = strdup(pt_item->valuestring);
+    size_t plaintext_len = 4096;
+    char *plaintext = malloc(plaintext_len); /* should be enough for decrypted plaintext */
+    if (mbedtls_base64_decode(plaintext, plaintext_len, &plaintext_len, plaintext_base64, strlen(plaintext_base64))) {
+        DEBUG_ERROR("Plaintext base64 decoding failed\n");
+        return 1;
+    }
+    free(plaintext_base64);
+#else
+    cJSON *ctfr_item = cJSON_GetObjectItemCaseSensitive(kms_decrypt_response, "CiphertextForRecipient");
+    if (!cJSON_IsString(ctfr_item)) {
+        DEBUG_ERROR("Missing CiphertextForRecipient in KMS response JSON\n");
+        return 1;
+    }
+    char *ct = strdup(ctfr_item->valuestring);
 
     uint8_t *plaintext;
     size_t plaintext_len;
     int decrypt_res;
     if (decrypt_res = decrypt_kms_ct_for_recipient(ct, strlen(ct), pri_der_start, pri_der_len, &plaintext, &plaintext_len)) {
         DEBUG_ERROR("Decrypt error: 0x%x\n", -decrypt_res);
-        goto cleanup;
+        return 1;
     }
+    free(ct);
+#endif
 
-    DEBUG("Plaintext: %s\n", plaintext);
+    DEBUG("\n=== Plaintext ===\n%s\n", plaintext);
+
     free(plaintext);
-
-cleanup:
-    /* Cleanup */
-    cJSON_Delete(kms_response_json);
-    free_http_response(&kms_response);
-    mbedtls_ssl_close_notify(&ssl);
-    mbedtls_net_free(&server_fd);
-    mbedtls_x509_crt_free(&cacert);
-    mbedtls_ssl_free(&ssl);
-    mbedtls_ssl_config_free(&conf);
-    mbedtls_ctr_drbg_free(&ctr_drbg);
-    mbedtls_entropy_free(&entropy);
+    cJSON_Delete(kms_decrypt_request);
+    cJSON_Delete(kms_decrypt_response);
+    // ************* END DECRYPTION ************* // 
+#ifndef USE_TCP
     mbedtls_pk_free(&pk);
+#endif
+    mbedtls_ctr_drbg_free(&G_ctr_drbg);
+    mbedtls_entropy_free(&G_entropy);
     free_credentials();
 
 #ifndef USE_TCP
