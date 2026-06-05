@@ -1,8 +1,14 @@
 FROM python:3.12-slim-bookworm@sha256:10f3aaab98db50cba827d3b33a91f39dc9ec2d02ca9b85cbc5008220d07b17f3
 
 ARG PIP_TIMEOUT=60
+ARG SNAPSHOT_DATE=20260415T000000Z
 
 WORKDIR /hsm2
+
+RUN rm -f /etc/apt/sources.list.d/debian.sources && \
+    echo "deb [check-valid-until=no] https://snapshot.debian.org/archive/debian/${SNAPSHOT_DATE}/ bookworm main" > /etc/apt/sources.list && \
+    echo "deb [check-valid-until=no] https://snapshot.debian.org/archive/debian/${SNAPSHOT_DATE}/ bookworm-updates main" >> /etc/apt/sources.list && \
+    echo "deb [check-valid-until=no] https://snapshot.debian.org/archive/debian-security/${SNAPSHOT_DATE}/ bookworm-security main" >> /etc/apt/sources.list
 
 RUN apt-get update && \
     apt-get install -y apt-utils vim procps && \
