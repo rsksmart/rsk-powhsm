@@ -97,6 +97,10 @@ __attribute__((always_inline)) static inline void update_indexes() {
 static void list_start(const uint16_t size) {
     update_indexes();
 
+    if (auth.receipt.level == RECEIPT_MAX_DEPTH) {
+        LOG("[E] Receipt exceeded the maximum allowed depth\n");
+        THROW(ERR_AUTH_RECEIPT_INVALID);
+    }
     ++auth.receipt.level;
 
     // About to start parsing a log? => clear the flags and counters
