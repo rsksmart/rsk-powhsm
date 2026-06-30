@@ -40,6 +40,8 @@
 #define HSMSIM_ADMIN_CMD_GET_NVM_STATS 0x04
 #define HSMSIM_ADMIN_CMD_GET_IS_ONBOARDED 0x05
 #define HSMSIM_ADMIN_CMD_SET_IS_ONBOARDED 0x06
+#define HSMSIM_ADMIN_CMD_SET_BEST_BLOCK 0x07
+#define HSMSIM_ADMIN_CMD_RESET_BEST_BLOCK 0x08
 
 #define HSMSIM_ADMIN_ERROR_INVALID_PROTOCOL 0x6f00
 #define HSMSIM_ADMIN_ERROR_DATA_SIZE 0x6f01
@@ -49,6 +51,9 @@
 typedef struct hsmsim_admin_data_s {
     bool ancestor_receipts_root_set;
     uint8_t old_ancestor_receipts_root[HASH_LENGTH];
+    bool best_block_set;
+    uint8_t old_ancestor_block[HASH_LENGTH];
+    uint8_t old_best_block[HASH_LENGTH];
 } hsmsim_admin_data_t;
 
 void hsmsim_admin_init();
