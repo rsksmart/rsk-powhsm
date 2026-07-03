@@ -145,7 +145,7 @@ def do_verify_attestation(options):
     if not signer_result["valid"]:
         raise AdminError(
             f"Invalid Signer attestation: error "
-            f"validating '{signer_result["failed_element"]}'")
+            f"validating '{signer_result['failed_element']}'")
 
     # Validate that the signer attestation is signed by the same public key
     # as the UI attestation
