@@ -94,12 +94,14 @@ class TestVerifyLedgerAttestation(TestCase):
             "valid": True,
             "value": self.ui_msg.hex(),
             "tweak": self.ui_hash.hex(),
+            "signed_by_pubkey": "att_pubkey",
             "collateral": {},
         }
         self.result['signer'] = {
             "valid": True,
             "value": self.signer_msg.hex(),
             "tweak": self.signer_hash.hex(),
+            "signed_by_pubkey": "att_pubkey",
             "collateral": {},
         }
 
@@ -117,6 +119,7 @@ class TestVerifyLedgerAttestation(TestCase):
             "valid": True,
             "value": self.signer_msg.hex(),
             "tweak": self.signer_hash.hex(),
+            "signed_by_pubkey": "att_pubkey",
             "collateral": {},
         }
 
@@ -208,6 +211,45 @@ class TestVerifyLedgerAttestation(TestCase):
             fill="-",
         )
         self.assertEqual(expected_call_signer, head_mock.call_args_list[2])
+
+    @patch("admin.verify_ledger_attestation.head")
+    @patch("admin.verify_ledger_attestation.HSMCertificate")
+    @patch("admin.verify_ledger_attestation.load_pubkeys")
+    def test_verify_attestation_ui_signer_different_certifiers(self,
+                                                               load_pubkeys_mock,
+                                                               certificate_mock,
+                                                               head_mock, _):
+        load_pubkeys_mock.return_value = self.public_keys
+        att_cert = Mock()
+        att_cert.validate_and_get_values = Mock(return_value=self.result)
+        certificate_mock.from_jsonfile = Mock(return_value=att_cert)
+
+        self.result["signer"]["signed_by_pubkey"] = "different_pubkey"
+
+        with self.assertRaises(AdminError) as e:
+            do_verify_attestation(self.default_options)
+
+        self.assertIn("is not signed by the same", str(e.exception))
+
+        load_pubkeys_mock.assert_called_with(self.pubkeys_path)
+        self.assertEqual([call(self.certification_path)],
+                         certificate_mock.from_jsonfile.call_args_list)
+
+        expected_call_ui = call(
+            [
+                "UI verified with:",
+                f"UD value: {'aa'*32}",
+                f"Derived public key ({EXPECTED_UI_DERIVATION_PATH}): "
+                f"{self.expected_ui_pubkey}",
+                f"Authorized signer hash: {'cc'*32}",
+                "Authorized signer iteration: 291",
+                f"Installed UI hash: {'ee'*32}",
+                "Installed UI version: 5.6",
+            ],
+            fill="-",
+        )
+        self.assertEqual(expected_call_ui, head_mock.call_args_list[1])
+        self.assertEqual(head_mock.call_count, 2)
 
     def test_verify_attestation_no_certificate(self, _):
         options = self.default_options
@@ -352,6 +394,7 @@ class TestVerifyLedgerAttestation(TestCase):
             "valid": True,
             "value": signer_header,
             "tweak": self.signer_hash.hex(),
+            "signed_by_pubkey": "att_pubkey",
             "collateral": {},
         }
         att_cert = Mock()
@@ -376,6 +419,7 @@ class TestVerifyLedgerAttestation(TestCase):
             "valid": True,
             "value": signer_header,
             "tweak": self.signer_hash.hex(),
+            "signed_by_pubkey": "att_pubkey",
             "collateral": {},
         }
         att_cert = Mock()

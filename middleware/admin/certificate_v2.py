@@ -71,6 +71,10 @@ class HSMCertificateV2Element:
     def get_pubkey(self):
         raise NotImplementedError(f"{type(self).__name__} can't provide a public key")
 
+    def get_serialised_pubkey(self, compressed):
+        return self.get_pubkey().to_string(
+            "compressed" if compressed else "uncompressed").hex()
+
     def is_valid(self, certifier):
         raise NotImplementedError(f"{type(self).__name__} can't be queried for validity")
 

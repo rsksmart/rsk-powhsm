@@ -276,12 +276,14 @@ class TestHSMCertificate(TestCase):
                 "valid": True,
                 "value": att_pubkey,
                 "tweak": None,
+                "signed_by_pubkey": device_pubkey,
                 "collateral": {}
             },
             'device': {
                 "valid": True,
                 "value": device_pubkey,
                 "tweak": None,
+                "signed_by_pubkey": root_pubkey,
                 "collateral": {}
             },
         }, cert.validate_and_get_values(root_of_trust))
@@ -328,6 +330,7 @@ class TestHSMCertificate(TestCase):
                 "valid": True,
                 "value": device_pubkey,
                 "tweak": None,
+                "signed_by_pubkey": root_pubkey,
                 "collateral": {}
             },
         }, cert.validate_and_get_values(root_of_trust))
