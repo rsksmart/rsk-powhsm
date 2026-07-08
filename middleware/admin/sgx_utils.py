@@ -225,13 +225,20 @@ def validate_tcb_info(pck_info, tcb_info):
                 "reason": "TCB level is unsupported"
             }
 
+        warnings = []
+        if matching_level["tcbStatus"] != "UpToDate":
+            warnings.append("Status is NOT UpToDate")
+        if len(matching_level.get("advisoryIDs", [])) > 0:
+            warnings.append("Advisories present")
+
         return {
             "valid": True,
             "status": matching_level["tcbStatus"],
             "date": matching_level["tcbDate"],
-            "advisories": matching_level["advisoryIDs"],
+            "advisories": matching_level.get("advisoryIDs", []),
             "svns": svns_info,
             "edn": tcb_info["tcbEvaluationDataNumber"],
+            "warnings": warnings,
         }
     except Exception as e:
         return {
@@ -298,6 +305,12 @@ def validate_qeid_info(report_info, qeid_info):
         if matching_level is None:
             return fail("QE TCB level is not supported")
 
+        warnings = []
+        if matching_level["tcbStatus"] != "UpToDate":
+            warnings.append("Status is NOT UpToDate")
+        if len(matching_level.get("advisoryIDs", [])) > 0:
+            warnings.append("Advisories present")
+
         return {
             "valid": True,
             "status": matching_level["tcbStatus"],
@@ -305,6 +318,7 @@ def validate_qeid_info(report_info, qeid_info):
             "advisories": matching_level.get("advisoryIDs", []),
             "isvsvn": f"{report_info.isvsvn} >= {matching_level["tcb"]["isvsvn"]}",
             "edn": qeid_info["tcbEvaluationDataNumber"],
+            "warnings": warnings,
         }
     except Exception as e:
         return {

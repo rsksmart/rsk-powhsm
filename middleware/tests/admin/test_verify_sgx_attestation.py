@@ -136,6 +136,7 @@ class TestVerifySgxAttestation(TestCase):
             "advisories": ["adv-1", "adv-2"],
             "edn": 123,
             "svns": ["one: 34", "two: 17", "three: 87"],
+            "warnings": ["wv1", "wv2"],
         }
         self.get_qeid_info = get_qeid_info
         get_qeid_info.return_value = {
@@ -151,7 +152,8 @@ class TestVerifySgxAttestation(TestCase):
             "date": "another date",
             "advisories": ["adv-3", "adv-4"],
             "edn": 456,
-            "isvsvn": 789
+            "isvsvn": "678 >= 567",
+            "warnings": ["wv3", "wv4"],
         }
 
     @parameterized.expand([
@@ -227,6 +229,12 @@ class TestVerifySgxAttestation(TestCase):
         ], fill="-"))
         self.assertEqual(head.call_args_list[2], call([
             "TCB Information:",
+            "************* WARNINGS *************",
+            "> wv1",
+            "> wv2",
+            "> w1",
+            "> w2",
+            "************************************",
             "Status: the status",
             "Issued: a date",
             "Advisories: adv-1, adv-2",
@@ -235,6 +243,20 @@ class TestVerifySgxAttestation(TestCase):
             "  - one: 34",
             "  - two: 17",
             "  - three: 87",
+        ], fill="-"))
+        self.assertEqual(head.call_args_list[3], call([
+            "QE Identity Information:",
+            "************* WARNINGS *************",
+            "> wv3",
+            "> wv4",
+            "> w3",
+            "> w4",
+            "************************************",
+            "Status: another status",
+            "Issued: another date",
+            "Advisories: adv-3, adv-4",
+            "TCB evaluation data number: 456",
+            "ISVSVN: 678 >= 567",
         ], fill="-"))
 
     def test_verify_attestation_err_get_root(self, get_sgx_root_of_trust, load_pubkeys,

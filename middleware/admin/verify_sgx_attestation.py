@@ -135,11 +135,7 @@ def do_verify_attestation(options):
         if not tcb_validation_result["valid"]:
             raise AdminError(f"TCB error: {tcb_validation_result["reason"]}")
 
-        if len(tcb_info_res["warnings"]) > 0:
-            info("***** TCB INFO WARNINGS *****")
-            for w in tcb_info_res["warnings"]:
-                info(w)
-            info("*****************************")
+        tcb_warnings = tcb_validation_result["warnings"] + tcb_info_res["warnings"]
     except Exception as e:
         raise AdminError(f"While trying to verify TCB information: {e}")
 
@@ -158,11 +154,7 @@ def do_verify_attestation(options):
         if not qeid_validation_result["valid"]:
             raise AdminError(f"QE ID error: {qeid_validation_result["reason"]}")
 
-        if len(qeid_info_res["warnings"]) > 0:
-            info("***** QE ID INFO WARNINGS *****")
-            for w in qeid_info_res["warnings"]:
-                info(w)
-            info("*****************************")
+        qeid_warnings = qeid_validation_result["warnings"] + qeid_info_res["warnings"]
     except Exception as e:
         raise AdminError(f"While trying to verify QE ID information: {e}")
 
@@ -201,7 +193,13 @@ def do_verify_attestation(options):
         f"Timestamp: {powhsm_message.timestamp}",
     ]
 
-    tcb_info = [
+    tcb_info = []
+    if len(tcb_warnings) > 0:
+        tcb_info.append("************* WARNINGS *************")
+        tcb_info += map(lambda w: f"> {w}", tcb_warnings)
+        tcb_info.append("************************************")
+
+    tcb_info += [
         f"Status: {tcb_validation_result["status"]}",
         f"Issued: {tcb_validation_result["date"]}",
         f"Advisories: {", ".join(tcb_validation_result["advisories"]) or "None"}",
@@ -211,7 +209,13 @@ def do_verify_attestation(options):
 
     tcb_info += map(lambda svn: f"  - {svn}", tcb_validation_result["svns"])
 
-    qeid_info = [
+    qeid_info = []
+    if len(qeid_warnings) > 0:
+        qeid_info.append("************* WARNINGS *************")
+        qeid_info += map(lambda w: f"> {w}", qeid_warnings)
+        qeid_info.append("************************************")
+
+    qeid_info += [
         f"Status: {qeid_validation_result["status"]}",
         f"Issued: {qeid_validation_result["date"]}",
         f"Advisories: {", ".join(qeid_validation_result["advisories"]) or "None"}",
