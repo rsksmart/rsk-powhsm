@@ -41,6 +41,9 @@ class HSMCertificateRoot:
     def get_pubkey(self):
         return self.pubkey
 
+    def get_serialised_pubkey(self, compressed):
+        return self.get_pubkey().serialize(compressed=compressed).hex()
+
 
 class HSMCertificateElement:
     VALID_NAMES = ["device", "attestation", "ui", "signer"]
@@ -139,6 +142,9 @@ class HSMCertificateElement:
     def get_pubkey(self):
         return ec.PublicKey(bytes.fromhex(self.get_value()), raw=True)
 
+    def get_serialised_pubkey(self, compressed):
+        return self.get_pubkey().serialize(compressed=compressed).hex()
+
     def get_tweak(self):
         return self.tweak
 
@@ -216,6 +222,8 @@ class HSMCertificate:
                         "valid": True,
                         "value": current.get_value(),
                         "tweak": current.get_tweak(),
+                        "signed_by_pubkey":
+                            current_certifier.get_serialised_pubkey(compressed=False),
                         "collateral": collateral,
                     }
                     break

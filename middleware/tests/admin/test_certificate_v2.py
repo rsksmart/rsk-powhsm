@@ -23,8 +23,9 @@
 from unittest import TestCase
 from parameterized import parameterized
 from admin.certificate_v1 import HSMCertificate
-from admin.certificate_v2 import HSMCertificateV2
+from admin.certificate_v2 import HSMCertificateV2, HSMCertificateV2Element
 from .test_certificate_v2_resources import TEST_CERTIFICATE
+from types import SimpleNamespace
 
 
 class TestHSMCertificateV2(TestCase):
@@ -61,8 +62,24 @@ class TestHSMCertificateV2(TestCase):
             def get_collateral(self):
                 return self.collateral
 
+            def get_pubkey(self):
+                return mock_pubkey(self.name)
+
+            def get_serialised_pubkey(self, compressed):
+                return HSMCertificateV2Element.get_serialised_pubkey(self, compressed)
+
         def mock_element_factory(k, d):
             return MockElement(d)
+
+        def mock_pubkey(name):
+            class MockPubkey:
+                def __init__(self, name):
+                    self.name = name
+
+                def to_string(self, compressed):
+                    return SimpleNamespace(hex=lambda: f"pubkey-for-{self.name}")
+
+            return MockPubkey(name)
 
         HSMCertificateV2.ELEMENT_FACTORY = mock_element_factory
 
@@ -74,6 +91,7 @@ class TestHSMCertificateV2(TestCase):
                     "valid": True,
                     "value": "the value for quote",
                     "tweak": None,
+                    "signed_by_pubkey": "pubkey-for-attestation",
                     "collateral": {
                         "platform_ca": "collateral-for-platform_ca",
                         "quoting_enclave": "collateral-for-quoting_enclave",

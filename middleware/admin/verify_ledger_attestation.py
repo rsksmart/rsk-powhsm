@@ -145,7 +145,15 @@ def do_verify_attestation(options):
     if not signer_result["valid"]:
         raise AdminError(
             f"Invalid Signer attestation: error "
-            f"validating '{signer_result["failed_element"]}'")
+            f"validating '{signer_result['failed_element']}'")
+
+    # Validate that the signer attestation is signed by the same public key
+    # as the UI attestation
+    if ui_result["signed_by_pubkey"] != signer_result["signed_by_pubkey"]:
+        raise AdminError(
+            "Signer attestation is not signed by the same public key "
+            f"as the UI attestation ({signer_result['signed_by_pubkey']} vs. "
+            f"{ui_result['signed_by_pubkey']})")
 
     signer_message = bytes.fromhex(signer_result["value"])
     signer_hash = bytes.fromhex(signer_result["tweak"])
