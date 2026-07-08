@@ -115,7 +115,7 @@ def do_verify_attestation(options):
     if not powhsm_result["valid"]:
         raise AdminError(
             f"Invalid powHSM attestation: error "
-            f"validating '{powhsm_result["failed_element"]}'")
+            f"validating '{powhsm_result['failed_element']}'")
     powhsm_collateral = powhsm_result["collateral"]
     powhsm_result = powhsm_result["value"]
 
@@ -133,7 +133,7 @@ def do_verify_attestation(options):
 
         tcb_validation_result = validate_tcb_info(pck_collateral, tcb_info)
         if not tcb_validation_result["valid"]:
-            raise AdminError(f"TCB error: {tcb_validation_result["reason"]}")
+            raise AdminError(f"TCB error: {tcb_validation_result['reason']}")
 
         tcb_warnings = tcb_validation_result["warnings"] + tcb_info_res["warnings"]
     except Exception as e:
@@ -152,7 +152,7 @@ def do_verify_attestation(options):
 
         qeid_validation_result = validate_qeid_info(qe_collateral, qeid_info)
         if not qeid_validation_result["valid"]:
-            raise AdminError(f"QE ID error: {qeid_validation_result["reason"]}")
+            raise AdminError(f"QE ID error: {qeid_validation_result['reason']}")
 
         qeid_warnings = qeid_validation_result["warnings"] + qeid_info_res["warnings"]
     except Exception as e:
@@ -200,10 +200,10 @@ def do_verify_attestation(options):
         tcb_info.append("************************************")
 
     tcb_info += [
-        f"Status: {tcb_validation_result["status"]}",
-        f"Issued: {tcb_validation_result["date"]}",
-        f"Advisories: {", ".join(tcb_validation_result["advisories"]) or "None"}",
-        f"TCB evaluation data number: {tcb_validation_result["edn"]}",
+        f"Status: {tcb_validation_result['status']}",
+        f"Issued: {tcb_validation_result['date']}",
+        f"Advisories: {', '.join(tcb_validation_result['advisories']) or 'None'}",
+        f"TCB evaluation data number: {tcb_validation_result['edn']}",
         "SVNs:"
     ]
 
@@ -216,11 +216,11 @@ def do_verify_attestation(options):
         qeid_info.append("************************************")
 
     qeid_info += [
-        f"Status: {qeid_validation_result["status"]}",
-        f"Issued: {qeid_validation_result["date"]}",
-        f"Advisories: {", ".join(qeid_validation_result["advisories"]) or "None"}",
-        f"TCB evaluation data number: {qeid_validation_result["edn"]}",
-        f"ISVSVN: {qeid_validation_result["isvsvn"]}",
+        f"Status: {qeid_validation_result['status']}",
+        f"Issued: {qeid_validation_result['date']}",
+        f"Advisories: {', '.join(qeid_validation_result['advisories']) or 'None'}",
+        f"TCB evaluation data number: {qeid_validation_result['edn']}",
+        f"ISVSVN: {qeid_validation_result['isvsvn']}",
     ]
 
     head(

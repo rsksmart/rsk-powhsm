@@ -55,7 +55,7 @@ def _parse_asn1_extensions(extension, base_oid, spec):
         result = {}
         for index, item in enumerate(items):
             xt = value[index]
-            item_oid = f"{base_oid}{item["oid"]}"
+            item_oid = f"{base_oid}{item['oid']}"
             result[item["name"]] = _parse_asn1_extensions(xt, item_oid, item)
         return result
 
@@ -70,7 +70,7 @@ def _parse_asn1_extensions(extension, base_oid, spec):
         assert_type(base_oid, value, Integer)
         return int(value)
 
-    raise RuntimeError(f"Unknown spec type {spec["type"]}")
+    raise RuntimeError(f"Unknown spec type {spec['type']}")
 
 
 def get_sgx_extensions(certificate):
@@ -158,7 +158,7 @@ def _get_auth_json_info(url, chain_header, digest_key, root_of_trust):
         result = validator.validate(subject, issuer, now)
         if not result["valid"]:
             raise RuntimeError("Error validating TCB info issuer "
-                               f"chain: {result["reason"]}")
+                               f"chain: {result['reason']}")
         warnings += result["warnings"]
         issuer = subject
 
@@ -316,7 +316,7 @@ def validate_qeid_info(report_info, qeid_info):
             "status": matching_level["tcbStatus"],
             "date": matching_level["tcbDate"],
             "advisories": matching_level.get("advisoryIDs", []),
-            "isvsvn": f"{report_info.isvsvn} >= {matching_level["tcb"]["isvsvn"]}",
+            "isvsvn": f"{report_info.isvsvn} >= {matching_level['tcb']['isvsvn']}",
             "edn": qeid_info["tcbEvaluationDataNumber"],
             "warnings": warnings,
         }
