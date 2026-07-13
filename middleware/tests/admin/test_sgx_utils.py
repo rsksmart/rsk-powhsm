@@ -30,6 +30,7 @@ from cryptography import x509
 from cryptography.hazmat.primitives.serialization import PublicFormat, Encoding
 from hashlib import sha256
 import ecdsa
+from copy import deepcopy
 from admin.sgx_utils import get_sgx_extensions, get_tcb_info, validate_tcb_info, \
                             get_qeid_info, validate_qeid_info, get_intel_pcs_x509_crl
 import logging
@@ -533,7 +534,70 @@ class TestSgxUtilsValidateTcbInfo(TestCase):
                 "PCESVN: 1717 >= 1716",
             ],
             "edn": 1234,
+            "warnings": ["Status is NOT UpToDate", "Advisories present"],
         }, validate_tcb_info(self.pck_info, self.tcb_info["tcbInfo"]))
+
+    def test_validate_tcb_info_ok_utd(self):
+        tcb_info = deepcopy(self.tcb_info["tcbInfo"])
+        tcb_info["tcbLevels"][1]["tcbStatus"] = "UpToDate"
+        self.assertEqual({
+            "valid": True,
+            "status": "UpToDate",
+            "date": "the-date-we-want",
+            "advisories": ["the-advisory-1", "the-advisory-2", "the-advisory-3"],
+            "svns": [
+                "Comp 01: 11 >= 10",
+                "Comp 02: 22 >= 21",
+                "Comp 03: 33 >= 32",
+                "Comp 04: 44 >= 43",
+                "Comp 05: 55 >= 54",
+                "Comp 06: 66 >= 65",
+                "Comp 07: 77 >= 76",
+                "Comp 08: 88 >= 87",
+                "Comp 09: 99 >= 98",
+                "Comp 10: 1010 >= 1009",
+                "Comp 11: 1111 >= 1110",
+                "Comp 12: 1212 >= 1211",
+                "Comp 13: 1313 >= 1312",
+                "Comp 14: 1414 >= 1413",
+                "Comp 15: 1515 >= 1514",
+                "Comp 16: 1616 >= 1615",
+                "PCESVN: 1717 >= 1716",
+            ],
+            "edn": 1234,
+            "warnings": ["Advisories present"],
+        }, validate_tcb_info(self.pck_info, tcb_info))
+
+    def test_validate_tcb_info_ok_no_adv(self):
+        tcb_info = deepcopy(self.tcb_info["tcbInfo"])
+        tcb_info["tcbLevels"][1].pop("advisoryIDs")
+        self.assertEqual({
+            "valid": True,
+            "status": "the-status-we-want",
+            "date": "the-date-we-want",
+            "advisories": [],
+            "svns": [
+                "Comp 01: 11 >= 10",
+                "Comp 02: 22 >= 21",
+                "Comp 03: 33 >= 32",
+                "Comp 04: 44 >= 43",
+                "Comp 05: 55 >= 54",
+                "Comp 06: 66 >= 65",
+                "Comp 07: 77 >= 76",
+                "Comp 08: 88 >= 87",
+                "Comp 09: 99 >= 98",
+                "Comp 10: 1010 >= 1009",
+                "Comp 11: 1111 >= 1110",
+                "Comp 12: 1212 >= 1211",
+                "Comp 13: 1313 >= 1312",
+                "Comp 14: 1414 >= 1413",
+                "Comp 15: 1515 >= 1514",
+                "Comp 16: 1616 >= 1615",
+                "PCESVN: 1717 >= 1716",
+            ],
+            "edn": 1234,
+            "warnings": ["Status is NOT UpToDate"],
+        }, validate_tcb_info(self.pck_info, tcb_info))
 
     def test_validate_tcb_info_notfound(self):
         self.tcb_info["tcbInfo"]["tcbLevels"] = self.tcb_info["tcbInfo"]["tcbLevels"][0:1]
@@ -837,7 +901,35 @@ class TestSgxUtilsValidateQeIdInfo(TestCase):
             "advisories": ["advisory-1", "advisory-2"],
             "edn": 456,
             "isvsvn": "123 >= 120",
+            "warnings": ["Status is NOT UpToDate", "Advisories present"],
         }, validate_qeid_info(self.qe_report_info, self.qeid_info))
+
+    def test_validate_qeid_info_ok_utd(self):
+        qeid_info = deepcopy(self.qeid_info)
+        qeid_info["tcbLevels"][2]["tcbStatus"] = "UpToDate"
+        self.assertEqual({
+            "valid": True,
+            "status": "UpToDate",
+            "date": "the tcb date",
+            "advisories": ["advisory-1", "advisory-2"],
+            "edn": 456,
+            "isvsvn": "123 >= 120",
+            "warnings": ["Advisories present"],
+        }, validate_qeid_info(self.qe_report_info, qeid_info))
+
+    def test_validate_qeid_info_ok_no_adv(self):
+        self.maxDiff = None
+        qeid_info = deepcopy(self.qeid_info)
+        qeid_info["tcbLevels"][2].pop("advisoryIDs")
+        self.assertEqual({
+            "valid": True,
+            "status": "the tcb status",
+            "date": "the tcb date",
+            "advisories": [],
+            "edn": 456,
+            "isvsvn": "123 >= 120",
+            "warnings": ["Status is NOT UpToDate"],
+        }, validate_qeid_info(self.qe_report_info, qeid_info))
 
     def test_validate_qeid_info_mrsigner(self):
         self.qe_report_info.mrsigner = "bb"*32
