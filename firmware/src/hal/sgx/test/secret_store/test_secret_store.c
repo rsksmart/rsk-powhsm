@@ -218,7 +218,7 @@ void test_write_and_retrieve_secret() {
     // Retrieve the secret and make sure the unseal API is called with the
     // correct arguments
     uint8_t retrieved[MAX_SEST_READ_SIZE];
-    uint8_t retrieved_length = sest_read(key, retrieved, sizeof(retrieved));
+    size_t retrieved_length = sest_read(key, retrieved, sizeof(retrieved));
     assert_oe_unseal_called_with(mock.sealed_secret, mock.sealed_size, NULL, 0);
     assert(retrieved_length == mock.plaintext_size);
     ASSERT_MEMCMP(retrieved, mock.plaintext, mock.plaintext_size);
@@ -281,7 +281,7 @@ void test_read_fails_when_oe_unseal_fails() {
     mock_seal_fail_next();
     uint8_t retrieved[MAX_SEST_READ_SIZE];
     memset(retrieved, 0, sizeof(retrieved));
-    uint8_t retrieved_length = sest_read(key, retrieved, sizeof(retrieved));
+    size_t retrieved_length = sest_read(key, retrieved, sizeof(retrieved));
     assert_oe_unseal_called_with(mock.sealed_secret, mock.sealed_size, NULL, 0);
     assert(retrieved_length == SEST_ERROR);
     ASSERT_ARRAY_CLEARED(retrieved);
@@ -301,7 +301,7 @@ void test_read_fails_when_plaintext_is_too_large() {
     // The retrieved buffer is one byte too short to fit the original secret
     uint8_t retrieved[mock.plaintext_size - 1];
     memset(retrieved, 0, sizeof(retrieved));
-    uint8_t retrieved_length = sest_read(key, retrieved, sizeof(retrieved));
+    size_t retrieved_length = sest_read(key, retrieved, sizeof(retrieved));
     assert_oe_unseal_called_with(mock.sealed_secret, mock.sealed_size, NULL, 0);
     assert(retrieved_length == SEST_ERROR);
     assert(retrieved[0] == 0);
@@ -428,7 +428,7 @@ void test_read_with_invalid_key_fails() {
 
     char* invalid_key = "invalid key";
     uint8_t retrieved[MAX_SEST_READ_SIZE];
-    uint8_t retrieved_length =
+    size_t retrieved_length =
         sest_read(invalid_key, retrieved, sizeof(retrieved));
     assert_oe_unseal_not_called();
     assert(retrieved_length == SEST_ERROR);
@@ -450,7 +450,7 @@ void test_read_fails_when_kvstore_get_fails() {
     mock_ocall_kvstore_fail_next(KVSTORE_FAILURE_OE_FAILURE);
     uint8_t retrieved[MAX_SEST_READ_SIZE];
     memset(retrieved, 0, sizeof(retrieved));
-    uint8_t retrieved_length = sest_read(key, retrieved, sizeof(retrieved));
+    size_t retrieved_length = sest_read(key, retrieved, sizeof(retrieved));
     assert_oe_unseal_not_called();
     assert(retrieved_length == SEST_ERROR);
     ASSERT_ARRAY_CLEARED(retrieved);
@@ -470,7 +470,7 @@ void test_read_fails_when_blob_is_too_large() {
     assert(sest_exists(key));
     uint8_t retrieved[MAX_SEST_READ_SIZE];
     memset(retrieved, 0, sizeof(retrieved));
-    uint8_t retrieved_length = sest_read(key, retrieved, sizeof(retrieved));
+    size_t retrieved_length = sest_read(key, retrieved, sizeof(retrieved));
     assert_oe_unseal_not_called();
     assert(retrieved_length == SEST_ERROR);
     ASSERT_ARRAY_CLEARED(retrieved);
@@ -541,7 +541,7 @@ void test_read_fails_invalid_header() {
     mock_ocall_kstore_assert_value(key, mock.sealed_secret, mock.sealed_size);
 
     uint8_t retrieved[MAX_SEST_READ_SIZE] = {0};
-    uint8_t retrieved_length = sest_read(key, retrieved, sizeof(retrieved));
+    size_t retrieved_length = sest_read(key, retrieved, sizeof(retrieved));
     assert(retrieved_length == SEST_ERROR);
     ASSERT_ARRAY_CLEARED(retrieved);
 

@@ -71,7 +71,7 @@ bool seed_init() {
     }
 
     // Read seed
-    uint8_t seed_length = 0;
+    size_t seed_length = 0;
     if (!(seed_length = sest_read(SEST_SEED_KEY, G_seed, sizeof(G_seed)))) {
         LOG("Could not load the current seed\n");
         return false;

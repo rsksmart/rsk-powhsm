@@ -57,11 +57,14 @@ bool access_init(access_wiped_callback_t wiped_callback) {
     }
 
     // Read password
-    if (!(G_password_length = sest_read(
+    size_t password_read_length;
+    if (!(password_read_length = sest_read(
               SEST_PASSWORD_KEY, (uint8_t*)G_password, sizeof(G_password)))) {
         LOG("Could not load the current password\n");
         return false;
     }
+    // If password read succeeded, then password length fits in a single byte
+    G_password_length = (uint8_t)password_read_length;
 
     // Make sure password is sound
     if (!pin_policy_is_valid_pin(G_password, G_password_length)) {

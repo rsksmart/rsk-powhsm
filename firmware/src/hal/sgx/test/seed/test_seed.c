@@ -125,7 +125,7 @@ bool sest_exists(char *key) {
     return mock_sest_exists(key);
 }
 
-uint8_t sest_read(char *key, uint8_t *dest, size_t dest_length) {
+size_t sest_read(char *key, uint8_t *dest, size_t dest_length) {
     return mock_sest_read(key, dest, dest_length);
 }
 

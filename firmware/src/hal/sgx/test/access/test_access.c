@@ -86,7 +86,7 @@ struct {
 
 // Mock stored data for secret store
 static char G_stored_password[] = "1234567a";
-static uint8_t G_stored_password_length = 8;
+static size_t G_stored_password_length = 8;
 static uint8_t G_stored_retries = 3;
 
 // Mock implementations
@@ -102,7 +102,7 @@ bool sest_exists(char* key) {
     return false;
 }
 
-uint8_t sest_read(char* key, uint8_t* dest, size_t dest_length) {
+size_t sest_read(char* key, uint8_t* dest, size_t dest_length) {
     G_called.sest_read = true;
     G_args.sest_read.key = key;
     G_args.sest_read.dest = dest;
@@ -126,7 +126,7 @@ uint8_t sest_read(char* key, uint8_t* dest, size_t dest_length) {
             return 0;
         }
         if (dest_length >= sizeof(uint8_t)) {
-            memcpy(dest, &G_stored_retries, sizeof(uint8_t));
+            memcpy(dest, &G_stored_retries, sizeof(G_stored_retries));
             return sizeof(uint8_t);
         }
         return 0;

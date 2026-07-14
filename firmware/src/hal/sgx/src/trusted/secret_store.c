@@ -133,9 +133,9 @@ static bool is_header_valid(const char* key,
  *
  * @returns the length of the unsealed data, or SEST_ERROR upon error
  */
-static uint8_t unseal_data(const sealed_secret_t* sealed_secret,
-                           uint8_t* dest,
-                           size_t dest_length) {
+static size_t unseal_data(const sealed_secret_t* sealed_secret,
+                          uint8_t* dest,
+                          size_t dest_length) {
 #ifndef SIM_BUILD
     uint8_t* plaintext = NULL;
     size_t plaintext_size = 0;
@@ -169,11 +169,6 @@ unseal_data_error:
     // *************************************************** //
     // UNSAFE SIMULATOR-ONLY UNSEAL IMPLEMENTATION         //
     // NOT FOR PRODUCTION USE                              //
-    if (sealed_secret->blob_size > MAX_BLOB_SIZE) {
-        LOG("Sealed blob size is too large\n");
-        return SEST_ERROR;
-    }
-
     if (sealed_secret->blob_size > dest_length) {
         LOG("Unsealed data is too large\n");
         return SEST_ERROR;
@@ -255,7 +250,7 @@ bool sest_exists(char* key) {
     return exists;
 }
 
-uint8_t sest_read(char* key, uint8_t* dest, size_t dest_length) {
+size_t sest_read(char* key, uint8_t* dest, size_t dest_length) {
     LOG("Attempting to read secret for <%s>...\n", key);
 
     size_t blob_size = 0;
@@ -286,7 +281,7 @@ uint8_t sest_read(char* key, uint8_t* dest, size_t dest_length) {
         .blob = G_sealed_buffer,
     };
 
-    uint8_t unsealed_length = unseal_data(
+    size_t unsealed_length = unseal_data(
         &sealed_secret, G_unsealed_buffer, sizeof(G_unsealed_buffer));
     if (unsealed_length == SEST_ERROR) {
         LOG("Unable to read secret stored in key <%s>\n", key);

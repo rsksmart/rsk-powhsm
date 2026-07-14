@@ -69,7 +69,7 @@ bool mock_sest_write(char *key, uint8_t *secret, size_t secret_length);
  * NOTE: This mock implementation will fail if the fail_next_read flag is set,
  * regardless of the key provided.
  */
-uint8_t mock_sest_read(char *key, uint8_t *dest, size_t dest_length);
+size_t mock_sest_read(char *key, uint8_t *dest, size_t dest_length);
 
 /**
  * @brief Mock implementation of sest_remove
