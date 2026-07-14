@@ -125,9 +125,9 @@ size_t sest_read(char* key, uint8_t* dest, size_t dest_length) {
         if (G_mocks.sest_read_retries_fail) {
             return 0;
         }
-        if (dest_length >= sizeof(uint8_t)) {
+        if (dest_length >= sizeof(G_stored_retries)) {
             memcpy(dest, &G_stored_retries, sizeof(G_stored_retries));
-            return sizeof(uint8_t);
+            return sizeof(G_stored_retries);
         }
         return 0;
     }
