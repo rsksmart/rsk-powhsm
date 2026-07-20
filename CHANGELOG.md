@@ -2,6 +2,8 @@
 
 ## [5.2.6] - 20/07/2026
 
+### Features/enhancements
+
 - Pinned middleware docker image apt sources to snapshot.debian.org
 - Added copilot instructions for code reviewing
 
