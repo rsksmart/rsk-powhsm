@@ -84,7 +84,7 @@ bool mock_sest_write(char *key, uint8_t *secret, size_t secret_length) {
     return true;
 }
 
-uint8_t mock_sest_read(char *key, uint8_t *dest, size_t dest_length) {
+size_t mock_sest_read(char *key, uint8_t *dest, size_t dest_length) {
     if (g_mock_secret_store.fail_next_read) {
         g_mock_secret_store.fail_next_read = false;
         return 0;

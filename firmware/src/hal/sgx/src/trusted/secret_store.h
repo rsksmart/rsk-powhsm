@@ -56,7 +56,7 @@ bool sest_exists(char* key);
  *
  * @returns the length of the secret read, or ZERO upon error
  */
-uint8_t sest_read(char* key, uint8_t* dest, size_t dest_length);
+size_t sest_read(char* key, uint8_t* dest, size_t dest_length);
 
 /**
  * @brief Write a secret to the store
