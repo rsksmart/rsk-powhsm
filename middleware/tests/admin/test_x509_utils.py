@@ -72,14 +72,20 @@ thisstuff
 @patch("admin.x509_utils.x509.load_pem_x509_crl")
 @patch("admin.x509_utils.requests")
 class TestGetIntelPcsX509CRL(TestCase):
-    def test_ok_pem(self, requests, load_pem, load_der, split, unquote):
+    @parameterized.expand([
+        ("ctype", "a-url", "application/x-pem-file", b"the-content"),
+        ("content", "a-url", "the-ctype", b"-----BEGIN CERTIFICATE etc etc"),
+        ("url", "a-url.pem", "the-ctype", b"the-content"),
+    ])
+    def test_ok_pem(self, requests, load_pem, load_der, split, unquote,
+                    _, url, ctype, ctnt):
         res = Mock()
         requests.get.return_value = res
 
         res.status_code = 200
-        res.content = "the-crl-content"
+        res.content = ctnt
         res.headers = {
-            "Content-Type": "application/x-pem-file"
+            "Content-Type": ctype
         }
         load_pem.return_value = "the-parsed-certificate"
 
@@ -87,23 +93,25 @@ class TestGetIntelPcsX509CRL(TestCase):
             "crl": "the-parsed-certificate",
             "issuer_chain": None,
             "warning": None,
-        }, get_intel_pcs_x509_crl("the-crl-url"))
+        }, get_intel_pcs_x509_crl(url))
 
-        load_pem.assert_called_with("the-crl-content")
+        load_pem.assert_called_with(ctnt)
         load_der.assert_not_called()
         split.assert_not_called()
         unquote.assert_not_called()
 
     @parameterized.expand([
-        ("header 1", "application/pkix-crl"),
-        ("header 2", "application/x-x509-ca-cert"),
+        ("ctype 1", "a-url", "application/pkix-crl"),
+        ("ctype 2", "a-url", "application/x-x509-ca-cert"),
+        ("url", "a-url.der", "the-ctype"),
     ])
-    def test_ok_der(self, requests, load_pem, load_der, split, unquote, _, ctype):
+    def test_ok_der(self, requests, load_pem, load_der, split, unquote,
+                    _, url, ctype):
         res = Mock()
         requests.get.return_value = res
 
         res.status_code = 200
-        res.content = "the-crl-content"
+        res.content = b"the-crl-content"
         res.headers = {
             "Content-Type": ctype,
         }
@@ -113,9 +121,9 @@ class TestGetIntelPcsX509CRL(TestCase):
             "crl": "the-parsed-certificate",
             "issuer_chain": None,
             "warning": None,
-        }, get_intel_pcs_x509_crl("the-crl-url"))
+        }, get_intel_pcs_x509_crl(url))
 
-        load_der.assert_called_with("the-crl-content")
+        load_der.assert_called_with(b"the-crl-content")
         load_pem.assert_not_called()
         split.assert_not_called()
         unquote.assert_not_called()
@@ -125,7 +133,7 @@ class TestGetIntelPcsX509CRL(TestCase):
         requests.get.return_value = res
 
         res.status_code = 200
-        res.content = "the-crl-content"
+        res.content = b"the-crl-content"
         res.headers = {
             "Content-Type": "application/x-pem-file",
             "warning": "this-is-a-warning",
@@ -138,7 +146,7 @@ class TestGetIntelPcsX509CRL(TestCase):
             "warning": "Getting the-crl-url: this-is-a-warning",
         }, get_intel_pcs_x509_crl("the-crl-url"))
 
-        load_pem.assert_called_with("the-crl-content")
+        load_pem.assert_called_with(b"the-crl-content")
         load_der.assert_not_called()
         split.assert_not_called()
         unquote.assert_not_called()
@@ -149,7 +157,7 @@ class TestGetIntelPcsX509CRL(TestCase):
         requests.get.return_value = res
 
         res.status_code = 200
-        res.content = "the-crl-content"
+        res.content = b"the-crl-content"
         res.headers = {
             "Content-Type": "application/x-x509-ca-cert",
             "SGX-PCK-CRL-Issuer-Chain": "chain0-chain1-chain2",
@@ -169,7 +177,7 @@ class TestGetIntelPcsX509CRL(TestCase):
             "warning": None,
         }, get_intel_pcs_x509_crl("the-crl-url"))
 
-        load_der.assert_called_with("the-crl-content")
+        load_der.assert_called_with(b"the-crl-content")
         load_pem.assert_not_called()
         unquote.assert_called_with("chain0-chain1-chain2")
         split.assert_called_with("chain0,chain1,chain2")
@@ -198,11 +206,14 @@ class TestGetIntelPcsX509CRL(TestCase):
         res.headers = {
             "Content-Type": "not-known"
         }
+        res.content = b"this is not a certificate"
 
         with self.assertRaises(RuntimeError) as e:
             get_intel_pcs_x509_crl("the-crl-url")
         self.assertIn("While", str(e.exception))
-        self.assertIn("Unknown", str(e.exception))
+        self.assertIn("the-crl-url", str(e.exception))
+        self.assertIn("Unable", str(e.exception))
+        self.assertIn("not-known", str(e.exception))
 
         load_pem.assert_not_called()
         load_der.assert_not_called()
@@ -210,17 +221,20 @@ class TestGetIntelPcsX509CRL(TestCase):
         unquote.assert_not_called()
 
     @parameterized.expand([
-        ("header 1", "application/x-pem-file", "pem"),
-        ("header 2", "application/pkix-crl", "der"),
-        ("header 3", "application/x-x509-ca-cert", "der"),
+        ("header 1", "a-url", "application/x-pem-file", b"the-content", "pem"),
+        ("header 2", "a-url", "application/pkix-crl", b"the-content", "der"),
+        ("header 3", "a-url", "application/x-x509-ca-cert", b"the-content", "der"),
+        ("url 1", "a-url.der", "the-ctype", b"the-content", "der"),
+        ("url 2", "a-url.pem", "the-ctype", b"the-content", "pem"),
+        ("content", "a-url", "the-ctype", b"-----BEGIN CERT etc etc", "pem"),
     ])
     def test_error_parsing(self, requests, load_pem, load_der,
-                           split, unquote, _, ctype, errct):
+                           split, unquote, _, url, ctype, ctnt, errct):
         res = Mock()
         requests.get.return_value = res
 
         res.status_code = 200
-        res.content = "some-content"
+        res.content = ctnt
         res.headers = {
             "Content-Type": ctype,
         }
@@ -229,7 +243,7 @@ class TestGetIntelPcsX509CRL(TestCase):
         load_der.side_effect = ValueError("der parsing issue")
 
         with self.assertRaises(RuntimeError) as e:
-            get_intel_pcs_x509_crl("the-crl-url")
+            get_intel_pcs_x509_crl(url)
         self.assertIn("While", str(e.exception))
         self.assertIn(f"{errct} parsing", str(e.exception))
 
