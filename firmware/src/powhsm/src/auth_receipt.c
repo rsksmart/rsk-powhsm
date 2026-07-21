@@ -64,7 +64,7 @@
 // RSK receipt constants
 // All indexes and levels are 1-based
 
-#define LIST_ELEMENTS (6)
+#define LIST_ELEMENTS (HAS_FLAG(auth.receipt.flags, TYPED_TX) ? 4 : 6)
 #define LOG_ELEMENTS (3)
 
 #define TOP_LEVEL (1)
@@ -84,6 +84,12 @@
 #define IS_VALID_TXHASH (0x08)
 #define IS_MATCH (0x10)
 #define TOP_LEVEL_LIST_SEEN (0x20)
+#define TYPED_TX (0x40)
+
+// Typed transaction helpers
+// See https://ips.rootstock.io/IPs/RSKIP543.html for details
+#define IS_TYPED_TX(b) (b >= 0 && b <= 0x7F)
+#define IS_VALID_TX_TYPE(b) (b >= 0x01 && b <= 0x04)
 
 __attribute__((always_inline)) static inline void update_indexes() {
     if (auth.receipt.level > 0)
@@ -247,23 +253,42 @@ static const rlp_callbacks_t callbacks = {
  * @ret             number of transmited bytes to the host
  */
 unsigned int auth_sign_handle_receipt(volatile unsigned int rx) {
+    uint8_t offset = 0;
+
     if (auth.state != STATE_AUTH_RECEIPT) {
         LOG("[E] Expected to be in the receipt state\n");
         THROW(ERR_AUTH_INVALID_STATE);
     }
 
     if (!HAS_FLAG(auth.receipt.flags, IS_INIT)) {
+        // Make sure we have at least one byte to process
+        if (APDU_DATA_SIZE(rx) == 0) {
+            LOG("[E] Expected to have at least one byte to process\n");
+            THROW(ERR_AUTH_INVALID_DATA_SIZE);
+        }
+
+        // Are we dealing with a typed transaction?
+        if (IS_TYPED_TX(APDU_DATA_PTR[0])) {
+            SET_FLAG(auth.receipt.flags, TYPED_TX);
+            // Validate tx type
+            if (!IS_VALID_TX_TYPE(APDU_DATA_PTR[0])) {
+                LOG("[E] Invalid transaction type %u\n", APDU_DATA_PTR[0]);
+                THROW(ERR_AUTH_RECEIPT_INVALID);
+            }
+            offset = 1;
+        }
+
         rlp_start(&callbacks);
         hash_keccak256_init(&auth.receipt.hash_ctx);
         SET_FLAG(auth.receipt.flags, IS_INIT);
     }
 
-    int res = rlp_consume(APDU_DATA_PTR, APDU_DATA_SIZE(rx));
+    int res = rlp_consume(APDU_DATA_PTR + offset, APDU_DATA_SIZE(rx) - offset);
     if (res < 0) {
         LOG("[E] RLP parser returned error %d\n", res);
         THROW(ERR_AUTH_RECEIPT_RLP);
     }
-    auth.receipt.remaining_bytes -= APDU_DATA_SIZE(rx);
+    auth.receipt.remaining_bytes -= APDU_DATA_SIZE(rx) - offset;
 
     hash_keccak256_update(
         &auth.receipt.hash_ctx, APDU_DATA_PTR, APDU_DATA_SIZE(rx));
