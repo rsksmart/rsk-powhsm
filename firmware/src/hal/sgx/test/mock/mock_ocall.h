@@ -34,6 +34,7 @@
 typedef enum mock_kvstore_failure_type {
     KVSTORE_FAILURE_NONE,
     KVSTORE_FAILURE_SAVE,
+    KVSTORE_FAILURE_SAVE_OE_FAILURE,
     KVSTORE_FAILURE_OE_FAILURE,
 } mock_kvstore_failure_type_t;
 
