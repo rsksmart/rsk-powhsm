@@ -192,13 +192,6 @@ static bool parse_next_line(const uint8_t* db,
     return true;
 }
 
-static bool validate_header(const keyvalue_db_t* db) {
-    if (!db || !db->buffer || db->size < DB_HEADER_SIZE)
-        return false;
-
-    return memcmp(db->buffer, DB_HEADER, DB_HEADER_SIZE) == 0;
-}
-
 bool kvdb_check(const keyvalue_db_t* db) {
     if (!db || !db->buffer)
         return false;
@@ -206,7 +199,8 @@ bool kvdb_check(const keyvalue_db_t* db) {
     if (db->size == 0 || db->size > db->capacity)
         return false;
 
-    if (!validate_header(db))
+    if (db->size < DB_HEADER_SIZE ||
+        memcmp(db->buffer, DB_HEADER, DB_HEADER_SIZE) != 0)
         return false;
 
     size_t offset = DB_HEADER_SIZE;
@@ -247,7 +241,7 @@ bool kvdb_get(const keyvalue_db_t* db,
     if (!db || !db->buffer)
         return false;
 
-    if (!validate_header(db))
+    if (!kvdb_check(db))
         return false;
 
     size_t offset = DB_HEADER_SIZE;
@@ -286,7 +280,7 @@ bool kvdb_upsert(keyvalue_db_t* db,
     if (!is_key_valid(key))
         return false;
 
-    if (!validate_header(db))
+    if (!kvdb_check(db))
         return false;
 
     uint8_t* tmp_db = malloc(db->capacity);
@@ -349,7 +343,7 @@ bool kvdb_remove(keyvalue_db_t* db, const char* key) {
     if (!is_key_valid(key))
         return false;
 
-    if (!validate_header(db))
+    if (!kvdb_check(db))
         return false;
 
     uint8_t* tmp_db = malloc(db->capacity);
