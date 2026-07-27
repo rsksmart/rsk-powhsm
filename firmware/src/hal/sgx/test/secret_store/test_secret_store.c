@@ -220,11 +220,13 @@ static void test_write_and_remove_secret() {
 }
 
 static void test_init_fails_when_kvstore_get_fails() {
-    setup();
+    sest_reset_for_tests();
+    mock_seal_init();
+    mock_ocall_init();
     printf("Test sest_init fails when ocall_kvstore_get fails...\n");
 
-    // Repeated init calls are idempotent.
-    assert(sest_init());
+    mock_ocall_kvstore_fail_next(KVSTORE_FAILURE_OE_FAILURE);
+    assert(!sest_init());
 }
 
 static void test_read_fails_when_oe_unseal_fails() {

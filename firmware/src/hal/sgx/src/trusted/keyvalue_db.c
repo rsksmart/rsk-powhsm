@@ -333,6 +333,7 @@ bool kvdb_upsert(keyvalue_db_t* db,
 
     memcpy(db->buffer, tmp_db, out_offset);
     db->size = out_offset;
+    explicit_bzero(tmp_db, db->capacity);
     free(tmp_db);
     return true;
 
@@ -360,6 +361,7 @@ bool kvdb_remove(keyvalue_db_t* db, const char* key) {
     memcpy(tmp_db, DB_HEADER, DB_HEADER_SIZE);
 
     if (db->size == DB_HEADER_SIZE) {
+        explicit_bzero(tmp_db, db->capacity);
         free(tmp_db);
         return true;
     }

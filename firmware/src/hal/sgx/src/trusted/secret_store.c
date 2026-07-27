@@ -238,7 +238,8 @@ static bool save_db(const keyvalue_db_t* db) {
     if (!db || !db->buffer)
         return false;
 
-    uint8_t sealed_data[MAX_BLOB_SIZE] = {0};
+    static uint8_t sealed_data[MAX_BLOB_SIZE] = {0};
+    explicit_bzero(sealed_data, sizeof(sealed_data));
     size_t sealed_data_size = 0;
 
     if (!seal_data(db->buffer, db->size, sealed_data, &sealed_data_size)) {
