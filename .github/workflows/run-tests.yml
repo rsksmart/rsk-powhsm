@@ -137,17 +137,8 @@ jobs:
           cp rsk-powhsm/firmware/src/sgx/bin/hsmsgx_enclave.signed \
               hsm-integration-test/docker/sgx
           echo abcd1234 > hsm-integration-test/docker/manager/pin.txt
-          echo -n "password" | sha256sum | awk '{print $1}' \
-            | xxd -r -p > hsm-integration-test/docker/sgx/kvstore-password.dat
-          echo -n abcd1234 >> hsm-integration-test/docker/sgx/kvstore-password.dat
-          echo -n "retries" | sha256sum | awk '{print $1}' \
-            | xxd -r -p > hsm-integration-test/docker/sgx/kvstore-retries.dat
-          echo -en "\x03" >> hsm-integration-test/docker/sgx/kvstore-retries.dat
-          echo -n "seed" | sha256sum | awk '{print $1}' \
-            | xxd -r -p > hsm-integration-test/docker/sgx/kvstore-seed.dat
-          dd if=/dev/urandom bs=1 count=32 \
-              of=hsm-integration-test/docker/sgx/kvstore-seed.dat \
-              seek=32
+          echo -e "KVDB1\nseed=9905e5b76d61778a760d4310b8a5a216c4220ecf30961db0f91af366a971d4ee\npassword=6162636431323334\nretries=03" \
+              > hsm-integration-test/docker/sgx/kvstore-database.dat
           echo "SGX_SIM=yes" >> "$GITHUB_ENV"
 
       - name: Run HSM integration tests

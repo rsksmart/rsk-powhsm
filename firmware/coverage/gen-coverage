@@ -44,6 +44,14 @@ if [[ $1 == "exec" ]]; then
     lcov --remove $BASEDIR/coverage.info "*/hal/x86/src/*" --output-file $BASEDIR/coverage.info
     lcov --remove $BASEDIR/coverage.info "*/mock_*.c" --output-file $BASEDIR/coverage.info
     lcov --remove $BASEDIR/coverage.info "/usr/include/*" --output-file $BASEDIR/coverage.info
+
+    # Remove duplicated coverage entries that originate from symlinked sources.
+    # Their targets are already included under the original source directories.
+    find "$SRCDIR" -type l \( -name "*.c" -o -name "*.h" \) -printf "%P " |
+    while IFS= read -r -d ' ' file; do
+        lcov --remove $BASEDIR/coverage.info $SRCDIR/$file --output-file $BASEDIR/coverage.info > /dev/null
+    done
+
     # Generate report and summary
     genhtml $BASEDIR/coverage.info --output $BASEDIR/output -p $SRCDIR -t "powHSM firmware"
     lcov --summary $BASEDIR/coverage.info | grep lines | sed -e "s/.\+lines.\+: \([[:digit:].]\+\).\+/\1/g" > $BASEDIR/output/total
