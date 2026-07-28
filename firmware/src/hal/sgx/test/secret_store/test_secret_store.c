@@ -497,13 +497,6 @@ static void test_multiple_keys_are_persisted_in_single_database() {
     assert(out_retries[0] == 0x03);
 }
 
-static void test_remove_invalid_key_fails() {
-    setup();
-    printf("Test remove invalid key delegates to kvdb behavior...\n");
-
-    assert(sest_remove("bad=key"));
-}
-
 static void test_remove_existing_of_two_preserves_other() {
     setup();
     printf("Test remove one of two preserves other...\n");
@@ -665,7 +658,7 @@ static void test_remove_requires_valid_key() {
     setup();
     printf("Test remove key validation is delegated...\n");
 
-    assert(sest_remove("a=b"));
+    assert(!sest_remove("a=b"));
 }
 
 int main() {
@@ -699,7 +692,6 @@ int main() {
     test_init_fails_with_invalid_database_header();
     test_remove_missing_key_is_success();
     test_remove_fails_when_kvstore_remove_fails();
-    test_remove_invalid_key_fails();
     test_remove_existing_of_two_preserves_other();
     test_remove_deletes_all_duplicate_instances();
     test_remove_nonexistent_when_no_db_is_success();

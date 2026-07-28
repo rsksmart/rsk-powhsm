@@ -315,10 +315,6 @@ bool sest_exists(char* key) {
 
     LOG("Attempting determine secret existence for <%s>...\n", key);
 
-    if (G_sealed_blob_size == 0) {
-        return false;
-    }
-
     keyvalue_db_t db = {0};
     if (!init_db(&db))
         return false;
@@ -349,11 +345,6 @@ size_t sest_read(char* key, uint8_t* dest, size_t dest_length) {
 
     LOG("Attempting to read secret for <%s>...\n", key);
 
-    if (G_sealed_blob_size == 0) {
-        LOG("No secret found for key <%s>\n", key);
-        goto sest_read_error;
-    }
-
     keyvalue_db_t db = {0};
     if (!init_db(&db))
         return SEST_ERROR;
@@ -362,15 +353,11 @@ size_t sest_read(char* key, uint8_t* dest, size_t dest_length) {
     if (!kvdb_get(&db, key, dest, &value_length)) {
         free_db(&db);
         LOG("No secret found for key <%s>\n", key);
-        goto sest_read_error;
+        return SEST_ERROR;
     }
 
     free_db(&db);
-
     return value_length;
-
-sest_read_error:
-    return SEST_ERROR;
 }
 
 bool sest_write(char* key, uint8_t* secret, size_t secret_length) {
@@ -406,10 +393,6 @@ bool sest_write(char* key, uint8_t* secret, size_t secret_length) {
 bool sest_remove(char* key) {
     if (!G_initialized)
         return false;
-
-    if (G_sealed_blob_size == 0) {
-        return true;
-    }
 
     keyvalue_db_t db = {0};
     if (!init_db(&db))

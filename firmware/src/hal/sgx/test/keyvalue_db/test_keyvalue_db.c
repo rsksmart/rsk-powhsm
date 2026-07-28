@@ -109,6 +109,7 @@ static void test_kvdb_upsert_insert_and_update() {
     };
     const uint8_t value1[] = {0xde, 0xad};
     const uint8_t value2[] = {0xbe, 0xef};
+    const uint8_t value3[] = {0xaa, 0xbb};
 
     memcpy(db_ctx.buffer, DB_HEADER, db_ctx.size);
 
@@ -117,6 +118,9 @@ static void test_kvdb_upsert_insert_and_update() {
 
     assert(kvdb_upsert(&db_ctx, "k1", value2, sizeof(value2)));
     assert(memcmp(out_db, DB_HEADER "k1=beef\n", db_ctx.size) == 0);
+
+    assert(kvdb_upsert(&db_ctx, "k2", value3, sizeof(value3)));
+    assert(memcmp(out_db, DB_HEADER "k1=beef\nk2=aabb\n", db_ctx.size) == 0);
 }
 
 static void test_kvdb_upsert_updates_first_duplicate_only() {
