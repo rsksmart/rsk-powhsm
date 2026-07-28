@@ -287,7 +287,6 @@ bool kvdb_upsert(keyvalue_db_t* db,
     if (!tmp_db)
         return false;
 
-    size_t out_db_capacity = db->capacity;
     size_t out_offset = DB_HEADER_SIZE;
     bool replaced = false;
 
@@ -303,7 +302,7 @@ bool kvdb_upsert(keyvalue_db_t* db,
             if (key_equals(line.key_start, line.key_length, key)) {
                 if (!replaced) {
                     if (!append_encoded_line(tmp_db,
-                                             out_db_capacity,
+                                             db->capacity,
                                              &out_offset,
                                              key,
                                              value,
@@ -312,8 +311,7 @@ bool kvdb_upsert(keyvalue_db_t* db,
                     }
                     replaced = true;
                 }
-            } else if (!copy_line(
-                           tmp_db, out_db_capacity, &out_offset, &line)) {
+            } else if (!copy_line(tmp_db, db->capacity, &out_offset, &line)) {
                 goto kvdb_upsert_error;
             }
         }
@@ -321,7 +319,7 @@ bool kvdb_upsert(keyvalue_db_t* db,
 
     if (!replaced &&
         !append_encoded_line(
-            tmp_db, out_db_capacity, &out_offset, key, value, value_size)) {
+            tmp_db, db->capacity, &out_offset, key, value, value_size)) {
         goto kvdb_upsert_error;
     }
 
@@ -332,6 +330,7 @@ bool kvdb_upsert(keyvalue_db_t* db,
     return true;
 
 kvdb_upsert_error:
+    explicit_bzero(tmp_db, db->capacity);
     free(tmp_db);
     return false;
 }
@@ -346,19 +345,14 @@ bool kvdb_remove(keyvalue_db_t* db, const char* key) {
     if (!kvdb_check(db))
         return false;
 
+    if (db->size == DB_HEADER_SIZE)
+        return true;
+
     uint8_t* tmp_db = malloc(db->capacity);
     if (!tmp_db)
         return false;
 
-    size_t out_db_capacity = db->capacity;
-
     memcpy(tmp_db, DB_HEADER, DB_HEADER_SIZE);
-
-    if (db->size == DB_HEADER_SIZE) {
-        explicit_bzero(tmp_db, db->capacity);
-        free(tmp_db);
-        return true;
-    }
 
     size_t offset = DB_HEADER_SIZE;
     size_t out_offset = DB_HEADER_SIZE;
@@ -372,17 +366,19 @@ bool kvdb_remove(keyvalue_db_t* db, const char* key) {
             continue;
         }
 
-        if (!copy_line(tmp_db, out_db_capacity, &out_offset, &line)) {
+        if (!copy_line(tmp_db, db->capacity, &out_offset, &line)) {
             goto kvdb_remove_error;
         }
     }
 
     memcpy(db->buffer, tmp_db, out_offset);
     db->size = out_offset;
+    explicit_bzero(tmp_db, db->capacity);
     free(tmp_db);
     return true;
 
 kvdb_remove_error:
+    explicit_bzero(tmp_db, db->capacity);
     free(tmp_db);
     return false;
 }
