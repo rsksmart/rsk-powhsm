@@ -31,6 +31,8 @@
 // Maximum difficulty for block difficulty capping (network dependent)
 #ifdef TESTNET
 static const DIGIT_T MAX_BLOCK_DIFFICULTY[BIGINT_LEN] = BCDIFF_MBD_TESTNET;
+#elif defined(TESTNET_2)
+static const DIGIT_T MAX_BLOCK_DIFFICULTY[BIGINT_LEN] = BCDIFF_MBD_TESTNET_2;
 #elif defined(REGTEST)
 static const DIGIT_T MAX_BLOCK_DIFFICULTY[BIGINT_LEN] = BCDIFF_MBD_REGTEST;
 #elif defined(HSM_PLATFORM_X86)

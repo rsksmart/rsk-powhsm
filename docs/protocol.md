@@ -312,7 +312,8 @@ This operation can return `0`, `-201`, `-203`, `-204`, and generic errors. See t
     "parameters": {
         "checkpoint": "hhhh", // (*)
         "minimum_difficulty": "hhhh", // (**)
-        "network": "regtest" | "testnet" | "mainnet",
+        "network": "regtest" | "testnet" | 
+        "testnet_2" | "mainnet",
     }
 }
 
