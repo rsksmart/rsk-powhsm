@@ -130,8 +130,12 @@ void assert_oe_seal_called_with(const void* plugin_id,
                                 size_t plaintext_size,
                                 const uint8_t* additional_data,
                                 size_t additional_data_size) {
+    if (settings_count > 0) {
+        assert(settings != NULL);
+        assert(memcmp(&G_oe_seal_args.settings, settings, sizeof(*settings)) ==
+               0);
+    }
     assert(G_oe_seal_args.plugin_id == plugin_id);
-    assert(memcmp(&G_oe_seal_args.settings, settings, sizeof(*settings)) == 0);
     assert(memcmp(G_oe_seal_args.plaintext, plaintext, plaintext_size) == 0);
     assert(G_oe_seal_args.settings_count == settings_count);
     assert(G_oe_seal_args.plaintext_size == plaintext_size);

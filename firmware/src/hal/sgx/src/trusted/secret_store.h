@@ -70,18 +70,9 @@ size_t sest_read(char* key, uint8_t* dest, size_t dest_length);
 bool sest_write(char* key, uint8_t* secret, size_t secret_length);
 
 /**
- * @brief Write protect a secret in the store
- *
- * @param key the key to protect
- *
- * @returns whether the write protection was successfully applied
- */
-bool sest_protect(char* key);
-
-/**
  * @brief Remove a stored secret
  *
- * @param the key for the secret
+ * @param key the key for the secret
  *
  * @returns whether the deletion was successful
  */

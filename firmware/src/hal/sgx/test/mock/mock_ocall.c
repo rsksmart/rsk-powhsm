@@ -53,6 +53,9 @@ oe_result_t mock_ocall_kvstore_save(bool* _retval,
         G_next_failure = KVSTORE_FAILURE_NONE;
         *_retval = false;
         return OE_OK;
+    } else if (G_next_failure == KVSTORE_FAILURE_SAVE_OE_FAILURE) {
+        G_next_failure = KVSTORE_FAILURE_NONE;
+        return OE_FAILURE;
     } else if (G_next_failure == KVSTORE_FAILURE_OE_FAILURE) {
         G_next_failure = KVSTORE_FAILURE_NONE;
         return OE_FAILURE;
