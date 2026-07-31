@@ -1429,7 +1429,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.dongle.get_signer_parameters.return_value = HSM2FirmwareParameters(
             0x56,
             "other-checkpoint",
-            HSM2FirmwareParameters.Network.TESTNET_2
+            HSM2FirmwareParameters.Network.TESTNET2
         )
 
         self.assertEqual(
@@ -1438,7 +1438,7 @@ class TestHSM2ProtocolLedger(TestCase):
                 "parameters": {
                     "checkpoint": "other-checkpoint",
                     "minimum_difficulty": 0x56,
-                    "network": "testnet_2",
+                    "network": "testnet2",
                 },
             },
             self.protocol.handle_request({

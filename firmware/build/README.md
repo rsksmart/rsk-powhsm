@@ -29,7 +29,7 @@ To build the signer, just issue:
 ~/repo> firmware/build/build-ledger-signer <checkpoint> <minimum_difficulty> <network>
 ```
 
-where `<checkpoint>` is the desired blockchain checkpoint hash, `<minimum_difficulty>` is the minimum required difficulty (can be specified as a decimal number or as a hexadecimal - prefixed with `0x`), and `<network>` is the desired network the build is to target (one of `mainnet`, `testnet`, `testnet_2` or `regtest`).
+where `<checkpoint>` is the desired blockchain checkpoint hash, `<minimum_difficulty>` is the minimum required difficulty (can be specified as a decimal number or as a hexadecimal - prefixed with `0x`), and `<network>` is the desired network the build is to target (one of `mainnet`, `testnet`, `testnet2` or `regtest`).
 
 For example, to build the signer with checkpoint `0x00f06dcff26ec8b4d373fbd53ee770e9348d9bd6a247ad4c86e82ceb3c2130ac`, minimum cumulative difficulty of `0x7c50933098` and the `testnet` network, issue:
 
@@ -62,7 +62,7 @@ Once the private key already exists in the required disk location, the binaries 
 ~/repo> firmware/build/build-sgx <checkpoint> <minimum_difficulty> <network> <signers_file>
 ```
 
-where `<checkpoint>` is the desired blockchain checkpoint hash, `<minimum_difficulty>` is the minimum required difficulty (can be specified as a decimal number or as a hexadecimal - prefixed with `0x`), `<network>` is the desired network the build is to target (one of `mainnet`, `testnet`, `testnet_2` or `regtest`) and `<signers_file>` is the basename of the signer authorizers header file (the file to be included for the build process should be at `~/firmware/src/common/src/upgrade_signers/<signers_file>.h`).
+where `<checkpoint>` is the desired blockchain checkpoint hash, `<minimum_difficulty>` is the minimum required difficulty (can be specified as a decimal number or as a hexadecimal - prefixed with `0x`), `<network>` is the desired network the build is to target (one of `mainnet`, `testnet`, `testnet2` or `regtest`) and `<signers_file>` is the basename of the signer authorizers header file (the file to be included for the build process should be at `~/firmware/src/common/src/upgrade_signers/<signers_file>.h`).
 
 For example, to build host and enclave with checkpoint `0x00f06dcff26ec8b4d373fbd53ee770e9348d9bd6a247ad4c86e82ceb3c2130ac`, minimum cumulative difficulty of `0x7c50933098` and the `testnet` network, issue:
 

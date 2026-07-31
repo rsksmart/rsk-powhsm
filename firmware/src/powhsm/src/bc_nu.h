@@ -45,7 +45,7 @@ typedef enum {
 #define NETID_MAINNET 0x01
 #define NETID_TESTNET 0x02
 #define NETID_REGTEST 0x03
-#define NETID_TESTNET_2 0x04
+#define NETID_TESTNET2 0x04
 
 // Activation block numbers
 #define MAINNET_ANCIENT_ABN 0
@@ -68,10 +68,10 @@ typedef enum {
             *(x) = NU_WASABI;               \
     }
 #define GET_NETWORK_IDENTIFIER() NETID_TESTNET
-#elif defined(TESTNET_2)
+#elif defined(TESTNET2)
 #define SET_NETWORK_UPGRADE(bn, x) \
     { *(x) = NU_IRIS; }
-#define GET_NETWORK_IDENTIFIER() NETID_TESTNET_2
+#define GET_NETWORK_IDENTIFIER() NETID_TESTNET2
 #elif defined(REGTEST)
 #define SET_NETWORK_UPGRADE(bn, x) \
     { *(x) = NU_IRIS; }
