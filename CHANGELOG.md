@@ -1,5 +1,11 @@
 # Changelog
 
+## [5.6.3] - 04/08/2026
+
+### Features/enhancements
+
+- Added Testnet2 support
+
 ## [5.6.2] - 20/07/2026
 
 ### Features/enhancements
