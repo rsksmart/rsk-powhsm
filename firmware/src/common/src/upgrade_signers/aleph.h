@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __SIGNER_AUTHORIZATION_SIGNERS_H
-#define __SIGNER_AUTHORIZATION_SIGNERS_H
+#ifndef __SIGNER_AUTHORIZATION_SIGNERS__ALEPH_H
+#define __SIGNER_AUTHORIZATION_SIGNERS__ALEPH_H
 
 // clang-format off
 
@@ -90,6 +90,17 @@
     "\xf8\x32\xf6\x3d\xe1\x3b\xc7\x40\x0f\x2c"  \
     "\x45\xa9\xc1\x44\xef"
 
+#ifdef AUTHORIZERS_PUBKEYS
+#error "AUTHORIZERS_PUBKEYS already defined; include only one upgrade wallet"
+#endif
+
+// Static check: make sure that the public keys are exactly 65 bytes long
+typedef char apk_member1_len_check[(sizeof(APK_MEMBER1) == 66) ? 1 : -1];
+typedef char apk_member2_len_check[(sizeof(APK_MEMBER2) == 66) ? 1 : -1];
+typedef char apk_member3_len_check[(sizeof(APK_MEMBER3) == 66) ? 1 : -1];
+typedef char apk_member4_len_check[(sizeof(APK_MEMBER4) == 66) ? 1 : -1];
+typedef char apk_member5_len_check[(sizeof(APK_MEMBER5) == 66) ? 1 : -1];
+
 #define AUTHORIZERS_PUBKEYS \
     {                       \
         APK_MEMBER1,        \
@@ -100,4 +111,4 @@
     }
 // clang-format on
 
-#endif // __SIGNER_AUTHORIZATION_SIGNERS_H
+#endif // __SIGNER_AUTHORIZATION_SIGNERS__ALEPH_H

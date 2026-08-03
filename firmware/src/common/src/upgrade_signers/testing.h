@@ -22,8 +22,12 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __SIGNER_AUTHORIZATION_SIGNERS_H
-#define __SIGNER_AUTHORIZATION_SIGNERS_H
+#ifndef __SIGNER_AUTHORIZATION_SIGNERS__TESTING_H
+#define __SIGNER_AUTHORIZATION_SIGNERS__TESTING_H
+
+#ifdef AUTHORIZERS_PUBKEYS
+#error "AUTHORIZERS_PUBKEYS already defined; include only one upgrade wallet"
+#endif
 
 // IMPORTANT: these keys are FOR TESTING PURPOSES ONLY
 // In order to get the private keys associated with each
@@ -59,4 +63,4 @@
     }
 // clang-format on
 
-#endif // __SIGNER_AUTHORIZATION_SIGNERS_H
+#endif // __SIGNER_AUTHORIZATION_SIGNERS__TESTING_H
