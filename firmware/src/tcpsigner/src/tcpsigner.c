@@ -366,7 +366,10 @@ void main(int argc, char **argv) {
             arguments.difficulty,
             sizeof(arguments.difficulty));
     // Set network
-    hsmsim_set_network(arguments.network_identifier);
+    if (!hsmsim_set_network(arguments.network_identifier)) {
+        LOG("Error setting network \"%s\"\n", arguments.network);
+        exit(1);
+    }
 
     // Set custom block difficulty cap (if any)
     if (arguments.have_difficulty_cap) {

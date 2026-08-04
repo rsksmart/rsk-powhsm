@@ -1425,6 +1425,28 @@ class TestHSM2ProtocolLedger(TestCase):
             }),
         )
 
+    def test_get_blockchain_parameters_ok_tnet2(self):
+        self.dongle.get_signer_parameters.return_value = HSM2FirmwareParameters(
+            0x56,
+            "other-checkpoint",
+            HSM2FirmwareParameters.Network.TESTNET2
+        )
+
+        self.assertEqual(
+            {
+                "errorcode": 0,
+                "parameters": {
+                    "checkpoint": "other-checkpoint",
+                    "minimum_difficulty": 0x56,
+                    "network": "testnet2",
+                },
+            },
+            self.protocol.handle_request({
+                "version": 5,
+                "command": "blockchainParameters"
+            }),
+        )
+
     def test_get_blockchain_parameters_dongle_timeout(self):
         self.dongle.get_signer_parameters.side_effect = HSM2DongleTimeoutError()
 

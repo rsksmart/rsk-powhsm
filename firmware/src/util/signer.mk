@@ -14,7 +14,7 @@ $(info Building with checkpoint set to "$(CONVERTED_CHKP)")
 SIGNER_FLAGS += -DPARAM_INITIAL_BLOCK_HASH="$(CONVERTED_CHKP)"
 endif
 
-# Specify target network (i.e., REGTEST or TESTNET). Otherwise it defaults to MAINNET.
+# Specify target network (i.e., REGTEST, TESTNET or TESTNET2). Otherwise it defaults to MAINNET.
 ifeq ($(NETWORK),REGTEST)
 $(info Building for Regtest)
 SIGNER_FLAGS += -DREGTEST
@@ -23,6 +23,11 @@ endif
 ifeq ($(NETWORK),TESTNET)
 $(info Building for Testnet)
 SIGNER_FLAGS += -DTESTNET
+endif
+
+ifeq ($(NETWORK),TESTNET2)
+$(info Building for Testnet 2)
+SIGNER_FLAGS += -DTESTNET2
 endif
 
 $(info $(SIGNER_FLAGS))
