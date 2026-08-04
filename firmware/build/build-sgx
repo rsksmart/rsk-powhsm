@@ -19,6 +19,8 @@ if [[ "$3" == "regtest" ]]; then
     NETWORK="REGTEST"
 elif [[ "$3" == "testnet" ]]; then
     NETWORK="TESTNET"
+elif [[ "$3" == "testnet2" ]]; then
+    NETWORK="TESTNET2"
 elif [[ "$3" == "mainnet" ]]; then
     NETWORK=""
 else

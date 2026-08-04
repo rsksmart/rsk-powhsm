@@ -55,7 +55,7 @@ An *uninitialized* powHSM device must hold the following values for each of the 
 - `updating.best_block`: `00..00` (zeroes).
 - `updating.newest_valid_block`: `00..00` (zeroes).
 
-When transitioning to the *initialized* state, it must set its `best_block` and `newest_valid_block` values to a predefined hash that will correspond to a well-known block hash in the RSK mainnet (also testnet or devnet, depending on the case). These values must be hardcoded into the device's signing firmware. The `updating.` variables must remain unchanged after initialization.
+When transitioning to the *initialized* state, it must set its `best_block` and `newest_valid_block` values to a predefined hash that will correspond to a well-known block hash in the RSK mainnet (also testnet, testnet 2 or regtest, depending on the case). These values must be hardcoded into the device's signing firmware. The `updating.` variables must remain unchanged after initialization.
 
 ### Updating
 
