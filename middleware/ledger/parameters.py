@@ -27,6 +27,7 @@ class _Network(IntEnum):
     MAINNET = 0x01
     TESTNET = 0x02
     REGTEST = 0x03
+    TESTNET2 = 0x04
 
 
 # Instances of this represent parameters
