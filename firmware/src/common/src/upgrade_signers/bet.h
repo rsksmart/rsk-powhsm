@@ -22,16 +22,16 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef __SIGNER_AUTHORIZATION_SIGNERS__ALEPH_H
-#define __SIGNER_AUTHORIZATION_SIGNERS__ALEPH_H
+#ifndef __SIGNER_AUTHORIZATION_SIGNERS__BET_H
+#define __SIGNER_AUTHORIZATION_SIGNERS__BET_H
 
 // clang-format off
 
-// This defines the Aleph wallet signer authorization signers
+// This defines the Bet wallet signer authorization signers
 // The wallet is a 3 of 5 multisig
 
 // Name: Bernardo Codesido
-// Role: Head of Security at IOVlabs
+// Role: Head of Security at RootstockLabs
 // Address: 0x922d80bd157dbf5f9be37c653a468ef36acc377e
 #define APK_MEMBER1                             \
     "\x04\x2d\x13\xf9\x69\xdd\xa8\xdb\xfd\x1b"  \
@@ -43,19 +43,19 @@
     "\x02\x63\x82\x97\x70"
 
 // Name: Tim Paymans
-// Role: Chief of Product at IOVlabs
-// Address: 0xf7ac04052ddcaa351e23c7d29659a15c2bc6648f
+// Role: Chief of Product at RootstockLabs
+// Address: 0xc174149c9dc50cf941c629a7105f45313e7b0df0
 #define APK_MEMBER2                             \
-    "\x04\x1b\x08\xba\xd6\xca\xfc\x11\xaf\x01"  \
-    "\x97\x43\xe5\xde\x82\xc7\xfa\x23\xed\x17"  \
-    "\xcd\x0f\x89\x37\xfb\xa1\x77\x42\x3c\x45"  \
-    "\xfa\x32\x36\x1a\x72\xc6\x03\xd3\x9c\xe5"  \
-    "\x7c\x63\x59\xbb\xc3\xb1\x6c\x7a\xa6\x4f"  \
-    "\xca\x03\xa7\xf8\xdd\x54\x0f\xc8\x76\x6a"  \
-    "\x5d\x6c\x3b\x38\x6e"
+    "\x04\xa2\xe0\x4a\x13\x7a\x68\x08\x44\x8e"  \
+    "\xb6\x2b\x8e\x8a\xec\x8d\x78\x69\x84\xf8"  \
+    "\xab\x88\x2a\xce\xdd\x8d\x25\xcc\x79\x7f"  \
+    "\x71\xfb\x22\xf3\x8f\xb6\xf4\xca\xf8\xf2"  \
+    "\x73\x7f\x49\x9c\x2f\x86\xf7\x72\x20\x84"  \
+    "\x2a\xfa\x67\x51\xfc\xae\xf9\xfa\x79\xd4"  \
+    "\x4b\x03\xba\xf4\x26"
 
 // Name: Jose Dahlquist
-// Role: Engineering Director at IOVlabs
+// Role: Engineering Director at RootstockLabs
 // Address: 0xa420af120ec6515870b65e811fa7ce147d491402
 #define APK_MEMBER3                             \
     "\x04\x3d\x92\xa6\x1c\x48\x8b\x72\xba\xb9"  \
@@ -67,7 +67,7 @@
     "\x92\xf4\xe3\x94\x9e"
 
 // Name: Henrik Jondell
-// Role: Chief of Technology at IOVlabs
+// Role: Chief of Technology at RootstockLabs
 // Address: 0xf1d5f8b99a9884ed80e033af596b1a6298c34b4b
 #define APK_MEMBER4                             \
     "\x04\x22\x4e\xd7\x3e\xa9\xba\x1e\xbd\x07"  \
@@ -78,17 +78,17 @@
     "\xe2\x43\xec\x2d\xb1\x48\xbf\x20\xbf\x28"  \
     "\xac\x24\xe6\xe7\xf3"
 
-// Name: Daniel Fogg
-// Role: CEO at IOVlabs
-// Address: 0x22e83204d1d86f3f02ed44dfa4e0c61cb40321e1
+// Name: Dary McGovern
+// Role: Chief of Operations at RootstockLabs
+// Address: 0xe92b4590903a1067dfa8fe04b89a5db288acbf5f
 #define APK_MEMBER5                             \
-    "\x04\x83\x97\xb7\xd9\x85\xb5\x32\x82\x26"  \
-    "\xa9\xda\x1e\xf2\x3d\xfd\x3e\x97\x23\xb1"  \
-    "\xca\x62\x4a\x13\xe2\xbd\xef\xea\x29\x72"  \
-    "\xcb\x94\x4b\xac\x9a\x1f\x9c\x3e\x9a\x16"  \
-    "\xda\x1b\xda\x7f\x4a\x9d\x92\x0e\xf0\x5d"  \
-    "\xf8\x32\xf6\x3d\xe1\x3b\xc7\x40\x0f\x2c"  \
-    "\x45\xa9\xc1\x44\xef"
+    "\x04\xeb\xa7\x5c\x93\xf2\x72\x58\x19\x2c"  \
+    "\xe0\xee\x0d\xc3\xa6\x32\x58\xfd\xda\xba"  \
+    "\xc0\xea\x73\x1f\xde\xc0\x86\xb6\x59\x85"  \
+    "\xfd\xfa\x26\xb2\xda\x2e\xc7\x29\x6f\xe1"  \
+    "\xeb\x86\x31\xe6\xbf\x62\xe2\x44\xe8\x3e"  \
+    "\xb3\xf0\xd9\xe0\x65\x86\x18\x08\xf5\x11"  \
+    "\x3e\xd9\x2f\x00\xdc"
 
 #ifdef AUTHORIZERS_PUBKEYS
 #error "AUTHORIZERS_PUBKEYS already defined; include only one upgrade wallet"
@@ -111,4 +111,4 @@ typedef char apk_member5_len_check[(sizeof(APK_MEMBER5) == 66) ? 1 : -1];
     }
 // clang-format on
 
-#endif // __SIGNER_AUTHORIZATION_SIGNERS__ALEPH_H
+#endif // __SIGNER_AUTHORIZATION_SIGNERS__BET_H
