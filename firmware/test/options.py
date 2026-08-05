@@ -92,6 +92,14 @@ class OptionParser:
             help="Perform device unlock manually (defaults to no)",
         )
         parser.add_argument(
+            "-u",
+            "--unlock-at-start",
+            dest="unlock_at_start",
+            action="store_true",
+            default=False,
+            help="Perform an initial device unlock (defaults to no)",
+        )
+        parser.add_argument(
             "-v",
             "--verbose",
             dest="verbose",
