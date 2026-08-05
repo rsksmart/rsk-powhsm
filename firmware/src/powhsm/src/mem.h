@@ -55,6 +55,7 @@ typedef union {
 
 typedef struct {
     bc_state_updating_t bc_st_updating;
+    bc_state_ancestor_t bc_st_ancestor;
 } sess_per_mem_t;
 
 extern mem_t mem;
@@ -63,6 +64,7 @@ extern sess_per_mem_t sess_per_mem;
 #define block (mem.block)
 #define aux_bc_st (mem.aux_bc_st)
 #define bc_st_updating (sess_per_mem.bc_st_updating)
+#define bc_st_ancestor (sess_per_mem.bc_st_ancestor)
 #define auth (mem.auth)
 #define attestation (mem.att)
 #define heartbeat (mem.heartbeat)

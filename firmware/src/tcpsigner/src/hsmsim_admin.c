@@ -29,6 +29,7 @@
 #include "hsmsim_admin.h"
 #include "apdu.h"
 #include "bc_state.h"
+#include "mem.h"
 #include "ints.h"
 
 static hsmsim_admin_data_t hsmsim_admin_data;
@@ -87,12 +88,12 @@ unsigned int hsmsim_admin_process_apdu(unsigned int rx) {
             return hsmsim_admin_error(HSMSIM_ADMIN_ERROR_DATA_SIZE);
         }
         memcpy(hsmsim_admin_data.old_ancestor_receipts_root,
-               N_bc_state.ancestor_receipt_root,
+               bc_st_ancestor.receipt_root,
                HASH_LENGTH);
-        memcpy(N_bc_state.ancestor_receipt_root, APDU_DATA_PTR, HASH_LENGTH);
+        memcpy(bc_st_ancestor.receipt_root, APDU_DATA_PTR, HASH_LENGTH);
         hsmsim_admin_data.ancestor_receipts_root_set = true;
         LOG_HEX("ADMIN: Ancestor receipts root set to",
-                N_bc_state.ancestor_receipt_root,
+                bc_st_ancestor.receipt_root,
                 HASH_LENGTH);
         tx = TX_FOR_DATA_SIZE(0);
         break;
@@ -101,12 +102,12 @@ unsigned int hsmsim_admin_process_apdu(unsigned int rx) {
             LOG("ADMIN: Cannot reset ancestor receipts root: not set.\n");
             return hsmsim_admin_error(HSMSIM_ADMIN_ERROR_INVALID_STATE);
         }
-        memcpy(N_bc_state.ancestor_receipt_root,
+        memcpy(bc_st_ancestor.receipt_root,
                hsmsim_admin_data.old_ancestor_receipts_root,
                HASH_LENGTH);
         hsmsim_admin_data.ancestor_receipts_root_set = false;
         LOG_HEX("ADMIN: Ancestor receipts root reset to",
-                N_bc_state.ancestor_receipt_root,
+                bc_st_ancestor.receipt_root,
                 HASH_LENGTH);
         tx = TX_FOR_DATA_SIZE(0);
         break;
@@ -155,10 +156,10 @@ unsigned int hsmsim_admin_process_apdu(unsigned int rx) {
         // and update ancestor operations testing, so we backup and restore
         // the whole lot
         memcpy(hsmsim_admin_data.old_ancestor_block,
-               N_bc_state.ancestor_block,
+               bc_st_ancestor.block_hash,
                HASH_LENGTH);
         memcpy(hsmsim_admin_data.old_ancestor_receipts_root,
-               N_bc_state.ancestor_receipt_root,
+               bc_st_ancestor.receipt_root,
                HASH_LENGTH);
         memcpy(hsmsim_admin_data.old_best_block,
                N_bc_state.best_block,
@@ -177,10 +178,10 @@ unsigned int hsmsim_admin_process_apdu(unsigned int rx) {
         memcpy(N_bc_state.best_block,
                hsmsim_admin_data.old_best_block,
                HASH_LENGTH);
-        memcpy(N_bc_state.ancestor_block,
+        memcpy(bc_st_ancestor.block_hash,
                hsmsim_admin_data.old_ancestor_block,
                HASH_LENGTH);
-        memcpy(N_bc_state.ancestor_receipt_root,
+        memcpy(bc_st_ancestor.receipt_root,
                hsmsim_admin_data.old_ancestor_receipts_root,
                HASH_LENGTH);
         hsmsim_admin_data.best_block_set = false;

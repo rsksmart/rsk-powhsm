@@ -44,12 +44,15 @@
 typedef struct {
     uint8_t best_block[HASH_SIZE];
     uint8_t newest_valid_block[HASH_SIZE];
-    uint8_t ancestor_block[HASH_SIZE];
-    uint8_t ancestor_receipt_root[HASH_SIZE];
     uint8_t last_auth_signed_btc_tx_hash[HASH_SIZE];
 
     uint8_t initialized;
 } bc_state_t;
+
+typedef struct {
+    uint8_t block_hash[HASH_SIZE];
+    uint8_t receipt_root[HASH_SIZE];
+} bc_state_ancestor_t;
 
 typedef struct {
     uint8_t next_expected_block[HASH_SIZE];
@@ -63,15 +66,17 @@ typedef struct {
 
 typedef struct {
     uint8_t valid;
-    bc_state_updating_t data;
-} bc_state_updating_backup_t;
+    struct {
+        bc_state_updating_t updating;
+        bc_state_ancestor_t ancestor;
+    } data;
+} bc_state_backup_t;
 
 extern NON_VOLATILE bc_state_t N_bc_state_var;
 #define N_bc_state (*(bc_state_t*)PIC(&N_bc_state_var))
 
-extern NON_VOLATILE bc_state_updating_backup_t N_bc_state_updating_backup_var;
-#define N_bc_state_updating_backup \
-    (*(bc_state_updating_backup_t*)PIC(&N_bc_state_updating_backup_var))
+extern NON_VOLATILE bc_state_backup_t N_bc_state_backup_var;
+#define N_bc_state_backup (*(bc_state_backup_t*)PIC(&N_bc_state_backup_var))
 
 #ifndef PARAM_INITIAL_BLOCK_HASH
 #include "defs.h"
