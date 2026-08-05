@@ -95,6 +95,7 @@ void bc_init_state() {
 void bc_backup_partial_state() {
     bc_state_backup_t backup;
 
+    explicit_bzero(&backup, sizeof(backup));
     backup.valid = 1;
     SAFE_MEMMOVE(&backup.data.updating,
                  sizeof(backup.data.updating),
