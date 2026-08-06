@@ -27,6 +27,7 @@ from ledger.hsm2dongle import HSM2Dongle
 from ledger.hsm2dongle_tcp import HSM2DongleTCP
 from sgx.hsm2dongle import HSM2DongleSGX
 import output
+import time
 
 import logging
 
@@ -58,6 +59,9 @@ if __name__ == "__main__":
                 raise RuntimeError("Auto unlock requires 'pin' argument")
             run_args[TestCase.RUN_ARGS_MANUAL_KEY] = options.manual_unlock
             run_args[TestCase.RUN_ARGS_PIN_KEY] = options.pin
+
+        if options.unlock_at_start and options.pin is None:
+            raise RuntimeError("Unlock at start requires 'pin' argument")
 
         if options.device == "ledger":
             dongle = HSM2Dongle(options.dongle_verbose)
@@ -96,6 +100,27 @@ if __name__ == "__main__":
         version = dongle.get_version()
         output.ok()
         output.info(f"Version: {version}", nl=True)
+
+        if options.unlock_at_start:
+            curr_mode = dongle.get_current_mode()
+            output.info("Unlocking device")
+            if curr_mode == HSM2Dongle.MODE.BOOTLOADER:
+                if not dongle.unlock(options.pin.encode()):
+                    raise RuntimeError("Failed to unlock device")
+                try:
+                    dongle.exit_menu(autoexec=True)
+                except Exception:
+                    # exit_menu() always throws in Ledger due to
+                    # USB disconnection. we don't care
+                    pass
+                output.ok()
+                # Reconnect (for Ledger)
+                dongle.disconnect()
+                time.sleep(3)
+                dongle.connect()
+            else:
+                output.info(" -- Already unlocked?")
+                output.skipped()
 
         output.header("Running tests")
         tests_passed = suite.run(dongle, run_on, run_args)

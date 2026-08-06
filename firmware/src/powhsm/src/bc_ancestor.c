@@ -61,7 +61,7 @@ static uint8_t expected_state;
  * Update ancestor prologue: call once we have the first block's hash.
  */
 static void bc_upd_ancestor_prologue() {
-    if (HNEQ(block.block_hash, N_bc_state.ancestor_block) &&
+    if (HNEQ(block.block_hash, bc_st_ancestor.block_hash) &&
         HNEQ(block.block_hash, N_bc_state.best_block)) {
         FAIL(ANCESTOR_TIP_MISMATCH);
     }
@@ -71,8 +71,8 @@ static void bc_upd_ancestor_prologue() {
  * State updates to perform when successfully updated ancestor.
  */
 static void bc_upd_ancestor_success() {
-    NVM_WRITE(N_bc_state.ancestor_block, block.block_hash, HASH_SIZE);
-    NVM_WRITE(N_bc_state.ancestor_receipt_root, block.receipt_root, HASH_SIZE);
+    HSTORE(bc_st_ancestor.block_hash, block.block_hash);
+    HSTORE(bc_st_ancestor.receipt_root, block.receipt_root);
 }
 
 // -----------------------------------------------------------------------

@@ -239,9 +239,9 @@ unsigned int auth_sign_handle_merkleproof(volatile unsigned int rx) {
                 // If this is the root, check it matches the current
                 // bc state's ancestor receipts root
                 if (auth.trie.current_node == auth.trie.total_nodes) {
-                    if (!memcmp(N_bc_state.ancestor_receipt_root,
+                    if (!memcmp(bc_st_ancestor.receipt_root,
                                 auth.trie.node_hash,
-                                sizeof(N_bc_state.ancestor_receipt_root))) {
+                                sizeof(bc_st_ancestor.receipt_root))) {
                         auth_transition_to(STATE_AUTH_SIGN);
                         return 0;
                     }

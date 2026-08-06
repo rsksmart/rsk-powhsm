@@ -271,10 +271,10 @@ bool system_init(unsigned char* msg_buffer, size_t msg_buffer_size) {
         LOG("Error registering bcstate block\n");
         return false;
     }
-    if (!nvmem_register_block("bcstate_updating",
-                              &N_bc_state_updating_backup_var,
-                              sizeof(N_bc_state_updating_backup_var))) {
-        LOG("Error registering bcstate_updating block\n");
+    if (!nvmem_register_block("bcstate_backup",
+                              &N_bc_state_backup_var,
+                              sizeof(N_bc_state_backup_var))) {
+        LOG("Error registering bcstate_backup block\n");
         return false;
     }
 

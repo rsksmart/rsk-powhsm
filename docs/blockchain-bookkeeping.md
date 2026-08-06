@@ -16,10 +16,13 @@ An *initialized* powHSM device must store the following state information in non
 
 - `best_block` (32 bytes - byte array): The current known best block with sufficient confirmations.
 - `newest_valid_block` (32 bytes - byte array): The newest valid block known, regardless of confirmations.
+
+Additionally, a powHSM device must store the following block ancestry information that needn't necessarily reside in non-volatile memory.
+
 - `ancestor_block` (32 bytes - byte array): The current inclusion process' proved ancestor block.
 - `ancestor_receipts_root` (32 bytes - byte array): The current inclusion process' proved ancestor block's receipts root.
 
-Additionally, a powHSM device must store the following mid-state information about the blockchain state, which needn't necessarily be kept in non-volatile memory. We call this transitional information `blockchain_state.updating` collectively. The `.` (dot) notation in variable names below is just a way of grouping related variables together.
+Finally, a powHSM device must store the following mid-state information about the blockchain state, which also needn't necessarily be kept in non-volatile memory. We call this transitional information `blockchain_state.updating` collectively. The `.` (dot) notation in variable names below is just a way of grouping related variables together.
 
 - `updating.in_progress` (1 byte - boolean).
 - `updating.already_validated` (1 byte - boolean).
@@ -29,7 +32,7 @@ Additionally, a powHSM device must store the following mid-state information abo
 - `updating.best_block` (32 bytes - byte array): The current update process' new best block hash.
 - `updating.newest_valid_block` (32 bytes - byte array): The current update process' newest valid block hash.
 
-The total amount of information needed to represent an instance of `blockchain_state` is thus 263 bytes, of which only 128 bytes are to be mandatorily stored in non-volatile memory. It is very important to note that any optimizations with respect to the representation and storage of these values can be done as long as the underlying semantics are not jeopardized. For example, saving 2 bytes (for a total of 261 bytes instead of 263) is possible if a single flag-like byte is used for the boolean state variables.
+The total amount of information needed to represent an instance of `blockchain_state` is thus 263 bytes, of which only 64 bytes are to be mandatorily stored in non-volatile memory. It is very important to note that any optimizations with respect to the representation and storage of these values can be done as long as the underlying semantics are not jeopardized. For example, saving 2 bytes (for a total of 261 bytes instead of 263) is possible if a single flag-like byte is used for the boolean state variables.
 
 At any point in time, `best_block` is the hash of the currently best known and sufficiently confirmed block by the powHSM device. This "sufficiently confirmed" condition implies an underlying assumption that such block will always be part of the main chain.
 
@@ -37,7 +40,7 @@ The `newest_valid_block` is used for optimization in terms of Proof Of Work vali
 
 The `updating.*` variables are used as mid-state for the blockchain updating routine.
 
-At any point in time, the `ancestor_block` is the hash of any ancestor block to `best_block` that was proved to be in the blockchain by the inclusion verification process depicted further down in this document; and `ancestor_receipts_root` is the receipts trie root of that same block.
+At any point in time, the `ancestor_block` is the hash of any ancestor block to `best_block` that was proved to be in the blockchain by the inclusion verification process depicted further down in this document; and `ancestor_receipts_root` is the receipts trie root of that same block. Both values can also simultaneously contain zeroes, representing an unset ancestry state (see below).
 
 ### Initialization
 

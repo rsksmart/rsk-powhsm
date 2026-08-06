@@ -65,16 +65,25 @@ void bc_init_state() {
     }
 
     explicit_bzero(&bc_st_updating, sizeof(bc_st_updating));
-    if (N_bc_state_updating_backup.valid) {
+    explicit_bzero(&bc_st_ancestor, sizeof(bc_st_ancestor));
+    if (N_bc_state_backup.valid) {
         uint8_t f = 0;
-        NVM_WRITE(&N_bc_state_updating_backup.valid, &f, sizeof(f));
+        NVM_WRITE(&N_bc_state_backup.valid, &f, sizeof(f));
         SAFE_MEMMOVE(&bc_st_updating,
                      sizeof(bc_st_updating),
                      MEMMOVE_ZERO_OFFSET,
-                     &N_bc_state_updating_backup.data,
-                     sizeof(N_bc_state_updating_backup.data),
+                     &N_bc_state_backup.data.updating,
+                     sizeof(N_bc_state_backup.data.updating),
                      MEMMOVE_ZERO_OFFSET,
-                     sizeof(N_bc_state_updating_backup.data),
+                     sizeof(N_bc_state_backup.data.updating),
+                     { return; });
+        SAFE_MEMMOVE(&bc_st_ancestor,
+                     sizeof(bc_st_ancestor),
+                     MEMMOVE_ZERO_OFFSET,
+                     &N_bc_state_backup.data.ancestor,
+                     sizeof(N_bc_state_backup.data.ancestor),
+                     MEMMOVE_ZERO_OFFSET,
+                     sizeof(N_bc_state_backup.data.ancestor),
                      { return; });
     }
 }
@@ -84,23 +93,28 @@ void bc_init_state() {
  * to NVM
  */
 void bc_backup_partial_state() {
-    bc_state_updating_backup_t backup;
+    bc_state_backup_t backup;
 
-    if (bc_st_updating.in_progress) {
-        backup.valid = 1;
-        SAFE_MEMMOVE(&backup.data,
-                     sizeof(backup.data),
-                     MEMMOVE_ZERO_OFFSET,
-                     &bc_st_updating,
-                     sizeof(bc_st_updating),
-                     MEMMOVE_ZERO_OFFSET,
-                     sizeof(bc_st_updating),
-                     { return; });
+    explicit_bzero(&backup, sizeof(backup));
+    backup.valid = 1;
+    SAFE_MEMMOVE(&backup.data.updating,
+                 sizeof(backup.data.updating),
+                 MEMMOVE_ZERO_OFFSET,
+                 &bc_st_updating,
+                 sizeof(bc_st_updating),
+                 MEMMOVE_ZERO_OFFSET,
+                 sizeof(bc_st_updating),
+                 { return; });
+    SAFE_MEMMOVE(&backup.data.ancestor,
+                 sizeof(backup.data.ancestor),
+                 MEMMOVE_ZERO_OFFSET,
+                 &bc_st_ancestor,
+                 sizeof(bc_st_ancestor),
+                 MEMMOVE_ZERO_OFFSET,
+                 sizeof(bc_st_ancestor),
+                 { return; });
 
-        NVM_WRITE(&N_bc_state_updating_backup,
-                  &backup,
-                  sizeof(N_bc_state_updating_backup));
-    }
+    NVM_WRITE(&N_bc_state_backup, &backup, sizeof(N_bc_state_backup));
 }
 
 // -----------------------------------------------------------------------
@@ -111,7 +125,7 @@ void bc_backup_partial_state() {
 NON_VOLATILE bc_state_t N_bc_state_var;
 
 // Non-volatile intermediate advance blockchain state backup
-NON_VOLATILE bc_state_updating_backup_t N_bc_state_updating_backup_var;
+NON_VOLATILE bc_state_backup_t N_bc_state_backup_var;
 
 /*
  * Dump hash corresponding to hash_codes[hash_ix] to APDU.
@@ -127,10 +141,10 @@ uint8_t dump_hash(uint8_t hash_code) {
         h = N_bc_state.newest_valid_block;
         break;
     case ANCESTOR_BLOCK:
-        h = N_bc_state.ancestor_block;
+        h = bc_st_ancestor.block_hash;
         break;
     case ANCESTOR_RECEIPT_ROOT:
-        h = N_bc_state.ancestor_receipt_root;
+        h = bc_st_ancestor.receipt_root;
         break;
     case U_BEST_BLOCK:
         h = bc_st_updating.best_block;

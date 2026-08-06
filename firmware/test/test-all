@@ -37,7 +37,7 @@ elif [[ "$1" == "sgx" ]]; then
 elif [[ "$1" == "sgxsim" ]]; then
     WITH_DEVICE="no"
     PIN=1234abcd
-    RUN_ARGS="-dsgxsim -shost.docker.internal -p7777 -P $PIN"
+    RUN_ARGS="-dsgxsim -shost.docker.internal -p7777 -P $PIN -u"
     PLATFORM="sgx"
 elif [[ "$1" != "" ]]; then
     echo -e "\e[1;31mInvalid or unknown option '$1'. Issue '$0 help' for help.\e[0m"
@@ -59,9 +59,8 @@ if [[ "$WITH_DEVICE" == "no" ]]; then
         $TEST_ROOT/../../docker/sgx/do-notty /hsm2/firmware/src/sgx/bin "./hsmsgx ./hsmsgx_enclave.signed -b 0.0.0.0" > /dev/null &
         sleep 1
 
-        ## Onboard and unlock the powHSM
+        ## Onboard the powHSM
         $TEST_ROOT/../../docker/mware/do-notty-nousb /hsm2/firmware/test/scripts ./onboard-sgx host.docker.internal $PIN
-        $TEST_ROOT/../../docker/mware/do-notty-nousb /hsm2/middleware python adm_sgx.py unlock -shost.docker.internal --pin $PIN
 
         ## Run tests
         $TEST_ROOT/../../docker/mware/do-notty-nousb /hsm2/firmware/test "python run.py ${RUN_ARGS}"

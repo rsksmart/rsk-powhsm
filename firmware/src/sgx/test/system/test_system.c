@@ -176,7 +176,7 @@ static mock_data_t G_mock_data;
 
 // Globals
 bc_state_t N_bc_state_var;
-bc_state_updating_backup_t N_bc_state_updating_backup_var;
+bc_state_backup_t N_bc_state_backup_var;
 static try_context_t G_try_last_open_context_var;
 try_context_t* G_try_last_open_context = &G_try_last_open_context_var;
 unsigned char G_io_apdu_buffer[IO_APDU_BUFFER_SIZE];
@@ -430,9 +430,9 @@ void test_init_success() {
                        sizeof(N_bc_state_var));
     ASSERT_CALLED_WITH(nvmem_register_block,
                        1,
-                       "bcstate_updating",
-                       &N_bc_state_updating_backup_var,
-                       sizeof(N_bc_state_updating_backup_var));
+                       "bcstate_backup",
+                       &N_bc_state_backup_var,
+                       sizeof(N_bc_state_backup_var));
     assert(NUM_CALLS(nvmem_load) == 1);
     assert(NUM_CALLS(hsm_init) == 1);
     assert(NUM_CALLS(hsm_set_external_processor) == 1);
@@ -606,7 +606,7 @@ void test_init_fails_when_nvmem_register_block_fails() {
                        sizeof(N_bc_state_var));
     ASSERT_NOT_CALLED(upgrade_init);
 
-    FORCE_NVMEM_FAIL_ON_KEY("bcstate_updating");
+    FORCE_NVMEM_FAIL_ON_KEY("bcstate_backup");
     assert(!system_init(G_io_apdu_buffer, sizeof(G_io_apdu_buffer)));
     assert(NUM_CALLS(oe_is_outside_enclave) == 2);
     assert(NUM_CALLS(sest_init) == 2);
@@ -624,9 +624,9 @@ void test_init_fails_when_nvmem_register_block_fails() {
                        sizeof(N_bc_state_var));
     ASSERT_CALLED_WITH(nvmem_register_block,
                        2,
-                       "bcstate_updating",
-                       &N_bc_state_updating_backup_var,
-                       sizeof(N_bc_state_updating_backup_var));
+                       "bcstate_backup",
+                       &N_bc_state_backup_var,
+                       sizeof(N_bc_state_backup_var));
     ASSERT_NOT_CALLED(upgrade_init);
 
     teardown();
@@ -655,9 +655,9 @@ void test_init_fails_when_nvmem_load_fails() {
                        sizeof(N_bc_state_var));
     ASSERT_CALLED_WITH(nvmem_register_block,
                        1,
-                       "bcstate_updating",
-                       &N_bc_state_updating_backup_var,
-                       sizeof(N_bc_state_updating_backup_var));
+                       "bcstate_backup",
+                       &N_bc_state_backup_var,
+                       sizeof(N_bc_state_backup_var));
     ASSERT_NOT_CALLED(upgrade_init);
 
     teardown();
