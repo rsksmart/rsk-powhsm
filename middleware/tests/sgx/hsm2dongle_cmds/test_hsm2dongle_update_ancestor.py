@@ -104,7 +104,7 @@ class TestHSM2DongleSGXUpdateAncestor(TestHSM2DongleBase):
         ("prot_invalid", 0x6B87, -4),
         ("rlp_invalid", 0x6B88, -5),
         ("block_too_old", 0x6B89, -5),
-        ("block_too_short", 0x6B8A, -5),
+        ("block_field_count_invalid", 0x6B8A, -5),
         ("parent_hash_invalid", 0x6B8B, -5),
         ("receipt_root_invalid", 0x6B8C, -5),
         ("block_num_invalid", 0x6B8D, -5),

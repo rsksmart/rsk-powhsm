@@ -52,7 +52,7 @@ class TestHSM2DongleBase(TestCase):
         ("prot_invalid", 0x6B87, -4),
         ("rlp_invalid", 0x6B88, -5),
         ("block_too_old", 0x6B89, -5),
-        ("block_too_short", 0x6B8A, -5),
+        ("block_field_count_invalid", 0x6B8A, -5),
         ("parent_hash_invalid", 0x6B8B, -5),
         ("block_num_invalid", 0x6B8D, -5),
         ("block_diff_invalid", 0x6B8E, -5),
