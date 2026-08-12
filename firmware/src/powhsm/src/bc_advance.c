@@ -447,7 +447,7 @@ static void list_end() {
     }
 
     if (block.field != F_COINBASE_TXN) {
-        FAIL(BLOCK_TOO_SHORT);
+        FAIL(BLOCK_FIELD_COUNT_INVALID);
     }
 }
 
@@ -971,25 +971,28 @@ unsigned int bc_advance(volatile unsigned int rx) {
 
                 return handle_end_of_block();
             } else { // Processing brother
-                // Have we finished parsing this brother?
-                if (block.size == block.recv) {
-                    --block.brother_count;
-
-                    // Have we finished parsing all the brothers?
-                    if (!block.brother_count) {
-                        return handle_end_of_block();
-                    }
-
-                    // Remember this brother's hash to
-                    // compare against the next one
-                    HSTORE(block.prev_brother_hash, block.block_hash);
-
-                    // Request next brother meta
-                    expected_state = OP_ADVANCE_BROTHER_META;
-                    SET_APDU_OP(OP_ADVANCE_BROTHER_META);
-                    SET_APDU_TXLEN(0);
-                    return TX_NO_DATA();
+                // Having a valid brother means
+                // we must have finished parsing it
+                if (block.recv != block.size) {
+                    FAIL(BLOCK_FIELD_COUNT_INVALID);
                 }
+
+                --block.brother_count;
+
+                // Have we finished parsing all the brothers?
+                if (!block.brother_count) {
+                    return handle_end_of_block();
+                }
+
+                // Remember this brother's hash to
+                // compare against the next one
+                HSTORE(block.prev_brother_hash, block.block_hash);
+
+                // Request next brother meta
+                expected_state = OP_ADVANCE_BROTHER_META;
+                SET_APDU_OP(OP_ADVANCE_BROTHER_META);
+                SET_APDU_TXLEN(0);
+                return TX_NO_DATA();
             }
         }
 

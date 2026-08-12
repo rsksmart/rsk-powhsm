@@ -205,7 +205,7 @@ class _AdvanceUpdateError(IntEnum):
     PROT_INVALID = 0x6B87
     RLP_INVALID = auto()
     BLOCK_TOO_OLD = auto()
-    BLOCK_TOO_SHORT = auto()
+    BLOCK_FIELD_COUNT_INVALID = auto()
     PARENT_HASH_INVALID = auto()
     RECEIPT_ROOT_INVALID = auto()
     BLOCK_NUM_INVALID = auto()
@@ -962,7 +962,7 @@ class HSM2Dongle:
                 err.MERKLE_PROOF_OVERFLOW: response.ERROR_INVALID_BLOCK,
                 err.CB_TXN_OVERFLOW: response.ERROR_INVALID_BLOCK,
                 err.RLP_INVALID: response.ERROR_INVALID_BLOCK,
-                err.BLOCK_TOO_SHORT: response.ERROR_INVALID_BLOCK,
+                err.BLOCK_FIELD_COUNT_INVALID: response.ERROR_INVALID_BLOCK,
                 err.PARENT_HASH_INVALID: response.ERROR_INVALID_BLOCK,
                 err.UMM_ROOT_INVALID: response.ERROR_INVALID_BLOCK,
                 err.BTC_HEADER_INVALID: response.ERROR_INVALID_BLOCK,
@@ -1017,7 +1017,7 @@ class HSM2Dongle:
             {
                 err.BUFFER_OVERFLOW: response.ERROR_INVALID_BLOCK,
                 err.RLP_INVALID: response.ERROR_INVALID_BLOCK,
-                err.BLOCK_TOO_SHORT: response.ERROR_INVALID_BLOCK,
+                err.BLOCK_FIELD_COUNT_INVALID: response.ERROR_INVALID_BLOCK,
                 err.PARENT_HASH_INVALID: response.ERROR_INVALID_BLOCK,
                 err.RECEIPT_ROOT_INVALID: response.ERROR_INVALID_BLOCK,
                 err.BTC_HEADER_INVALID: response.ERROR_INVALID_BLOCK,

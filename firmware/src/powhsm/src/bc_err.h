@@ -30,13 +30,13 @@
 // Error codes returned by blockchain protocols
 typedef enum {
     UNKNOWN = 0,
-    PROT_INVALID = 0x6b87, // Ledger got invalid or unexpected message
-    RLP_INVALID,           // Ledger got RLP that is not a valid block
-    BLOCK_TOO_OLD,         // Block is too old to be validated
-    BLOCK_TOO_SHORT,       // Block doesn't has expected number of fields
-    PARENT_HASH_INVALID,   // Invalid parent hash
-    RECEIPT_ROOT_INVALID,  // Invalid receipt root
-    BLOCK_NUM_INVALID,     // Invalid block num (size > 4 bytes)
+    PROT_INVALID = 0x6b87,     // Ledger got invalid or unexpected message
+    RLP_INVALID,               // Ledger got RLP that is not a valid block
+    BLOCK_TOO_OLD,             // Block is too old to be validated
+    BLOCK_FIELD_COUNT_INVALID, // Block doesn't have expected number of fields
+    PARENT_HASH_INVALID,       // Invalid parent hash
+    RECEIPT_ROOT_INVALID,      // Invalid receipt root
+    BLOCK_NUM_INVALID,         // Invalid block num (size > 4 bytes)
     BLOCK_DIFF_INVALID,    // Invalid bock difficulty (zero or size > 32 bytes)
     UMM_ROOT_INVALID,      // Invalid UMM root (if present, size > 20 bytes)
     BTC_HEADER_INVALID,    // Invalid BTC merge mining header (size != 80 bytes)

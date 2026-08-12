@@ -38,7 +38,7 @@ static struct err_entry {
     {PROT_INVALID, "Invalid or unexpected message"},
     {RLP_INVALID, "Invalid RLP"},
     {BLOCK_TOO_OLD, "Block too old"},
-    {BLOCK_TOO_SHORT, "Block too short"},
+    {BLOCK_FIELD_COUNT_INVALID, "Block field count invalid"},
     {PARENT_HASH_INVALID, "Invalid parent hash"},
     {RECEIPT_ROOT_INVALID, "Invalid receipt root"},
     {BLOCK_NUM_INVALID, "Block number > 4 bytes"},
