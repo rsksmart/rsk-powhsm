@@ -23,6 +23,7 @@
 from unittest import TestCase
 from parameterized import parameterized
 from sgx.envelope import SgxAttributes, \
+                         SgxAttributesFlags, \
                          SgxReportData, \
                          SgxReportBody, \
                          SgxEcdsa256Signature, \
@@ -110,3 +111,49 @@ class TestSgxStructs(TestCase):
     ])
     def test_sizes_ok(self, _, kls, exp_len):
         self.assertEqual(exp_len, kls.get_bytelength())
+
+
+class TestSgxAttributesFlags(TestCase):
+    @parameterized.expand([
+        ("initted_exact", SgxAttributesFlags.INITTED, int(SgxAttributesFlags.INITTED)),
+        ("debug_exact", SgxAttributesFlags.DEBUG, int(SgxAttributesFlags.DEBUG)),
+        ("mode64_exact", SgxAttributesFlags.MODE64BIT, int(SgxAttributesFlags.MODE64BIT)),
+        ("provision_exact", SgxAttributesFlags.PROVISION_KEY,
+         int(SgxAttributesFlags.PROVISION_KEY)),
+        ("einittoken_exact", SgxAttributesFlags.EINITTOKEN_KEY,
+         int(SgxAttributesFlags.EINITTOKEN_KEY)),
+        ("kss_exact", SgxAttributesFlags.KSS, int(SgxAttributesFlags.KSS)),
+    ])
+    def test_is_set_exact(self, _, flag, value):
+        self.assertTrue(flag.is_set(value))
+
+    @parameterized.expand([
+        ("initted", SgxAttributesFlags.INITTED),
+        ("debug", SgxAttributesFlags.DEBUG),
+        ("mode64", SgxAttributesFlags.MODE64BIT),
+        ("provision", SgxAttributesFlags.PROVISION_KEY),
+        ("einittoken", SgxAttributesFlags.EINITTOKEN_KEY),
+        ("kss", SgxAttributesFlags.KSS),
+    ])
+    def test_is_set_with_additional_bits(self, _, flag):
+        combined = int(SgxAttributesFlags.INITTED) | \
+                   int(SgxAttributesFlags.DEBUG) | \
+                   int(SgxAttributesFlags.KSS)
+        if flag in (SgxAttributesFlags.MODE64BIT,
+                    SgxAttributesFlags.PROVISION_KEY,
+                    SgxAttributesFlags.EINITTOKEN_KEY):
+            self.assertFalse(flag.is_set(combined))
+        else:
+            self.assertTrue(flag.is_set(combined))
+
+    @parameterized.expand([
+        ("initted", SgxAttributesFlags.INITTED, 0),
+        ("debug", SgxAttributesFlags.DEBUG, int(SgxAttributesFlags.INITTED)),
+        ("mode64", SgxAttributesFlags.MODE64BIT, int(SgxAttributesFlags.DEBUG)),
+        ("provision", SgxAttributesFlags.PROVISION_KEY, int(SgxAttributesFlags.KSS)),
+        ("einittoken", SgxAttributesFlags.EINITTOKEN_KEY,
+         int(SgxAttributesFlags.MODE64BIT)),
+        ("kss", SgxAttributesFlags.KSS, int(SgxAttributesFlags.PROVISION_KEY)),
+    ])
+    def test_not_set_when_missing(self, _, flag, value):
+        self.assertFalse(flag.is_set(value))

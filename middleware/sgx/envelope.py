@@ -21,6 +21,7 @@
 # SOFTWARE.
 
 from comm.cstruct import CStruct
+from comm.utils import BitFlags
 
 
 class SgxEnvelope(CStruct):
@@ -51,6 +52,18 @@ class SgxEnvelope(CStruct):
 ##############################################################################
 # Types below taken from OpenEnclave's include/openenclave/bits/sgx/sgxtypes.h
 ##############################################################################
+
+
+class SgxAttributesFlags(BitFlags):
+    """
+    sgx_attributes_t flags bits
+    """
+    INITTED = 0x0000000000000001
+    DEBUG = 0x0000000000000002
+    MODE64BIT = 0x0000000000000004
+    PROVISION_KEY = 0x0000000000000010
+    EINITTOKEN_KEY = 0x0000000000000020
+    KSS = 0x0000000000000040
 
 
 class SgxAttributes(CStruct):

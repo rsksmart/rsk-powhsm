@@ -29,10 +29,12 @@
 #include "log.h"
 
 // Simulation build
-#ifndef SIM_BUILD
-#define CREATE_ENCLAVE_FLAGS 0
-#else
+#if defined(DEBUG_BUILD)
+#define CREATE_ENCLAVE_FLAGS OE_ENCLAVE_FLAG_DEBUG
+#elif defined(SIM_BUILD)
 #define CREATE_ENCLAVE_FLAGS OE_ENCLAVE_FLAG_SIMULATE
+#else
+#define CREATE_ENCLAVE_FLAGS 0
 #endif
 
 // Global pointer to the enclave. This should be the only global pointer to the

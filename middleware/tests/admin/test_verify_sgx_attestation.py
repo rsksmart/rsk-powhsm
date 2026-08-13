@@ -27,6 +27,7 @@ from parameterized import parameterized
 from admin.misc import AdminError
 from admin.pubkeys import PATHS
 from admin.verify_sgx_attestation import do_verify_attestation, DEFAULT_ROOT_AUTHORITY
+from sgx.envelope import SgxAttributesFlags
 import ecdsa
 import secp256k1 as ec
 import hashlib
@@ -86,6 +87,10 @@ class TestVerifySgxAttestation(TestCase):
             "report_body": SimpleNamespace(**{
                 "mrenclave": bytes.fromhex("aabbccdd"),
                 "mrsigner": bytes.fromhex("1122334455"),
+                "attributes": SimpleNamespace(**{
+                    "flags": 0x0000112233445565,
+                    "xfrm": 0x000000778899aabb,
+                })
             })
         })
 
@@ -157,16 +162,25 @@ class TestVerifySgxAttestation(TestCase):
         }
 
     @parameterized.expand([
-        ("default_root", None),
-        ("custom_root", "a-custom-root")
+        ("default_root", None, None),
+        ("custom_root", "a-custom-root", None),
+        ("debug_mode", None, 0x1122334455667702),
     ])
     def test_verify_attestation(self, get_sgx_root_of_trust, load_pubkeys,
                                 HSMCertificate, get_tcb_info, validate_tcb_info,
                                 get_qeid_info, validate_qeid_info,
-                                head, _, __, custom_root):
+                                head, _, __, custom_root, attr_flags):
         self.configure_mocks(get_sgx_root_of_trust, load_pubkeys, HSMCertificate,
                              get_tcb_info, validate_tcb_info,
                              get_qeid_info, validate_qeid_info, head)
+
+        if attr_flags:
+            self.mock_sgx_quote.report_body.attributes = SimpleNamespace(**{
+                "flags": attr_flags,
+                "xfrm": 0x000000778899aabb,
+            })
+        expected_attr_flags = self.mock_sgx_quote.report_body.attributes.flags
+
         if custom_root:
             self.options.root_authority = custom_root
 
@@ -213,7 +227,15 @@ class TestVerifySgxAttestation(TestCase):
         self.validate_qeid_info.assert_called_with(
             self.mock_qe_collateral, "the enclave identity")
 
-        self.assertEqual(head.call_args_list[1], call([
+        expected_signer_warnings = []
+        if SgxAttributesFlags.DEBUG.is_set(expected_attr_flags):
+            expected_signer_warnings = [
+                "************* WARNINGS *************",
+                "> SGX enclave running in DEBUG MODE",
+                "************************************",
+            ]
+
+        self.assertEqual(head.call_args_list[1], call(expected_signer_warnings + [
             "powHSM verified with public keys:"
         ] + self.expected_pubkeys_output + [
             f"Hash: {self.expected_pubkeys_hash}",
@@ -221,6 +243,8 @@ class TestVerifySgxAttestation(TestCase):
             "Installed powHSM MRENCLAVE: aabbccdd",
             "Installed powHSM MRSIGNER: 1122334455",
             "Installed powHSM version: 5.6",
+            f"Installed powHSM ATTRIBUTES (flgs): {expected_attr_flags:016x}",
+            "Installed powHSM ATTRIBUTES (xfrm): 000000778899aabb",
             "Platform: plf",
             f"UD value: {'aa'*32}",
             f"Best block: {'bb'*32}",

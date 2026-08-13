@@ -29,6 +29,7 @@ from .sgx_utils import get_sgx_extensions, get_tcb_info, validate_tcb_info, \
                        get_qeid_info, validate_qeid_info
 from .x509_validator import X509CertificateValidator
 from .certificate import HSMCertificate, HSMCertificateV2ElementX509
+from sgx.envelope import SgxAttributesFlags
 
 
 # ###################################################################################
@@ -177,12 +178,26 @@ def do_verify_attestation(options):
             f" but attestation reports {reported_pubkeys_hash.hex()}"
         )
 
+    signer_warnings = []
+
+    if SgxAttributesFlags.DEBUG.is_set(sgx_quote.report_body.attributes.flags):
+        signer_warnings.append("SGX enclave running in DEBUG MODE")
+
+    signer_warnings_output = []
+    if len(signer_warnings) > 0:
+        signer_warnings_output.append("************* WARNINGS *************")
+        signer_warnings_output += map(lambda w: f"> {w}", signer_warnings)
+        signer_warnings_output.append("************************************")
+
+    quote_attributes = sgx_quote.report_body.attributes
     signer_info = [
         f"Hash: {pubkeys_hash.hex()}",
         "",
         f"Installed powHSM MRENCLAVE: {sgx_quote.report_body.mrenclave.hex()}",
         f"Installed powHSM MRSIGNER: {sgx_quote.report_body.mrsigner.hex()}",
         f"Installed powHSM version: {powhsm_message.version}",
+        f"Installed powHSM ATTRIBUTES (flgs): {quote_attributes.flags:016x}",
+        f"Installed powHSM ATTRIBUTES (xfrm): {quote_attributes.xfrm:016x}",
     ]
 
     signer_info += [
@@ -224,7 +239,10 @@ def do_verify_attestation(options):
     ]
 
     head(
-        ["powHSM verified with public keys:"] + pubkeys_output + signer_info,
+        signer_warnings_output +
+        ["powHSM verified with public keys:"] +
+        pubkeys_output +
+        signer_info,
         fill="-",
     )
 

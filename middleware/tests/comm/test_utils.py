@@ -21,7 +21,7 @@
 # SOFTWARE.
 
 from unittest import TestCase
-from comm.utils import bitwise_and_bytes, keccak_256
+from comm.utils import BitFlags, bitwise_and_bytes, keccak_256
 from parameterized import parameterized
 
 import logging
@@ -56,6 +56,55 @@ class TestBitwiseAndBytes(TestCase):
             bitwise_and_bytes(bytes.fromhex("123456779a"),
                               bytes.fromhex("0406080e0d")).hex(),
         )
+
+
+class _TestFlags(BitFlags):
+    NONE = 0x00
+    READ = 0x01
+    WRITE = 0x02
+    EXECUTE = 0x04
+    ADMIN = 0x08
+    READ_WRITE = READ | WRITE
+    ALL = READ | WRITE | EXECUTE | ADMIN
+
+
+class TestBitFlagsIsSet(TestCase):
+    @parameterized.expand([
+        (_TestFlags.READ, 0x01),
+        (_TestFlags.WRITE, 0x02),
+        (_TestFlags.EXECUTE, 0x04),
+        (_TestFlags.ADMIN, 0x08),
+        (_TestFlags.READ_WRITE, 0x03),
+        (_TestFlags.ALL, 0x0F),
+    ])
+    def test_is_set_exact_matches(self, flag, value):
+        self.assertTrue(flag.is_set(value))
+
+    @parameterized.expand([
+        (_TestFlags.READ, 0x0F),
+        (_TestFlags.WRITE, 0x0F),
+        (_TestFlags.EXECUTE, 0x0F),
+        (_TestFlags.ADMIN, 0x0F),
+        (_TestFlags.READ_WRITE, 0x0F),
+    ])
+    def test_is_set_with_additional_bits(self, flag, value):
+        self.assertTrue(flag.is_set(value))
+
+    @parameterized.expand([
+        (_TestFlags.READ, 0x00),
+        (_TestFlags.WRITE, 0x01),
+        (_TestFlags.EXECUTE, 0x03),
+        (_TestFlags.ADMIN, 0x07),
+        (_TestFlags.READ_WRITE, 0x01),
+        (_TestFlags.READ_WRITE, 0x02),
+        (_TestFlags.ALL, 0x07),
+    ])
+    def test_is_set_false_when_any_required_bit_missing(self, flag, value):
+        self.assertFalse(flag.is_set(value))
+
+    def test_zero_flag_is_always_set(self):
+        self.assertTrue(_TestFlags.NONE.is_set(0x00))
+        self.assertTrue(_TestFlags.NONE.is_set(0x0F))
 
 
 class TestKeccak256(TestCase):

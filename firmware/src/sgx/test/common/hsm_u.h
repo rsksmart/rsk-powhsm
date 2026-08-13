@@ -27,6 +27,8 @@
 
 #include <openenclave/host.h>
 
+#define OE_ENCLAVE_FLAG_DEBUG 123
+
 oe_result_t oe_create_hsm_enclave(const char* path,
                                   oe_enclave_type_t type,
                                   uint32_t flags,

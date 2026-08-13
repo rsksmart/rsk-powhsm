@@ -22,6 +22,12 @@
 
 import re
 from Crypto.Hash import keccak
+from enum import IntEnum
+
+
+class BitFlags(IntEnum):
+    def is_set(self, value: int) -> bool:
+        return (value & int(self)) == int(self)
 
 
 def bitwise_and_bytes(bs1, bs2):
