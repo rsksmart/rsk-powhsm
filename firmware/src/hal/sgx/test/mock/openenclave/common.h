@@ -284,6 +284,8 @@ typedef enum _oe_enclave_type {
 
 // Taken from OpenEnclave's include/openenclave/host.h
 
+#define OE_ENCLAVE_FLAG_DEBUG 0x00000001u
+
 typedef enum _oe_enclave_setting_type {
     OE_ENCLAVE_SETTING_CONTEXT_SWITCHLESS = 0xdc73a628,
 #ifdef OE_WITH_EXPERIMENTAL_EEID

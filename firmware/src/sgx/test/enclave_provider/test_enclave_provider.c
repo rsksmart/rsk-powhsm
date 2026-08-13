@@ -164,7 +164,7 @@ void test_epro_get_enclave_first_call_success() {
     assert(G_called.oe_create_hsm_enclave_called == true);
     assert(strcmp(G_called.last_create_enclave_path, test_path) == 0);
     assert(G_called.last_enclave_type == OE_ENCLAVE_TYPE_AUTO);
-    assert(G_called.last_enclave_flags == 123);
+    assert(G_called.last_enclave_flags == 1);
     assert(G_called.last_setting_count == 0);
 }
 

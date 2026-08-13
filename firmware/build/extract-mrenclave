@@ -45,13 +45,13 @@ if [[ ! -f $ENCLAVE_BIN ]]; then
     echo "Invalid enclave path: $ENCLAVE_BIN"
     exit 1
 else
-    ENCLAVE_ARG="-e $ENCLAVE_BIN"
+    ENCLAVE_ARG="-e '$ENCLAVE_BIN'"
 fi
 
 if [[ $ENCLAVE_BIN == *.signed ]]; then
     CONFIG_ARG=""
 elif [[ $# -ge 2 ]]; then
-    CONFIG_ARG="-c $(realpath $2 --relative-to=$HSM_ROOT)"
+    CONFIG_ARG="-c '$(realpath $2 --relative-to=$HSM_ROOT)'"
 else
     echo "Invalid usage"
     print_usage
