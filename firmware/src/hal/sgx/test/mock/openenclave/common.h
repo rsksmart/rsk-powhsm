@@ -217,13 +217,21 @@ typedef struct _sgx_quote_auth_data {
             0x64, 0x4d, 0x0e, 0xf8, 0x9a                                  \
     }
 
+// Taken from OpenEnclave's include/openenclave/bits/report.h
+
+#define OE_REPORT_ATTRIBUTES_DEBUG 0x0000000000000001ULL
+
 // Taken from OpenEnclave's include/openenclave/bits/evidence.h
 
 #define OE_UUID_SIZE 16
 
 #define OE_CLAIM_UNIQUE_ID "unique_id"
 
+#define OE_CLAIM_ATTRIBUTES "attributes"
+
 #define OE_CLAIM_CUSTOM_CLAIMS_BUFFER "custom_claims_buffer"
+
+#define OE_EVIDENCE_ATTRIBUTES_SGX_DEBUG OE_REPORT_ATTRIBUTES_DEBUG
 
 typedef struct _oe_uuid_t {
     uint8_t b[OE_UUID_SIZE];
