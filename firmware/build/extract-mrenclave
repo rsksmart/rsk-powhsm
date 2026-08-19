@@ -45,13 +45,13 @@ if [[ ! -f $ENCLAVE_BIN ]]; then
     echo "Invalid enclave path: $ENCLAVE_BIN"
     exit 1
 else
-    ENCLAVE_ARG="-e $ENCLAVE_BIN"
+    ENCLAVE_ARG="-e '$ENCLAVE_BIN'"
 fi
 
 if [[ $ENCLAVE_BIN == *.signed ]]; then
     CONFIG_ARG=""
 elif [[ $# -ge 2 ]]; then
-    CONFIG_ARG="-c $(realpath $2 --relative-to=$HSM_ROOT)"
+    CONFIG_ARG="-c '$(realpath $2 --relative-to=$HSM_ROOT)'"
 else
     echo "Invalid usage"
     print_usage
@@ -60,7 +60,8 @@ fi
 
 DIGEST_CMD="oesign digest $ENCLAVE_ARG $CONFIG_ARG -d /tmp/enclave_digest > /dev/null && hexdump -v -e '/1 \"%02x\"' /tmp/enclave_digest"
 MRENCLAVE_CMD="oesign dump $ENCLAVE_ARG | grep mrenclave | cut -d '=' -f 2"
-EXTRACT_CMD="\$SGX_ENVSETUP && echo digest: \$($DIGEST_CMD) && echo mrenclave: \$($MRENCLAVE_CMD)"
+MRSIGNER_CMD="oesign dump $ENCLAVE_ARG | grep mrsigner | cut -d '=' -f 2"
+EXTRACT_CMD="\$SGX_ENVSETUP && echo digest: \$($DIGEST_CMD) && echo mrenclave: \$($MRENCLAVE_CMD) && echo mrsigner: \$($MRSIGNER_CMD)"
 
 DOCKER_USER="$(id -u):$(id -g)"
 

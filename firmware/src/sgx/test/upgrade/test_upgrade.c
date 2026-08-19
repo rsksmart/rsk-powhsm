@@ -84,15 +84,20 @@ const uint8_t mock_format_settings[] = {
 
 #define EVIDENCE_MAGIC 0xD4
 #define EVIDENCE_PRELUDE "mock_evidence:"
+#define EVIDENCE_AT_TYPE uint64_t
+#define EVIDENCE_AT_SIZE (sizeof(EVIDENCE_AT_TYPE))
 #define EVIDENCE_HEADER                                                \
     EVIDENCE_PRELUDE                                                   \
     "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF" \
     "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT"
-#define EVIDENCE_OH_SIZE 200
-#define EVIDENCE_SIZE (strlen(EVIDENCE_HEADER) + EVIDENCE_OH_SIZE)
+#define EVIDENCE_HEADER_SIZE (strlen(EVIDENCE_HEADER) + EVIDENCE_AT_SIZE)
+#define EVIDENCE_OH_SIZE (200)
+#define EVIDENCE_SIZE (EVIDENCE_HEADER_SIZE + EVIDENCE_OH_SIZE)
 #define EVIDENCE_FR_OFFSET (strlen(EVIDENCE_PRELUDE))
 #define EVIDENCE_TO_OFFSET (strlen(EVIDENCE_PRELUDE) + mre_size)
-#define EVIDENCE_PK_OFFSET (strlen(EVIDENCE_PRELUDE) + mre_size * 2)
+#define EVIDENCE_AT_OFFSET (strlen(EVIDENCE_PRELUDE) + mre_size * 2)
+#define EVIDENCE_PK_OFFSET \
+    (strlen(EVIDENCE_PRELUDE) + mre_size * 2 + EVIDENCE_AT_SIZE)
 
 const oe_claim_t source_mrenclave_claim = {
     .name = OE_CLAIM_UNIQUE_ID,
@@ -138,6 +143,7 @@ struct {
     bool evidence_get_format_settings;
     bool evidence_generate;
     bool evidence_verify_and_extract_claims;
+    bool evidence_debug_mode;
     char local_enclave_id;
     bool evidence_get_claim;
     bool random_getrandom;
@@ -228,7 +234,12 @@ bool evidence_generate(evidence_format_t* format,
     *evidence_buffer = malloc(*evidence_buffer_size);
     memset(*evidence_buffer, EVIDENCE_MAGIC, *evidence_buffer_size);
     memcpy(*evidence_buffer, EVIDENCE_PRELUDE, strlen(EVIDENCE_PRELUDE));
+    memset(*evidence_buffer + EVIDENCE_AT_OFFSET, 0, EVIDENCE_AT_SIZE);
     memcpy(*evidence_buffer + EVIDENCE_PK_OFFSET, ccs, ccs_size);
+    if (G_mocks.evidence_debug_mode) {
+        *((EVIDENCE_AT_TYPE*)(*evidence_buffer + EVIDENCE_AT_OFFSET)) |=
+            OE_EVIDENCE_ATTRIBUTES_SGX_DEBUG;
+    }
     switch (G_mocks.local_enclave_id) {
     case 's':
         memcpy(*evidence_buffer + EVIDENCE_FR_OFFSET, src_mre, mre_size);
@@ -284,15 +295,18 @@ bool evidence_verify_and_extract_claims(oe_uuid_t format_id,
          i++)
         has_pk |= evidence_buffer[i] != EVIDENCE_MAGIC;
 
-    *claims_size = has_pk ? 2 : 1;
+    *claims_size = has_pk ? 3 : 2;
     *claims = malloc(sizeof(oe_claim_t) * (*claims_size));
     (*claims)[0].name = OE_CLAIM_UNIQUE_ID;
     (*claims)[0].value = evidence_buffer + EVIDENCE_FR_OFFSET;
     (*claims)[0].value_size = mre_size;
+    (*claims)[1].name = OE_CLAIM_ATTRIBUTES;
+    (*claims)[1].value = evidence_buffer + EVIDENCE_AT_OFFSET;
+    (*claims)[1].value_size = EVIDENCE_AT_SIZE;
     if (has_pk) {
-        (*claims)[1].name = OE_CLAIM_CUSTOM_CLAIMS_BUFFER;
-        (*claims)[1].value = evidence_buffer + EVIDENCE_PK_OFFSET;
-        (*claims)[1].value_size = CLAIM_PK_SIZE;
+        (*claims)[2].name = OE_CLAIM_CUSTOM_CLAIMS_BUFFER;
+        (*claims)[2].value = evidence_buffer + EVIDENCE_PK_OFFSET;
+        (*claims)[2].value_size = CLAIM_PK_SIZE;
     }
 
     return true;
@@ -315,14 +329,17 @@ oe_claim_t* evidence_get_claim(oe_claim_t* claims,
     if (!G_mocks.evidence_get_claim)
         return NULL;
 
-    assert(claims_size == 1 || claims_size == 2);
+    assert(claims_size == 2 || claims_size == 3);
     assert(!strcmp(OE_CLAIM_UNIQUE_ID, claim_name) ||
-           !strcmp(OE_CLAIM_CUSTOM_CLAIMS_BUFFER, claim_name));
+           !strcmp(OE_CLAIM_CUSTOM_CLAIMS_BUFFER, claim_name) ||
+           !strcmp(OE_CLAIM_ATTRIBUTES, claim_name));
 
     if (!strcmp(OE_CLAIM_UNIQUE_ID, claim_name))
         return &claims[0];
-    if (claims_size == 2 && !strcmp(OE_CLAIM_CUSTOM_CLAIMS_BUFFER, claim_name))
+    if (!strcmp(OE_CLAIM_ATTRIBUTES, claim_name))
         return &claims[1];
+    if (claims_size == 3 && !strcmp(OE_CLAIM_CUSTOM_CLAIMS_BUFFER, claim_name))
+        return &claims[2];
 
     return NULL;
 }
@@ -371,6 +388,7 @@ void setup(char local_enclave_id) {
     G_mocks.evidence_generate = true;
     G_mocks.evidence_verify_and_extract_claims = true;
     G_mocks.evidence_get_claim = true;
+    G_mocks.evidence_debug_mode = false;
     G_mocks.random_getrandom = true;
 }
 
@@ -398,7 +416,7 @@ void identify_self() {
 
     assert(EVIDENCE_SIZE == total);
     assert(!memcmp(EVIDENCE_PRELUDE, buf, strlen(EVIDENCE_PRELUDE)));
-    for (size_t i = strlen(EVIDENCE_HEADER); i < EVIDENCE_SIZE; i++)
+    for (size_t i = EVIDENCE_HEADER_SIZE; i < EVIDENCE_SIZE; i++)
         assert(EVIDENCE_MAGIC == buf[i]);
     switch (G_mocks.local_enclave_id) {
     case 's':
@@ -416,6 +434,9 @@ void identify_self() {
     }
     assert(!memcmp(expected_fr, buf + EVIDENCE_FR_OFFSET, mre_size));
     assert(!memcmp(expected_to, buf + EVIDENCE_TO_OFFSET, mre_size));
+    assert(G_mocks.evidence_debug_mode ==
+           (*((EVIDENCE_AT_TYPE*)(buf + EVIDENCE_AT_OFFSET)) &
+            OE_EVIDENCE_ATTRIBUTES_SGX_DEBUG));
     assert(!memcmp(expected_pk, buf + EVIDENCE_PK_OFFSET, CLAIM_PK_SIZE));
 }
 
@@ -432,6 +453,7 @@ void identify_peer(bool correct, bool pubkey) {
     peer_evidence = malloc(EVIDENCE_SIZE);
     memset(peer_evidence, EVIDENCE_MAGIC, EVIDENCE_SIZE);
     memcpy(peer_evidence, EVIDENCE_PRELUDE, strlen(EVIDENCE_PRELUDE));
+    EVIDENCE_AT_TYPE peer_attributes = 0;
     if (correct) {
         switch (G_mocks.local_enclave_id) {
         case 's':
@@ -445,8 +467,13 @@ void identify_peer(bool correct, bool pubkey) {
             pk = (uint8_t*)mock_pub_key_src;
             break;
         }
+        if (G_mocks.evidence_debug_mode)
+            peer_attributes |= OE_EVIDENCE_ATTRIBUTES_SGX_DEBUG;
         memcpy(peer_evidence + EVIDENCE_FR_OFFSET, mre_fr, mre_size);
         memcpy(peer_evidence + EVIDENCE_TO_OFFSET, mre_to, mre_size);
+        memcpy(peer_evidence + EVIDENCE_AT_OFFSET,
+               &peer_attributes,
+               sizeof(peer_attributes));
         if (pubkey)
             memcpy(peer_evidence + EVIDENCE_PK_OFFSET, pk, CLAIM_PK_SIZE);
     }
@@ -865,6 +892,31 @@ void test_upgrade_export_invalid_peer_id() {
         0x6A03);
 }
 
+void test_upgrade_export_peer_in_debug_mode() {
+    unsigned int rx;
+
+    setup('s');
+    G_mocks.evidence_debug_mode = true;
+    printf("Test exporting when peer is in debug mode...\n");
+
+    ASSERT_THROWS(
+        {
+            // Start export
+            SET_APDU("\x80\xA6\x01\x01" SRC_MRE DST_MRE, rx);
+            assert(3 == upgrade_process_apdu(rx));
+            // Spec auth
+            SET_APDU("\x80\xA6\x02" SIG_VALID_1, rx);
+            assert(3 == upgrade_process_apdu(rx));
+            ASSERT_APDU("\x80\xA6\x01");
+            SET_APDU("\x80\xA6\x02" SIG_VALID_2, rx);
+            assert(3 == upgrade_process_apdu(rx));
+            ASSERT_APDU("\x80\xA6\x00");
+            identify_self();
+            identify_peer(true, true);
+        },
+        0x6A03);
+}
+
 void test_upgrade_export_peer_id_nopubkey() {
     unsigned int rx;
 
@@ -1081,6 +1133,31 @@ void test_upgrade_import_invalid_peer_id() {
         0x6A03);
 }
 
+void test_upgrade_import_peer_in_debug_mode() {
+    unsigned int rx;
+
+    setup('d');
+    G_mocks.evidence_debug_mode = true;
+    printf("Test importing when peer is in debug mode...\n");
+
+    ASSERT_THROWS(
+        {
+            // Start import
+            SET_APDU("\x80\xA6\x01\x02" SRC_MRE DST_MRE, rx);
+            assert(3 == upgrade_process_apdu(rx));
+            // Spec auth
+            SET_APDU("\x80\xA6\x02" SIG_VALID_1, rx);
+            assert(3 == upgrade_process_apdu(rx));
+            ASSERT_APDU("\x80\xA6\x01");
+            SET_APDU("\x80\xA6\x02" SIG_VALID_2, rx);
+            assert(3 == upgrade_process_apdu(rx));
+            ASSERT_APDU("\x80\xA6\x00");
+            identify_self();
+            identify_peer(true, true);
+        },
+        0x6A03);
+}
+
 void test_upgrade_import_migrate_fails() {
     unsigned int rx;
 
@@ -1160,6 +1237,7 @@ int main() {
     test_upgrade_export_invalid_spec_auth_format();
     test_upgrade_export_cant_get_randomness();
     test_upgrade_export_invalid_peer_id();
+    test_upgrade_export_peer_in_debug_mode();
     test_upgrade_export_peer_id_nopubkey();
     test_upgrade_export_peer_id_empty_packet();
     test_upgrade_export_peer_id_packet_too_big();
@@ -1175,6 +1253,7 @@ int main() {
     test_upgrade_import_cant_verify_local_evidence();
     test_upgrade_import_cant_find_local_mrenclave();
     test_upgrade_import_invalid_peer_id();
+    test_upgrade_import_peer_in_debug_mode();
     test_upgrade_import_migrate_fails();
 
     test_upgrade_invalid_op();

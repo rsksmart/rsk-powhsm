@@ -95,8 +95,10 @@ typedef enum {
     ERR_UPGRADE_INTERNAL = 0x6A99,
 } err_code_upgrade_t;
 
-// MRENCLAVE size
+// MRENCLAVE and ATTRIBUTES sizes (and type)
 #define UPGRADE_MRENCLAVE_SIZE HASH_LENGTH
+#define UPGRADE_ATTRIBUTES_TYPE uint64_t
+#define UPGRADE_ATTRIBUTES_SIZE (sizeof(UPGRADE_ATTRIBUTES_TYPE))
 
 // SGX upgrade spec
 typedef struct {
@@ -625,6 +627,22 @@ unsigned int upgrade_process_apdu(volatile unsigned int rx) {
                    UPGRADE_MRENCLAVE_SIZE) != 0) {
             LOG("Peer enclave's mrenclave does not match the spec's "
                 "mrenclave\n");
+            goto upgrade_process_apdu_identify_peer_error;
+        }
+        if (!(claim = evidence_get_claim(
+                  claims, claims_size, OE_CLAIM_ATTRIBUTES))) {
+            LOG("Error extracting peer enclave's attributes\n");
+            goto upgrade_process_apdu_identify_peer_error;
+        }
+        // Here, the claim value (containing the attributes) is cast
+        // directly to the attributes type since in the claim generation
+        // (see OpenEnclave source), there's no specific marshalling code.
+        // This is probably fine given that the underlying platform is assumed
+        // to be Intel SGX in both exporter and importer cases.
+        if (claim->value_size != UPGRADE_ATTRIBUTES_SIZE ||
+            (*((UPGRADE_ATTRIBUTES_TYPE*)claim->value) &
+             OE_EVIDENCE_ATTRIBUTES_SGX_DEBUG)) {
+            LOG("Peer enclave is running in debug mode\n");
             goto upgrade_process_apdu_identify_peer_error;
         }
         if (!(claim = evidence_get_custom_claim(claims, claims_size))) {
