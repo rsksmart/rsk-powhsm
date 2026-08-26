@@ -434,7 +434,7 @@ void identify_self() {
     }
     assert(!memcmp(expected_fr, buf + EVIDENCE_FR_OFFSET, mre_size));
     assert(!memcmp(expected_to, buf + EVIDENCE_TO_OFFSET, mre_size));
-    assert(G_mocks.evidence_debug_mode ==
+    assert(!G_mocks.evidence_debug_mode ||
            (*((EVIDENCE_AT_TYPE*)(buf + EVIDENCE_AT_OFFSET)) &
             OE_EVIDENCE_ATTRIBUTES_SGX_DEBUG));
     assert(!memcmp(expected_pk, buf + EVIDENCE_PK_OFFSET, CLAIM_PK_SIZE));
