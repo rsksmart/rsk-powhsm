@@ -168,7 +168,7 @@ class HSM2ProtocolLedger(HSM2Protocol):
             retries = self.hsm2dongle.get_retries()
             self.logger.info("Available pin retries: %d", retries)
             if retries < self.MIN_AVAILABLE_RETRIES:
-                self.logger.error(
+                self.logger.warning(
                     "Available number of pin retries (%d) not enough "
                     "to attempt a device unlock. Aborting.",
                     retries,

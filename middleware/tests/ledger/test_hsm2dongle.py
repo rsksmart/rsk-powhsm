@@ -91,7 +91,7 @@ class TestHSM2DongleBase(TestCase):
             self.hsm2dongle = HSM2Dongle("a-debug-value")
             self.getDongleMock.assert_not_called()
             self.hsm2dongle.connect()
-            self.getDongleMock.assert_called_with("a-debug-value")
+            self.getDongleMock.assert_called_with(False)
             getDongleTCPMock.assert_not_called()
         elif self.get_test_mode() == HSM2DongleTestMode.SGX:
             self.dongle = Mock()
@@ -101,7 +101,7 @@ class TestHSM2DongleBase(TestCase):
 
             self.getDongleMock.assert_not_called()
             self.hsm2dongle.connect()
-            self.getDongleMock.assert_called_with("a-host", 1234, "a-debug-value")
+            self.getDongleMock.assert_called_with("a-host", 1234, False)
             self.assertEqual(self.hsm2dongle.dongle, self.dongle)
             getDongleMock.assert_not_called()
         else:
@@ -228,7 +228,7 @@ class TestHSM2Dongle(TestHSM2DongleBase):
         )
 
     def test_connects_ok(self):
-        self.assertEqual([call("a-debug-value")], self.getDongleMock.call_args_list)
+        self.assertEqual([call(False)], self.getDongleMock.call_args_list)
 
     @patch("ledger.hsm2dongle.getDongle")
     def test_connects_error_comm(self, getDongleMock):

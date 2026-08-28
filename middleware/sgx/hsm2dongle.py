@@ -62,14 +62,16 @@ class HSM2DongleSGX(HSM2DongleTCP):
 
     # Unlock the device with the given pin
     def unlock(self, pin):
-        response = self._send_command(SgxCommand.SGX_UNLOCK, bytes([0]) + pin)
+        response = self._send_command(
+            SgxCommand.SGX_UNLOCK, bytes([0]) + pin, secret=True)
 
         # Nonzero indicates device unlocked
         return response[2] != 0
 
     # change pin
     def new_pin(self, pin):
-        response = self._send_command(SgxCommand.SGX_CHANGE_PASSWORD, bytes([0]) + pin)
+        response = self._send_command(
+            SgxCommand.SGX_CHANGE_PASSWORD, bytes([0]) + pin, secret=True)
 
         # One indicates pin changed
         return response[2] == 1
@@ -88,7 +90,8 @@ class HSM2DongleSGX(HSM2DongleTCP):
             raise HSM2DongleError("Invalid pin given")
 
         self.logger.info("Sending onboard command")
-        response = self._send_command(SgxCommand.SGX_ONBOARD, bytes([0x0]) + seed + pin)
+        response = self._send_command(
+            SgxCommand.SGX_ONBOARD, bytes([0x0]) + seed + pin, secret=True)
 
         if response[2] != 1:
             raise HSM2DongleError("Error onboarding. Got '%s'" % response.hex())

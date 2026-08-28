@@ -20,7 +20,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import struct
 from enum import IntEnum, auto
 from ledgerblue.comm import getDongle
 from ledgerblue.commException import CommException
@@ -401,13 +400,18 @@ class HSM2Dongle:
         self.last_comm_exception = None
 
     # Send command to device
-    def _send_command(self, command, data=b"", timeout=DONGLE_TIMEOUT):
+    def _send_command(self, command, data=b"", timeout=DONGLE_TIMEOUT, secret=False):
         self.last_comm_exception = None
         try:
-            cmd = struct.pack("BB%ds" % len(data), self.CLA, command, data)
-            self.logger.debug("Sending command: 0x%s", cmd.hex())
+            cmd = bytes([self.CLA, command]) + data
+            cmd_log = cmd.hex()
+            if secret and not self.debug:
+                cmd_log = bytes([self.CLA, command]).hex() + "***"
+            self.logger.debug("APDU > %s", cmd_log)
             result = self.dongle.exchange(cmd, timeout=timeout)
-            self.logger.debug("Received: 0x%s", result.hex())
+            # Dongle should never output secret information, so we don't care
+            # about obfuscating anything
+            self.logger.debug("APDU < %s", result.hex())
         except (CommException, BaseException) as e:
             # If this is a user-defined error, raise an
             # error result error
@@ -415,7 +419,7 @@ class HSM2Dongle:
                 self.last_comm_exception = e
                 error_code = e.sw
                 if _Error.is_user_defined_error(error_code):
-                    self.logger.error("Received error code: %s", hex(error_code))
+                    self.logger.warning("Received error code: %s", hex(error_code))
                     raise HSM2DongleErrorResult(error_code)
 
             # If this is a dongle timeout, raise a timeout error
@@ -431,25 +435,25 @@ class HSM2Dongle:
             # type of exception
             if type(e) == CommException:
                 msg = "Error sending command: %s" % str(e)
-                self.logger.error(msg)
+                self.logger.warning(msg)
             else:
                 msg = "Unknown error sending command: %s (of type %s)" % \
                       (str(e), type(e).__name__)
-                self.logger.critical(msg)
+                self.logger.error(msg)
 
             raise HSM2DongleError(msg)
 
         return result
 
     # Send command version to be used by command classes
-    def send_command(self, cmd, op, data, timeout=DONGLE_TIMEOUT):
-        return self._send_command(cmd, bytes([op]) + data, timeout)
+    def send_command(self, cmd, op, data, timeout=DONGLE_TIMEOUT, secret=False):
+        return self._send_command(cmd, bytes([op]) + data, timeout, secret=secret)
 
     # Connect to the dongle
     def connect(self):
         try:
             self.logger.info("Connecting")
-            self.dongle = getDongle(self.debug)
+            self.dongle = getDongle(False)
             self.logger.info("Connected")
         except CommException as e:
             msg = "Error connecting: %s" % e.message
@@ -512,7 +516,7 @@ class HSM2Dongle:
 
         self.logger.info("Sending seed")
         for i, b in enumerate(seed):
-            self._send_command(self.CMD.SEED, bytes([i, b]))
+            self._send_command(self.CMD.SEED, bytes([i, b]), secret=True)
 
         self.logger.info("Sending pin")
         self._send_pin(pin, True)
@@ -532,7 +536,7 @@ class HSM2Dongle:
             final_pin = bytes([len(pin)]) + final_pin
 
         for i in range(len(final_pin)):
-            self._send_command(self.CMD.SEND_PIN, bytes([i, final_pin[i]]))
+            self._send_command(self.CMD.SEND_PIN, bytes([i, final_pin[i]]), secret=True)
 
     # unlock the device with the PIN sent
     def unlock(self, pin):
@@ -579,7 +583,7 @@ class HSM2Dongle:
             return HSM2FirmwareParameters.from_dongle_format(apdu_rcv[self.OFF.DATA:])
         except ValueError as e:
             msg = "While getting signer firmware parameters: %s" % str(e)
-            self.logger.error(msg)
+            self.logger.warning(msg)
             raise HSM2DongleError(msg)
 
     # exit the ledger nano S menu
@@ -648,7 +652,7 @@ class HSM2Dongle:
             # How many bytes to send in the next message
             bytes_requested = response[self.OFF.DATA]
         except HSM2DongleErrorResult as e:
-            self.logger.error("Sign returned: %s", hex(e.error_code))
+            self.logger.warning("Sign returned: %s", hex(e.error_code))
             if e.error_code in [
                 self.ERR.SIGN.DATA_SIZE,
                 self.ERR.SIGN.DATA_SIZE_AUTH,
@@ -710,7 +714,7 @@ class HSM2Dongle:
 
             bytes_requested = response[1][self.OFF.DATA]
         except HSM2DongleErrorResult as e:
-            self.logger.error("Sign returned: %s", hex(e.error_code))
+            self.logger.warning("Sign returned: %s", hex(e.error_code))
             if e.error_code in [
                 self.ERR.SIGN.INPUT,
                 self.ERR.SIGN.DATA_SIZE,
@@ -739,7 +743,7 @@ class HSM2Dongle:
 
             bytes_requested = response[1][self.OFF.DATA]
         except HSM2DongleErrorResult as e:
-            self.logger.error("Sign returned: %s", hex(e.error_code))
+            self.logger.warning("Sign returned: %s", hex(e.error_code))
             if e.error_code in [
                 self.ERR.SIGN.STATE,
                 self.ERR.SIGN.RLP,
@@ -767,7 +771,7 @@ class HSM2Dongle:
                     merkle_proof_bytes + bytes([len(node_bytes)]) + node_bytes
                 )
         except ValueError as e:
-            self.logger.error("Sign: invalid receipts merkle proof: %s", str(e))
+            self.logger.warning("Sign: invalid receipts merkle proof: %s", str(e))
             return (False, self.RESPONSE.SIGN.ERROR_MERKLE_PROOF)
 
         try:
@@ -785,7 +789,7 @@ class HSM2Dongle:
             if not response[0]:
                 return (False, self.RESPONSE.SIGN.ERROR_UNEXPECTED)
         except HSM2DongleErrorResult as e:
-            self.logger.error("Sign returned: %s", hex(e.error_code))
+            self.logger.warning("Sign returned: %s", hex(e.error_code))
             if e.error_code in [
                 self.ERR.SIGN.DATA_SIZE,
                 self.ERR.SIGN.STATE,
@@ -824,7 +828,7 @@ class HSM2Dongle:
         try:
             hash_bytes = bytes.fromhex(hash)
         except ValueError:
-            self.logger.error("Sign: invalid hash - %s", hash)
+            self.logger.warning("Sign: invalid hash - %s", hash)
             return (False, self.RESPONSE.SIGN.ERROR_HASH)
 
         # Send path and hash to sign
@@ -845,7 +849,7 @@ class HSM2Dongle:
                 self.logger.error("Sign: unexpected response %s", response.hex())
                 return (False, self.RESPONSE.SIGN.ERROR_UNEXPECTED)
         except HSM2DongleErrorResult as e:
-            self.logger.error("Sign returned: %s", hex(e.error_code))
+            self.logger.warning("Sign returned: %s", hex(e.error_code))
             if e.error_code in [self.ERR.SIGN.DATA_SIZE, self.ERR.SIGN.DATA_SIZE_NOAUTH]:
                 return (False, self.RESPONSE.SIGN.ERROR_HASH)
             elif e.error_code in [
@@ -1003,7 +1007,7 @@ class HSM2Dongle:
             self.logger.info("Removing merge mining fields from %d blocks", len(blocks))
             optimized_blocks = list(map(remove_mm_fields_if_present, blocks))
         except ValueError as e:
-            self.logger.error("While removing merge mining fields: %s", str(e))
+            self.logger.warning("While removing merge mining fields: %s", str(e))
             return (False, response.ERROR_REMOVE_MM_FIELDS)
 
         return self._do_block_operation(
@@ -1165,7 +1169,7 @@ class HSM2Dongle:
                 )
                 return (False, responses.ERROR_UNEXPECTED)
         except HSM2DongleErrorResult as e:
-            self.logger.error(
+            self.logger.warning(
                 "%s returned: %s", operation_name.capitalize(), hex(e.error_code)
             )
             if e.error_code in [errors.PROT_INVALID]:
@@ -1227,7 +1231,7 @@ class HSM2Dongle:
                         )
                         return (False, responses.ERROR_UNEXPECTED)
                 except HSM2DongleErrorResult as e:
-                    self.logger.error(
+                    self.logger.warning(
                         "%s returned: %s", operation_name.capitalize(), hex(e.error_code)
                     )
                     if e.error_code in [errors.PROT_INVALID, errors.BROTHERS_TOO_MANY]:
@@ -1270,7 +1274,7 @@ class HSM2Dongle:
 
         # We shouldn't be able to ever reach this point
         msg = "%s: unexpected state" % operation_name.capitalize()
-        self.logger.fatal(msg)
+        self.logger.critical(msg)
         raise HSM2DongleError(msg)
 
     # Send an individual block header to the device, including computing
@@ -1336,10 +1340,10 @@ class HSM2Dongle:
             # How many bytes to send as the first block chunk
             bytes_requested = response[self.OFF.DATA]
         except ValueError as e:
-            self.logger.error("Computing %s metadata: %s", header_name, str(e))
+            self.logger.warning("Computing %s metadata: %s", header_name, str(e))
             return (False, responses.ERROR_COMPUTE_METADATA)
         except HSM2DongleErrorResult as e:
-            self.logger.error(
+            self.logger.warning(
                 "%s returned: %s", operation_name.capitalize(), hex(e.error_code)
             )
             if e.error_code in [errors.PROT_INVALID]:
@@ -1372,7 +1376,7 @@ class HSM2Dongle:
             if not response[0]:
                 return (False, responses.ERROR_UNEXPECTED)
         except HSM2DongleErrorResult as e:
-            self.logger.error(
+            self.logger.warning(
                 "%s returned: %s", operation_name.capitalize(), hex(e.error_code)
             )
             return (

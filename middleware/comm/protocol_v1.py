@@ -58,7 +58,7 @@ class HSM1Protocol(HSM2Protocol):
             or type(request["message"]) != str
             or not is_hex_string_of_length(request["message"], 32)
         ):
-            self.logger.info(
+            self.logger.warning(
                 "Message field not present, not a string or not a 32-byte hex"
             )
             return self.ERROR_CODE_INVALID_MESSAGE

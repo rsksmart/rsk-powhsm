@@ -35,7 +35,7 @@ class HSM2DongleTCP(HSM2Dongle):
     def connect(self):
         try:
             self.logger.info(f"Connecting to {self.host}:{self.port}")
-            self.dongle = getDongle(self.host, self.port, self.debug)
+            self.dongle = getDongle(self.host, self.port, False)
             self.logger.info("Connected")
         except CommException as e:
             msg = "Error connecting: %s" % e.message
