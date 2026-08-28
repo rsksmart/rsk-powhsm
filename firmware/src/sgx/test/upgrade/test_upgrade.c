@@ -34,9 +34,6 @@
 #include "evidence.h"
 #include "apdu.h"
 
-// Logging dependency
-bool log_is_at_start_of_line = true;
-
 #define SRC_MRE                                \
     "\xAA\xAA\xAA\xAA\xAA\xAA\xAA\xAA\xAA\xAA" \
     "\xAA\xAA\xAA\xAA\xAA\xAA\xAA\xAA\xAA\xAA" \

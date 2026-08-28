@@ -23,7 +23,7 @@
 include ../common/common.mk
 
 PROG = test.out
-OBJS = pathAuth.o bip32_path.o test_path_auth.o
+OBJS = pathAuth.o bip32_path.o test_path_auth.o log.o
 
 all: $(PROG)
 

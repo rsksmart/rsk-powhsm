@@ -22,10 +22,8 @@
 
 include ../common/common.mk
 
-VPATH += $(HALSGXSRCDIR)
-
 PROG = test.out
-OBJS = meta_bc.o log.o test_meta_bc.o
+OBJS = meta_bc.o test_meta_bc.o log.o
 
 all: $(PROG)
 

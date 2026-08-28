@@ -284,7 +284,7 @@ static unsigned short io_exchange_server(unsigned short tx) {
             INFO("Error reading from socket. Disconnected\n");
         } else {
             // Invalid packet header
-            INFO("Error reading APDU length (got %d bytes != %ld bytes). "
+            INFO("Error reading APDU length (got %d bytes != %lu bytes). "
                  "Disconnected\n",
                  readlen,
                  sizeof(rx_net));
@@ -327,7 +327,7 @@ static unsigned short io_exchange_file(unsigned char tx, FILE *input_file) {
         capped_rx = MAX_FUZZ_TRANSFER;
     }
 
-    INFO("Server: reading %d (announced: %d) bytes at index: %d\n",
+    INFO("Server: reading %d (announced: %d) bytes at index: %lu\n",
          capped_rx,
          announced_rx,
          file_index);
@@ -338,13 +338,13 @@ static unsigned short io_exchange_file(unsigned char tx, FILE *input_file) {
         // if we reach EOF while reading the data portion it means
         // the announced size did not match the file
         if (feof(input_file)) {
-            DEBUG("Server: malformed input, tried reading %d bytes but reached "
-                  "EOF after %d\n",
+            DEBUG("Server: malformed input, tried reading %u bytes but reached "
+                  "EOF after %u\n",
                   capped_rx,
                   rx);
             exit(1);
         }
-        DEBUG("Server: Could not read %d bytes (only: %d) from input file\n",
+        DEBUG("Server: Could not read %u bytes (only: %u) from input file\n",
               capped_rx,
               rx);
         exit(1);
@@ -403,7 +403,7 @@ unsigned short hsmsim_io_exchange(unsigned short tx) {
     if (replica_file != NULL) {
         int written = replicate_to_file(replica_file, rx);
         if (written != rx + 1) {
-            DEBUG("Error writting to output file %s\n", replica_file);
+            DEBUG("Error writting to replica file\n");
             exit(-1);
         }
     }

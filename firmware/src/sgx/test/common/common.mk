@@ -44,7 +44,11 @@ ifneq ($(DEBUG),)
 	CFLAGS += -DLOGLEVEL_DEBUG
 endif
 
-VPATH += $(SGXTRUSTEDDIR):$(SGXUNTRUSTEDDIR):$(COMMONDIR)
+ifneq ($(UNTRUSTED),)
+	VPATH = $(SGXUNTRUSTEDDIR):$(COMMONDIR)
+else
+	VPATH = $(SGXTRUSTEDDIR):$(HALSGXSRCDIR):$(COMMONDIR)
+endif
 
 include ../../../../coverage/coverage.mk
 

@@ -23,7 +23,7 @@
 include ../common/common.mk
 
 PROG = test.out
-OBJS = test_endian.o endian.o
+OBJS = test_endian.o endian.o log.o
 
 all: $(PROG)
 

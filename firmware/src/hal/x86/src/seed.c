@@ -90,6 +90,17 @@ static bool get_key(uint32_t* path, uint8_t path_length, unsigned char* dest) {
     return found;
 }
 
+static void DEBUG_BIP32_PATH(uint32_t* path, uint8_t path_length) {
+    DEBUG("m");
+    for (uint8_t i = 0; i < path_length; i++) {
+        uint32_t index = path[i];
+        bool hardened = (index & 0x80000000U) != 0;
+        index &= 0x7fffffffU;
+        DEBUG("/%u%s", (unsigned int)index, hardened ? "'" : "");
+    }
+    DEBUG("\n");
+}
+
 uint8_t seed_derive_pubkey_format(const unsigned char* key,
                                   unsigned char* dest,
                                   bool compressed) {
@@ -220,7 +231,8 @@ bool seed_derive_pubkey(uint32_t* path,
 
     uint8_t key[PRIVATE_KEY_LENGTH];
     if (!get_key(path, path_length, key)) {
-        DEBUG("Invalid path given: %s\n", (unsigned char*)path);
+        DEBUG("Invalid path given: ");
+        DEBUG_BIP32_PATH(path, path_length);
         return false;
     }
 
@@ -232,7 +244,8 @@ bool seed_derive_pubkey(uint32_t* path,
 
     *pubkey_out_length = seed_derive_pubkey_format(key, pubkey_out, false);
     if (!(*pubkey_out_length)) {
-        DEBUG("Error deriving public key for path: %s\n", (unsigned char*)path);
+        DEBUG("Error deriving public key for path: ");
+        DEBUG_BIP32_PATH(path, path_length);
         return false;
     }
 
@@ -252,7 +265,8 @@ bool seed_sign(uint32_t* path,
 
     uint8_t key[PRIVATE_KEY_LENGTH];
     if (!get_key(path, path_length, key)) {
-        DEBUG("Invalid path given: %s\n", (unsigned char*)path);
+        DEBUG("Invalid path given: ");
+        DEBUG_BIP32_PATH(path, path_length);
         return false;
     }
 

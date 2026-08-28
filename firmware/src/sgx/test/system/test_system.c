@@ -36,9 +36,6 @@
 #include "instructions.h"
 #include "system.h"
 
-// Logging dependency
-bool log_is_at_start_of_line = true;
-
 // Constants
 #define MAX_CALLS 10
 #define ACCESS_MAX_PASSWORD_LENGTH 10

@@ -23,7 +23,7 @@
 include ../common/common.mk
 
 PROG = test.out
-OBJS = hex_codec.o test_hex_codec.o
+OBJS = hex_codec.o test_hex_codec.o log.o
 
 all: $(PROG)
 

@@ -28,6 +28,10 @@ SRCDIR = $(X86SRCDIR):$(COMMONSRCDIR):$(COMMONTESTDIR)
 CFLAGS  = -iquote $(INCDIR) -iquote $(COMMONTESTDIR) -iquote $(X86SRCDIR) -iquote $(COMMONSRCDIR)
 CFLAGS += -DHSM_PLATFORM_X86
 
+ifneq ($(DEBUG),)
+	CFLAGS += -DLOGLEVEL_DEBUG
+endif
+
 include ../../../../../coverage/coverage.mk
 
 CFLAGS += $(COVFLAGS)

@@ -23,7 +23,7 @@
 include ../common/common.mk
 
 PROG = test.out
-OBJS = hash.o test_hash.o
+OBJS = hash.o test_hash.o log.o
 
 all: $(PROG)
 

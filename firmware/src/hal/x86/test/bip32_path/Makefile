@@ -22,10 +22,6 @@
 
 include ../common/common.mk
 
-ifneq ($(DEBUG),)
-	CFLAGS += -DLOGLEVEL_DEBUG
-endif
-
 PROG = test.out
 OBJS = bip32_path.o test_bip32_path.o log.o
 

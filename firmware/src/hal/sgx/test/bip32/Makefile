@@ -22,10 +22,6 @@
 
 include ../common/common.mk
 
-ifneq ($(DEBUG),)
-	CFLAGS += -DLOGLEVEL_DEBUG
-endif
-
 CFLAGS += -iquote ../common
 
 PROG = test.out

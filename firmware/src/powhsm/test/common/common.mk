@@ -8,6 +8,10 @@ CFLAGS += -iquote $(TESTCOMMONDIR) -iquote $(COMMONDIR)
 CFLAGS += -iquote $(TESTCOMMONDIR) -iquote $(COMMONDIR)
 CFLAGS += -DHSM_PLATFORM_X86
 
+ifneq ($(DEBUG),)
+	CFLAGS += -DLOGLEVEL_DEBUG
+endif
+
 VPATH += $(TESTCOMMONDIR):$(SRCDIR):$(HALSRCDIR):$(COMMONDIR)
 
 include ../../../../coverage/coverage.mk

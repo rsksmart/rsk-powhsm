@@ -23,7 +23,7 @@
 include ../common/common.mk
 
 PROG = test.out
-OBJS = migrate.o test_migrate.o
+OBJS = migrate.o test_migrate.o log.o
 
 all: $(PROG)
 

@@ -25,7 +25,7 @@ include ../common/common.mk
 CFLAGS += -iquote ../common
 
 PROG = test.out
-OBJS = hmac_sha512.o endian.o test_hmac_sha512.o ../common/test_helpers.o
+OBJS = hmac_sha512.o endian.o test_hmac_sha512.o ../common/test_helpers.o log.o
 LIBS = -lmbedcrypto
 
 all: $(PROG)
