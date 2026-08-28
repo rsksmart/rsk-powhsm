@@ -293,15 +293,13 @@ static void bc_adv_accum_diff() {
         return;
     }
 
-    LOG_BIGD_HEX("Total difficulty before = ",
-                 aux_bc_st.total_difficulty,
-                 BIGINT_LEN,
-                 "\n");
+    DEBUG_BIGD_HEX(
+        "Total difficulty before = ", aux_bc_st.total_difficulty, BIGINT_LEN);
 
     // Cap the block difficulty
     int cap_error = cap_block_difficulty(block.difficulty);
     if (cap_error) {
-        LOG("Error while capping block difficulty\n");
+        DEBUG("Error while capping block difficulty\n");
         FAIL(BUFFER_OVERFLOW);
     }
 
@@ -312,15 +310,13 @@ static void bc_adv_accum_diff() {
         FAIL(TOTAL_DIFF_OVERFLOW);
     }
 
-    LOG_BIGD_HEX("Min required difficulty = ",
-                 MIN_REQUIRED_DIFFICULTY,
-                 BIGINT_LEN,
-                 "\n");
-    LOG_BIGD_HEX(
-        "Total difficulty = ", aux_bc_st.total_difficulty, BIGINT_LEN, "\n");
-    LOG("Comparison: %d\n",
-        mpCompare_ct(
-            aux_bc_st.total_difficulty, MIN_REQUIRED_DIFFICULTY, BIGINT_LEN));
+    DEBUG_BIGD_HEX(
+        "Min required difficulty = ", MIN_REQUIRED_DIFFICULTY, BIGINT_LEN);
+    DEBUG_BIGD_HEX(
+        "Total difficulty = ", aux_bc_st.total_difficulty, BIGINT_LEN);
+    DEBUG("Comparison: %d\n",
+          mpCompare_ct(
+              aux_bc_st.total_difficulty, MIN_REQUIRED_DIFFICULTY, BIGINT_LEN));
 
     // Not enough difficulty yet: we are done
     if (mpCompare_ct(aux_bc_st.total_difficulty,
@@ -367,14 +363,17 @@ static void bc_adv_partial_success() {
  *  - Finish block.hash_for_mm computation
  */
 static void bc_mm_header_received() {
+    INFO_HEX("Block hash", block.block_hash, HASH_SIZE);
+    DEBUG_HEX("Parent hash", block.parent_hash, HASH_SIZE);
+
     if (PROCESSING_BLOCK()) {
         // First block: perform blockchain advance prologue
         // Otherwise: verify block chains to parent
         if (curr_block == 0) {
             bc_adv_prologue();
         } else if (HNEQ(aux_bc_st.prev_parent_hash, block.block_hash)) {
-            LOG_HEX("PAR", aux_bc_st.prev_parent_hash, HASH_LENGTH);
-            LOG_HEX("BLK", block.block_hash, HASH_LENGTH);
+            DEBUG_HEX("PAR", aux_bc_st.prev_parent_hash, HASH_LENGTH);
+            DEBUG_HEX("BLK", block.block_hash, HASH_LENGTH);
             FAIL(CHAIN_MISMATCH);
         }
         // Store parent hash to validate chaining for next block
@@ -836,7 +835,7 @@ unsigned int bc_advance(volatile unsigned int rx) {
 
         // Validate brother count
         if (block.brother_count > MAX_BROTHERS) {
-            LOG("Too many brothers");
+            DEBUG("Too many brothers");
             FAIL(BROTHERS_TOO_MANY);
         }
 
@@ -854,12 +853,12 @@ unsigned int bc_advance(volatile unsigned int rx) {
     // -------------------------------------------------------------------
     if (op == OP_ADVANCE_HEADER_META || op == OP_ADVANCE_BROTHER_META) {
         if (PROCESSING_BLOCK()) {
-            LOG("---- Block %u of %u\n", curr_block + 1, expected_blocks);
+            INFO("---- Block %u of %u\n", curr_block + 1, expected_blocks);
 
             // Clear block data
             memset(&block, 0, sizeof(block));
         } else { // Processing brother
-            LOG("---- Brother (%u remaining)\n", block.brother_count);
+            DEBUG("---- Brother (%u remaining)\n", block.brother_count);
 
             // Init brother header data
             // (keep some of the current block data)
@@ -894,8 +893,8 @@ unsigned int bc_advance(volatile unsigned int rx) {
         // not overflow
         if ((uint16_t)(block.mm_rlp_len + BTC_HEADER_RLP_LEN) <
             block.mm_rlp_len) {
-            LOG("Given MM RLP list length too large, would overflow: %u\n",
-                block.mm_rlp_len);
+            DEBUG("Given MM RLP list length too large, would overflow: %u\n",
+                  block.mm_rlp_len);
             FAIL(PROT_INVALID);
         }
 

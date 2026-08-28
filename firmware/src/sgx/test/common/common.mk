@@ -30,7 +30,6 @@ POWHSMSRCDIR = ../../../powhsm/src
 COMMONDIR = ../../../common/src
 
 CFLAGS = -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-function
-CFLAGS += -DDEBUG_BUILD
 CFLAGS += -I $(TESTCOMMONDIR)
 CFLAGS += -I $(TESTLOCALMOCKSDIR)
 CFLAGS += -iquote $(SGXTRUSTEDDIR)
@@ -40,6 +39,10 @@ CFLAGS += -iquote $(HALSGXSRCDIR)
 CFLAGS += -iquote $(POWHSMSRCDIR)
 CFLAGS += -iquote $(COMMONDIR)
 CFLAGS += -DHSM_PLATFORM_SGX
+
+ifneq ($(DEBUG),)
+	CFLAGS += -DLOGLEVEL_DEBUG
+endif
 
 VPATH += $(SGXTRUSTEDDIR):$(SGXUNTRUSTEDDIR):$(COMMONDIR)
 

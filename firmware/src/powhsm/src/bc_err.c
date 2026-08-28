@@ -26,7 +26,7 @@
 
 #if defined(HSM_PLATFORM_X86) || defined(HSM_PLATFORM_SGX)
 
-#if defined(DEBUG_BUILD) || defined(ENCLAVE_LOGS)
+#ifdef LOGLEVEL_DEBUG
 
 #include "hal/log.h"
 
@@ -69,6 +69,7 @@ static struct err_entry {
 
 void show_error(err_code_t errcode) {
     char *msg = err_table[0].errmsg;
+    (void)msg;
     for (unsigned int i = 1; i < sizeof(err_table) / sizeof(struct err_entry);
          i++) {
         if (err_table[i].errcode == errcode) {
@@ -76,14 +77,14 @@ void show_error(err_code_t errcode) {
             break;
         }
     }
-    LOG("*** ERROR: %s\n", msg);
+    DEBUG("*** ERROR: %s\n", msg);
 }
 
-#else  // DEBUG_BUILD || ENCLAVE_LOGS
+#else
 void show_error(err_code_t errcode) {
     (void)errcode;
 }
-#endif // DEBUG_BUILD || ENCLAVE_LOGS
+#endif // LOGLEVEL_DEBUG
 
 #else
 void show_error(err_code_t errcode) {

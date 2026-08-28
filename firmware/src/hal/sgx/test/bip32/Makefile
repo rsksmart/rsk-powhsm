@@ -23,14 +23,14 @@
 include ../common/common.mk
 
 ifneq ($(DEBUG),)
-	CFLAGS += -DDEBUG_BIP32
+	CFLAGS += -DLOGLEVEL_DEBUG
 endif
 
 CFLAGS += -iquote ../common
 
 PROG = test.out
-OBJS = bip32.o hmac_sha512.o endian.o bigdigits.o bigdigits_helper.o
-OBJS += ../common/test_helpers.o test_bip32.o log.o
+OBJS = bip32.o hmac_sha512.o endian.o bigdigits.o bigdigits_helper.o test_bip32.o 
+OBJS += ../common/test_helpers.o log.o
 LIBS = -lsecp256k1 -lmbedcrypto
 
 all: $(PROG)

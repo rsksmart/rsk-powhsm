@@ -110,12 +110,12 @@ bool endorsement_init(char* att_file_path) {
     if (!sp_ctx)
         sp_ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
 
-    LOG("Loading endorsement file '%s'\n", att_file_path);
+    INFO("Loading endorsement file '%s'\n", att_file_path);
     cJSON* json = read_json_file(att_file_path);
 
     if (json == NULL) {
-        LOG("Endorsement file not found or file format incorrect. Creating a "
-            "random endorsement id (key and code hash pair)\n");
+        DEBUG("Endorsement file not found or file format incorrect. Creating a "
+              "random endorsement id (key and code hash pair)\n");
 
         // Init new random key and code hash
         random_getrandom(attestation_id.key, sizeof(attestation_id.key));
@@ -124,29 +124,30 @@ bool endorsement_init(char* att_file_path) {
 
         // Write attestation id to the file
         if (!write_attestation_id_file(att_file_path)) {
-            LOG("Error writing attestation id to %s\n", att_file_path);
+            DEBUG("Error writing attestation id to %s\n", att_file_path);
             return false;
         }
-        LOG("Attestation id created and saved to %s\n", att_file_path);
+        INFO("Attestation id created and saved to %s\n", att_file_path);
     } else {
         // Load attestation id into memory
         if (!cJSON_IsObject(json)) {
-            LOG("Expected an object as top level element of %s\n",
-                att_file_path);
+            DEBUG("Expected an object as top level element of %s\n",
+                  att_file_path);
             return false;
         }
 
         // Read attestation key
         if (!read_hex_value_into(
                 json, ATTESTATION_KEY_KEY, attestation_id.key)) {
-            LOG("'%s' not found in '%s'\n", ATTESTATION_KEY_KEY, att_file_path);
+            DEBUG(
+                "'%s' not found in '%s'\n", ATTESTATION_KEY_KEY, att_file_path);
             return false;
         }
 
         // Read code hash
         if (!read_hex_value_into(
                 json, CODE_HASH_KEY, attestation_id.code_hash)) {
-            LOG("'%s' not found in '%s'\n", CODE_HASH_KEY, att_file_path);
+            DEBUG("'%s' not found in '%s'\n", CODE_HASH_KEY, att_file_path);
             return false;
         }
     }
@@ -155,18 +156,18 @@ bool endorsement_init(char* att_file_path) {
     unsigned char pubkey[PUBKEY_CMP_LENGTH];
     if (seed_derive_pubkey_format(attestation_id.key, pubkey, true) !=
         PUBKEY_CMP_LENGTH) {
-        LOG("Error getting compressed public key for attestation id key\n");
+        DEBUG("Error getting compressed public key for attestation id key\n");
         return false;
     }
-    LOG("Loaded attestation id:\n");
-    LOG("\tPublic key: ");
+    INFO("Loaded attestation id:\n");
+    INFO("\tPublic key: ");
     for (int i = 0; i < sizeof(pubkey); i++)
-        LOG("%02x", pubkey[i]);
-    LOG("\n");
-    LOG("\tCode hash: ");
+        INFO("%02x", pubkey[i]);
+    INFO("\n");
+    INFO("\tCode hash: ");
     for (int i = 0; i < sizeof(attestation_id.code_hash); i++)
-        LOG("%02x", attestation_id.code_hash[i]);
-    LOG("\n");
+        INFO("%02x", attestation_id.code_hash[i]);
+    INFO("\n");
 
     return true;
 }
@@ -196,7 +197,7 @@ bool endorsement_sign(uint8_t* msg,
 
     if (seed_derive_pubkey_format(attestation_id.key, pubkey, false) !=
         sizeof(pubkey)) {
-        LOG("Error deriving public key for endorsement\n");
+        DEBUG("Error deriving public key for endorsement\n");
         return false;
     }
 
@@ -206,13 +207,13 @@ bool endorsement_sign(uint8_t* msg,
                     sizeof(pubkey),
                     tweak,
                     sizeof(tweak)) != sizeof(tweak)) {
-        LOG("Error computing tweak for endorsement\n");
+        DEBUG("Error computing tweak for endorsement\n");
         return false;
     }
 
     if (*signature_out_length < MAX_SIGNATURE_LENGTH) {
-        LOG("Output buffer for signature too small: %u bytes\n",
-            *signature_out_length);
+        DEBUG("Output buffer for signature too small: %u bytes\n",
+              *signature_out_length);
         return false;
     }
 
@@ -226,8 +227,8 @@ bool endorsement_get_code_hash(uint8_t* code_hash_out,
                                uint8_t* code_hash_out_length) {
 
     if (*code_hash_out_length < HASH_LENGTH) {
-        LOG("Output buffer for code hash too small: %u bytes\n",
-            *code_hash_out_length);
+        DEBUG("Output buffer for code hash too small: %u bytes\n",
+              *code_hash_out_length);
         return false;
     }
 
@@ -244,8 +245,8 @@ bool endorsement_get_public_key(uint8_t* public_key_out,
     uint8_t tempbuf[PUBKEY_UNCMP_LENGTH];
 
     if (*public_key_out_length < PUBKEY_UNCMP_LENGTH) {
-        LOG("Output buffer for public key too small: %u bytes\n",
-            *public_key_out_length);
+        DEBUG("Output buffer for public key too small: %u bytes\n",
+              *public_key_out_length);
         return false;
     }
 

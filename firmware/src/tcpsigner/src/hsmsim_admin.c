@@ -36,7 +36,7 @@ static hsmsim_admin_data_t hsmsim_admin_data;
 
 void hsmsim_admin_init() {
     memset(&hsmsim_admin_data, 0, sizeof(hsmsim_admin_data));
-    LOG("ADMIN: Init OK.\n");
+    INFO("ADMIN: Init OK.\n");
 }
 
 bool hsmsim_admin_need_process(unsigned int rx) {
@@ -53,8 +53,8 @@ static unsigned int hsmsim_admin_error(uint16_t code) {
 
 static unsigned int hsmsim_admin_ok(unsigned int tx) {
     if ((tx + 2 * APDU_ELEMENT_SIZE) > APDU_TOTAL_SIZE) {
-        LOG("ADMIN: Buffer overflow on I/O when trying to reply "
-            "to the host.\n");
+        DEBUG("ADMIN: Buffer overflow on I/O when trying to reply "
+              "to the host.\n");
         return hsmsim_admin_error(HSMSIM_ADMIN_ERROR_BUFFER_OVERFLOW);
     }
 
@@ -69,22 +69,22 @@ unsigned int hsmsim_admin_process_apdu(unsigned int rx) {
     nvmmem_stats_t nvmmem_stats;
 
     if (APDU_CLA() != HSMSIM_ADMIN_CLA) {
-        LOG("ADMIN: Invalid CLA: %d.\n", APDU_CLA());
+        DEBUG("ADMIN: Invalid CLA: %d.\n", APDU_CLA());
         return hsmsim_admin_error(HSMSIM_ADMIN_ERROR_INVALID_PROTOCOL);
     }
 
     if (rx < MIN_ADMIN_BYTES) {
-        LOG("ADMIN: Too few bytes in operation: %d.\n", rx);
+        DEBUG("ADMIN: Too few bytes in operation: %d.\n", rx);
         return hsmsim_admin_error(HSMSIM_ADMIN_ERROR_INVALID_PROTOCOL);
     }
 
     switch (APDU_CMD()) {
     case HSMSIM_ADMIN_CMD_SET_ANCESTOR_RCPT_ROOT:
         if (APDU_DATA_SIZE(rx) != HASH_LENGTH) {
-            LOG("ADMIN: Invalid ancestor receipts root size. Expected %d "
-                "bytes, got %d.\n",
-                HASH_LENGTH,
-                APDU_DATA_SIZE(rx));
+            DEBUG("ADMIN: Invalid ancestor receipts root size. Expected %d "
+                  "bytes, got %d.\n",
+                  HASH_LENGTH,
+                  APDU_DATA_SIZE(rx));
             return hsmsim_admin_error(HSMSIM_ADMIN_ERROR_DATA_SIZE);
         }
         memcpy(hsmsim_admin_data.old_ancestor_receipts_root,
@@ -92,23 +92,23 @@ unsigned int hsmsim_admin_process_apdu(unsigned int rx) {
                HASH_LENGTH);
         memcpy(bc_st_ancestor.receipt_root, APDU_DATA_PTR, HASH_LENGTH);
         hsmsim_admin_data.ancestor_receipts_root_set = true;
-        LOG_HEX("ADMIN: Ancestor receipts root set to",
-                bc_st_ancestor.receipt_root,
-                HASH_LENGTH);
+        INFO_HEX("ADMIN: Ancestor receipts root set to",
+                 bc_st_ancestor.receipt_root,
+                 HASH_LENGTH);
         tx = TX_FOR_DATA_SIZE(0);
         break;
     case HSMSIM_ADMIN_CMD_RESET_ANCESTOR_RCPT_ROOT:
         if (!hsmsim_admin_data.ancestor_receipts_root_set) {
-            LOG("ADMIN: Cannot reset ancestor receipts root: not set.\n");
+            DEBUG("ADMIN: Cannot reset ancestor receipts root: not set.\n");
             return hsmsim_admin_error(HSMSIM_ADMIN_ERROR_INVALID_STATE);
         }
         memcpy(bc_st_ancestor.receipt_root,
                hsmsim_admin_data.old_ancestor_receipts_root,
                HASH_LENGTH);
         hsmsim_admin_data.ancestor_receipts_root_set = false;
-        LOG_HEX("ADMIN: Ancestor receipts root reset to",
-                bc_st_ancestor.receipt_root,
-                HASH_LENGTH);
+        INFO_HEX("ADMIN: Ancestor receipts root reset to",
+                 bc_st_ancestor.receipt_root,
+                 HASH_LENGTH);
         tx = TX_FOR_DATA_SIZE(0);
         break;
     case HSMSIM_ADMIN_CMD_RESET_NVM_STATS:
@@ -125,31 +125,31 @@ unsigned int hsmsim_admin_process_apdu(unsigned int rx) {
                          sizeof(nvmmem_stats.write_count));
         offset += sizeof(nvmmem_stats.write_count);
         tx = TX_FOR_DATA_SIZE(offset);
-        LOG("ADMIN: got NVM stats - %u writes.\n", nvmmem_stats.write_count);
+        INFO("ADMIN: got NVM stats - %u writes.\n", nvmmem_stats.write_count);
         break;
     case HSMSIM_ADMIN_CMD_GET_IS_ONBOARDED:
         APDU_DATA_PTR[0] = (unsigned char)seed_available();
         tx = TX_FOR_DATA_SIZE(1);
-        LOG("ADMIN: got is_onboarded status.\n");
+        INFO("ADMIN: got is_onboarded status.\n");
         break;
     case HSMSIM_ADMIN_CMD_SET_IS_ONBOARDED:
         if (APDU_DATA_SIZE(rx) != 1) {
-            LOG("ADMIN: Invalid is_onboarded value size. Expected 1 "
-                "byte, got %d.\n",
-                APDU_DATA_SIZE(rx));
+            DEBUG("ADMIN: Invalid is_onboarded value size. Expected 1 "
+                  "byte, got %d.\n",
+                  APDU_DATA_SIZE(rx));
             return hsmsim_admin_error(HSMSIM_ADMIN_ERROR_DATA_SIZE);
         }
         seed_set_is_onboarded((bool)APDU_DATA_PTR[0]);
-        LOG("ADMIN: is_onboarded set to %d.\n",
-            (unsigned char)seed_available());
+        INFO("ADMIN: is_onboarded set to %d.\n",
+             (unsigned char)seed_available());
         tx = TX_FOR_DATA_SIZE(0);
         break;
     case HSMSIM_ADMIN_CMD_SET_BEST_BLOCK:
         if (APDU_DATA_SIZE(rx) != HASH_LENGTH) {
-            LOG("ADMIN: Invalid best block hash size. Expected %d "
-                "bytes, got %d.\n",
-                HASH_LENGTH,
-                APDU_DATA_SIZE(rx));
+            DEBUG("ADMIN: Invalid best block hash size. Expected %d "
+                  "bytes, got %d.\n",
+                  HASH_LENGTH,
+                  APDU_DATA_SIZE(rx));
             return hsmsim_admin_error(HSMSIM_ADMIN_ERROR_DATA_SIZE);
         }
         // Setting best block is intended for both advance blockchain
@@ -166,12 +166,13 @@ unsigned int hsmsim_admin_process_apdu(unsigned int rx) {
                HASH_LENGTH);
         memcpy(N_bc_state.best_block, APDU_DATA_PTR, HASH_LENGTH);
         hsmsim_admin_data.best_block_set = true;
-        LOG_HEX("ADMIN: Best block set to", N_bc_state.best_block, HASH_LENGTH);
+        INFO_HEX(
+            "ADMIN: Best block set to", N_bc_state.best_block, HASH_LENGTH);
         tx = TX_FOR_DATA_SIZE(0);
         break;
     case HSMSIM_ADMIN_CMD_RESET_BEST_BLOCK:
         if (!hsmsim_admin_data.best_block_set) {
-            LOG("ADMIN: Cannot reset best block: not set.\n");
+            INFO("ADMIN: Cannot reset best block: not set.\n");
             return hsmsim_admin_error(HSMSIM_ADMIN_ERROR_INVALID_STATE);
         }
         // Restore the whole lot
@@ -185,12 +186,12 @@ unsigned int hsmsim_admin_process_apdu(unsigned int rx) {
                hsmsim_admin_data.old_ancestor_receipts_root,
                HASH_LENGTH);
         hsmsim_admin_data.best_block_set = false;
-        LOG_HEX(
+        INFO_HEX(
             "ADMIN: Best block reset to", N_bc_state.best_block, HASH_LENGTH);
         tx = TX_FOR_DATA_SIZE(0);
         break;
     default:
-        LOG("ADMIN: Invalid CMD: %d.\n", APDU_CMD());
+        INFO("ADMIN: Invalid CMD: %d.\n", APDU_CMD());
         return hsmsim_admin_error(HSMSIM_ADMIN_ERROR_INVALID_PROTOCOL);
     }
 

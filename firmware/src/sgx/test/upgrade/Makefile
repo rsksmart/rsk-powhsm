@@ -22,7 +22,7 @@
 
 include ../common/common.mk
 
-CFLAGS += -DPARAM_SIGNERS_FILE=testing #-DENCLAVE_LOGS
+CFLAGS += -DPARAM_SIGNERS_FILE=testing
 VPATH += $(HALSGXSRCDIR)
 LIBS = -lsecp256k1 -lmbedcrypto
 

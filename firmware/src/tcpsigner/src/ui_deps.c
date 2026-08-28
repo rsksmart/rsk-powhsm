@@ -44,7 +44,7 @@ unsigned int os_endorsement_key2_derive_sign_data(unsigned char *src,
                                                   unsigned char *signature) {
     uint8_t signature_length = MAX_SIGNATURE_LENGTH;
     if (!endorsement_sign(src, srcLength, signature, &signature_length)) {
-        LOG("UI error endorsing message\n");
+        DEBUG("UI error endorsing message\n");
         THROW(ERR_UI_INTERNAL);
     }
     return signature_length;

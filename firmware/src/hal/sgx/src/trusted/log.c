@@ -24,10 +24,11 @@
 
 #include "hal/log.h"
 
-#ifdef ENCLAVE_LOGS
+bool log_is_at_start_of_line = true;
 
-void LOG_HEX(const char *prefix, const void *buffer, const size_t size) {
-    fprintf(stderr, TRUSTED_LOG_PREFIX);
+void INFO_HEX(const char *prefix, const void *buffer, const size_t size) {
+    if (log_is_at_start_of_line)
+        fprintf(stderr, TRUSTED_LOG_PREFIX);
     fprintf(stderr, "%s ", prefix);
     if (size > 0) {
         fprintf(stderr, "0x");
@@ -38,6 +39,5 @@ void LOG_HEX(const char *prefix, const void *buffer, const size_t size) {
         fprintf(stderr, "EMPTY");
     }
     fprintf(stderr, "\n");
+    log_is_at_start_of_line = true;
 }
-
-#endif // ENCLAVE_LOGS

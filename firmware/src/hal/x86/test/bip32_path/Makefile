@@ -23,7 +23,7 @@
 include ../common/common.mk
 
 ifneq ($(DEBUG),)
-	CFLAGS += -DDEBUG_BIP32
+	CFLAGS += -DLOGLEVEL_DEBUG
 endif
 
 PROG = test.out

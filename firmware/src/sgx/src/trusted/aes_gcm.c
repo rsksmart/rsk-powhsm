@@ -56,35 +56,35 @@ bool aes_gcm_encrypt(uint8_t* key,
 
     // Sizes check
     if (AES_GCM_KEY_SIZE != key_size) {
-        LOG("AES-GCM encrypt error: expected a %u-byte key\n",
-            AES_GCM_KEY_SIZE);
+        DEBUG("AES-GCM encrypt error: expected a %u-byte key\n",
+              AES_GCM_KEY_SIZE);
         goto aes_gcm_encrypt_exit;
     }
     if (in_size == 0) {
-        LOG("AES-GCM encrypt error: input buffer too small\n");
+        DEBUG("AES-GCM encrypt error: input buffer too small\n");
         goto aes_gcm_encrypt_exit;
     }
     if (*out_size < in_size + sizeof(iv) + sizeof(tag)) {
-        LOG("AES-GCM encrypt error: output buffer too small\n");
+        DEBUG("AES-GCM encrypt error: output buffer too small\n");
         goto aes_gcm_encrypt_exit;
     }
 
     // Init buffers
     ciphertext = oe_malloc(in_size);
     if (!ciphertext) {
-        LOG("AES-GCM encrypt error: unable to allocate memory\n");
+        DEBUG("AES-GCM encrypt error: unable to allocate memory\n");
         goto aes_gcm_encrypt_exit;
     }
 
     if (!random_getrandom(iv, sizeof(iv))) {
-        LOG("AES-GCM encrypt error: error generating IV\n");
+        DEBUG("AES-GCM encrypt error: error generating IV\n");
         goto aes_gcm_encrypt_exit;
     }
 
     // Set key
     if (mbedtls_gcm_setkey(
             &gcm_ctx, MBEDTLS_CIPHER_ID_AES, key, key_size * 8) != 0) {
-        LOG("AES-GCM encrypt error: failed to set key\n");
+        DEBUG("AES-GCM encrypt error: failed to set key\n");
         goto aes_gcm_encrypt_exit;
     }
 
@@ -100,7 +100,7 @@ bool aes_gcm_encrypt(uint8_t* key,
                                   ciphertext,
                                   sizeof(tag),
                                   tag)) {
-        LOG("AES-GCM encrypt error: encryption failed\n");
+        DEBUG("AES-GCM encrypt error: encryption failed\n");
         goto aes_gcm_encrypt_exit;
     }
 
@@ -132,23 +132,23 @@ bool aes_gcm_decrypt(uint8_t* key,
 
     // Sizes check
     if (AES_GCM_KEY_SIZE != key_size) {
-        LOG("AES-GCM decrypt error: expected a %u-byte key\n",
-            AES_GCM_KEY_SIZE);
+        DEBUG("AES-GCM decrypt error: expected a %u-byte key\n",
+              AES_GCM_KEY_SIZE);
         goto aes_gcm_decrypt_exit;
     }
     if (in_size <= AES_IV_SIZE + AES_TAG_SIZE) {
-        LOG("AES-GCM decrypt error: input buffer too small\n");
+        DEBUG("AES-GCM decrypt error: input buffer too small\n");
         goto aes_gcm_decrypt_exit;
     }
     if (*out_size < cleartext_size) {
-        LOG("AES-GCM decrypt error: output buffer too small\n");
+        DEBUG("AES-GCM decrypt error: output buffer too small\n");
         goto aes_gcm_decrypt_exit;
     }
 
     // Set key
     if (mbedtls_gcm_setkey(
             &gcm_ctx, MBEDTLS_CIPHER_ID_AES, key, key_size * 8) != 0) {
-        LOG("AES-GCM decrypt error: failed to set key\n");
+        DEBUG("AES-GCM decrypt error: failed to set key\n");
         goto aes_gcm_decrypt_exit;
     }
 
@@ -163,7 +163,7 @@ bool aes_gcm_decrypt(uint8_t* key,
                                  AES_TAG_SIZE,
                                  &in[AES_IV_SIZE],
                                  out) != 0) {
-        LOG("AES-GCM decrypt error: decryption failed\n");
+        DEBUG("AES-GCM decrypt error: decryption failed\n");
         goto aes_gcm_decrypt_exit;
     }
 

@@ -96,6 +96,8 @@ uint8_t seed_derive_pubkey_format(const unsigned char* key,
     secp256k1_pubkey pubkey;
     size_t dest_size = compressed ? PUBKEY_CMP_LENGTH : PUBKEY_UNCMP_LENGTH;
 
+    INFO("Deriving public key for path...\n");
+
     // Calculate the public key and serialize it according to
     // the compressed argument
     if (!secp256k1_ec_pubkey_create(sp_ctx, &pubkey, key)) {
@@ -109,6 +111,8 @@ uint8_t seed_derive_pubkey_format(const unsigned char* key,
                                   compressed ? SECP256K1_EC_COMPRESSED
                                              : SECP256K1_EC_UNCOMPRESSED);
 
+    INFO_HEX("Pubkey for path is:", dest, dest_size);
+
     return (uint8_t)dest_size;
 }
 
@@ -116,7 +120,7 @@ static bool add_bip32_path(const char* bip32_path) {
     private_keys[total_private_keys].bip32_path = bip32_path;
     uint8_t* bpath = private_keys[total_private_keys].binary_path;
     if (bip32_parse_path(bip32_path, bpath) != BIP32_PATH_LENGTH) {
-        LOG("Invalid BIP32 path given: %s\n", bip32_path);
+        DEBUG("Invalid BIP32 path given: %s\n", bip32_path);
         return false;
     }
     total_private_keys++;
@@ -136,20 +140,20 @@ bool seed_init(const char* key_file_path,
     // Configure BIP32 paths
     for (int i = 0; i < bip32_paths_count; i++) {
         if (!add_bip32_path((const char*)(bip32_paths[i]))) {
-            LOG("Error during seed initialization when trying to add path: "
-                "%s\n",
-                bip32_paths[i]);
+            DEBUG("Error during seed initialization when trying to add path: "
+                  "%s\n",
+                  bip32_paths[i]);
             return false;
         }
     }
 
     // Load keys
-    LOG("Loading key file '%s'\n", key_file_path);
+    INFO("Loading key file '%s'\n", key_file_path);
     cJSON* json = read_json_file(key_file_path);
 
     if (json == NULL) {
-        LOG("Keyfile not found or file format incorrect. Creating a new "
-            "random set of keys\n");
+        DEBUG("Keyfile not found or file format incorrect. Creating a new "
+              "random set of keys\n");
         // Init new random keys
         for (int i = 0; i < total_private_keys; i++) {
             random_getrandom(private_keys[i].key, sizeof(private_keys[i].key));
@@ -157,15 +161,15 @@ bool seed_init(const char* key_file_path,
 
         // Write keys to the file
         if (!write_key_file(key_file_path)) {
-            LOG("Error writing keys to %s\n", key_file_path);
+            DEBUG("Error writing keys to %s\n", key_file_path);
             return false;
         }
-        LOG("Keys created and saved to %s\n", key_file_path);
+        INFO("Keys created and saved to %s\n", key_file_path);
     } else {
         // Load keys into memory
         if (!cJSON_IsObject(json)) {
-            LOG("Expected an object as top level element of %s\n",
-                key_file_path);
+            DEBUG("Expected an object as top level element of %s\n",
+                  key_file_path);
             return false;
         }
 
@@ -173,9 +177,9 @@ bool seed_init(const char* key_file_path,
             cJSON* key_entry = cJSON_GetObjectItemCaseSensitive(
                 json, private_keys[i].bip32_path);
             if (key_entry == NULL || !cJSON_IsString(key_entry)) {
-                LOG("Path \"%s\" not found in \"%s\"\n",
-                    bip32_paths[i],
-                    key_file_path);
+                DEBUG("Path \"%s\" not found in \"%s\"\n",
+                      bip32_paths[i],
+                      key_file_path);
                 return false;
             }
             char* hex_key = cJSON_GetStringValue(key_entry);
@@ -184,18 +188,18 @@ bool seed_init(const char* key_file_path,
     }
 
     unsigned char pubkey[PUBKEY_CMP_LENGTH];
-    LOG("Loaded keys:\n");
+    INFO("Loaded keys:\n");
     for (int i = 0; i < total_private_keys; i++) {
         if (seed_derive_pubkey_format(private_keys[i].key, pubkey, true) !=
             PUBKEY_CMP_LENGTH) {
-            LOG("Error getting public key for path \"%s\"\n",
-                private_keys[i].bip32_path);
+            DEBUG("Error getting public key for path \"%s\"\n",
+                  private_keys[i].bip32_path);
             return false;
         }
-        LOG("\t%s: ", private_keys[i].bip32_path);
+        INFO("\t%s: ", private_keys[i].bip32_path);
         for (int j = 0; j < sizeof(pubkey); j++)
-            LOG("%02x", pubkey[j]);
-        LOG("\n");
+            INFO("%02x", pubkey[j]);
+        INFO("\n");
     }
 
     return true;
@@ -216,19 +220,19 @@ bool seed_derive_pubkey(uint32_t* path,
 
     uint8_t key[PRIVATE_KEY_LENGTH];
     if (!get_key(path, path_length, key)) {
-        LOG("Invalid path given: %s\n", (unsigned char*)path);
+        DEBUG("Invalid path given: %s\n", (unsigned char*)path);
         return false;
     }
 
     if (*pubkey_out_length < PUBKEY_CMP_LENGTH) {
-        LOG("Output buffer for public key too small: %u bytes\n",
-            *pubkey_out_length);
+        DEBUG("Output buffer for public key too small: %u bytes\n",
+              *pubkey_out_length);
         return false;
     }
 
     *pubkey_out_length = seed_derive_pubkey_format(key, pubkey_out, false);
     if (!(*pubkey_out_length)) {
-        LOG("Error deriving public key for path: %s\n", (unsigned char*)path);
+        DEBUG("Error deriving public key for path: %s\n", (unsigned char*)path);
         return false;
     }
 
@@ -244,15 +248,17 @@ bool seed_sign(uint32_t* path,
     secp256k1_ecdsa_signature sp_sig;
     size_t sig_serialized_size = MAX_SIGNATURE_LENGTH;
 
+    INFO_HEX("Signing hash:", hash32, HASH_LENGTH);
+
     uint8_t key[PRIVATE_KEY_LENGTH];
     if (!get_key(path, path_length, key)) {
-        LOG("Invalid path given: %s\n", (unsigned char*)path);
+        DEBUG("Invalid path given: %s\n", (unsigned char*)path);
         return false;
     }
 
     if (*sig_out_length < MAX_SIGNATURE_LENGTH) {
-        LOG("Output buffer for signature too small: %u bytes\n",
-            *sig_out_length);
+        DEBUG("Output buffer for signature too small: %u bytes\n",
+              *sig_out_length);
         return false;
     }
 

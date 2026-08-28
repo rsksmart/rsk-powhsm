@@ -89,7 +89,7 @@ unsigned int do_meta_advupd(unsigned int rx) {
                 memcpy(
                     APDU_DATA_PTR, &old_buffer[DATA + data_offset], chunk_size);
                 irx = TX_FOR_DATA_SIZE(chunk_size);
-                LOG_HEX("ITX >", internal_buffer, irx);
+                DEBUG_HEX("ITX >", internal_buffer, irx);
                 switch (cmd) {
                 case INS_ADVANCE:
                     irx = bc_advance(irx);
@@ -101,14 +101,14 @@ unsigned int do_meta_advupd(unsigned int rx) {
                     // We should never reach this point
                     THROW(ERR_INTERNAL);
                 }
-                LOG_HEX("ITX <", internal_buffer, irx);
+                DEBUG_HEX("ITX <", internal_buffer, irx);
                 // Validate response
                 if (irx != TX_FOR_TXLEN() && irx != TX_NO_DATA()) {
-                    LOG("Unexpected response size\n");
+                    DEBUG("Unexpected response size\n");
                     THROW(ERR_INTERNAL);
                 }
                 if (APDU_CLA() != CLA || APDU_CMD() != cmd) {
-                    LOG("Unexpected response command\n");
+                    DEBUG("Unexpected response command\n");
                     THROW(ERR_INTERNAL);
                 }
                 // Done?

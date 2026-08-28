@@ -147,6 +147,12 @@ size_t mpSizeof(const DIGIT_T a[], size_t ndigits);
 // Platform-dependent code
 #ifndef HSM_PLATFORM_LEDGER
 
+#ifdef LOGLEVEL_DEBUG
+#define DEBUG_BIGD_HEX(...) INFO_BIGD_HEX(__VA_ARGS__)
+#else
+#define DEBUG_BIGD_HEX(...)
+#endif
+
 /**
  * @brief Print big integer in hex format with optional prefix and suffix strings 
  * 
@@ -155,14 +161,14 @@ size_t mpSizeof(const DIGIT_T a[], size_t ndigits);
  * @param len the size of a in bigint digits
  * @param suffix the log suffix
  */
-void LOG_BIGD_HEX(const char *prefix,
-                  const DIGIT_T *a,
-                  size_t len,
-                  const char *suffix);
+void INFO_BIGD_HEX(const char *prefix,
+                   const DIGIT_T *a,
+                   size_t len);
 
 #else
 
-#define LOG_BIGD_HEX(...)
+#define DEBUG_BIGD_HEX(...)
+#define INFO_BIGD_HEX(...)
 
 #endif // !HSM_PLATFORM_LEDGER
 

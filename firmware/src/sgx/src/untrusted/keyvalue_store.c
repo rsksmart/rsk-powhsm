@@ -33,10 +33,10 @@
 #define KVSTORE_SUFFIX ".dat"
 #define KVSTORE_MAX_KEY_LEN 150
 
-#define CHECK_POINTER_OR_RETURN(ptr, retval)        \
-    if (!ptr) {                                     \
-        LOG("NULL pointer given for <%s>\n", #ptr); \
-        return retval;                              \
+#define CHECK_POINTER_OR_RETURN(ptr, retval)          \
+    if (!ptr) {                                       \
+        DEBUG("NULL pointer given for <%s>\n", #ptr); \
+        return retval;                                \
     }
 
 // Sanitizes a key by allowing only [a-zA-Z0-9]. If one or more invalid
@@ -93,20 +93,20 @@ static FILE* open_file_for(char* key, char* mode, size_t* file_size) {
 bool kvstore_save(char* key, uint8_t* data, size_t data_size) {
     CHECK_POINTER_OR_RETURN(key, false);
     CHECK_POINTER_OR_RETURN(data, false);
-    LOG("Attempting to write data for %s...\n", key);
+    INFO("Attempting to write data for %s...\n", key);
     if (!data_size) {
-        LOG("Invalid zero-length data given for key <%s>\n", key);
+        DEBUG("Invalid zero-length data given for key <%s>\n", key);
         return false;
     }
 
     FILE* file = open_file_for(key, "wb", NULL);
     if (!file) {
-        LOG("Could not open file for key <%s>\n", key);
+        DEBUG("Could not open file for key <%s>\n", key);
         return false;
     }
 
     if (fwrite(data, sizeof(data[0]), data_size, file) != data_size) {
-        LOG("Error writing secret payload for key <%s>\n", key);
+        DEBUG("Error writing secret payload for key <%s>\n", key);
         fclose(file);
         return false;
     };
@@ -117,7 +117,7 @@ bool kvstore_save(char* key, uint8_t* data, size_t data_size) {
 
 bool kvstore_exists(char* key) {
     CHECK_POINTER_OR_RETURN(key, false);
-    LOG("Attempting to determine existence for key <%s>...\n", key);
+    INFO("Attempting to determine existence for key <%s>...\n", key);
     size_t file_size = 0;
     FILE* file = open_file_for(key, "rb", &file_size);
     if (file) {
@@ -130,28 +130,28 @@ bool kvstore_exists(char* key) {
 size_t kvstore_get(char* key, uint8_t* data_buf, size_t buffer_size) {
     CHECK_POINTER_OR_RETURN(key, 0);
     CHECK_POINTER_OR_RETURN(data_buf, 0);
-    LOG("Attempting to read data for key <%s>...\n", key);
+    INFO("Attempting to read data for key <%s>...\n", key);
     size_t file_size = 0;
     FILE* file = open_file_for(key, "rb", &file_size);
     if (!file) {
-        LOG("Could not open file for key <%s>\n", key);
+        DEBUG("Could not open file for key <%s>\n", key);
         return 0;
     }
 
     if (file_size > buffer_size) {
-        LOG("Payload too big for destination for key <%s>\n", key);
+        DEBUG("Payload too big for destination for key <%s>\n", key);
         fclose(file);
         return 0;
     }
 
     if (!file_size) {
-        LOG("Invalid zero-length secret stored for key <%s>\n", key);
+        DEBUG("Invalid zero-length secret stored for key <%s>\n", key);
         fclose(file);
         return 0;
     }
 
     if (fread(data_buf, sizeof(data_buf[0]), file_size, file) != file_size) {
-        LOG("Could not read payload for key <%s>\n", key);
+        DEBUG("Could not read payload for key <%s>\n", key);
         fclose(file);
         return 0;
     };
@@ -164,8 +164,9 @@ bool kvstore_remove(char* key) {
     CHECK_POINTER_OR_RETURN(key, false);
     char* filename = filename_for(key);
     int result = remove(filename);
-    if (result)
-        LOG("Error removing file for key <%s>\n", key);
+    if (result) {
+        DEBUG("Error removing file for key <%s>\n", key);
+    }
     free(filename);
     return !result;
 }

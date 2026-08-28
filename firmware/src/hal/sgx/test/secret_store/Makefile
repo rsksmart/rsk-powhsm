@@ -25,7 +25,7 @@ include ../common/common.mk
 CFLAGS += -DSEST_TEST_ONLY
 
 PROG = test.out
-OBJS = secret_store.o keyvalue_db.o hex_codec.o test_secret_store.o platform.o mock_seal.o mock_ocall.o
+OBJS = secret_store.o keyvalue_db.o hex_codec.o test_secret_store.o platform.o mock_seal.o mock_ocall.o log.o
 
 all: $(PROG)
 

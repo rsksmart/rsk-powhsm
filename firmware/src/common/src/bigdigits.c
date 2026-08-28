@@ -797,12 +797,11 @@ static DIGIT_T spDivide(DIGIT_T *q, DIGIT_T *r, const DIGIT_T u[2], DIGIT_T v)
 
 #include "hal/log.h"
 
-void LOG_BIGD_HEX(const char *prefix,
-                  const DIGIT_T *a,
-                  size_t len,
-                  const char *suffix) {
+void INFO_BIGD_HEX(const char *prefix,
+                   const DIGIT_T *a,
+                   size_t len) {
     if (prefix) {
-        LOG("%s", prefix);
+        INFO("%s", prefix);
     }
     /* Trim leading digits which are zero */
     while (len--) {
@@ -813,13 +812,11 @@ void LOG_BIGD_HEX(const char *prefix,
     if (0 == len)
         len = 1;
     /* print first digit without leading zeros */
-    LOG("0x%" PRIxBIGD, a[--len]);
+    INFO("0x%" PRIxBIGD, a[--len]);
     while (len--) {
-        LOG("%08" PRIxBIGD, a[len]);
+        INFO("%08" PRIxBIGD, a[len]);
     }
-    if (suffix) {
-        LOG("%s", suffix);
-    }
+    INFO("\n");
 }
 
 #endif

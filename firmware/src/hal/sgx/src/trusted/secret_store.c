@@ -77,14 +77,14 @@ static bool unseal_data(const uint8_t* sealed_data,
                                    &tmp_unsealed_data,
                                    &tmp_unsealed_data_size);
     if (result != OE_OK) {
-        LOG("Unsealing failed with result=%u (%s)\n",
-            result,
-            oe_result_str(result));
+        DEBUG("Unsealing failed with result=%u (%s)\n",
+              result,
+              oe_result_str(result));
         goto unseal_data_error;
     }
 
     if (tmp_unsealed_data_size > unsealed_data_capacity) {
-        LOG("Unsealed data is too large\n");
+        DEBUG("Unsealed data is too large\n");
         goto unseal_data_error;
     }
 
@@ -102,7 +102,7 @@ unseal_data_error:
     // UNSAFE SIMULATOR-ONLY UNSEAL IMPLEMENTATION         //
     // NOT FOR PRODUCTION USE                              //
     if (sealed_data_size > unsealed_data_capacity) {
-        LOG("Unsealed data is too large\n");
+        DEBUG("Unsealed data is too large\n");
         return false;
     }
 
@@ -135,14 +135,14 @@ static bool seal_data(uint8_t* data,
                                  &tmp_sealed_data,
                                  &tmp_sealed_data_size);
     if (result != OE_OK) {
-        LOG("Sealing failed with result=%u (%s)\n",
-            result,
-            oe_result_str(result));
+        DEBUG("Sealing failed with result=%u (%s)\n",
+              result,
+              oe_result_str(result));
         goto seal_data_error;
     }
 
     if (tmp_sealed_data_size > MAX_BLOB_SIZE) {
-        LOG("Sealed blob too large\n");
+        DEBUG("Sealed blob too large\n");
         goto seal_data_error;
     }
 
@@ -181,9 +181,9 @@ static bool load_database_blob(uint8_t* sealed_db,
                                               sealed_db,
                                               sealed_db_capacity);
     if (oe_result != OE_OK) {
-        LOG("Key-value store read failed with result=%u (%s)\n",
-            oe_result,
-            oe_result_str(oe_result));
+        DEBUG("Key-value store read failed with result=%u (%s)\n",
+              oe_result,
+              oe_result_str(oe_result));
         return false;
     }
 
@@ -193,7 +193,7 @@ static bool load_database_blob(uint8_t* sealed_db,
     }
 
     if (sealed_db_size_from_store > sealed_db_capacity) {
-        LOG("Sealed blob too large\n");
+        DEBUG("Sealed blob too large\n");
         return false;
     }
 
@@ -243,7 +243,7 @@ static bool save_db(const keyvalue_db_t* db) {
     size_t sealed_data_size = 0;
 
     if (!seal_data(db->buffer, db->size, sealed_data, &sealed_data_size)) {
-        LOG("Error sealing database\n");
+        DEBUG("Error sealing database\n");
         return false;
     }
 
@@ -252,14 +252,14 @@ static bool save_db(const keyvalue_db_t* db) {
         &save_success, (char*)SEST_DB_KEY, sealed_data, sealed_data_size);
 
     if (oe_result != OE_OK) {
-        LOG("Key-value store write failed with result=%u (%s)\n",
-            oe_result,
-            oe_result_str(oe_result));
+        DEBUG("Key-value store write failed with result=%u (%s)\n",
+              oe_result,
+              oe_result_str(oe_result));
         return false;
     }
 
     if (!save_success) {
-        LOG("Error saving secret database\n");
+        DEBUG("Error saving secret database\n");
         return false;
     }
 
@@ -313,7 +313,7 @@ bool sest_exists(char* key) {
     if (!G_initialized)
         return false;
 
-    LOG("Attempting determine secret existence for <%s>...\n", key);
+    INFO("Attempting determine secret existence for <%s>...\n", key);
 
     keyvalue_db_t db = {0};
     if (!init_db(&db))
@@ -339,11 +339,11 @@ size_t sest_read(char* key, uint8_t* dest, size_t dest_length) {
         return SEST_ERROR;
 
     if (!dest || !dest_length) {
-        LOG("Invalid arguments for read\n");
+        DEBUG("Invalid arguments for read\n");
         return SEST_ERROR;
     }
 
-    LOG("Attempting to read secret for <%s>...\n", key);
+    INFO("Attempting to read secret for <%s>...\n", key);
 
     keyvalue_db_t db = {0};
     if (!init_db(&db))
@@ -352,7 +352,7 @@ size_t sest_read(char* key, uint8_t* dest, size_t dest_length) {
     size_t value_length = dest_length;
     if (!kvdb_get(&db, key, dest, &value_length)) {
         free_db(&db);
-        LOG("No secret found for key <%s>\n", key);
+        INFO("No secret found for key <%s>\n", key);
         return SEST_ERROR;
     }
 
@@ -365,16 +365,16 @@ bool sest_write(char* key, uint8_t* secret, size_t secret_length) {
         return false;
 
     if (!secret || !secret_length) {
-        LOG("Invalid arguments for write\n");
+        DEBUG("Invalid arguments for write\n");
         return false;
     }
 
     if (secret_length > MAX_VALUE_SIZE) {
-        LOG("Secret too large\n");
+        DEBUG("Secret too large\n");
         return false;
     }
 
-    LOG("Attempting to write secret for <%s>...\n", key);
+    INFO("Attempting to write secret for <%s>...\n", key);
 
     keyvalue_db_t db = {0};
     if (!init_db(&db))

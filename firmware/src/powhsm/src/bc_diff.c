@@ -115,11 +115,11 @@ diff_result check_difficulty(DIGIT_T difficulty[], const uint8_t* mm_hdr_hash) {
     // aux <= target. That is, if cmp != 1.
     cmp = mpCompare_ct(aux, target, BIGINT_LEN);
 
-    LOG_BIGD_HEX("2^256 = ", _2e256, BIGINT_LEN, "\n");
-    LOG_BIGD_HEX("Block difficulty = ", difficulty, BIGINT_LEN, "\n");
-    LOG_BIGD_HEX("Target = ", target, BIGINT_LEN, "\n");
-    LOG_BIGD_HEX("BTC MM block hash = ", aux, BIGINT_LEN, "\n");
-    LOG("Difficulty is %s\n", cmp == 1 ? "not valid" : "valid");
+    DEBUG_BIGD_HEX("2^256 = ", _2e256, BIGINT_LEN);
+    DEBUG_BIGD_HEX("Block difficulty = ", difficulty, BIGINT_LEN);
+    DEBUG_BIGD_HEX("Target = ", target, BIGINT_LEN);
+    DEBUG_BIGD_HEX("BTC MM block hash = ", aux, BIGINT_LEN);
+    DEBUG("Difficulty is %s\n", cmp == 1 ? "not valid" : "valid");
 
     return cmp != 1 ? DIFF_MATCH : DIFF_MISMATCH;
 }
@@ -135,9 +135,9 @@ diff_result check_difficulty(DIGIT_T difficulty[], const uint8_t* mm_hdr_hash) {
 int cap_block_difficulty(DIGIT_T difficulty[]) {
     int cmp = mpCompare_ct(difficulty, MAX_BLOCK_DIFFICULTY, BIGINT_LEN);
 
-    LOG_BIGD_HEX("Block difficulty = ", difficulty, BIGINT_LEN, "\n");
-    LOG_BIGD_HEX("Cap = ", MAX_BLOCK_DIFFICULTY, BIGINT_LEN, "\n");
-    LOG("Block difficulty %s been capped\n", cmp == 1 ? "has" : "has NOT");
+    DEBUG_BIGD_HEX("Block difficulty = ", difficulty, BIGINT_LEN);
+    DEBUG_BIGD_HEX("Cap = ", MAX_BLOCK_DIFFICULTY, BIGINT_LEN);
+    DEBUG("Block difficulty %s been capped\n", cmp == 1 ? "has" : "has NOT");
 
     // Block difficulty > Cap => Set block difficulty to cap
     if (cmp == 1) {

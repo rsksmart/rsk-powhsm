@@ -12,8 +12,9 @@
 #define CHECK_ECALL_RESULT(oe_result, error_msg, ret)                          \
     {                                                                          \
         if (OE_OK != oe_result) {                                              \
-            LOG(error_msg);                                                    \
-            LOG(": oe_result=%u (%s)\n", oe_result, oe_result_str(oe_result)); \
+            DEBUG(error_msg);                                                  \
+            DEBUG(                                                             \
+                ": oe_result=%u (%s)\n", oe_result, oe_result_str(oe_result)); \
             return (ret);                                                      \
         }                                                                      \
     }
@@ -25,8 +26,8 @@
 bool eprx_system_init(unsigned char* msg_buffer, size_t msg_buffer_size) {
     oe_enclave_t* enclave = epro_get_enclave();
     if (enclave == NULL) {
-        LOG("Failed to retrieve the enclave. "
-            "Unable to call system_init().\n");
+        DEBUG("Failed to retrieve the enclave. "
+              "Unable to call system_init().\n");
         return false;
     }
 
@@ -40,24 +41,24 @@ bool eprx_system_init(unsigned char* msg_buffer, size_t msg_buffer_size) {
 void eprx_system_finalise() {
     oe_enclave_t* enclave = epro_get_enclave();
     if (enclave == NULL) {
-        LOG("Failed to retrieve the enclave. "
-            "Unable to call system_finalise().\n");
+        DEBUG("Failed to retrieve the enclave. "
+              "Unable to call system_finalise().\n");
         return;
     }
 
     oe_result_t oe_result = ecall_system_finalise(enclave);
     if (OE_OK != oe_result) {
-        LOG("Failed to call system_finalise(): oe_result=%u (%s)\n",
-            oe_result,
-            oe_result_str(oe_result));
+        DEBUG("Failed to call system_finalise(): oe_result=%u (%s)\n",
+              oe_result,
+              oe_result_str(oe_result));
     }
 }
 
 unsigned int eprx_system_process_apdu(unsigned int rx) {
     oe_enclave_t* enclave = epro_get_enclave();
     if (enclave == NULL) {
-        LOG("Failed to retrieve the enclave. "
-            "Unable to call system_process_command().\n");
+        DEBUG("Failed to retrieve the enclave. "
+              "Unable to call system_process_command().\n");
         return false;
     }
 
@@ -73,7 +74,7 @@ unsigned int eprx_system_process_apdu(unsigned int rx) {
  * OCALLS
  */
 
-#define OCALL_PREFIX "[Ocall] "
+#define OCALL_PREFIX "    -> [ocall] "
 
 bool ocall_kvstore_save(char* key, uint8_t* data, size_t data_size) {
     log_set_prefix(OCALL_PREFIX);

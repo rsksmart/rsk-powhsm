@@ -1,0 +1,46 @@
+#!/bin/bash
+
+set -u
+
+ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ROOT_DIR_REL="$(realpath --relative-to="$PWD" "$ROOT_DIR")"
+
+RUNNER_PATTERN="run-all.sh"
+
+mapfile -t test_runners < <(find "$ROOT_DIR" -type f -name "$RUNNER_PATTERN" | sort)
+
+if [ "${#test_runners[@]}" -eq 0 ]; then
+	echo "No files matching $RUNNER_PATTERN were found under $ROOT_DIR_REL"
+	exit 0
+fi
+
+failed_files=()
+failed_codes=()
+
+for runner in "${test_runners[@]}"; do
+	rel_runner="$(realpath --relative-to="$PWD" "$runner")"
+	echo "=== Running $rel_runner ==="
+
+	bash "$runner"
+	exit_code=$?
+
+	if [ "$exit_code" -ne 0 ]; then
+		echo "!!! $rel_runner failed with exit code $exit_code"
+		failed_files+=("$rel_runner")
+		failed_codes+=("$exit_code")
+	fi
+done
+
+if [ "${#failed_files[@]}" -gt 0 ]; then
+	echo
+	echo "Failing test runners:"
+	for i in "${!failed_files[@]}"; do
+		echo "  - ${failed_files[$i]} (exit ${failed_codes[$i]})"
+	done
+	exit 1
+fi
+
+echo
+echo "All test runners completed successfully"
+exit 0
+

@@ -185,16 +185,16 @@ void rlp_start(const rlp_callbacks_t* cbs) {
 
 /** Print the given SRLP context (see srlp.h) */
 #ifdef DEBUG_SRLP
-static void LOG_SRLP_CTX(uint8_t v, rlp_ctx_t ctx[], uint8_t ptr) {
-    LOG("'0x%02x' ; <%u> ; ", v, ptr);
+static void DEBUG_SRLP_CTX(uint8_t v, rlp_ctx_t ctx[], uint8_t ptr) {
+    DEBUG("'0x%02x' ; <%u> ; ", v, ptr);
     for (int i = ptr; i >= 0; --i) {
         rlp_ctx_t cur = ctx[i];
-        LOG("{%d, %u, %u} ; ", cur.state, cur.size, cur.cursor);
+        DEBUG("{%d, %u, %u} ; ", cur.state, cur.size, cur.cursor);
     }
-    LOG("{EOC}\n");
+    DEBUG("{EOC}\n");
 }
 #else
-#define LOG_SRLP_CTX(...)
+#define DEBUG_SRLP_CTX(...)
 #endif
 
 /*
@@ -219,7 +219,7 @@ int rlp_consume(uint8_t* buf, const uint8_t len) {
     for (uint8_t i = 0; i < len; ++i) {
         uint8_t* b = buf + i;
 
-        LOG_SRLP_CTX(*b, rlp_ctx, rlp_ctx_ptr);
+        DEBUG_SRLP_CTX(*b, rlp_ctx, rlp_ctx_ptr);
 
         switch (rlp_ctx[rlp_ctx_ptr].state) {
         case RLP_BOTTOM:

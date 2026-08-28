@@ -325,7 +325,7 @@ unsigned int bc_upd_ancestor(volatile unsigned int rx) {
     // OP_HEADER_META
     // -------------------------------------------------------------------
     if (op == OP_UPD_ANCESTOR_HEADER_META) {
-        LOG("---- Block %u of %u\n", curr_block + 1, expected_blocks);
+        INFO("---- Block %u of %u\n", curr_block + 1, expected_blocks);
 
         // Clear block data
         memset(&block, 0, sizeof(block));
@@ -340,8 +340,8 @@ unsigned int bc_upd_ancestor(volatile unsigned int rx) {
         // not overflow
         if ((uint16_t)(block.mm_rlp_len + BTC_HEADER_RLP_LEN) <
             block.mm_rlp_len) {
-            LOG("Given MM RLP list length too large, would overflow: %u\n",
-                block.mm_rlp_len);
+            DEBUG("Given MM RLP list length too large, would overflow: %u\n",
+                  block.mm_rlp_len);
             FAIL(PROT_INVALID);
         }
 
@@ -371,8 +371,8 @@ unsigned int bc_upd_ancestor(volatile unsigned int rx) {
         // ask for next block or leave.
         if (HAS_FLAG(block.flags, MM_HEADER_RECV)) {
 
-            LOG_HEX("Block hash", block.block_hash, HASH_SIZE);
-            LOG_HEX("Parent hash", block.parent_hash, HASH_SIZE);
+            INFO_HEX("Block hash", block.block_hash, HASH_SIZE);
+            DEBUG_HEX("Parent hash", block.parent_hash, HASH_SIZE);
 
             // First block: perform update ancestor prologue
             // Otherwise: verify block chains to parent

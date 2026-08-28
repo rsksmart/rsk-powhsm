@@ -37,9 +37,9 @@ static void wipe_system() {
 
 static void on_access_wiped() {
     if (!seed_wipe()) {
-        LOG("Error wiping seed module\n");
+        DEBUG("Error wiping seed module\n");
     }
-    LOG("Seed wiped\n");
+    INFO("Seed wiped\n");
 }
 
 static unsigned int do_onboard(unsigned int rx) {
@@ -120,6 +120,10 @@ static void reset_unless_cmd_is(unsigned char cmd) {
     }
 }
 
+#define INFO_CMD(cmd)           \
+    if (APDU_CMD() != curr_cmd) \
+    INFO("> " cmd "\n")
+
 static external_processor_result_t system_do_process_apdu(unsigned int rx) {
     external_processor_result_t result = {
         .handled = true,
@@ -131,6 +135,7 @@ static external_processor_result_t system_do_process_apdu(unsigned int rx) {
     // Otherwise command is ignored and the powHSM handler will
     // take over instead.
     case RSK_MODE_CMD:
+        INFO_CMD("Mode");
         if (access_is_locked()) {
             reset_unless_cmd_is(RSK_MODE_CMD);
             SET_APDU_CMD(APP_MODE_BOOTLOADER);
@@ -140,41 +145,49 @@ static external_processor_result_t system_do_process_apdu(unsigned int rx) {
         result.handled = false;
         break;
     case SGX_ONBOARD:
+        INFO_CMD("Onboard")
         reset_unless_cmd_is(SGX_ONBOARD);
         result.tx = do_onboard(rx);
         break;
     case SGX_IS_LOCKED:
+        INFO_CMD("Is locked?")
         REQUIRE_ONBOARDED();
         reset_unless_cmd_is(SGX_IS_LOCKED);
         SET_APDU_OP(access_is_locked() ? 1 : 0);
         result.tx = TX_NO_DATA();
         break;
     case SGX_RETRIES:
+        INFO_CMD("Get pin retries")
         REQUIRE_ONBOARDED();
         reset_unless_cmd_is(SGX_RETRIES);
         SET_APDU_OP(access_get_retries());
         result.tx = TX_NO_DATA();
         break;
     case SGX_UNLOCK:
+        INFO_CMD("Unlock")
         REQUIRE_ONBOARDED();
         reset_unless_cmd_is(SGX_UNLOCK);
         result.tx = do_unlock(rx);
         break;
     case SGX_ECHO:
+        INFO_CMD("Echo")
         reset_unless_cmd_is(SGX_ECHO);
         result.tx = do_echo(rx);
         break;
     case SGX_CHANGE_PASSWORD:
+        INFO_CMD("Change pin")
         REQUIRE_ONBOARDED();
         REQUIRE_UNLOCKED();
         reset_unless_cmd_is(SGX_CHANGE_PASSWORD);
         result.tx = do_change_password(rx);
         break;
     case SGX_UPGRADE:
+        INFO_CMD("Upgrade")
         reset_unless_cmd_is(SGX_UPGRADE);
         result.tx = upgrade_process_apdu(rx);
         break;
     case INS_HEARTBEAT:
+        INFO_CMD("Heartbeat")
         // For now, we don't support heartbeat in SGX
         THROW(ERR_INS_NOT_SUPPORTED);
         break;
@@ -182,6 +195,11 @@ static external_processor_result_t system_do_process_apdu(unsigned int rx) {
     // commands
     case INS_ADVANCE:
     case INS_UPD_ANCESTOR:
+        if (APDU_CMD() == INS_ADVANCE) {
+            INFO_CMD("Advance blockchain state");
+        } else {
+            INFO_CMD("Update ancestor block");
+        }
         REQUIRE_UNLOCKED();
         REQUIRE_ONBOARDED();
         reset_unless_cmd_is(APDU_CMD());
@@ -207,16 +225,16 @@ unsigned int system_process_apdu(unsigned int rx) {
 bool system_init(unsigned char* msg_buffer, size_t msg_buffer_size) {
     // Validate that host and enclave APDU buffers have the same size
     if (msg_buffer_size != sizeof(apdu_buffer)) {
-        LOG("Expected APDU buffer size to be %lu but got %lu\n",
-            sizeof(apdu_buffer),
-            msg_buffer_size);
+        DEBUG("Expected APDU buffer size to be %lu but got %lu\n",
+              sizeof(apdu_buffer),
+              msg_buffer_size);
         return false;
     }
 
     // Validate that the host APDU buffer is entirely outside the enclave
     // memory space
     if (!oe_is_outside_enclave(msg_buffer, msg_buffer_size)) {
-        LOG("APDU buffer memory area not outside the enclave\n");
+        DEBUG("APDU buffer memory area not outside the enclave\n");
         return false;
     }
 
@@ -224,74 +242,78 @@ bool system_init(unsigned char* msg_buffer, size_t msg_buffer_size) {
     host_apdu_buffer = msg_buffer;
 
     // Initialize modules
-    LOG("Initializing modules...\n");
+    INFO("Initializing modules...\n");
     if (!sest_init()) {
-        LOG("Error initializing secret store module\n");
+        INFO("Error initializing secret store module\n");
         return false;
     }
 
     if (!access_init(on_access_wiped)) {
-        LOG("Error initializing access module\n");
+        INFO("Error initializing access module\n");
         return false;
     }
 
     if (!seed_init()) {
-        LOG("Error initializing seed module\n");
+        INFO("Error initializing seed module\n");
         return false;
     }
 
     // Make sure both access and seed are in the same state
     if (!seed_available() ^ access_is_wiped()) {
-        LOG("Inconsistent system state detected\n");
+        INFO("Inconsistent system state detected, will attempt to wipe\n");
         if (!access_wipe() || !seed_wipe()) {
-            LOG("System wipe failed\n");
+            DEBUG("System wipe failed\n");
             return false;
         }
-        LOG("System wiped\n");
+        INFO("System wiped\n");
     }
 
     if (!communication_init(apdu_buffer, sizeof(apdu_buffer))) {
-        LOG("Error initializing communication module\n");
+        INFO("Error initializing communication module\n");
         return false;
     }
 
+#ifndef SIM_BUILD
     if (!evidence_init()) {
-        LOG("Error initializing evidence module\n");
+        INFO("Error initializing evidence module\n");
         return false;
     }
 
     if (!endorsement_init()) {
-        LOG("Error initializing endorsement module\n");
+        INFO("Error initializing endorsement module\n");
         return false;
     }
+#else
+    INFO("Simulation build. Evidence and Endorsement modules not available.\n");
+#endif
 
     nvmem_init();
     if (!nvmem_register_block(
             "bcstate", &N_bc_state_var, sizeof(N_bc_state_var))) {
-        LOG("Error registering bcstate block\n");
+        INFO("Error registering bcstate block\n");
         return false;
     }
     if (!nvmem_register_block("bcstate_backup",
                               &N_bc_state_backup_var,
                               sizeof(N_bc_state_backup_var))) {
-        LOG("Error registering bcstate_backup block\n");
+        INFO("Error registering bcstate_backup block\n");
         return false;
     }
 
     if (!nvmem_load()) {
-        LOG("Error loading nvmem\n");
+        INFO("Error loading nvmem\n");
         return false;
     }
 
     upgrade_init();
 
-    LOG("Modules initialized\n");
+    INFO("Modules initialized\n");
 
-    LOG("Initializing powHSM...\n");
+    INFO("Initializing powHSM...\n");
     hsm_init();
     hsm_set_external_processor(system_do_process_apdu);
     curr_cmd = 0;
-    LOG("powHSM initialized\n");
+    INFO("powHSM initialized\n");
 
     return true;
 }

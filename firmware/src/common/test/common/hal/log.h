@@ -22,4 +22,4 @@
  * IN THE SOFTWARE.
  */
 
-#define LOG(...)
+#define INFO(...)

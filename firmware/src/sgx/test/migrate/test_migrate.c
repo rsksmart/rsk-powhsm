@@ -29,6 +29,9 @@
 
 #include "migrate.h"
 
+// Logging dependency
+bool log_is_at_start_of_line = true;
+
 // Mocks
 struct {
     bool seed_wipe;

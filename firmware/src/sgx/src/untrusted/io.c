@@ -57,14 +57,14 @@ static int start_server(int port, const char *host) {
     hostinfo = gethostbyname(host);
 
     if (hostinfo == NULL) {
-        LOG("Host not found.\n");
+        DEBUG("Host not found.\n");
         return -1;
     }
 
     // socket create and verification
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd == -1) {
-        LOG("Socket creation failed...\n");
+        DEBUG("Socket creation failed...\n");
         return -1;
     }
 
@@ -72,12 +72,12 @@ static int start_server(int port, const char *host) {
 
     if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) <
         0) {
-        LOG("Socket option setting failed failed\n");
+        DEBUG("Socket option setting failed failed\n");
         return -1;
     }
 
     if (setsockopt(sockfd, SOL_TCP, TCP_NODELAY, &(int){1}, sizeof(int)) < 0) {
-        LOG("Socket option setting failed failed\n");
+        DEBUG("Socket option setting failed failed\n");
         return -1;
     }
 
@@ -88,17 +88,17 @@ static int start_server(int port, const char *host) {
 
     // Binding newly created socket to given IP and verification
     if ((bind(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr))) != 0) {
-        LOG("Socket bind failed...\n");
+        DEBUG("Socket bind failed...\n");
         return -1;
     }
 
     // Now server is ready to listen and verification
     if ((listen(sockfd, 5)) != 0) {
-        LOG("Listen failed...\n");
+        DEBUG("Listen failed...\n");
         return -1;
     }
 
-    LOG("Server listening...\n");
+    INFO("Server listening...\n");
     return sockfd;
 }
 
@@ -106,11 +106,11 @@ static bool accept_connection() {
     socklen_t len = sizeof(cliaddr);
     connfd = accept(serverfd, (struct sockaddr *)&cliaddr, &len);
     if (connfd == -1) {
-        LOG("Client connection failed...\n");
+        DEBUG("Client connection failed...\n");
         return 0;
     }
 
-    LOG("Client connected...\n");
+    INFO("Client connected...\n");
     return connfd != -1;
 }
 
@@ -125,17 +125,18 @@ void io_finalise() {
     close_and_reset_fd(&serverfd);
 }
 
-#define CHECK_READ_STATUS(read_result, err_prefix)                            \
-    {                                                                         \
-        if ((read_result) == 0) {                                             \
-            LOG("%s: connection closed by the client\n", err_prefix);         \
-            close_and_reset_fd(&connfd);                                      \
-            goto end_readloop;                                                \
-        } else if ((read_result) == -1) {                                     \
-            LOG("%s: error reading from socket. Disconnected\n", err_prefix); \
-            close_and_reset_fd(&connfd);                                      \
-            goto end_readloop;                                                \
-        }                                                                     \
+#define CHECK_READ_STATUS(read_result, err_prefix)                      \
+    {                                                                   \
+        if ((read_result) == 0) {                                       \
+            DEBUG("%s: connection closed by the client\n", err_prefix); \
+            close_and_reset_fd(&connfd);                                \
+            goto end_readloop;                                          \
+        } else if ((read_result) == -1) {                               \
+            DEBUG("%s: error reading from socket. Disconnected\n",      \
+                  err_prefix);                                          \
+            close_and_reset_fd(&connfd);                                \
+            goto end_readloop;                                          \
+        }                                                               \
     }
 
 unsigned short io_exchange(unsigned short tx) {
@@ -148,7 +149,7 @@ unsigned short io_exchange(unsigned short tx) {
     while (true) {
         if (connfd == -1) {
             if (!accept_connection()) {
-                LOG("Error accepting client connection\n");
+                DEBUG("Error accepting client connection\n");
                 return 0;
             }
             tx = 0;
@@ -162,17 +163,17 @@ unsigned short io_exchange(unsigned short tx) {
             uint32_t tx_net = tx - 2;
             tx_net = htonl(tx_net);
             if (send(connfd, &tx_net, sizeof(tx_net), MSG_NOSIGNAL) == -1) {
-                LOG("Connection closed by the client\n");
+                INFO("Connection closed by the client\n");
                 close_and_reset_fd(&connfd);
                 continue;
             }
             // Write APDU
             if (send(connfd, io_apdu_buffer, tx, MSG_NOSIGNAL) == -1) {
-                LOG("Connection closed by the client\n");
+                INFO("Connection closed by the client\n");
                 close_and_reset_fd(&connfd);
                 continue;
             }
-            LOG_HEX("I/O =>", io_apdu_buffer, tx);
+            DEBUG_HEX("I/O =>", io_apdu_buffer, tx);
         }
 
         // Read from buffer until whole APDU is read or something happens
@@ -195,14 +196,14 @@ unsigned short io_exchange(unsigned short tx) {
                     rx = ntohl(rx_net);
                     // Empty packet?
                     if (rx == 0) {
-                        LOG("I/O <= <EMPTY MESSAGE>\n");
+                        DEBUG("I/O <= <EMPTY MESSAGE>\n");
                         return 0;
                     } else if (rx > sizeof(io_apdu_buffer) ||
                                rx != (unsigned short)rx) {
-                        LOG("Client tried to send a message "
-                            "that was too big (%u bytes). "
-                            "Skipping payload.\n",
-                            rx);
+                        DEBUG("Client tried to send a message "
+                              "that was too big (%u bytes). "
+                              "Skipping payload.\n",
+                              rx);
                         // Move onto skipping the APDU payload
                         read_state = SKIP_PLOAD;
                         offset = 0;
@@ -218,8 +219,8 @@ unsigned short io_exchange(unsigned short tx) {
                 CHECK_READ_STATUS(readlen, "Error while reading APDU payload");
                 offset += readlen;
                 if (offset == rx) {
-                    LOG("I/O <= (%u bytes)", rx);
-                    LOG_HEX("", io_apdu_buffer, rx);
+                    DEBUG("I/O <= (%u bytes)", rx);
+                    DEBUG_HEX("", io_apdu_buffer, rx);
                     return (unsigned short)rx;
                 }
                 break;
@@ -228,7 +229,7 @@ unsigned short io_exchange(unsigned short tx) {
                 CHECK_READ_STATUS(readlen, "Error while skipping APDU payload");
                 offset += readlen;
                 if (offset == rx) {
-                    LOG("I/O <= (%u bytes) <SKIPPED PAYLOAD>\n", rx);
+                    DEBUG("I/O <= (%u bytes) <SKIPPED PAYLOAD>\n", rx);
                     memset(io_apdu_buffer, 0, sizeof(io_apdu_buffer));
                     return rx != (unsigned short)rx ? (unsigned short)0xFFFFFFFF
                                                     : (unsigned short)rx;

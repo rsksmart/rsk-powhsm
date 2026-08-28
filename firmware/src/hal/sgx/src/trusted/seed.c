@@ -46,17 +46,19 @@ static uint8_t G_seed[SEED_LENGTH];
 static secp256k1_context* sp_ctx = NULL;
 
 bool seed_init() {
+    INFO("Initialising seed module...\n");
+
     // Init the secp256k1 context
     if (!sp_ctx) {
         unsigned char randomize[32];
         sp_ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
         if (!random_getrandom(randomize, sizeof(randomize))) {
-            LOG("Error generating random seed for "
-                "secp256k1 context randomisation\n");
+            DEBUG("Error generating random seed for "
+                  "secp256k1 context randomisation\n");
             return false;
         }
         if (!secp256k1_context_randomize(sp_ctx, randomize)) {
-            LOG("Error randomising secp256k1 context\n");
+            DEBUG("Error randomising secp256k1 context\n");
             return false;
         }
         explicit_bzero(randomize, sizeof(randomize));
@@ -67,24 +69,25 @@ bool seed_init() {
 
     if (!sest_exists(SEST_SEED_KEY)) {
         // Module is in a wiped state
+        INFO("No seed available (wiped state)\n");
         return true;
     }
 
     // Read seed
     size_t seed_length = 0;
     if (!(seed_length = sest_read(SEST_SEED_KEY, G_seed, sizeof(G_seed)))) {
-        LOG("Could not load the current seed\n");
+        INFO("Could not load the current seed\n");
         return false;
     }
 
     // Make sure seed is sound
     if (seed_length != sizeof(G_seed)) {
-        LOG("Detected invalid seed\n");
+        INFO("Detected invalid seed\n");
         return false;
     }
 
     G_seed_available = true;
-    LOG("Seed loaded\n");
+    INFO("Seed loaded\n");
 
     return true;
 }
@@ -99,18 +102,18 @@ bool seed_wipe() {
 
 bool seed_generate(uint8_t* client_seed, uint8_t client_seed_size) {
     if (G_seed_available) {
-        LOG("Seed already exists\n");
+        INFO("Seed already exists\n");
         return false;
     }
 
     if (client_seed_size != SEED_LENGTH) {
-        LOG("Invalid client seed size\n");
+        DEBUG("Invalid client seed size\n");
         return false;
     }
 
     uint8_t random_bytes[SEED_LENGTH];
     if (!random_getrandom(random_bytes, sizeof(random_bytes))) {
-        LOG("Error generating random seed\n");
+        DEBUG("Error generating random seed\n");
         return false;
     }
 
@@ -119,13 +122,13 @@ bool seed_generate(uint8_t* client_seed, uint8_t client_seed_size) {
     }
 
     if (!sest_write(SEST_SEED_KEY, G_seed, SEED_LENGTH)) {
-        LOG("Error persisting generated seed\n");
+        DEBUG("Error persisting generated seed\n");
         memset(G_seed, 0, sizeof(G_seed));
         return false;
     }
 
     G_seed_available = true;
-    printf("Seed generated\n");
+    INFO("Seed generated\n");
     return true;
 }
 
@@ -156,23 +159,23 @@ bool seed_derive_pubkey(uint32_t* path,
     secp256k1_pubkey sp_pubkey;
     uint8_t derived_privkey[PRIVATE_KEY_LENGTH];
 
-    LOG("Deriving public key for path...\n");
+    INFO("Deriving public key for path...\n");
 
     // Derive the private key
     if (!derive_privkey(
             path, path_length, derived_privkey, sizeof(derived_privkey))) {
-        LOG("Error deriving private key for public key gathering\n");
+        DEBUG("Error deriving private key for public key gathering\n");
         return false;
     }
 
     // Derive the public key and serialize it uncompressed
     if (!secp256k1_ec_pubkey_create(sp_ctx, &sp_pubkey, derived_privkey)) {
-        LOG("Error deriving public key\n");
+        DEBUG("Error deriving public key\n");
         return false;
     }
 
     if (*pubkey_out_length < PUBKEY_UNCMP_LENGTH) {
-        LOG("Overflow while deriving public key\n");
+        DEBUG("Overflow while deriving public key\n");
         return false;
     }
     size_t temp_length = *pubkey_out_length;
@@ -183,12 +186,12 @@ bool seed_derive_pubkey(uint32_t* path,
                                   SECP256K1_EC_UNCOMPRESSED);
 
     if (temp_length != PUBKEY_UNCMP_LENGTH) {
-        LOG("Unexpected error while deriving public key\n");
+        DEBUG("Unexpected error while deriving public key\n");
         return false;
     }
     *pubkey_out_length = (uint8_t)temp_length;
 
-    LOG_HEX("Pubkey for path is:", pubkey_out, *pubkey_out_length);
+    INFO_HEX("Pubkey for path is:", pubkey_out, *pubkey_out_length);
 
     return true;
 }
@@ -202,56 +205,58 @@ bool seed_sign(uint32_t* path,
     uint8_t derived_privkey[PRIVATE_KEY_LENGTH];
 
     if (*sig_out_length < MAX_SIGNATURE_LENGTH) {
-        LOG("Overflow while signing\n");
+        DEBUG("Overflow while signing\n");
         return false;
     }
 
-    LOG_HEX("Signing hash:", hash32, HASH_LENGTH);
+    INFO_HEX("Signing hash:", hash32, HASH_LENGTH);
 
     // Derive the private key
     if (!derive_privkey(
             path, path_length, derived_privkey, sizeof(derived_privkey))) {
-        LOG("Error deriving private key for signing\n");
+        DEBUG("Error deriving private key for signing\n");
         return false;
     }
 
     // Sign and serialize as DER
     if (!secp256k1_ecdsa_sign(
             sp_ctx, &sp_sig, hash32, derived_privkey, NULL, NULL)) {
-        LOG("Error signing with derived private key\n");
+        DEBUG("Error signing with derived private key\n");
         return false;
     }
     size_t temp_length = *sig_out_length;
     if (!secp256k1_ecdsa_signature_serialize_der(
             sp_ctx, sig_out, &temp_length, &sp_sig)) {
-        LOG("Error serializing signature\n");
+        DEBUG("Error serializing signature\n");
         return false;
     }
     if (temp_length > MAX_SIGNATURE_LENGTH) {
-        LOG("Overflow while signing\n");
+        DEBUG("Overflow while signing\n");
         return false;
     }
     *sig_out_length = (uint8_t)temp_length;
 
-    LOG_HEX("Signature is: ", sig_out, *sig_out_length);
+    INFO_HEX("Signature is: ", sig_out, *sig_out_length);
 
     return true;
 }
 
 bool seed_output_USE_FROM_EXPORT_ONLY(uint8_t* out, size_t* out_size) {
+    INFO("Exporting seed...\n");
+
     // We need a seed
     if (!G_seed_available) {
-        LOG("Seed: no seed available to output\n");
+        DEBUG("Seed: no seed available to output\n");
         return false;
     }
 
     // Output buffer validations
     if (*out_size < sizeof(G_seed)) {
-        LOG("Seed: output buffer to small to write seed\n");
+        DEBUG("Seed: output buffer to small to write seed\n");
         return false;
     }
     if (!oe_is_within_enclave(out, *out_size)) {
-        LOG("Seed: output buffer not strictly within the enclave\n");
+        DEBUG("Seed: output buffer not strictly within the enclave\n");
         return false;
     }
 
@@ -262,19 +267,21 @@ bool seed_output_USE_FROM_EXPORT_ONLY(uint8_t* out, size_t* out_size) {
 }
 
 bool seed_set_USE_FROM_EXPORT_ONLY(uint8_t* in, size_t in_size) {
+    INFO("Setting seed...\n");
+
     // We need no seed
     if (G_seed_available) {
-        LOG("Seed: already set\n");
+        DEBUG("Seed: already set\n");
         return false;
     }
 
     // Input buffer validations
     if (in_size < sizeof(G_seed)) {
-        LOG("Seed: input buffer too small to set seed\n");
+        DEBUG("Seed: input buffer too small to set seed\n");
         return false;
     }
     if (!oe_is_within_enclave(in, in_size)) {
-        LOG("Seed: input buffer not strictly within the enclave\n");
+        DEBUG("Seed: input buffer not strictly within the enclave\n");
         return false;
     }
 
@@ -282,12 +289,12 @@ bool seed_set_USE_FROM_EXPORT_ONLY(uint8_t* in, size_t in_size) {
     G_seed_available = false;
     memcpy(G_seed, in, sizeof(G_seed));
     if (!sest_write(SEST_SEED_KEY, G_seed, SEED_LENGTH)) {
-        LOG("Seed: error persisting given seed\n");
+        DEBUG("Seed: error persisting given seed\n");
         memset(G_seed, 0, sizeof(G_seed));
         return false;
     }
 
     G_seed_available = true;
-    LOG("Seed set\n");
+    INFO("Seed set\n");
     return true;
 }

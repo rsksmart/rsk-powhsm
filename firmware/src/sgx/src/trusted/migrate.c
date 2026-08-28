@@ -44,18 +44,18 @@ bool migrate_export(uint8_t* key,
 
     // Sizes check
     if (!aes_gcm_get_encrypted_size(EXPORT_SIZE)) {
-        LOG("Migration export error: export size too big\n");
+        DEBUG("Migration export error: export size too big\n");
         goto migrate_export_exit;
     }
     if (*out_size < aes_gcm_get_encrypted_size(EXPORT_SIZE)) {
-        LOG("Migration export error: output buffer too small\n");
+        DEBUG("Migration export error: output buffer too small\n");
         goto migrate_export_exit;
     }
 
     // Buffers
     cleartext = oe_malloc(EXPORT_SIZE);
     if (!cleartext) {
-        LOG("Migration export error: unable to allocate memory\n");
+        DEBUG("Migration export error: unable to allocate memory\n");
         goto migrate_export_exit;
     }
 
@@ -65,19 +65,19 @@ bool migrate_export(uint8_t* key,
     size_t tmp_size = EXPORT_SIZE;
     size_t exp_size = 0;
     if (!seed_output_USE_FROM_EXPORT_ONLY(tmp, &tmp_size)) {
-        LOG("Migration export error: unable to export seed\n");
+        DEBUG("Migration export error: unable to export seed\n");
         goto migrate_export_exit;
     }
     tmp += tmp_size;
     exp_size += tmp_size;
     tmp_size = EXPORT_SIZE - tmp_size;
     if (!access_output_password_USE_FROM_EXPORT_ONLY(tmp, &tmp_size)) {
-        LOG("Migration export error: unable to export password\n");
+        DEBUG("Migration export error: unable to export password\n");
         goto migrate_export_exit;
     }
     exp_size += tmp_size;
     if (exp_size != EXPORT_SIZE) {
-        LOG("Migration export error: unexpected exported size\n");
+        DEBUG("Migration export error: unexpected exported size\n");
         goto migrate_export_exit;
     }
 
@@ -85,17 +85,17 @@ bool migrate_export(uint8_t* key,
     explicit_bzero(out, *out_size);
     if (!aes_gcm_encrypt(
             key, key_size, cleartext, EXPORT_SIZE, out, out_size)) {
-        LOG("Migration export error: error encrypting DB\n");
+        DEBUG("Migration export error: error encrypting DB\n");
         goto migrate_export_exit;
     }
     if (*out_size != aes_gcm_get_encrypted_size(EXPORT_SIZE)) {
-        LOG("Migration export error: unexpected encrypted DB size\n");
+        DEBUG("Migration export error: unexpected encrypted DB size\n");
         goto migrate_export_exit;
     }
     explicit_bzero(cleartext, EXPORT_SIZE);
     retval = true;
 
-    LOG("Migration exported DB\n");
+    INFO("Migration exported DB\n");
 
 migrate_export_exit:
     if (cleartext) {
@@ -116,11 +116,11 @@ bool migrate_import(uint8_t* key,
 
     // Sizes check
     if (!aes_gcm_get_encrypted_size(EXPORT_SIZE)) {
-        LOG("Migration import error: export size too big\n");
+        DEBUG("Migration import error: export size too big\n");
         goto migrate_import_exit;
     }
     if (in_size < aes_gcm_get_encrypted_size(EXPORT_SIZE)) {
-        LOG("Migration import error: input buffer too small\n");
+        DEBUG("Migration import error: input buffer too small\n");
         goto migrate_import_exit;
     }
 
@@ -128,40 +128,40 @@ bool migrate_import(uint8_t* key,
     cleartext_size = EXPORT_SIZE;
     cleartext = oe_malloc(cleartext_size);
     if (!cleartext) {
-        LOG("Migration import error: unable to allocate memory\n");
+        DEBUG("Migration import error: unable to allocate memory\n");
         goto migrate_import_exit;
     }
 
     // Decrypt
     if (!aes_gcm_decrypt(
             key, key_size, in, in_size, cleartext, &cleartext_size)) {
-        LOG("Migration import error: error decrypting DB\n");
+        DEBUG("Migration import error: error decrypting DB\n");
         goto migrate_import_exit;
     }
     if (cleartext_size != EXPORT_SIZE) {
-        LOG("Migration import error: invalid DB\n");
+        DEBUG("Migration import error: invalid DB\n");
         goto migrate_import_exit;
     }
 
     // Import
     if (!seed_set_USE_FROM_EXPORT_ONLY(cleartext, SEED_LENGTH)) {
-        LOG("Migration import error: unable to import seed\n");
+        DEBUG("Migration import error: unable to import seed\n");
         goto migrate_import_exit;
     }
     if (!access_set_password((char*)(cleartext + SEED_LENGTH),
                              cleartext_size - SEED_LENGTH)) {
-        LOG("Migration import error: unable to import password\n");
+        DEBUG("Migration import error: unable to import password\n");
         goto migrate_import_exit;
     }
 
     explicit_bzero(cleartext, cleartext_size);
     retval = true;
-    LOG("Migration imported DB\n");
+    INFO("Migration imported DB\n");
 
 migrate_import_exit:
     // Wipe everything in case something fails
     if (!retval) {
-        LOG("Migration import: preemptively wiping system\n");
+        INFO("Migration import: preemptively wiping system\n");
         seed_wipe();
         access_wipe();
     }

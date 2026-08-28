@@ -33,7 +33,7 @@ void platform_memmove(void *dst, const void *src, unsigned int length) {
 
 void platform_request_exit() {
     // Currently unsupported, just log the call
-    LOG("platform_request_exit called\n");
+    INFO("platform_request_exit called\n");
 }
 
 const char *platform_get_id() {

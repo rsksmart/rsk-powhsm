@@ -32,7 +32,7 @@ static nvmmem_stats_t nvmmem_stats;
 
 void nvmem_stats_reset() {
     memset(&nvmmem_stats, 0, sizeof(nvmmem_stats));
-    LOG("NVM stats reset OK.\n");
+    INFO("NVM stats reset OK.\n");
 }
 
 nvmmem_stats_t nvmem_get_stats() {
