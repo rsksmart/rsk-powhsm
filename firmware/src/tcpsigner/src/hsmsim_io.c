@@ -325,7 +325,7 @@ static unsigned short io_exchange_file(unsigned char tx, FILE *input_file) {
         capped_rx = MAX_FUZZ_TRANSFER;
     }
 
-    LOG("Server: reading %d (announced: %d) bytes at index: %d\n",
+    LOG("Server: reading %d (announced: %d) bytes at index: %lu\n",
         capped_rx,
         announced_rx,
         file_index);
