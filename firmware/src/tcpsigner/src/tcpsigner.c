@@ -268,7 +268,7 @@ static struct argp argp = {
     "TCPSigner -- an x86 implementation of the HSM signer"};
 
 static void finalise() {
-    LOG("Caught termination signal. Bye.\n");
+    INFO("Caught termination signal. Bye.\n");
     exit(0);
 }
 
@@ -342,21 +342,21 @@ void main(int argc, char **argv) {
     argp_parse(&argp, argc, argv, 0, 0, &arguments);
 
     // Output welcome message & parameters
-    LOG("TCPSigner starting.\n");
+    INFO("TCPSigner starting.\n");
 
     // Output signer version
-    LOG("Signer version: %u.%u.%u\n",
-        VERSION_MAJOR,
-        VERSION_MINOR,
-        VERSION_PATCH);
+    INFO("Signer version: %u.%u.%u\n",
+         VERSION_MAJOR,
+         VERSION_MINOR,
+         VERSION_PATCH);
 
-    LOG("Signer parameters:\n");
-    LOG_HEX("Checkpoint:", arguments.checkpoint, sizeof(arguments.checkpoint));
-    LOG_BIGD_HEX("Difficulty: ",
-                 arguments.difficulty,
-                 sizeof(arguments.difficulty) / sizeof(arguments.difficulty[0]),
-                 "\n");
-    LOG("Network: %s\n", arguments.network);
+    INFO("Signer parameters:\n");
+    INFO_HEX("Checkpoint:", arguments.checkpoint, sizeof(arguments.checkpoint));
+    INFO_BIGD_HEX("Difficulty: ",
+                  arguments.difficulty,
+                  sizeof(arguments.difficulty) /
+                      sizeof(arguments.difficulty[0]));
+    INFO("Network: %s\n", arguments.network);
 
     // Set checkpoint
     memmove(
@@ -367,7 +367,7 @@ void main(int argc, char **argv) {
             sizeof(arguments.difficulty));
     // Set network
     if (!hsmsim_set_network(arguments.network_identifier)) {
-        LOG("Error setting network \"%s\"\n", arguments.network);
+        DEBUG("Error setting network \"%s\"\n", arguments.network);
         exit(1);
     }
 
@@ -377,37 +377,37 @@ void main(int argc, char **argv) {
                 arguments.difficulty_cap,
                 sizeof(arguments.difficulty_cap));
     }
-    LOG_BIGD_HEX("Block difficulty cap: ",
-                 MAX_BLOCK_DIFFICULTY,
-                 sizeof(MAX_BLOCK_DIFFICULTY) / sizeof(MAX_BLOCK_DIFFICULTY[0]),
-                 "\n");
+    INFO_BIGD_HEX("Block difficulty cap: ",
+                  MAX_BLOCK_DIFFICULTY,
+                  sizeof(MAX_BLOCK_DIFFICULTY) /
+                      sizeof(MAX_BLOCK_DIFFICULTY[0]));
 
     // Set network upgrade activation overrides
     for (int i = 0; i < arguments.network_upgrade_overrides_count; i++)
         hsmsim_set_network_upgrade_block_number(
             arguments.network_upgrade_overrides[i]);
     // Display network upgrade activation configuration
-    LOG("Network upgrade activation block numbers (latest takes "
-        "precedence):\n");
+    INFO("Network upgrade activation block numbers (latest takes "
+         "precedence):\n");
     network_upgrade_activation_t *activations =
         hsmsim_get_network_upgrade_activations();
     for (int i = 0; i < hsmsim_get_network_upgrade_activations_count(); i++) {
-        LOG("\t%s: %u\n",
-            hsmsim_get_network_upgrade_name(activations[i].network_upgrade),
-            activations[i].activation_bn);
+        INFO("\t%s: %u\n",
+             hsmsim_get_network_upgrade_name(activations[i].network_upgrade),
+             activations[i].activation_bn);
     }
 
     // Initialize the seed module
     if (!seed_init(arguments.key_file_path, BIP32_PATHS, BIP32_PATHS_COUNT)) {
-        LOG("Error during seed module initialization\n");
+        DEBUG("Error during seed module initialization\n");
         exit(1);
     }
 
-    LOG("Seed module initialized.\n");
+    INFO("Seed module initialized.\n");
 
     // Initialize Attestation
     if (!endorsement_init(arguments.att_file_path)) {
-        LOG("Error during endorsement module initialization\n");
+        DEBUG("Error during endorsement module initialization\n");
         exit(1);
     }
 
@@ -425,26 +425,26 @@ void main(int argc, char **argv) {
 #endif
         FILE *inputfd;
         if (arguments.filemode) {
-            LOG("Using file %s as input\n", arguments.inputfile);
+            INFO("Using file %s as input\n", arguments.inputfile);
             if ((inputfd = fopen(arguments.inputfile, "rb")) == NULL) {
-                LOG("Error opening file %s as input\n", arguments.inputfile);
+                DEBUG("Error opening file %s as input\n", arguments.inputfile);
                 exit(1);
             }
 
             hsmsim_io_set_input_file(inputfd);
         } else {
-            LOG("Starting TCP server on %s:%i\n",
-                arguments.bind,
-                arguments.port);
+            INFO("Starting TCP server on %s:%i\n",
+                 arguments.bind,
+                 arguments.port);
             hsmsim_io_set_and_start_server(arguments.port, arguments.bind);
         }
 
         FILE *replicafd;
         if (strlen(arguments.replicafile) > 0) {
-            LOG("Using file %s as replica\n", arguments.replicafile);
+            INFO("Using file %s as replica\n", arguments.replicafile);
             if ((replicafd = fopen(arguments.replicafile, "ab")) == NULL) {
-                LOG("Error opening file %s as replica\n",
-                    arguments.replicafile);
+                DEBUG("Error opening file %s as replica\n",
+                      arguments.replicafile);
                 exit(1);
             };
             hsmsim_io_set_replica_file(replicafd);
@@ -457,14 +457,14 @@ void main(int argc, char **argv) {
         // UI heartbeat main loop in an alternate
         // fashion.
         while (true) {
-            LOG("Running signer main loop...\n");
+            INFO("Running signer main loop...\n");
             hsm_init();
             signer_main_loop();
             // Send an empty reply so that the client
             // doesn't hang waiting
             hsmsim_io_reply();
 
-            LOG("Running UI heartbeat main loop...\n");
+            INFO("Running UI heartbeat main loop...\n");
             ui_heartbeat_init(&ui_heartbeat_ctx);
             ui_heartbeat_main(&ui_heartbeat_ctx);
             // Ditto

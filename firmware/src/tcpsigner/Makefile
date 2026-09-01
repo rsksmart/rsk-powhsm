@@ -39,6 +39,7 @@ CFLAGS += -iquote $(COMMONPATH)
 CFLAGS += -iquote $(HALINCPATH) -iquote $(HALSRCPATH) 
 CFLAGS += -I /usr/local/include -Werror
 CFLAGS += -DHSM_PLATFORM_X86
+CFLAGS += -DLOGLEVEL_DEBUG
 
 LDFLAGS = -lsecp256k1
 

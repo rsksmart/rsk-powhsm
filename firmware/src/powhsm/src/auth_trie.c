@@ -46,7 +46,7 @@
 #define FAIL_IF_LEAF()                             \
     {                                              \
         if (auth.trie.current_node == 0) {         \
-            LOG("[E] Leaf node not a leaf\n");     \
+            DEBUG("[E] Leaf node not a leaf\n");   \
             THROW(ERR_AUTH_RECEIPT_HASH_MISMATCH); \
         }                                          \
     }
@@ -65,15 +65,15 @@ static void trie_cb(const trie_cb_event_t event) {
     switch (event) {
     case TRIE_EV_FLAGS:
         if (TRIE_FG_VERSION(auth.trie.ctx.flags) != AUTH_TRIE_NODE_VERSION) {
-            LOG("[E] Invalid node version: %u\n",
-                TRIE_FG_VERSION(auth.trie.ctx.flags));
+            DEBUG("[E] Invalid node version: %u\n",
+                  TRIE_FG_VERSION(auth.trie.ctx.flags));
             THROW(ERR_AUTH_NODE_INVALID_VERSION);
         }
 
         if (auth.trie.current_node == 0 &&
             (TRIE_FG_NODE_PRESENT_LEFT(auth.trie.ctx.flags) ||
              TRIE_FG_NODE_PRESENT_RIGHT(auth.trie.ctx.flags))) {
-            LOG("[E] Leaf node not a leaf\n");
+            DEBUG("[E] Leaf node not a leaf\n");
             THROW(ERR_AUTH_RECEIPT_HASH_MISMATCH);
         }
 
@@ -86,7 +86,7 @@ static void trie_cb(const trie_cb_event_t event) {
         // Fail indicating a receipt hash mismatch.
         if (auth.trie.current_node == 0 &&
             !TRIE_FG_HAS_LONG_VALUE(auth.trie.ctx.flags)) {
-            LOG("[E] Leaf node must have a long value\n");
+            DEBUG("[E] Leaf node must have a long value\n");
             THROW(ERR_AUTH_RECEIPT_HASH_MISMATCH);
         }
         break;
@@ -94,7 +94,7 @@ static void trie_cb(const trie_cb_event_t event) {
     case TRIE_EV_VALUE_DATA:
     case TRIE_EV_VALUE_END:
         IGNORE_IF_INTERNAL();
-        LOG("[E] Leaf node must have a long value\n");
+        DEBUG("[E] Leaf node must have a long value\n");
         THROW(ERR_AUTH_RECEIPT_HASH_MISMATCH);
         break;
     case TRIE_EV_VALUE_HASH_START:
@@ -118,7 +118,7 @@ static void trie_cb(const trie_cb_event_t event) {
         if (memcmp(auth.receipt_hash,
                    auth.trie.value_hash,
                    sizeof(auth.trie.value_hash))) {
-            LOG("[E] Receipt hash mismatch\n");
+            DEBUG("[E] Receipt hash mismatch\n");
             THROW(ERR_AUTH_RECEIPT_HASH_MISMATCH);
         }
         break;
@@ -178,7 +178,7 @@ unsigned int auth_sign_handle_merkleproof(volatile unsigned int rx) {
     uint8_t apdu_offset = 0;
 
     if (auth.state != STATE_AUTH_MERKLEPROOF) {
-        LOG("[E] Expected to be in the MP state\n");
+        DEBUG("[E] Expected to be in the MP state\n");
         THROW(ERR_AUTH_INVALID_STATE);
     }
 
@@ -187,7 +187,7 @@ unsigned int auth_sign_handle_merkleproof(volatile unsigned int rx) {
         if (auth.trie.total_nodes == 0) {
             auth.trie.total_nodes = APDU_DATA_PTR[apdu_offset++];
             if (auth.trie.total_nodes == 0) {
-                LOG("[E] Expected a nonempty MP\n");
+                DEBUG("[E] Expected a nonempty MP\n");
                 THROW(ERR_AUTH_INVALID_DATA_SIZE);
             }
             auth.trie.current_node = 0;
@@ -199,7 +199,7 @@ unsigned int auth_sign_handle_merkleproof(volatile unsigned int rx) {
         if (auth.trie.state == AUTH_TRIE_STATE_NODE_LENGTH) {
             // Verify node is at least one byte long
             if (APDU_DATA_PTR[apdu_offset] == 0) {
-                LOG("[E] Got MP node length zero\n");
+                DEBUG("[E] Got MP node length zero\n");
                 THROW(ERR_AUTH_INVALID_DATA_SIZE);
             }
             trie_init(&auth.trie.ctx, &trie_cb, APDU_DATA_PTR[apdu_offset++]);
@@ -215,13 +215,13 @@ unsigned int auth_sign_handle_merkleproof(volatile unsigned int rx) {
                                         APDU_DATA_SIZE(rx) - apdu_offset);
 
             if (trie_result() < 0) {
-                LOG("[E] Error parsing MP node: %u\n", trie_result());
+                DEBUG("[E] Error parsing MP node: %u\n", trie_result());
                 // Reusing an existing error code due to legacy protocol
                 THROW(ERR_AUTH_RECEIPT_ROOT_MISMATCH);
             } else if (trie_result() == TRIE_ST_DONE) {
                 hash_keccak256_final(&auth.trie.hash_ctx, auth.trie.node_hash);
-                LOG("MP@%u ", auth.trie.current_node);
-                LOG_HEX(
+                DEBUG("MP@%u ", auth.trie.current_node);
+                DEBUG_HEX(
                     "hash: ", auth.trie.node_hash, sizeof(auth.trie.node_hash));
 
                 if (auth.trie.current_node > 0) {
@@ -229,7 +229,7 @@ unsigned int auth_sign_handle_merkleproof(volatile unsigned int rx) {
                     // it was successfully linked with exactly
                     // one child
                     if (auth.trie.num_linked != 1) {
-                        LOG("[E] Node chaining mismatch\n");
+                        DEBUG("[E] Node chaining mismatch\n");
                         THROW(ERR_AUTH_NODE_CHAINING_MISMATCH);
                     }
                 }
@@ -246,7 +246,7 @@ unsigned int auth_sign_handle_merkleproof(volatile unsigned int rx) {
                         return 0;
                     }
 
-                    LOG("[E] Receipt root mismatch\n");
+                    DEBUG("[E] Receipt root mismatch\n");
                     THROW(ERR_AUTH_RECEIPT_ROOT_MISMATCH);
                 }
 

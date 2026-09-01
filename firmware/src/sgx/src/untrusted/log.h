@@ -27,10 +27,18 @@
 
 #include <stdlib.h>
 
+#ifdef LOGLEVEL_DEBUG
+#define DEBUG(...) INFO(__VA_ARGS__)
+#define DEBUG_HEX(...) INFO_HEX(__VA_ARGS__)
+#else
+#define DEBUG(...)
+#define DEBUG_HEX(...)
+#endif
+
 /**
  * @brief Works just like printf
  */
-void LOG(const char *format, ...);
+void INFO(const char *format, ...);
 
 /**
  * @brief Print buffer in hex format with prefix
@@ -39,7 +47,7 @@ void LOG(const char *format, ...);
  * @param buffer the buffer containing the bytes to output as hex chars
  * @param size the size of buffer in bytes
  */
-void LOG_HEX(const char *prefix, const void *buffer, const size_t size);
+void INFO_HEX(const char *prefix, const void *buffer, const size_t size);
 
 /**
  * @brief Set a prefix for all logs

@@ -23,7 +23,7 @@
 include ../common/common.mk
 
 PROG = test.out
-OBJS = evidence.o test_evidence.o log.o hash.o keccak256.o sha256.o
+OBJS = evidence.o test_evidence.o hash.o keccak256.o sha256.o log.o
 LIBS = -lmbedcrypto
 CFLAGS += -I.
 

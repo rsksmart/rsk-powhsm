@@ -44,7 +44,7 @@ class TestHSM2DongleSGX(TestCase):
 
         self.getDongleMock.assert_not_called()
         self.hsm2dongle.connect()
-        self.getDongleMock.assert_called_with("a-host", 1234, "a-debug-value")
+        self.getDongleMock.assert_called_with("a-host", 1234, False)
         self.assertEqual(self.hsm2dongle.dongle, self.dongle)
 
     def assert_exchange_called(self, bs):

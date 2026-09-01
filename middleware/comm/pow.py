@@ -67,7 +67,7 @@ def coinbase_tx_extract_merge_mining_hash(tx_hex):
                 _RSK_TAG.hex(),
                 tx_tail.hex(),
             )
-            _logger.info(message)
+            _logger.warning(message)
             raise ValueError(message)
 
         if last_tag_pos >= _MAX_RSK_TAG_POSITION:
@@ -75,7 +75,7 @@ def coinbase_tx_extract_merge_mining_hash(tx_hex):
                 "RSK tag '%s' position in tail '%s' is bigger than expected (%d)"
                 % (_RSK_TAG.hex(), tx_tail.hex(), _MAX_RSK_TAG_POSITION)
             )
-            _logger.info(message)
+            _logger.warning(message)
             raise ValueError(message)
 
         expected_tag_size = len(_RSK_TAG) + _BLOCK_HEADER_HASH_SIZE
@@ -90,7 +90,7 @@ def coinbase_tx_extract_merge_mining_hash(tx_hex):
                     len(tx_tail[last_tag_pos:]),
                 )
             )
-            _logger.info(message)
+            _logger.warning(message)
             raise ValueError(message)
 
         remaining_tail = tx_tail[last_tag_pos + expected_tag_size:]
@@ -99,7 +99,7 @@ def coinbase_tx_extract_merge_mining_hash(tx_hex):
             message = "More than %d bytes after RSK tag" % (
                 _MAX_BYTES_AFTER_MERGE_MINING_HASH
             )
-            _logger.info(message)
+            _logger.warning(message)
             raise ValueError(message)
 
         byte_count = int.from_bytes(
@@ -111,7 +111,7 @@ def coinbase_tx_extract_merge_mining_hash(tx_hex):
                 "Coinbase transaction must be longer than %d bytes (got %d bytes)"
                 % (_MIN_COINBASE_TX_SIZE, coinbase_tx_length)
             )
-            _logger.info(message)
+            _logger.warning(message)
             raise ValueError(message)
 
         merged_mining_hash = tx_tail[
@@ -125,7 +125,7 @@ def coinbase_tx_extract_merge_mining_hash(tx_hex):
         return merged_mining_hash
     except Exception as e:
         message = "Can't extract merge mining hash from coinbase tx: %s" % str(e)
-        _logger.info(message)
+        _logger.warning(message)
         raise ValueError(message)
 
 
@@ -151,7 +151,7 @@ def coinbase_tx_get_hash(tx_hex):
         return coinbase_tx_hash
     except Exception as e:
         message = "Can't compute coinbase tx hash: %s" % str(e)
-        _logger.info(message)
+        _logger.warning(message)
         raise ValueError(message)
 
 
@@ -169,13 +169,13 @@ def is_valid_merkle_proof(merkle_proof_hex, root_hex, coinbase_tx_hash_hex):
         root = bytes.fromhex(root_hex)
         coinbase_tx_hash = bytes.fromhex(coinbase_tx_hash_hex)
     except Exception as e:
-        _logger.info(str(e))
+        _logger.warning(str(e))
         raise ValueError(str(e))
 
     # Verify merkle proof length
     if len(merkle_proof) % _SHA256_HASH_LENGTH != 0:
         message = "Merkle proof length is invalid (%d)" % len(merkle_proof)
-        _logger.info(message)
+        _logger.warning(message)
         return False
 
     # Extract merkle proof hashes

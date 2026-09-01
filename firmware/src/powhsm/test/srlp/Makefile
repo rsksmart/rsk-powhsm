@@ -22,9 +22,8 @@
 
 include ../common/common.mk
 
-# For debugging purposes
 ifneq ($(DEBUG),)
-	CFLAGS += -DDEBUG_SRLP
+	CFLAGS += -DLOGLEVEL_DEBUG -DDEBUG_SRLP
 endif
 
 PROG = test.out

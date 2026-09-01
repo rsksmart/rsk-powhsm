@@ -51,12 +51,12 @@ class _RequestHandler:
             data = line.decode(self.ENCODING)
         except UnicodeDecodeError:
             output = json.dumps(self.protocol.format_error(), sort_keys=True)
-            self.logger.info(
+            self.logger.warning(
                 "<= [%s]: invalid encoding input - 0x%s", client_address, line.hex()
             )
             success = self._reply(wfile, output)
             if success:
-                self.logger.info("=> [%s]: %s", client_address, output)
+                self.logger.warning("=> [%s]: %s", client_address, output)
             return
 
         self.logger.info("<= [%s]: %s", client_address, data)
@@ -162,9 +162,9 @@ class TCPServer:
             self.logger.critical(message)
             raise TCPServerError(message)
         except KeyboardInterrupt:
-            self.logger.info("Interrupted by user!")
+            self.logger.warning("Interrupted by user!")
         except HSM2ProtocolInterrupt:
-            self.logger.info("Interrupted by HSM2 protocol!")
+            self.logger.warning("Interrupted by HSM2 protocol!")
         except HSM2ProtocolError as e:
             message = "Error in device initialization: %s" % format(e)
             self.logger.critical(message)

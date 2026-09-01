@@ -23,7 +23,7 @@
 include ../common/common.mk
 
 PROG = test.out
-OBJS = nvmem.o test_nvmem.o mock_secret_store.o
+OBJS = nvmem.o test_nvmem.o mock_secret_store.o log.o
 
 all: $(PROG)
 

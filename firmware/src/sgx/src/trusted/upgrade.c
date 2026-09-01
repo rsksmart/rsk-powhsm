@@ -251,7 +251,7 @@ static bool generate_message_to_verify() {
     return true;
 
 generate_message_to_verify_error:
-    LOG("Error generating message to verify\n");
+    DEBUG("Error generating message to verify\n");
     return false;
 }
 
@@ -263,7 +263,7 @@ static size_t send_data(uint8_t* src,
     memcpy(APDU_DATA_PTR, src + *src_offset, tx);
     *src_offset += tx;
     *more = *src_offset < src_size;
-    LOG("Sending %lu bytes of data\n", tx);
+    DEBUG("Sending %lu bytes of data\n", tx);
     return tx;
 }
 
@@ -281,26 +281,26 @@ static bool receive_data(volatile unsigned int rx,
         // We allow a maximum data size due to the nature of data
         // we need to process
         if (*dest_size > MAX_RECV_DATA_SIZE) {
-            LOG("Data bigger than allowed max\n");
+            DEBUG("Data bigger than allowed max\n");
             reset_upgrade();
             THROW(ERR_UPGRADE_PROTOCOL);
         }
         *dest = oe_malloc(*dest_size);
         if (!*dest) {
-            LOG("Unable to allocate memory\n");
+            DEBUG("Unable to allocate memory\n");
             THROW(ERR_UPGRADE_INTERNAL);
         }
         *dest_offset = 0;
-        LOG("Expecting %lu bytes of data\n", *dest_size);
+        DEBUG("Expecting %lu bytes of data\n", *dest_size);
     }
     if (APDU_DATA_SIZE(rx) - pl > *dest_size - *dest_offset) {
-        LOG("Data buffer overflow\n");
+        DEBUG("Data buffer overflow\n");
         reset_upgrade();
         THROW(ERR_UPGRADE_PROTOCOL);
     }
     memcpy(*dest + *dest_offset, APDU_DATA_PTR + pl, APDU_DATA_SIZE(rx) - pl);
     *dest_offset += APDU_DATA_SIZE(rx) - pl;
-    LOG("Received %lu bytes of data\n", APDU_DATA_SIZE(rx) - pl);
+    DEBUG("Received %lu bytes of data\n", APDU_DATA_SIZE(rx) - pl);
     return *dest_offset < *dest_size; // More?
 }
 
@@ -308,13 +308,13 @@ static secp256k1_context* assert_secp256k1_context_create_and_randomize() {
     unsigned char randomize[32];
     secp256k1_context* ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
     if (!random_getrandom(randomize, sizeof(randomize))) {
-        LOG("Error generating random seed for "
-            "secp256k1 context randomisation\n");
+        DEBUG("Error generating random seed for "
+              "secp256k1 context randomisation\n");
         reset_upgrade();
         THROW(ERR_INTERNAL);
     }
     if (!secp256k1_context_randomize(ctx, randomize)) {
-        LOG("Error randomising secp256k1 context\n");
+        DEBUG("Error randomising secp256k1 context\n");
         reset_upgrade();
         THROW(ERR_INTERNAL);
     }
@@ -333,7 +333,7 @@ void upgrade_init() {
     COMPILE_TIME_ASSERT(HASH_LENGTH == AES_GCM_KEY_SIZE);
 
     reset_upgrade();
-    LOG("Upgrade module initialized\n");
+    INFO("Upgrade module initialized\n");
 }
 
 void upgrade_reset() {
@@ -394,13 +394,13 @@ unsigned int upgrade_process_apdu(volatile unsigned int rx) {
             upgrade_ctx.operation == upgrade_operation_export
                 ? upgrade_ctx.spec.mrenclave_to
                 : upgrade_ctx.spec.mrenclave_from;
-        LOG("Spec received\n");
-        LOG_HEX(
+        INFO("Spec received\n");
+        INFO_HEX(
             "From:", upgrade_ctx.spec.mrenclave_from, UPGRADE_MRENCLAVE_SIZE);
-        LOG_HEX("To:", upgrade_ctx.spec.mrenclave_to, UPGRADE_MRENCLAVE_SIZE);
-        LOG("Role: %s\n",
-            upgrade_ctx.operation == upgrade_operation_export ? "exporter"
-                                                              : "importer");
+        INFO_HEX("To:", upgrade_ctx.spec.mrenclave_to, UPGRADE_MRENCLAVE_SIZE);
+        INFO("Role: %s\n",
+             upgrade_ctx.operation == upgrade_operation_export ? "exporter"
+                                                               : "importer");
         // Check this enclave's mrenclave matches the corresponding
         // value in the spec according to the specified role
         explicit_bzero(&format, sizeof(format));
@@ -411,7 +411,7 @@ unsigned int upgrade_process_apdu(volatile unsigned int rx) {
                                0,
                                &upgrade_ctx.evidence,
                                &upgrade_ctx.evidence_size)) {
-            LOG("Unable to generate enclave evidence for self\n");
+            DEBUG("Unable to generate enclave evidence for self\n");
             error = ERR_UPGRADE_INTERNAL;
             goto upgrade_process_apdu_start_error;
         }
@@ -420,34 +420,34 @@ unsigned int upgrade_process_apdu(volatile unsigned int rx) {
                                                 upgrade_ctx.evidence_size,
                                                 &claims,
                                                 &claims_size)) {
-            LOG("Error verifying this enclave's evidence\n");
+            DEBUG("Error verifying this enclave's evidence\n");
             error = ERR_UPGRADE_INTERNAL;
             goto upgrade_process_apdu_start_error;
         }
         if (!(claim = evidence_get_claim(
                   claims, claims_size, OE_CLAIM_UNIQUE_ID))) {
-            LOG("Error extracting this enclave's mrenclave\n");
+            DEBUG("Error extracting this enclave's mrenclave\n");
             error = ERR_UPGRADE_INTERNAL;
             goto upgrade_process_apdu_start_error;
         }
-        LOG_HEX("This enclave's mrenclave:", claim->value, claim->value_size);
+        INFO_HEX("This enclave's mrenclave:", claim->value, claim->value_size);
         if (claim->value_size != UPGRADE_MRENCLAVE_SIZE ||
             memcmp(claim->value,
                    upgrade_ctx.my_mrenclave,
                    UPGRADE_MRENCLAVE_SIZE) != 0) {
-            LOG("This enclave's mrenclave does not match the spec's "
-                "mrenclave\n");
+            DEBUG("This enclave's mrenclave does not match the spec's "
+                  "mrenclave\n");
             error = ERR_UPGRADE_SPEC;
             goto upgrade_process_apdu_start_error;
         }
         generate_message_to_verify();
-        LOG_HEX("Message to verify:",
-                upgrade_ctx.expected_message_hash,
-                sizeof(upgrade_ctx.expected_message_hash));
+        DEBUG_HEX("Message to verify:",
+                  upgrade_ctx.expected_message_hash,
+                  sizeof(upgrade_ctx.expected_message_hash));
         upgrade_ctx.state = upgrade_state_await_spec_sigs;
         if (claims) {
             if (!evidence_free_claims(claims, claims_size)) {
-                LOG("Error freeing claims\n");
+                DEBUG("Error freeing claims\n");
                 THROW(ERR_INTERNAL);
             }
             claims = NULL;
@@ -459,7 +459,7 @@ unsigned int upgrade_process_apdu(volatile unsigned int rx) {
     upgrade_process_apdu_start_error:
         if (claims) {
             if (!evidence_free_claims(claims, claims_size)) {
-                LOG("Error freeing claims\n");
+                DEBUG("Error freeing claims\n");
                 THROW(ERR_INTERNAL);
             }
             claims = NULL;
@@ -502,7 +502,7 @@ unsigned int upgrade_process_apdu(volatile unsigned int rx) {
 
             // Found a valid signature?
             if (signature_valid) {
-                LOG("Valid signature received!\n");
+                DEBUG("Valid signature received!\n");
                 upgrade_ctx.authorized_signer_verified[i] = true;
                 break;
             }
@@ -515,12 +515,12 @@ unsigned int upgrade_process_apdu(volatile unsigned int rx) {
             if (upgrade_ctx.authorized_signer_verified[i])
                 valid_count++;
 
-        LOG("Valid signatures so far: %lu\n", valid_count);
+        DEBUG("Valid signatures so far: %lu\n", valid_count);
 
         if (valid_count >= THRESHOLD_AUTHORIZERS) {
             SET_APDU_OP(0); // No need for more
             upgrade_ctx.state = upgrade_state_send_self_id;
-            LOG("Threshold reached!\n");
+            INFO("Threshold reached!\n");
         } else {
             SET_APDU_OP(1); // We need more
         }
@@ -533,7 +533,7 @@ unsigned int upgrade_process_apdu(volatile unsigned int rx) {
             do {
                 if (!random_getrandom(upgrade_ctx.my_privkey,
                                       sizeof(upgrade_ctx.my_privkey))) {
-                    LOG("Unable to generate private key\n");
+                    DEBUG("Unable to generate private key\n");
                     THROW(ERR_UPGRADE_INTERNAL);
                 }
             } while (!secp256k1_ec_pubkey_create(
@@ -545,19 +545,19 @@ unsigned int upgrade_process_apdu(volatile unsigned int rx) {
                                           &pubkey,
                                           SECP256K1_EC_COMPRESSED);
             if (upgrade_ctx.my_pubkey_len != sizeof(upgrade_ctx.my_pubkey)) {
-                LOG("Unable to serialize pubkey\n");
+                DEBUG("Unable to serialize pubkey\n");
                 reset_upgrade();
                 secp256k1_context_destroy(secp_ctx);
                 THROW(ERR_UPGRADE_INTERNAL);
             }
-            LOG_HEX("My pubkey:",
-                    upgrade_ctx.my_pubkey,
-                    sizeof(upgrade_ctx.my_pubkey));
+            DEBUG_HEX("My pubkey:",
+                      upgrade_ctx.my_pubkey,
+                      sizeof(upgrade_ctx.my_pubkey));
             secp256k1_context_destroy(secp_ctx);
             explicit_bzero(&format, sizeof(format));
             format.id = EVIDENCE_FORMAT;
             if (!evidence_get_format_settings(&format)) {
-                LOG("Unable to get evidence format\n");
+                DEBUG("Unable to get evidence format\n");
                 reset_upgrade();
                 THROW(ERR_UPGRADE_INTERNAL);
             }
@@ -570,12 +570,12 @@ unsigned int upgrade_process_apdu(volatile unsigned int rx) {
                                    sizeof(upgrade_ctx.my_pubkey),
                                    &upgrade_ctx.evidence,
                                    &upgrade_ctx.evidence_size)) {
-                LOG("Unable to generate enclave evidence for peer\n");
+                DEBUG("Unable to generate enclave evidence for peer\n");
                 reset_upgrade();
                 THROW(ERR_UPGRADE_INTERNAL);
             }
             if (!evidence_free_format_settings(format.settings)) {
-                LOG("Unable to free format settings\n");
+                DEBUG("Unable to free format settings\n");
                 THROW(ERR_INTERNAL);
             }
             explicit_bzero(&format, sizeof(format));
@@ -589,7 +589,7 @@ unsigned int upgrade_process_apdu(volatile unsigned int rx) {
         SET_APDU_OP(baux ? 1 : 0); // More to send?
 
         if (!baux) {
-            LOG("Self evidence completely sent\n");
+            INFO("Self evidence completely sent\n");
             free_evidence();
             upgrade_ctx.state = upgrade_state_await_peer_id;
         }
@@ -612,26 +612,26 @@ unsigned int upgrade_process_apdu(volatile unsigned int rx) {
                                                 upgrade_ctx.evidence_size,
                                                 &claims,
                                                 &claims_size)) {
-            LOG("Error verifying peer enclave's evidence\n");
+            DEBUG("Error verifying peer enclave's evidence\n");
             goto upgrade_process_apdu_identify_peer_error;
         }
         if (!(claim = evidence_get_claim(
                   claims, claims_size, OE_CLAIM_UNIQUE_ID))) {
-            LOG("Error extracting peer enclave's mrenclave\n");
+            DEBUG("Error extracting peer enclave's mrenclave\n");
             goto upgrade_process_apdu_identify_peer_error;
         }
-        LOG_HEX("Peer enclave's mrenclave:", claim->value, claim->value_size);
+        INFO_HEX("Peer enclave's mrenclave:", claim->value, claim->value_size);
         if (claim->value_size != UPGRADE_MRENCLAVE_SIZE ||
             memcmp(claim->value,
                    upgrade_ctx.their_mrenclave,
                    UPGRADE_MRENCLAVE_SIZE) != 0) {
-            LOG("Peer enclave's mrenclave does not match the spec's "
-                "mrenclave\n");
+            DEBUG("Peer enclave's mrenclave does not match the spec's "
+                  "mrenclave\n");
             goto upgrade_process_apdu_identify_peer_error;
         }
         if (!(claim = evidence_get_claim(
                   claims, claims_size, OE_CLAIM_ATTRIBUTES))) {
-            LOG("Error extracting peer enclave's attributes\n");
+            DEBUG("Error extracting peer enclave's attributes\n");
             goto upgrade_process_apdu_identify_peer_error;
         }
         // Here, the claim value (containing the attributes) is cast
@@ -642,31 +642,31 @@ unsigned int upgrade_process_apdu(volatile unsigned int rx) {
         if (claim->value_size != UPGRADE_ATTRIBUTES_SIZE ||
             (*((UPGRADE_ATTRIBUTES_TYPE*)claim->value) &
              OE_EVIDENCE_ATTRIBUTES_SGX_DEBUG)) {
-            LOG("Peer enclave is running in debug mode\n");
+            DEBUG("Peer enclave is running in debug mode\n");
             goto upgrade_process_apdu_identify_peer_error;
         }
         if (!(claim = evidence_get_custom_claim(claims, claims_size))) {
-            LOG("Error extracting peer enclave's public key\n");
+            DEBUG("Error extracting peer enclave's public key\n");
             goto upgrade_process_apdu_identify_peer_error;
         }
         secp_ctx = assert_secp256k1_context_create_and_randomize();
         if (claim->value_size != sizeof(upgrade_ctx.their_pubkey) ||
             !secp256k1_ec_pubkey_parse(
                 secp_ctx, &pubkey, claim->value, claim->value_size)) {
-            LOG("Invalid peer public key received");
+            DEBUG("Invalid peer public key received");
             secp256k1_context_destroy(secp_ctx);
             goto upgrade_process_apdu_identify_peer_error;
         }
         secp256k1_context_destroy(secp_ctx);
         memcpy(upgrade_ctx.their_pubkey, claim->value, claim->value_size);
-        LOG_HEX("Peer public key:",
-                upgrade_ctx.their_pubkey,
-                sizeof(upgrade_ctx.their_pubkey));
+        DEBUG_HEX("Peer public key:",
+                  upgrade_ctx.their_pubkey,
+                  sizeof(upgrade_ctx.their_pubkey));
         upgrade_ctx.state = upgrade_state_ready_for_xchg;
         SET_APDU_OP(0); // Done
         if (claims) {
             if (!evidence_free_claims(claims, claims_size)) {
-                LOG("Error freeing claims\n");
+                DEBUG("Error freeing claims\n");
                 THROW(ERR_INTERNAL);
             }
             claims = NULL;
@@ -678,7 +678,7 @@ unsigned int upgrade_process_apdu(volatile unsigned int rx) {
     upgrade_process_apdu_identify_peer_error:
         if (claims) {
             if (!evidence_free_claims(claims, claims_size)) {
-                LOG("Error freeing claims\n");
+                DEBUG("Error freeing claims\n");
                 THROW(ERR_INTERNAL);
             }
             claims = NULL;
@@ -701,7 +701,7 @@ unsigned int upgrade_process_apdu(volatile unsigned int rx) {
                             upgrade_ctx.my_privkey,
                             secp256k1_ecdh_hash_function_sha256,
                             NULL)) {
-            LOG("Unable to generate data processing key\n");
+            DEBUG("Unable to generate data processing key\n");
             reset_upgrade();
             secp256k1_context_destroy(secp_ctx);
             THROW(ERR_UPGRADE_INTERNAL);
@@ -714,18 +714,18 @@ unsigned int upgrade_process_apdu(volatile unsigned int rx) {
 
         switch (upgrade_ctx.operation) {
         case upgrade_operation_export:
-            LOG("Exporting data...\n");
+            INFO("Exporting data...\n");
             sz = APDU_TOTAL_DATA_SIZE_OUT;
             if (!migrate_export(key, sizeof(key), APDU_DATA_PTR, &sz) ||
                 sz != (sz & 0xFF)) {
                 reset_upgrade();
                 THROW(ERR_UPGRADE_DATA_PROCESSING);
             }
-            LOG("Data export complete\n");
+            INFO("Data export complete\n");
             reset_upgrade();
             return TX_FOR_DATA_SIZE(sz);
         case upgrade_operation_import:
-            LOG("Importing data...\n");
+            INFO("Importing data...\n");
             if (APDU_DATA_SIZE(rx) == 0) {
                 reset_upgrade();
                 THROW(ERR_UPGRADE_PROTOCOL);
@@ -735,12 +735,12 @@ unsigned int upgrade_process_apdu(volatile unsigned int rx) {
                 reset_upgrade();
                 THROW(ERR_UPGRADE_DATA_PROCESSING);
             }
-            LOG("Data import complete\n");
+            INFO("Data import complete\n");
             reset_upgrade();
             return TX_NO_DATA();
         default:
             // We should never reach this point
-            LOG("Inconsistent internal state when processing data\n");
+            DEBUG("Inconsistent internal state when processing data\n");
             reset_upgrade();
             THROW(ERR_UPGRADE_INTERNAL);
         }

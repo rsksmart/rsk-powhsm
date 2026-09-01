@@ -29,10 +29,10 @@
 #include "log.h"
 
 // Simulation build
-#if defined(DEBUG_BUILD)
-#define CREATE_ENCLAVE_FLAGS OE_ENCLAVE_FLAG_DEBUG
-#elif defined(SIM_BUILD)
+#if defined(SIM_BUILD)
 #define CREATE_ENCLAVE_FLAGS OE_ENCLAVE_FLAG_SIMULATE
+#elif defined(DEBUG_BUILD)
+#define CREATE_ENCLAVE_FLAGS OE_ENCLAVE_FLAG_DEBUG
 #else
 #define CREATE_ENCLAVE_FLAGS 0
 #endif
@@ -45,7 +45,7 @@ static oe_enclave_t* G_enclave = NULL;
 bool epro_init(char* enclave_path) {
     G_enclave_path = enclave_path;
     if (access(G_enclave_path, F_OK) != 0) {
-        LOG("Invalid enclave path given: %s\n", G_enclave_path);
+        DEBUG("Invalid enclave path given: %s\n", G_enclave_path);
         return false;
     }
     return true;
@@ -54,7 +54,8 @@ bool epro_init(char* enclave_path) {
 oe_enclave_t* epro_get_enclave() {
     if (NULL == G_enclave) {
         oe_enclave_t* enclave = NULL;
-        LOG("Creating HSM enclave...\n");
+        INFO("Creating HSM enclave...\n");
+        DEBUG("Create enclave flags: %d\n", CREATE_ENCLAVE_FLAGS);
         oe_result_t result = oe_create_hsm_enclave(G_enclave_path,
                                                    OE_ENCLAVE_TYPE_AUTO,
                                                    CREATE_ENCLAVE_FLAGS,
@@ -62,13 +63,13 @@ oe_enclave_t* epro_get_enclave() {
                                                    0,
                                                    &enclave);
         if (OE_OK != result) {
-            LOG("Failed to create enclave: oe_result=%u (%s)\n",
-                result,
-                oe_result_str(result));
+            DEBUG("Failed to create enclave: oe_result=%u (%s)\n",
+                  result,
+                  oe_result_str(result));
             return NULL;
         }
 
-        LOG("HSM enclave created\n");
+        INFO("HSM enclave created\n");
         G_enclave = enclave;
     }
 
@@ -78,7 +79,7 @@ oe_enclave_t* epro_get_enclave() {
 void epro_finalize_enclave() {
     if (NULL != G_enclave) {
         oe_terminate_enclave(G_enclave);
-        LOG("HSM enclave terminated\n");
+        INFO("HSM enclave terminated\n");
         G_enclave = NULL;
     }
 }

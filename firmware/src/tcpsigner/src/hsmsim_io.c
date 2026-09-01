@@ -97,15 +97,17 @@ static int start_server(int port, const char *host) {
     struct hostent *hostinfo;
     hostinfo = gethostbyname(host);
 
+    INFO("Starting server...\n");
+
     if (hostinfo == NULL) {
-        LOG("Host not found.\n");
+        DEBUG("Host not found\n");
         exit(1);
     }
 
     // socket create and verification
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd == -1) {
-        LOG("Socket creation failed...\n");
+        DEBUG("Socket creation failed\n");
         exit(1);
     }
 
@@ -113,12 +115,12 @@ static int start_server(int port, const char *host) {
 
     if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) <
         0) {
-        LOG("Socket option setting failed failed\n");
+        DEBUG("Socket option setting failed failed\n");
         exit(1);
     }
 
     if (setsockopt(sockfd, SOL_TCP, TCP_NODELAY, &(int){1}, sizeof(int)) < 0) {
-        LOG("Socket option setting failed failed\n");
+        DEBUG("Socket option setting failed failed\n");
         exit(1);
     }
 
@@ -129,17 +131,17 @@ static int start_server(int port, const char *host) {
 
     // Binding newly created socket to given IP and verification
     if ((bind(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr))) != 0) {
-        LOG("Socket bind failed...\n");
+        DEBUG("Socket bind failed\n");
         exit(1);
     }
 
     // Now server is ready to listen and verification
     if ((listen(sockfd, 5)) != 0) {
-        LOG("Listen failed...\n");
+        DEBUG("Listen failed\n");
         exit(1);
     }
 
-    LOG("Server listening...\n");
+    INFO("Server started. Listening...\n");
     return sockfd;
 }
 
@@ -154,11 +156,11 @@ static int accept_connection(int sockfd) {
     int len = sizeof(cliaddr);
     int connfd = accept(sockfd, (struct sockaddr *)&cliaddr, &len);
     if (connfd < 0) {
-        LOG("Client connection failed...\n");
+        DEBUG("Client connection failed...\n");
         exit(1);
     }
 
-    LOG("Client connected...\n");
+    INFO("Client connected...\n");
     return connfd;
 }
 
@@ -218,17 +220,17 @@ static unsigned short io_exchange_server(unsigned short tx) {
             tx_net = htonl(tx_net);
             size_t written;
             if (send(connfd, &tx_net, sizeof(tx_net), MSG_NOSIGNAL) == -1) {
-                LOG("Connection closed by the client\n");
+                INFO("Connection closed by the client\n");
                 connfd = 0;
                 continue;
             }
             // Write APDU
             if (send(connfd, io_apdu_buffer, tx, MSG_NOSIGNAL) == -1) {
-                LOG("Connection closed by the client\n");
+                INFO("Connection closed by the client\n");
                 connfd = 0;
                 continue;
             }
-            LOG_HEX("Dongle =>", io_apdu_buffer, tx);
+            DEBUG_HEX("Dongle =>", io_apdu_buffer, tx);
         }
 
         // Only write? We're done
@@ -247,45 +249,45 @@ static unsigned short io_exchange_server(unsigned short tx) {
                 // Read APDU from socket
                 readlen = read(connfd, io_apdu_buffer, sizeof(io_apdu_buffer));
                 if (readlen < 0) {
-                    LOG("Error reading APDU. Disconnected\n");
+                    DEBUG("Error reading APDU. Disconnected\n");
                     connfd = 0;
                     continue;
                 } else if ((unsigned int)readlen != rx) {
-                    LOG("Warning: APDU read length mismatch "
-                        "(got %d bytes, expected %u bytes). "
-                        "Resetting request buffer\n",
-                        readlen,
-                        rx);
+                    DEBUG("Warning: APDU read length mismatch "
+                          "(got %d bytes, expected %u bytes). "
+                          "Resetting request buffer\n",
+                          readlen,
+                          rx);
                     // Empty the request buffer
                     int bytes_available;
                     char c;
                     if (ioctl(connfd, FIONREAD, &bytes_available) < 0) {
-                        LOG("Error peeking APDU. Disconnected\n");
+                        DEBUG("Error peeking APDU. Disconnected\n");
                         connfd = 0;
                         continue;
                     }
                     while (bytes_available--)
                         read(connfd, &c, 1);
                 }
-                LOG_HEX("Dongle <=", io_apdu_buffer, readlen);
+                DEBUG_HEX("Dongle <=", io_apdu_buffer, readlen);
             } else {
                 // Empty packet
-                LOG("Dongle <= <EMPTY MESSAGE>\n");
+                DEBUG("Dongle <= <EMPTY MESSAGE>\n");
             }
 
             return rx;
         } else if (readlen == 0) {
             // EOF => socket closed
-            LOG("Connection closed by the client\n");
+            INFO("Connection closed by the client\n");
         } else if (readlen == -1) {
             // Error reading
-            LOG("Error reading from socket. Disconnected\n");
+            INFO("Error reading from socket. Disconnected\n");
         } else {
             // Invalid packet header
-            LOG("Error reading APDU length (got %d bytes != %ld bytes). "
-                "Disconnected\n",
-                readlen,
-                sizeof(rx_net));
+            INFO("Error reading APDU length (got %d bytes != %lu bytes). "
+                 "Disconnected\n",
+                 readlen,
+                 sizeof(rx_net));
         }
         connfd = 0;
     }
@@ -299,7 +301,7 @@ static unsigned short io_exchange_server(unsigned short tx) {
 static unsigned short io_exchange_file(unsigned char tx, FILE *input_file) {
     // File input format: |1 byte length| |len bytes data|
     static unsigned long file_index = 0;
-    LOG_HEX("Dongle => ", io_apdu_buffer, tx);
+    DEBUG_HEX("Dongle => ", io_apdu_buffer, tx);
 
     // Only write? We're done
     if (io_exchange_write_only) {
@@ -310,10 +312,10 @@ static unsigned short io_exchange_file(unsigned char tx, FILE *input_file) {
     unsigned char announced_rx;
     if (fread(&announced_rx, sizeof(char), 1, input_file) != 1) {
         if (feof(input_file)) {
-            LOG("Server: EOF\n");
+            DEBUG("Server: EOF\n");
             exit(0);
         }
-        LOG("Server: could not read rx size\n");
+        DEBUG("Server: could not read rx size\n");
         exit(1);
     }
 
@@ -325,10 +327,10 @@ static unsigned short io_exchange_file(unsigned char tx, FILE *input_file) {
         capped_rx = MAX_FUZZ_TRANSFER;
     }
 
-    LOG("Server: reading %d (announced: %d) bytes at index: %d\n",
-        capped_rx,
-        announced_rx,
-        file_index);
+    INFO("Server: reading %d (announced: %d) bytes at index: %lu\n",
+         capped_rx,
+         announced_rx,
+         file_index);
     unsigned short rx =
         fread(io_apdu_buffer, sizeof(char), capped_rx, input_file);
 
@@ -336,15 +338,15 @@ static unsigned short io_exchange_file(unsigned char tx, FILE *input_file) {
         // if we reach EOF while reading the data portion it means
         // the announced size did not match the file
         if (feof(input_file)) {
-            LOG("Server: malformed input, tried reading %d bytes but reached "
-                "EOF after %d\n",
-                capped_rx,
-                rx);
+            DEBUG("Server: malformed input, tried reading %u bytes but reached "
+                  "EOF after %u\n",
+                  capped_rx,
+                  rx);
             exit(1);
         }
-        LOG("Server: Could not read %d bytes (only: %d) from input file\n",
-            capped_rx,
-            rx);
+        DEBUG("Server: Could not read %u bytes (only: %u) from input file\n",
+              capped_rx,
+              rx);
         exit(1);
     }
 
@@ -354,12 +356,12 @@ static unsigned short io_exchange_file(unsigned char tx, FILE *input_file) {
     // interpreting data as the length.
     unsigned long index_offset = announced_rx + 1;
     if (file_index > (ULONG_MAX - index_offset)) {
-        LOG("Server: input file too big, can't store offset.");
+        DEBUG("Server: input file too big, can't store offset.");
         exit(1);
     }
 
     file_index += index_offset;
-    LOG_HEX("Dongle <= ", io_apdu_buffer, rx);
+    DEBUG_HEX("Dongle <= ", io_apdu_buffer, rx);
     return capped_rx;
 }
 
@@ -370,7 +372,7 @@ static unsigned short io_exchange_file(unsigned char tx, FILE *input_file) {
  */
 static unsigned int replicate_to_file(FILE *replica_file, unsigned short rx) {
     unsigned char rx_byte = rx;
-    LOG_HEX("Replica =>", io_apdu_buffer, rx_byte);
+    DEBUG_HEX("Replica =>", io_apdu_buffer, rx_byte);
     unsigned int written = fwrite(&rx_byte, sizeof(char), 1, replica_file);
     written += fwrite(io_apdu_buffer, sizeof(char), rx_byte, replica_file);
 
@@ -393,7 +395,7 @@ unsigned short hsmsim_io_exchange(unsigned short tx) {
         rx = io_exchange_file(tx, input_file);
         break;
     default:
-        LOG("[TCPSigner] No IO Mode set! This is a bug.");
+        DEBUG("[TCPSigner] No IO Mode set! This is a bug.");
         exit(1);
         break;
     }
@@ -401,7 +403,7 @@ unsigned short hsmsim_io_exchange(unsigned short tx) {
     if (replica_file != NULL) {
         int written = replicate_to_file(replica_file, rx);
         if (written != rx + 1) {
-            LOG("Error writting to output file %s\n", replica_file);
+            DEBUG("Error writting to replica file\n");
             exit(-1);
         }
     }

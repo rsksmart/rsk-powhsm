@@ -39,14 +39,14 @@ bool hmac_sha512(uint8_t *out,
     const mbedtls_md_info_t *md_info;
 
     if (out_length < SHA512_HASH_LENGTH) {
-        LOG("Error: output buffer too small\n");
+        DEBUG("Error: output buffer too small\n");
         return false;
     }
 
     mbedtls_md_init(&ctx);
     md_info = mbedtls_md_info_from_type(MBEDTLS_MD_SHA512);
     if (!md_info) {
-        LOG("Error: SHA-512 not supported\n");
+        DEBUG("Error: SHA-512 not supported\n");
         goto hmac_sha512_error;
     }
 
@@ -71,7 +71,7 @@ bool hmac_sha512(uint8_t *out,
     return true;
 
 hmac_sha512_error:
-    LOG("Error: failed to compute HMAC-SHA512\n");
+    DEBUG("Error: failed to compute HMAC-SHA512\n");
     mbedtls_md_free(&ctx);
     return false;
 }

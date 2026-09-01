@@ -23,7 +23,7 @@
 include ../common/common.mk
 
 PROG = test.out
-OBJS = hsm.o test_hsm.o exceptions.o
+OBJS = hsm.o test_hsm.o exceptions.o log.o
 
 all: $(PROG)
 

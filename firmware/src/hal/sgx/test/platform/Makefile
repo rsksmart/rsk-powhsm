@@ -23,7 +23,7 @@
 include ../common/common.mk
 
 PROG = test.out
-OBJS = test_platform.o platform.o
+OBJS = test_platform.o platform.o log.o
 
 all: $(PROG)
 

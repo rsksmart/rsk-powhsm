@@ -51,6 +51,13 @@
 
 #include "hal/log.h"
 
+#define INFO_CMD_XPLC(cmd, apdu_cmd) \
+    if (apdu_cmd != curr_cmd) {      \
+        INFO("> " cmd "\n");         \
+    }
+
+#define INFO_CMD(cmd) INFO_CMD_XPLC(cmd, APDU_CMD())
+
 // Operation being currently executed
 static unsigned char curr_cmd;
 
@@ -120,6 +127,7 @@ static unsigned int hsm_process_command(volatile unsigned int rx) {
     switch (APDU_CMD()) {
     // Reports the current mode (i.e., always reports signer mode)
     case RSK_MODE_CMD:
+        INFO_CMD("Mode");
         hsm_reset_if_starting(RSK_MODE_CMD);
         SET_APDU_CMD(APP_MODE_SIGNER);
         tx = 2;
@@ -127,6 +135,7 @@ static unsigned int hsm_process_command(volatile unsigned int rx) {
 
     // Reports wheter the device is onboarded and the current signer version
     case RSK_IS_ONBOARD:
+        INFO_CMD("Is onboard?");
         hsm_reset_if_starting(RSK_IS_ONBOARD);
         uint8_t output_index = CMDPOS;
         SET_APDU_AT(output_index++, seed_available() ? 1 : 0);
@@ -138,6 +147,7 @@ static unsigned int hsm_process_command(volatile unsigned int rx) {
 
     // Derives and returns the corresponding public key for the given path
     case INS_GET_PUBLIC_KEY:
+        INFO_CMD("Get public key");
         REQUIRE_UNLOCKED();
         REQUIRE_ONBOARDED();
 
@@ -182,6 +192,7 @@ static unsigned int hsm_process_command(volatile unsigned int rx) {
         break;
 
     case INS_SIGN:
+        INFO_CMD("Sign");
         REQUIRE_UNLOCKED();
         REQUIRE_ONBOARDED();
 
@@ -190,6 +201,7 @@ static unsigned int hsm_process_command(volatile unsigned int rx) {
         break;
 
     case INS_ATTESTATION:
+        INFO_CMD("Attestation");
         REQUIRE_UNLOCKED();
         REQUIRE_ONBOARDED();
 
@@ -198,6 +210,7 @@ static unsigned int hsm_process_command(volatile unsigned int rx) {
         break;
 
     case INS_HEARTBEAT:
+        INFO_CMD("Heartbeat");
         REQUIRE_UNLOCKED();
         REQUIRE_ONBOARDED();
 
@@ -207,6 +220,7 @@ static unsigned int hsm_process_command(volatile unsigned int rx) {
 
     // Get blockchain state
     case INS_GET_STATE:
+        INFO_CMD_XPLC("Get blockchain state", INS_ADVANCE);
         REQUIRE_UNLOCKED();
         REQUIRE_ONBOARDED();
 
@@ -218,6 +232,7 @@ static unsigned int hsm_process_command(volatile unsigned int rx) {
 
     // Reset blockchain state
     case INS_RESET_STATE:
+        INFO_CMD("Reset blockchain state");
         REQUIRE_UNLOCKED();
         REQUIRE_ONBOARDED();
 
@@ -227,6 +242,7 @@ static unsigned int hsm_process_command(volatile unsigned int rx) {
 
     // Advance blockchain
     case INS_ADVANCE:
+        INFO_CMD("Advance blockchain state");
         REQUIRE_UNLOCKED();
         REQUIRE_ONBOARDED();
 
@@ -236,6 +252,7 @@ static unsigned int hsm_process_command(volatile unsigned int rx) {
 
     // Advance blockchain precompiled parameters
     case INS_ADVANCE_PARAMS:
+        INFO_CMD("Get precompiled params");
         REQUIRE_UNLOCKED();
         REQUIRE_ONBOARDED();
 
@@ -245,6 +262,7 @@ static unsigned int hsm_process_command(volatile unsigned int rx) {
 
     // Update ancestor
     case INS_UPD_ANCESTOR:
+        INFO_CMD("Update ancestor block");
         REQUIRE_UNLOCKED();
         REQUIRE_ONBOARDED();
 
@@ -253,6 +271,7 @@ static unsigned int hsm_process_command(volatile unsigned int rx) {
         break;
 
     case INS_EXIT:
+        INFO_CMD("Exit");
         REQUIRE_UNLOCKED();
 
         bc_backup_partial_state();

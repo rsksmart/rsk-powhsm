@@ -29,7 +29,7 @@
 bool hash_sha256_init(hash_sha256_ctx_t* ctx) {
     mbedtls_sha256_init(ctx);
     if (mbedtls_sha256_starts_ret(ctx, 0) != 0) {
-        LOG("Error initializing SHA256 context\n");
+        DEBUG("Error initializing SHA256 context\n");
         mbedtls_sha256_free(ctx);
         return false;
     }
@@ -40,7 +40,7 @@ bool hash_sha256_update(hash_sha256_ctx_t* ctx,
                         const uint8_t* data,
                         size_t len) {
     if (mbedtls_sha256_update_ret(ctx, data, len) != 0) {
-        LOG("Error updating SHA256 context\n");
+        DEBUG("Error updating SHA256 context\n");
         mbedtls_sha256_free(ctx);
         return false;
     }
@@ -49,7 +49,7 @@ bool hash_sha256_update(hash_sha256_ctx_t* ctx,
 
 bool hash_sha256_final(hash_sha256_ctx_t* ctx, uint8_t* out_hash) {
     if (mbedtls_sha256_finish_ret(ctx, out_hash) != 0) {
-        LOG("Error finishing SHA256 computation\n");
+        DEBUG("Error finishing SHA256 computation\n");
         mbedtls_sha256_free(ctx);
         return false;
     }

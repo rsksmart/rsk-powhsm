@@ -23,7 +23,7 @@
 include ../common/common.mk
 
 PROG = test.out
-OBJS = ecall.o test_ecall.o
+OBJS = ecall.o test_ecall.o log.o
 
 all: $(PROG)
 

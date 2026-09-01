@@ -20,11 +20,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+UNTRUSTED=1
 include ../common/common.mk
 
 PROG = test.out
-OBJS = io.o log.o test_io.o
-CFLAGS += -g
+OBJS = io.o test_io.o log.o
 
 all: $(PROG)
 

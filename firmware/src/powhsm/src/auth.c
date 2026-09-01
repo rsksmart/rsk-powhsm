@@ -123,12 +123,13 @@ unsigned int auth_sign(volatile unsigned int rx) {
                       sizeof(N_bc_state.last_auth_signed_btc_tx_hash));
 
             // Log hash for debugging purposes
-            LOG_HEX("Saved BTC tx hash: ", auth.tx_hash, sizeof(auth.tx_hash));
+            DEBUG_HEX(
+                "Saved BTC tx hash: ", auth.tx_hash, sizeof(auth.tx_hash));
         } else {
             // Log (already saved) hash for debugging purposes
-            LOG_HEX("Did not rewrite already saved BTC tx hash: ",
-                    auth.tx_hash,
-                    sizeof(auth.tx_hash));
+            DEBUG_HEX("Did not rewrite already saved BTC tx hash: ",
+                      auth.tx_hash,
+                      sizeof(auth.tx_hash));
         }
     }
 

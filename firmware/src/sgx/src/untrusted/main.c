@@ -137,29 +137,31 @@ int main(int argc, char **argv) {
     // Parse arguments
     argp_parse(&argp, argc, argv, 0, 0, &arguments);
 
-    LOG("SGX powHSM starting...\n");
+    INFO("SGX powHSM starting...\n");
 
-    LOG("Initialising enclave provider...\n");
+    INFO("Log lines starting with [*] originate within the enclave\n");
+
+    INFO("Initialising enclave provider...\n");
     if (!epro_init(arguments.enclave_path)) {
-        LOG("Error initialising enclave provider\n");
+        INFO("Error initialising enclave provider\n");
         goto main_error;
     }
 
-    LOG("Initialising system...\n");
+    INFO("Initialising system...\n");
     if (!eprx_system_init(io_apdu_buffer, sizeof(io_apdu_buffer))) {
-        LOG("Error initialising system\n");
+        INFO("Error initialising system\n");
         goto main_error;
     }
-    LOG("System initialised\n");
+    INFO("System initialised\n");
 
-    LOG("Initialising server...\n");
+    INFO("Initialising server...\n");
     if (!io_init(arguments.port, arguments.bind)) {
-        LOG("Error initialising server\n");
+        INFO("Error initialising server\n");
         goto main_error;
     }
-    LOG("Server initialised\n");
+    INFO("Server initialised\n");
 
-    LOG("HSM running...\n");
+    INFO("HSM running...\n");
 
     unsigned int rx = 0;
     unsigned int tx = 0;
@@ -169,7 +171,7 @@ int main(int argc, char **argv) {
         tx = eprx_system_process_apdu(rx);
     }
 
-    LOG("Exited main loop unexpectedly\n");
+    INFO("Exited main loop unexpectedly\n");
 
 main_error:
     finalise_with(1);

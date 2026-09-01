@@ -60,7 +60,7 @@ void nvmem_init() {
 
 bool nvmem_register_block(char* key, void* addr, size_t size) {
     if (nvm_blocks_count >= MAX_NVM_BLOCKS) {
-        LOG("Error registering NVM block <%s>: too many blocks\n", key);
+        DEBUG("Error registering NVM block <%s>: too many blocks\n", key);
         return false;
     }
 
@@ -79,7 +79,7 @@ static void clear_blocks() {
 }
 
 bool nvmem_load() {
-    LOG("Loading NVM blocks...\n");
+    INFO("Loading NVM blocks...\n");
     for (unsigned int i = 0; i < nvm_blocks_count; i++) {
         char* key = store_key_for(nvm_blocks[i].key);
         if (sest_exists(key)) {
@@ -87,7 +87,7 @@ bool nvmem_load() {
             if (sest_read(key, tmp, nvm_blocks[i].size) == nvm_blocks[i].size) {
                 memcpy((uint8_t*)nvm_blocks[i].addr, tmp, nvm_blocks[i].size);
             } else {
-                LOG("Error loading NVM block <%s>\n", nvm_blocks[i].key);
+                DEBUG("Error loading NVM block <%s>\n", nvm_blocks[i].key);
                 clear_blocks();
                 free(key);
                 free(tmp);
@@ -95,7 +95,7 @@ bool nvmem_load() {
             }
             free(tmp);
         } else {
-            LOG("No record found for NVM block <%s>\n", nvm_blocks[i].key);
+            DEBUG("No record found for NVM block <%s>\n", nvm_blocks[i].key);
             memset((uint8_t*)nvm_blocks[i].addr, 0, nvm_blocks[i].size);
         }
         free(key);
@@ -104,12 +104,12 @@ bool nvmem_load() {
 }
 
 static bool nvmem_flush() {
-    LOG("Flushing NVM blocks...\n");
+    INFO("Flushing NVM blocks...\n");
     for (unsigned int i = 0; i < nvm_blocks_count; i++) {
         char* key = store_key_for(nvm_blocks[i].key);
         if (!sest_write(
                 key, (uint8_t*)nvm_blocks[i].addr, nvm_blocks[i].size)) {
-            LOG("Error flushing NVM block <%s>\n", nvm_blocks[i].key);
+            DEBUG("Error flushing NVM block <%s>\n", nvm_blocks[i].key);
             free(key);
             return false;
         }

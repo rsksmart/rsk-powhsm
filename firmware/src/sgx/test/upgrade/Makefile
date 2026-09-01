@@ -22,12 +22,11 @@
 
 include ../common/common.mk
 
-CFLAGS += -DPARAM_SIGNERS_FILE=testing #-DENCLAVE_LOGS
-VPATH += $(HALSGXSRCDIR)
+CFLAGS += -DPARAM_SIGNERS_FILE=testing
 LIBS = -lsecp256k1 -lmbedcrypto
 
 PROG = test.out
-OBJS = upgrade.o hash.o sha256.o keccak256.o log.o test_upgrade.o
+OBJS = upgrade.o hash.o sha256.o keccak256.o test_upgrade.o log.o
 
 all: $(PROG)
 

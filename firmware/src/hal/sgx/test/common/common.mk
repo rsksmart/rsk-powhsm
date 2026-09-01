@@ -31,6 +31,10 @@ CFLAGS += -iquote $(TESTCOMMONDIR)
 CFLAGS += -I$(MOCKDIR)
 CFLAGS += -DHSM_PLATFORM_SGX
 
+ifneq ($(DEBUG),)
+	CFLAGS += -DLOGLEVEL_DEBUG
+endif
+
 VPATH += $(MOCKDIR):$(SRCDIR):$(COMMONSRCDIR)
 
 include ../../../../../coverage/coverage.mk

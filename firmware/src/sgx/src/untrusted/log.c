@@ -29,32 +29,32 @@
 
 static char *log_prefix = (char *)NULL;
 
-void LOG(const char *format, ...) {
+void INFO(const char *format, ...) {
     va_list args;
     va_start(args, format);
 
     if (log_prefix) {
-        printf("%s", log_prefix);
+        fprintf(stderr, "%s", log_prefix);
     }
-    vprintf(format, args);
+    vfprintf(stderr, format, args);
 
     va_end(args);
 }
 
-void LOG_HEX(const char *prefix, const void *buffer, const size_t size) {
+void INFO_HEX(const char *prefix, const void *buffer, const size_t size) {
     if (log_prefix) {
-        printf("%s", log_prefix);
+        fprintf(stderr, "%s", log_prefix);
     }
-    printf("%s ", prefix);
+    fprintf(stderr, "%s ", prefix);
     if (size > 0) {
-        printf("0x");
+        fprintf(stderr, "0x");
         for (unsigned int i = 0; i < size; i++) {
-            printf("%02x", ((unsigned char *)buffer)[i]);
+            fprintf(stderr, "%02x", ((unsigned char *)buffer)[i]);
         }
     } else {
-        printf("EMPTY");
+        fprintf(stderr, "EMPTY");
     }
-    printf("\n");
+    fprintf(stderr, "\n");
 }
 
 void log_set_prefix(const char *prefix) {

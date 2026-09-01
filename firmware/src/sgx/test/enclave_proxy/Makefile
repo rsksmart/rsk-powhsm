@@ -20,11 +20,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+UNTRUSTED=1
 include ../common/common.mk
 
 PROG = test.out
-OBJS = log.o enclave_proxy.o test_enclave_proxy.o
-CFLAGS += -g
+OBJS = enclave_proxy.o test_enclave_proxy.o log.o
 
 all: $(PROG)
 

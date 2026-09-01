@@ -98,7 +98,7 @@ static void list_start(const uint16_t size) {
     update_indexes();
 
     if (auth.receipt.level == RECEIPT_MAX_DEPTH) {
-        LOG("[E] Receipt exceeded the maximum allowed depth\n");
+        DEBUG("[E] Receipt exceeded the maximum allowed depth\n");
         THROW(ERR_AUTH_RECEIPT_INVALID);
     }
     ++auth.receipt.level;
@@ -115,7 +115,7 @@ static void list_start(const uint16_t size) {
     if (auth.receipt.level == TOP_LEVEL) {
         // All receipts MUST consist of a single top-level list. Fail otherwise
         if (HAS_FLAG(auth.receipt.flags, TOP_LEVEL_LIST_SEEN)) {
-            LOG("[E] Receipt had more than one top-level list\n");
+            DEBUG("[E] Receipt had more than one top-level list\n");
             THROW(ERR_AUTH_RECEIPT_INVALID);
         }
         SET_FLAG(auth.receipt.flags, TOP_LEVEL_LIST_SEEN);
@@ -130,8 +130,8 @@ static void list_end() {
         auth.receipt.level == LOG_LEVEL) {
         // Validate the parsed log had the exact number of elements
         if (auth.receipt.index[LOG_LEVEL - 1] != LOG_ELEMENTS) {
-            LOG("[E] Found log with %u elements\n",
-                auth.receipt.index[LOG_LEVEL - 1]);
+            DEBUG("[E] Found log with %u elements\n",
+                  auth.receipt.index[LOG_LEVEL - 1]);
             THROW(ERR_AUTH_RECEIPT_INVALID);
         }
 
@@ -146,7 +146,8 @@ static void list_end() {
     // top level elements
     if (auth.receipt.level == TOP_LEVEL &&
         auth.receipt.index[TOP_LEVEL - 1] != LIST_ELEMENTS) {
-        LOG("[E] Receipt had %u elements\n", auth.receipt.index[TOP_LEVEL - 1]);
+        DEBUG("[E] Receipt had %u elements\n",
+              auth.receipt.index[TOP_LEVEL - 1]);
         THROW(ERR_AUTH_RECEIPT_INVALID);
     }
 
@@ -162,7 +163,7 @@ static void str_start(const uint16_t size) {
 
     // Top level must be a list
     if (auth.receipt.level == 0) {
-        LOG("[E] Receipt not a list\n");
+        DEBUG("[E] Receipt not a list\n");
         THROW(ERR_AUTH_RECEIPT_INVALID);
     }
 
@@ -248,7 +249,7 @@ static const rlp_callbacks_t callbacks = {
  */
 unsigned int auth_sign_handle_receipt(volatile unsigned int rx) {
     if (auth.state != STATE_AUTH_RECEIPT) {
-        LOG("[E] Expected to be in the receipt state\n");
+        DEBUG("[E] Expected to be in the receipt state\n");
         THROW(ERR_AUTH_INVALID_STATE);
     }
 
@@ -260,7 +261,7 @@ unsigned int auth_sign_handle_receipt(volatile unsigned int rx) {
 
     int res = rlp_consume(APDU_DATA_PTR, APDU_DATA_SIZE(rx));
     if (res < 0) {
-        LOG("[E] RLP parser returned error %d\n", res);
+        DEBUG("[E] RLP parser returned error %d\n", res);
         THROW(ERR_AUTH_RECEIPT_RLP);
     }
     auth.receipt.remaining_bytes -= APDU_DATA_SIZE(rx);
@@ -274,7 +275,7 @@ unsigned int auth_sign_handle_receipt(volatile unsigned int rx) {
             hash_keccak256_final(&auth.receipt.hash_ctx, auth.receipt_hash);
 
             // Log hash for debugging purposes
-            LOG_HEX(
+            INFO_HEX(
                 "Receipt hash: ", auth.receipt_hash, sizeof(auth.receipt_hash));
 
             // Request RSK transaction receipt
@@ -286,7 +287,7 @@ unsigned int auth_sign_handle_receipt(volatile unsigned int rx) {
         }
 
         // No match
-        LOG("[E] No log match found in the receipt\n");
+        DEBUG("[E] No log match found in the receipt\n");
         // To comply with the legacy implementation
         THROW(ERR_AUTH_INVALID_DATA_SIZE);
     }

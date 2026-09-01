@@ -36,10 +36,10 @@ static struct { bool initialised; } G_evidence_ctx;
 #define EVIDENCE_CHECK(oe_result, error_msg, statement) \
     {                                                   \
         if (OE_OK != oe_result) {                       \
-            LOG("%s: result=%u (%s)\n",                 \
-                error_msg,                              \
-                result,                                 \
-                oe_result_str(oe_result));              \
+            DEBUG("%s: result=%u (%s)\n",               \
+                  error_msg,                            \
+                  result,                               \
+                  oe_result_str(oe_result));            \
             { statement; }                              \
         }                                               \
     }
@@ -60,7 +60,8 @@ bool evidence_init() {
     EVIDENCE_CHECK(result, "Failed to initialize verifier", return false);
 
     G_evidence_ctx.initialised = true;
-    LOG("Evidence module initialized\n");
+    INFO("Evidence module initialized\n");
+
     return true;
 }
 
@@ -74,12 +75,12 @@ bool evidence_get_format_settings(evidence_format_t* format) {
     oe_result_t result;
 
     if (!G_evidence_ctx.initialised) {
-        LOG("Evidence module not initialised\n");
+        DEBUG("Evidence module not initialised\n");
         return false;
     }
 
     if (!format || format->settings || format->settings_size) {
-        LOG("Invalid format getter spec given\n");
+        DEBUG("Invalid format getter spec given\n");
         return false;
     }
 
@@ -128,17 +129,17 @@ bool evidence_generate(evidence_format_t* format,
     bool gathered_settings = false;
 
     if (!G_evidence_ctx.initialised) {
-        LOG("Evidence module not initialised\n");
+        DEBUG("Evidence module not initialised\n");
         goto generate_evidence_error;
     }
 
     if (!format) {
-        LOG("Invalid evidence format\n");
+        DEBUG("Invalid evidence format\n");
         goto generate_evidence_error;
     }
 
     if (!evidence_buffer || !evidence_buffer_size) {
-        LOG("Invalid evidence buffer/size pointers\n");
+        DEBUG("Invalid evidence buffer/size pointers\n");
         goto generate_evidence_error;
     }
 
@@ -147,11 +148,11 @@ bool evidence_generate(evidence_format_t* format,
     gathered_settings = false;
     if (!format->settings) {
         if (!evidence_get_format_settings(format)) {
-            LOG("Error gathering format settings\n");
+            DEBUG("Error gathering format settings\n");
             goto generate_evidence_error;
         }
         gathered_settings = true;
-        LOG("Gathered settings\n");
+        DEBUG("Gathered settings\n");
     }
 
     result = oe_get_evidence(&format->id,
@@ -173,7 +174,7 @@ bool evidence_generate(evidence_format_t* format,
         format->settings_size = 0;
     }
 
-    LOG("Evidence generated successfully\n");
+    INFO("Evidence generated successfully\n");
 
     return true;
 
@@ -199,12 +200,12 @@ bool evidence_verify_and_extract_claims(oe_uuid_t format_id,
                                         oe_claim_t** claims,
                                         size_t* claims_length) {
     if (!G_evidence_ctx.initialised) {
-        LOG("Evidence module not initialised\n");
+        DEBUG("Evidence module not initialised\n");
         return false;
     }
 
     if (!evidence_buffer) {
-        LOG("Invalid evidence buffer pointer\n");
+        DEBUG("Invalid evidence buffer pointer\n");
         return false;
     }
 
@@ -227,7 +228,7 @@ bool evidence_verify_and_extract_claims(oe_uuid_t format_id,
     // Make sure claims were succesfully extracted
     // if that was the intention
     if (claims && claims_length && (!*claims || !*claims_length)) {
-        LOG("Failed to extract claims from evidence\n");
+        DEBUG("Failed to extract claims from evidence\n");
         return false;
     }
 
@@ -260,7 +261,7 @@ bool evidence_verify_and_extract_claims(oe_uuid_t format_id,
         }
         report_data = &((sgx_quote_t*)evidence_buffer)->report_body.report_data;
     } else {
-        LOG("Unexpected evidence format encountered\n");
+        DEBUG("Unexpected evidence format encountered\n");
         goto evidence_verify_and_extract_claims_fail;
     }
 
@@ -276,13 +277,13 @@ bool evidence_verify_and_extract_claims(oe_uuid_t format_id,
                 memcmp(custom_claim->value,
                        custom_claims_buffer,
                        custom_claims_buffer_size)) {
-                LOG("Custom claims buffer and extracted custom claims do not "
-                    "match\n");
+                DEBUG("Custom claims buffer and extracted custom claims do not "
+                      "match\n");
                 goto evidence_verify_and_extract_claims_fail;
             }
         } else if (!(!custom_claim && !custom_claims_buffer &&
                      !custom_claims_buffer_size)) {
-            LOG("Inconsistent custom claims detected\n");
+            DEBUG("Inconsistent custom claims detected\n");
             goto evidence_verify_and_extract_claims_fail;
         }
     }
@@ -314,11 +315,11 @@ bool evidence_verify_and_extract_claims(oe_uuid_t format_id,
         memcmp(report_data->field,
                custom_claims_hash,
                sizeof(custom_claims_hash))) {
-        LOG("Custom claims hash not contained within the evidence\n");
+        DEBUG("Custom claims hash not contained within the evidence\n");
         goto evidence_verify_and_extract_claims_fail;
     }
 
-    LOG("Evidence verified successfully\n");
+    INFO("Evidence verified successfully\n");
 
     return true;
 evidence_verify_and_extract_claims_fail:

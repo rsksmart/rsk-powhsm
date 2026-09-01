@@ -23,7 +23,7 @@
 include ../common/common.mk
 
 PROG = test.out
-OBJS = der_utils.o test_der_utils.o
+OBJS = der_utils.o test_der_utils.o log.o
 CFLAGS += -I.
 
 all: $(PROG)

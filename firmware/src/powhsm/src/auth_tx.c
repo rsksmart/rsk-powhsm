@@ -41,7 +41,8 @@ static void btctx_cb(const btctx_cb_event_t event) {
     if (event == BTCTX_EV_VERSION) {
         if (auth.tx.ctx.parsed.version != 1 &&
             auth.tx.ctx.parsed.version != 2) {
-            LOG("[E] Unsupported TX Version: %u\n", auth.tx.ctx.parsed.version);
+            DEBUG("[E] Unsupported TX Version: %u\n",
+                  auth.tx.ctx.parsed.version);
             THROW(ERR_AUTH_INVALID_TX_VERSION);
         }
 
@@ -51,7 +52,7 @@ static void btctx_cb(const btctx_cb_event_t event) {
 
     if (event == BTCTX_EV_VIN_COUNT) {
         if (auth.input_index_to_sign >= auth.tx.ctx.parsed.varint.value) {
-            LOG("[E] Input index to sign > number of inputs.\n");
+            DEBUG("[E] Input index to sign > number of inputs.\n");
             THROW(ERR_AUTH_INVALID_TX_INPUT_INDEX);
         }
 
@@ -158,7 +159,7 @@ unsigned int auth_sign_handle_btctx(volatile unsigned int rx) {
 #define TX_METADATA_SIZE (BTCTX_LENGTH_SIZE + EXTRADATA_SIZE)
 
     if (auth.state != STATE_AUTH_BTCTX) {
-        LOG("[E] Expected to be in the BTC tx state\n");
+        DEBUG("[E] Expected to be in the BTC tx state\n");
         THROW(ERR_AUTH_INVALID_STATE);
     }
 
@@ -171,7 +172,7 @@ unsigned int auth_sign_handle_btctx(volatile unsigned int rx) {
             }
             if (auth.tx.remaining_bytes <= TX_METADATA_SIZE) {
                 // Prevent underflow
-                LOG("[E] BTC transaction length too small\n");
+                DEBUG("[E] BTC transaction length too small\n");
                 THROW(ERR_AUTH_INVALID_DATA_SIZE);
             }
             // BTC tx length includes the length of the length
@@ -189,7 +190,7 @@ unsigned int auth_sign_handle_btctx(volatile unsigned int rx) {
             auth.tx.extradata_size += APDU_DATA_PTR[apdu_offset++] << 8;
             // Validate extradata size and init tx parsing context
             if (!auth.tx.extradata_size) {
-                LOG("[E] Invalid extradata size");
+                DEBUG("[E] Invalid extradata size");
                 THROW(ERR_AUTH_INVALID_EXTRADATA_SIZE);
             }
             btctx_init(&auth.tx.ctx, &btctx_cb);
@@ -199,15 +200,15 @@ unsigned int auth_sign_handle_btctx(volatile unsigned int rx) {
             APDU_DATA_PTR + apdu_offset, APDU_DATA_SIZE(rx) - apdu_offset);
 
         if (btctx_result() < 0) {
-            LOG("[E] Error parsing BTC tx: %d\n", btctx_result());
+            DEBUG("[E] Error parsing BTC tx: %d\n", btctx_result());
             // To comply with the legacy implementation
             THROW(ERR_AUTH_TX_HASH_MISMATCH);
         }
 
         if (btctx_result() == BTCTX_ST_DONE) {
             if (auth.tx.remaining_bytes > 0) {
-                LOG("[E] Error parsing BTC tx: more bytes reported "
-                    "than actual tx bytes\n");
+                DEBUG("[E] Error parsing BTC tx: more bytes reported "
+                      "than actual tx bytes\n");
                 // To comply with the legacy implementation
                 THROW(ERR_AUTH_INVALID_DATA_SIZE);
             }
@@ -259,8 +260,8 @@ unsigned int auth_sign_handle_btctx(volatile unsigned int rx) {
         hash_sha256_final(&auth.tx.sig_hash_ctx, auth.sig_hash);
 
         // Log hashes for debugging purposes
-        LOG_HEX("TX hash:     ", auth.tx_hash, sizeof(auth.tx_hash));
-        LOG_HEX("TX sig hash: ", auth.sig_hash, sizeof(auth.sig_hash));
+        INFO_HEX("TX hash:     ", auth.tx_hash, sizeof(auth.tx_hash));
+        INFO_HEX("TX sig hash: ", auth.sig_hash, sizeof(auth.sig_hash));
 
         // Request RSK transaction receipt
         SET_APDU_OP(P1_RECEIPT);
@@ -271,8 +272,8 @@ unsigned int auth_sign_handle_btctx(volatile unsigned int rx) {
     }
 
     if (auth.tx.remaining_bytes == 0) {
-        LOG("[E] Error parsing BTC tx: no more bytes should "
-            "remain but haven't finished parsing\n");
+        DEBUG("[E] Error parsing BTC tx: no more bytes should "
+              "remain but haven't finished parsing\n");
         // To comply with the legacy implementation
         THROW(ERR_AUTH_TX_HASH_MISMATCH);
     }

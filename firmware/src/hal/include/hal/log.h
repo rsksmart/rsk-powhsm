@@ -30,10 +30,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifdef LOGLEVEL_DEBUG
+#define DEBUG(...) INFO(__VA_ARGS__)
+#define DEBUG_HEX(...) INFO_HEX(__VA_ARGS__)
+#else
+#define DEBUG(...)
+#define DEBUG_HEX(...)
+#endif
+
 /**
  * @brief Works just like printf
  */
-void LOG(const char *format, ...);
+void INFO(const char *format, ...);
 
 /**
  * @brief Print buffer in hex format with prefix
@@ -42,24 +50,35 @@ void LOG(const char *format, ...);
  * @param buffer the buffer containing the bytes to output as hex chars
  * @param size the size of buffer in bytes
  */
-void LOG_HEX(const char *prefix, const void *buffer, const size_t size);
+void INFO_HEX(const char *prefix, const void *buffer, const size_t size);
 
 #elif defined(HSM_PLATFORM_SGX)
 
-#ifdef ENCLAVE_LOGS
-
 #include <stdio.h>
+#include <stdbool.h>
 
-#define TRUSTED_LOG_PREFIX "[Enclave] "
+#ifdef LOGLEVEL_DEBUG
+#define DEBUG(...) INFO(__VA_ARGS__)
+#define DEBUG_HEX(...) INFO_HEX(__VA_ARGS__)
+#else
+#define DEBUG(...)
+#define DEBUG_HEX(...)
+#endif
+
+#define TRUSTED_LOG_PREFIX "  [*] "
+
+extern bool log_is_at_start_of_line;
 
 /**
  * @brief Works just like printf, but prepends
  * a prefix to every message
  */
-#define LOG(...)                             \
-    {                                        \
-        fprintf(stderr, TRUSTED_LOG_PREFIX); \
-        fprintf(stderr, __VA_ARGS__);        \
+#define INFO(format, ...)                                             \
+    {                                                                 \
+        if (log_is_at_start_of_line)                                  \
+            fprintf(stderr, TRUSTED_LOG_PREFIX);                      \
+        fprintf(stderr, format, ##__VA_ARGS__);                       \
+        log_is_at_start_of_line = format[sizeof(format) - 2] == '\n'; \
     }
 
 /**
@@ -69,19 +88,14 @@ void LOG_HEX(const char *prefix, const void *buffer, const size_t size);
  * @param buffer the buffer containing the bytes to output as hex chars
  * @param size the size of buffer in bytes
  */
-void LOG_HEX(const char *prefix, const void *buffer, const size_t size);
-
-#else // ENCLAVE_LOGS
-
-#define LOG(...)
-#define LOG_HEX(...)
-
-#endif // ENCLAVE_LOGS
+void INFO_HEX(const char *prefix, const void *buffer, const size_t size);
 
 #elif defined(HSM_PLATFORM_LEDGER)
 
-#define LOG(...)
-#define LOG_HEX(...)
+#define INFO(...)
+#define INFO_HEX(...)
+#define DEBUG(...)
+#define DEBUG_HEX(...)
 
 #else
 #error "HSM Platform undefined"

@@ -23,7 +23,7 @@
 include ../common/common.mk
 
 PROG = test.out
-OBJS = aes_gcm.o test_aes_gcm.o
+OBJS = aes_gcm.o test_aes_gcm.o log.o
 
 all: $(PROG)
 

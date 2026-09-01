@@ -60,7 +60,7 @@ bool access_init(access_wiped_callback_t wiped_callback) {
     size_t password_read_length;
     if (!(password_read_length = sest_read(
               SEST_PASSWORD_KEY, (uint8_t*)G_password, sizeof(G_password)))) {
-        LOG("Could not load the current password\n");
+        INFO("Could not load the current password\n");
         return false;
     }
     // If password read succeeded, then password length fits in a single byte
@@ -68,7 +68,7 @@ bool access_init(access_wiped_callback_t wiped_callback) {
 
     // Make sure password is sound
     if (!pin_policy_is_valid_pin(G_password, G_password_length)) {
-        LOG("Detected invalid password\n");
+        INFO("Detected invalid password\n");
         return false;
     }
 
@@ -76,18 +76,18 @@ bool access_init(access_wiped_callback_t wiped_callback) {
     if (sest_read(SEST_RETRIES_KEY,
                   (uint8_t*)&G_available_retries,
                   sizeof(G_available_retries)) != sizeof(G_available_retries)) {
-        LOG("Could not read the current retries\n");
+        INFO("Could not read the current retries\n");
         return false;
     }
 
     // Make sure number of retries read is sound
     if (!G_available_retries || G_available_retries > MAX_RETRIES) {
-        LOG("Detected invalid retries\n");
+        INFO("Detected invalid retries\n");
         return false;
     }
 
     G_wiped = false;
-    LOG("Password loaded. Access is locked\n");
+    INFO("Password loaded. Access is locked\n");
     return true;
 }
 
@@ -104,31 +104,31 @@ bool access_wipe() {
 
 bool access_unlock(char* password, uint8_t password_length) {
     if (G_wiped) {
-        LOG("Access module is wiped\n");
+        INFO("Access module is wiped\n");
         return false;
     }
 
     if (!G_locked) {
-        LOG("Access module already unlocked\n");
+        INFO("Access module already unlocked\n");
         return true;
     }
 
     if (password_length != G_password_length ||
         memcmp(password, G_password, G_password_length)) {
-        LOG("Invalid password\n");
+        INFO("Invalid password\n");
         G_available_retries--;
         sest_write(SEST_RETRIES_KEY,
                    (uint8_t*)&G_available_retries,
                    sizeof(G_available_retries));
         if (G_available_retries == 0) {
-            LOG("Too many unlock retries. Forcing wipe...\n");
+            INFO("Too many unlock retries. Forcing wipe...\n");
             access_wipe();
             G_wiped_callback();
         }
         return false;
     }
 
-    LOG("Access module unlocked\n");
+    INFO("Access module unlocked\n");
     G_locked = false;
     G_available_retries = MAX_RETRIES;
     sest_write(SEST_RETRIES_KEY,
@@ -151,17 +151,17 @@ bool access_is_locked() {
 
 bool access_set_password(char* password, uint8_t password_length) {
     if (G_locked && !G_wiped) {
-        LOG("Access module is locked, password change not possible\n");
+        INFO("Access module is locked, password change not possible\n");
         return false;
     }
 
     if (!pin_policy_is_valid_pin(password, password_length)) {
-        LOG("Invalid password\n");
+        INFO("Invalid password\n");
         return false;
     }
 
     if (!sest_write(SEST_PASSWORD_KEY, (uint8_t*)password, password_length)) {
-        LOG("Error writing password\n");
+        INFO("Error writing password\n");
         return false;
     }
 
@@ -173,7 +173,7 @@ bool access_set_password(char* password, uint8_t password_length) {
                (uint8_t*)&G_available_retries,
                sizeof(G_available_retries));
     G_locked = true;
-    LOG("Password set, access locked\n");
+    INFO("Password set, access locked\n");
     return true;
 }
 
@@ -181,17 +181,17 @@ bool access_output_password_USE_FROM_EXPORT_ONLY(uint8_t* out,
                                                  size_t* out_size) {
     // We need a password
     if (access_is_wiped()) {
-        LOG("Access: no password available to output\n");
+        INFO("Access: no password available to output\n");
         return false;
     }
 
     // Output buffer validations
     if (*out_size < sizeof(G_password)) {
-        LOG("Access: output buffer to small to write password\n");
+        INFO("Access: output buffer to small to write password\n");
         return false;
     }
     if (!oe_is_within_enclave(out, *out_size)) {
-        LOG("Access: output buffer not strictly within the enclave\n");
+        INFO("Access: output buffer not strictly within the enclave\n");
         return false;
     }
 

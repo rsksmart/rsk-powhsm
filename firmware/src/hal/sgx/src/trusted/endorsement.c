@@ -47,15 +47,6 @@ static struct {
     } envelope;
 } G_endorsement_ctx;
 
-#define ENDORSEMENT_CHECK(oe_result, error_msg)                          \
-    {                                                                    \
-        if (OE_OK != oe_result) {                                        \
-            LOG(error_msg);                                              \
-            LOG(": result=%u (%s)\n", result, oe_result_str(oe_result)); \
-            return false;                                                \
-        }                                                                \
-    }
-
 // Taken from OpenEnclave's common/sgx/quote.c
 OE_INLINE uint16_t ReadUint16(const uint8_t* p) {
     return (uint16_t)(p[0] | (p[1] << 8));
@@ -76,18 +67,18 @@ static bool parse_envelope(uint8_t* msg, size_t msg_size) {
     G_endorsement_ctx.envelope.quote = _sgx_quote;
 
     if (quote_end < p) {
-        LOG("SGX quote parsing error. Pointer wrapper around\n");
+        DEBUG("SGX quote parsing error. Pointer wrapper around\n");
         return false;
     }
 
     p += sizeof(sgx_quote_t);
 
     if (p > quote_end) {
-        LOG("Parse error after parsing SGX quote, before signature\n");
+        DEBUG("Parse error after parsing SGX quote, before signature\n");
         return false;
     }
     if (p + _sgx_quote->signature_len + msg_size != quote_end) {
-        LOG("Parse error after parsing SGX signature\n");
+        DEBUG("Parse error after parsing SGX signature\n");
         return false;
     }
 
@@ -102,7 +93,7 @@ static bool parse_envelope(uint8_t* msg, size_t msg_size) {
     p += qe_auth_data->size;
 
     if (p > quote_end) {
-        LOG("Parse error after parsing QE authorization data\n");
+        DEBUG("Parse error after parsing QE authorization data\n");
         return false;
     }
 
@@ -115,14 +106,14 @@ static bool parse_envelope(uint8_t* msg, size_t msg_size) {
     p += qe_cert_data->size;
 
     if (memcmp(p, msg, msg_size)) {
-        LOG("Parse error: got inconsistent custom message\n");
+        DEBUG("Parse error: got inconsistent custom message\n");
         return false;
     }
 
     p += msg_size;
 
     if (p != quote_end) {
-        LOG("Unexpected quote length while parsing\n");
+        DEBUG("Unexpected quote length while parsing\n");
         return false;
     }
 
@@ -145,12 +136,12 @@ bool endorsement_init() {
 
     // Make sure the desired evidence format is supported
     if (!evidence_supports_format(ENDORSEMENT_FORMAT)) {
-        LOG("Endorsement: evidence format not supported\n");
+        DEBUG("Endorsement: evidence format not supported\n");
         return false;
     }
 
     G_endorsement_ctx.initialised = true;
-    LOG("Endorsement module initialized\n");
+    INFO("Endorsement module initialized\n");
     return true;
 }
 
@@ -168,8 +159,8 @@ bool endorsement_sign(uint8_t* msg,
     CHECK_INITIALISED_OR_RETURN(false);
 
     if (*signature_out_length < MAX_SIGNATURE_LENGTH) {
-        LOG("Output buffer for signature too small: %u bytes\n",
-            *signature_out_length);
+        DEBUG("Output buffer for signature too small: %u bytes\n",
+              *signature_out_length);
         goto endorsement_sign_fail;
     }
 
@@ -189,12 +180,12 @@ bool endorsement_sign(uint8_t* msg,
                            msg_size,
                            &G_endorsement_ctx.envelope.raw,
                            &G_endorsement_ctx.envelope.raw_size)) {
-        LOG("Error generating envelope\n");
+        DEBUG("Error generating envelope\n");
         goto endorsement_sign_fail;
     }
 
     if (!parse_envelope(msg, msg_size)) {
-        LOG("Error parsing envelope\n");
+        DEBUG("Error parsing envelope\n");
         goto endorsement_sign_fail;
     }
 
@@ -205,7 +196,7 @@ bool endorsement_sign(uint8_t* msg,
         der_encode_signature(signature_out, *signature_out_length, sig);
 
     if (*signature_out_length == 0) {
-        LOG("Error encoding envelope signature\n");
+        DEBUG("Error encoding envelope signature\n");
         goto endorsement_sign_fail;
     }
 
@@ -237,18 +228,18 @@ bool endorsement_get_code_hash(uint8_t* code_hash_out,
     CHECK_INITIALISED_OR_RETURN(false);
 
     if (G_endorsement_ctx.envelope.raw_size == 0) {
-        LOG("No envelope available\n");
+        DEBUG("No envelope available\n");
         return false;
     }
 
     if (code_hash_out == NULL) {
-        LOG("Output buffer is NULL\n");
+        DEBUG("Output buffer is NULL\n");
         return false;
     }
 
     if (*code_hash_out_length < HASH_LENGTH) {
-        LOG("Output buffer for code hash too small: %u bytes\n",
-            *code_hash_out_length);
+        DEBUG("Output buffer for code hash too small: %u bytes\n",
+              *code_hash_out_length);
         return false;
     }
 
@@ -266,18 +257,18 @@ bool endorsement_get_public_key(uint8_t* public_key_out,
     CHECK_INITIALISED_OR_RETURN(false);
 
     if (G_endorsement_ctx.envelope.raw_size == 0) {
-        LOG("No envelope available\n");
+        DEBUG("No envelope available\n");
         return false;
     }
 
     if (public_key_out == NULL) {
-        LOG("Output buffer is NULL\n");
+        DEBUG("Output buffer is NULL\n");
         return false;
     }
 
     if (*public_key_out_length < PUBKEY_UNCMP_LENGTH) {
-        LOG("Output buffer for public key too small: %u bytes\n",
-            *public_key_out_length);
+        DEBUG("Output buffer for public key too small: %u bytes\n",
+              *public_key_out_length);
         return false;
     }
 
@@ -299,7 +290,7 @@ bool endorsement_get_public_key(uint8_t* public_key_out,
 
     // Sanity check
     if (off != PUBKEY_UNCMP_LENGTH) {
-        LOG("Unexpected attestation public key length\n");
+        DEBUG("Unexpected attestation public key length\n");
         return false;
     }
 

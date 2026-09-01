@@ -39,12 +39,6 @@
 
 #define NODE_LENGTH 64
 
-#ifdef DEBUG_BIP32
-#define DEBUG_LOG(...) LOG(__VA_ARGS__)
-#else
-#define DEBUG_LOG(...)
-#endif
-
 static const uint8_t secp256k1_order[] = {
     0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
     0xff, 0xff, 0xff, 0xff, 0xfe, 0xba, 0xae, 0xdc, 0xe6, 0xaf, 0x48,
@@ -119,7 +113,7 @@ bool bip32_derive_private(uint8_t* out,
 
     // Make sure private key fits in the output buffer
     if (out_size < PRIVATE_KEY_LENGTH) {
-        DEBUG_LOG("Output buffer too small for private key\n");
+        DEBUG("Output buffer too small for private key\n");
         return false;
     }
 
@@ -128,12 +122,12 @@ bool bip32_derive_private(uint8_t* out,
         unsigned char randomize[32];
         sp_ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
         if (!random_getrandom(randomize, sizeof(randomize))) {
-            DEBUG_LOG("Error generating random seed for "
-                      "secp256k1 context randomisation\n");
+            DEBUG("Error generating random seed for "
+                  "secp256k1 context randomisation\n");
             return false;
         }
         if (!secp256k1_context_randomize(sp_ctx, randomize)) {
-            DEBUG_LOG("Error randomising secp256k1 context\n");
+            DEBUG("Error randomising secp256k1 context\n");
             return false;
         }
         explicit_bzero(randomize, sizeof(randomize));
@@ -141,7 +135,7 @@ bool bip32_derive_private(uint8_t* out,
 
     // Compute the master node from the seed
     if (!seed_to_node(current_node, sizeof(current_node), seed, seed_length)) {
-        DEBUG_LOG("Error deriving master node from seed\n");
+        DEBUG("Error deriving master node from seed\n");
         return false;
     }
 
@@ -153,7 +147,7 @@ bool bip32_derive_private(uint8_t* out,
         } else {
             // Non-hardened derivation.
             if (!secp256k1_ec_pubkey_create(sp_ctx, &pubkey, current_node)) {
-                DEBUG_LOG("Error deriving public key from private key\n");
+                DEBUG("Error deriving public key from private key\n");
                 return false;
             }
 
@@ -165,7 +159,7 @@ bool bip32_derive_private(uint8_t* out,
                                           SECP256K1_EC_COMPRESSED);
 
             if (pubkey_serialised_size != PUBKEY_CMP_LENGTH) {
-                DEBUG_LOG("Unexpected serialised public key size\n");
+                DEBUG("Unexpected serialised public key size\n");
                 return false;
             }
         }
@@ -179,22 +173,21 @@ bool bip32_derive_private(uint8_t* out,
                          NODE_PART_LENGTH,
                          hmac_data,
                          sizeof(hmac_data))) {
-            DEBUG_LOG("Error deriving private key from parent node\n");
+            DEBUG("Error deriving private key from parent node\n");
             return false;
         }
 
         // First 32 bytes of temp = I_L. Compute k_i
         if (!secp256k1_ec_seckey_verify(sp_ctx, temp)) {
-            DEBUG_LOG(
-                "Overflow during derivation, use a different one (I_L)\n");
+            DEBUG("Overflow during derivation, use a different one (I_L)\n");
             return false;
         }
         parse_bigint_be(
             temp, NODE_PART_LENGTH, tempbig_a, PRIVATE_KEY_DIGITS + 1);
 
         if (!secp256k1_ec_seckey_verify(sp_ctx, current_node)) {
-            DEBUG_LOG("Invalid key during derivation, use a different path "
-                      "(invalid k_par)\n");
+            DEBUG("Invalid key during derivation, use a different path "
+                  "(invalid k_par)\n");
             return false;
         }
         parse_bigint_be(
@@ -213,8 +206,7 @@ bool bip32_derive_private(uint8_t* out,
                  PRIVATE_KEY_DIGITS + 1);
         dump_bigint_be(current_node, tempbig_c, PRIVATE_KEY_DIGITS);
         if (!secp256k1_ec_seckey_verify(sp_ctx, current_node)) {
-            DEBUG_LOG(
-                "Invalid derived key, use a different path (invalid k_i)\n");
+            DEBUG("Invalid derived key, use a different path (invalid k_i)\n");
             return false;
         }
 

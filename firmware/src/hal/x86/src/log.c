@@ -25,7 +25,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-void LOG(const char *format, ...) {
+void INFO(const char *format, ...) {
     va_list args;
     va_start(args, format);
 
@@ -34,7 +34,7 @@ void LOG(const char *format, ...) {
     va_end(args);
 }
 
-void LOG_HEX(const char *prefix, const void *buffer, const size_t size) {
+void INFO_HEX(const char *prefix, const void *buffer, const size_t size) {
     printf("%s ", prefix);
     if (size > 0) {
         printf("0x");

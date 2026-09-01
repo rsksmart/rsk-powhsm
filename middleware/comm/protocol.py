@@ -185,12 +185,12 @@ class HSM2Protocol:
             or type(request["blocks"]) != list
             or len(request["blocks"]) == 0
         ):
-            self.logger.info("Blocks field not present, not an array or empty")
+            self.logger.warning("Blocks field not present, not an array or empty")
             return self.ERROR_CODE_INVALID_INPUT_BLOCKS
 
         # Validate blocks elements are strings
         if not all(type(item) == str for item in request["blocks"]):
-            self.logger.info("Some of the blocks elements are not strings")
+            self.logger.warning("Some of the blocks elements are not strings")
             return self.ERROR_CODE_INVALID_INPUT_BLOCKS
 
         # Validate brothers presence, type and length
@@ -199,8 +199,8 @@ class HSM2Protocol:
             or type(request["brothers"]) != list
             or len(request["brothers"]) != len(request["blocks"])
         ):
-            self.logger.info("Brothers field not present, not an array or "
-                             "different in length to Blocks field")
+            self.logger.warning("Brothers field not present, not an array or "
+                                "different in length to Blocks field")
             return self.ERROR_CODE_INVALID_BROTHERS
 
         # Validate brother elements are lists of nonempty hex strings
@@ -208,7 +208,7 @@ class HSM2Protocol:
            not all(type(item) == str and is_nonempty_hex_string(item)
                    for brother_list in request["brothers"]
                    for item in brother_list):
-            self.logger.info("Some of the brother list elements are not strings")
+            self.logger.warning("Some of the brother list elements are not strings")
             return self.ERROR_CODE_INVALID_BROTHERS
 
         return self.ERROR_CODE_OK
@@ -229,7 +229,7 @@ class HSM2Protocol:
             or type(request["blocks"]) != list
             or len(request["blocks"]) < self.MINIMUM_UPDATE_ANCESTOR_BLOCKS
         ):
-            self.logger.info(
+            self.logger.warning(
                 "Blocks field not present, not an array or shorter than the minimum "
                 "(%d blocks)" % self.MINIMUM_UPDATE_ANCESTOR_BLOCKS
             )
@@ -237,7 +237,7 @@ class HSM2Protocol:
 
         # Validate blocks elements are strings
         if not all(type(item) == str for item in request["blocks"]):
-            self.logger.info("Some of the blocks elements are not strings")
+            self.logger.warning("Some of the blocks elements are not strings")
             return self.ERROR_CODE_INVALID_INPUT_BLOCKS
 
         return self.ERROR_CODE_OK
@@ -248,7 +248,7 @@ class HSM2Protocol:
     def _validate_key_id(self, request):
         # The keyId field must be present
         if "keyId" not in request or type(request["keyId"]) != str:
-            self.logger.info("Key ID field not present")
+            self.logger.warning("Key ID field not present")
             return self.ERROR_CODE_INVALID_KEYID
 
         try:
@@ -260,7 +260,7 @@ class HSM2Protocol:
             # instance.
             request["keyId"] = BIP32Path(request["keyId"])
         except ValueError as e:
-            self.logger.info("Invalid Key ID: %s", str(e))
+            self.logger.warning("Invalid Key ID: %s", str(e))
             return self.ERROR_CODE_INVALID_KEYID
 
         return self.ERROR_CODE_OK
@@ -276,7 +276,7 @@ class HSM2Protocol:
 
         # Validate auth field is present and a dictionary (object)
         if type(auth) != dict:
-            self.logger.info("Authorization field not an object")
+            self.logger.warning("Authorization field not an object")
             return self.ERROR_CODE_INVALID_AUTH
 
         # Validate receipt presence and type
@@ -285,7 +285,7 @@ class HSM2Protocol:
             or type(auth["receipt"]) != str
             or not is_nonempty_hex_string(auth["receipt"])
         ):
-            self.logger.info(
+            self.logger.warning(
                 "Transaction receipt field not present or not a nonempty hex string"
             )
             return self.ERROR_CODE_INVALID_AUTH
@@ -296,7 +296,7 @@ class HSM2Protocol:
             or type(auth["receipt_merkle_proof"]) != list
             or len(auth["receipt_merkle_proof"]) == 0
         ):
-            self.logger.info(
+            self.logger.warning(
                 "Receipt merkle proof field not present or not a nonempty array"
             )
             return self.ERROR_CODE_INVALID_AUTH
@@ -306,7 +306,7 @@ class HSM2Protocol:
             type(item) == str and is_nonempty_hex_string(item)
             for item in auth["receipt_merkle_proof"]
         ):
-            self.logger.info(
+            self.logger.warning(
                 "Some of the receipt merkle proof elements are not nonempty hex strings"
             )
             return self.ERROR_CODE_INVALID_AUTH
@@ -326,7 +326,7 @@ class HSM2Protocol:
 
         # Validate message presence and components
         if "message" not in request or type(request["message"]) != dict:
-            self.logger.info("Message field not present or not an object")
+            self.logger.warning("Message field not present or not an object")
             return self.ERROR_CODE_INVALID_MESSAGE
 
         message = request["message"]
@@ -352,7 +352,8 @@ class HSM2Protocol:
         ):
             return self.ERROR_CODE_OK
 
-        self.logger.info("Message field for expected message of type '%s' invalid", what)
+        self.logger.warning(
+            "Message field for expected message of type '%s' invalid", what)
         return self.ERROR_CODE_INVALID_MESSAGE
 
     def _validate_get_pubkey(self, request):
@@ -410,7 +411,7 @@ class HSM2Protocol:
             or not is_hex_string_of_length(request["udValue"],
                                            self.SIGNER_HBT_UD_VALUE_SIZE)
         ):
-            self.logger.info(
+            self.logger.warning(
                 "User defined value field not present or not a "
                 f"{self.SIGNER_HBT_UD_VALUE_SIZE}-byte hex string"
             )
@@ -428,7 +429,7 @@ class HSM2Protocol:
             or type(request["udValue"]) != str
             or not is_hex_string_of_length(request["udValue"], self.UI_HBT_UD_VALUE_SIZE)
         ):
-            self.logger.info(
+            self.logger.warning(
                 "User defined value field not present or not a "
                 f"{self.UI_HBT_UD_VALUE_SIZE}-byte hex string"
             )

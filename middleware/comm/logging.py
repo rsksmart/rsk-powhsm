@@ -33,7 +33,7 @@ def configure_logging(config_path):
         _getlogger().info(
             "Loaded default logging configuration ('%s' invalid)", config_path
         )
-        _getlogger().debug("While loading from '%s': %s", config_path, str(e))
+        _getlogger().warning("While loading from '%s': %s", config_path, str(e))
 
 
 def _load_default_configuration():
