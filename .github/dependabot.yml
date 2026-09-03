@@ -2,9 +2,43 @@ version: 2
 updates:
   # Maintain dependencies for GitHub Actions
   - package-ecosystem: github-actions
-    directory: /
+    directory: "/"
+    target-branch: master
     schedule:
-      interval: daily
+      interval: "weekly"
+    # Wait at least 10 days after a new version is released before opening a PR
+    cooldown:
+      default-days: 10
+    labels:
+      - "dependencies"
+      - "github_actions"
+    # one PR per week that groups BOTH minor + patch updates
+    groups:
+      actions-updates:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+  - package-ecosystem: github-actions
+    directory: "/"
+    target-branch: master
+    schedule:
+      interval: "daily"
+    # Wait at least 1 day after a security update is released before opening a PR
+    cooldown:
+      default-days: 1
+    labels:
+      - "dependencies"
+      - "github_actions"
+      - "security"
+    # one PR per day grouping ALL security updates
+    groups:
+      security:
+        applies-to: security-updates
+        patterns:
+          - "*"
 
   # Maintain dependencies for Docker
   - package-ecosystem: docker
@@ -13,7 +47,50 @@ updates:
       - "docker/ledger"
       - "docker/mware"
       - "docker/packer"
-      - "dist"
+      - "docker/sgx"
+      - "dist/ledger"
+      - "dist/sgx"
+      - "firmware/test/package"
       - "utils/tcpsigner-bundle/dist/"
+    target-branch: master
     schedule:
-      interval: daily
+      interval: "weekly"
+    # Wait at least 10 days after a new version is released before opening a PR
+    cooldown:
+      default-days: 10
+    labels:
+      - "dependencies"
+      - "docker"
+    # one PR per week grouping base image updates across all Dockerfiles
+    groups:
+      docker-updates:
+        applies-to: version-updates
+        patterns:
+          - "*"
+  - package-ecosystem: docker
+    directories:
+      - "docker/afl"
+      - "docker/ledger"
+      - "docker/mware"
+      - "docker/packer"
+      - "docker/sgx"
+      - "dist/ledger"
+      - "dist/sgx"
+      - "firmware/test/package"
+      - "utils/tcpsigner-bundle/dist/"
+    target-branch: master
+    schedule:
+      interval: "daily"
+    # Wait at least 1 day after a security update is released before opening a PR
+    cooldown:
+      default-days: 1
+    labels:
+      - "dependencies"
+      - "docker"
+      - "security"
+    # one PR per day grouping ALL security updates across all Dockerfiles
+    groups:
+      docker-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
