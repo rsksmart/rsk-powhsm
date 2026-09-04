@@ -6,14 +6,16 @@ updates:
     target-branch: master
     schedule:
       interval: "weekly"
-    # Wait at least 10 days after a new version is released before opening a PR
+    # Applies to version updates only: wait at least 10 days after a new
+    # version is released before opening a PR. Security updates are triggered
+    # by Dependabot alerts, so they ignore both the schedule and the cooldown.
     cooldown:
       default-days: 10
     labels:
       - "dependencies"
       - "github_actions"
-    # one PR per week that groups BOTH minor + patch updates
     groups:
+      # one PR per week that groups BOTH minor + patch updates
       actions-updates:
         applies-to: version-updates
         patterns:
@@ -21,20 +23,7 @@ updates:
         update-types:
           - minor
           - patch
-  - package-ecosystem: github-actions
-    directory: "/"
-    target-branch: master
-    schedule:
-      interval: "daily"
-    # Wait at least 1 day after a security update is released before opening a PR
-    cooldown:
-      default-days: 1
-    labels:
-      - "dependencies"
-      - "github_actions"
-      - "security"
-    # one PR per day grouping ALL security updates
-    groups:
+      # one PR grouping all security updates, opened as alerts arrive
       security:
         applies-to: security-updates
         patterns:
@@ -55,41 +44,22 @@ updates:
     target-branch: master
     schedule:
       interval: "weekly"
-    # Wait at least 10 days after a new version is released before opening a PR
+    # Applies to version updates only: wait at least 10 days after a new
+    # version is released before opening a PR. Security updates are triggered
+    # by Dependabot alerts, so they ignore both the schedule and the cooldown.
     cooldown:
       default-days: 10
     labels:
       - "dependencies"
       - "docker"
-    # one PR per week grouping base image updates across all Dockerfiles
     groups:
+      # one PR per week grouping base image updates across all Dockerfiles
       docker-updates:
         applies-to: version-updates
         patterns:
           - "*"
-  - package-ecosystem: docker
-    directories:
-      - "docker/afl"
-      - "docker/ledger"
-      - "docker/mware"
-      - "docker/packer"
-      - "docker/sgx"
-      - "dist/ledger"
-      - "dist/sgx"
-      - "firmware/test/package"
-      - "utils/tcpsigner-bundle/dist/"
-    target-branch: master
-    schedule:
-      interval: "daily"
-    # Wait at least 1 day after a security update is released before opening a PR
-    cooldown:
-      default-days: 1
-    labels:
-      - "dependencies"
-      - "docker"
-      - "security"
-    # one PR per day grouping ALL security updates across all Dockerfiles
-    groups:
+      # one PR grouping all security updates across all Dockerfiles,
+      # opened as alerts arrive
       docker-security:
         applies-to: security-updates
         patterns:
