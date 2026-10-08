@@ -1,2 +1,2 @@
 #!/bin/bash
-source $(dirname $0)/bld-docker signmigration
+source $(dirname $0)/bld-n-pck signmigration
