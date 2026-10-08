@@ -17,13 +17,24 @@ popd > /dev/null
 # Root directory
 HSM_ROOT=$BUILD_ROOT/../../
 
-$HSM_ROOT/docker/mware/do-notty-nousb /hsm2/middleware/build "./bld $1"
-$HSM_ROOT/docker/packer/do-notty-nousb /hsm2/middleware/build "./pck $1"
+if [[ -n "$NATIVE" ]]; then
+    # Build on the host itself, using its python environment
+    # (e.g., to obtain native macOS binaries)
+    $BUILD_ROOT/bld $1
+    $BUILD_ROOT/pck $1
+else
+    $HSM_ROOT/docker/mware/do-notty-nousb /hsm2/middleware/build "./bld $1"
+    $HSM_ROOT/docker/packer/do-notty-nousb /hsm2/middleware/build "./pck $1"
+fi
 
-BIN_PATH=$(realpath $HSM_ROOT/middleware/bin)
+BIN_PATH=$(cd $HSM_ROOT/middleware/bin && pwd)
 
 if [[ -z "$QUIET" ]]; then
-    sha256sum $BIN_PATH/$1.tgz
+    if command -v sha256sum > /dev/null; then
+        sha256sum $BIN_PATH/$1.tgz
+    else
+        shasum -a 256 $BIN_PATH/$1.tgz
+    fi
 else
     printf "."
 fi
