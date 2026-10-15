@@ -21,7 +21,7 @@
 # SOFTWARE.
 
 from unittest import TestCase
-from comm.utils import BitFlags, bitwise_and_bytes, keccak_256
+from comm.utils import BitFlags, bitwise_and_bytes, keccak_256, parse_hex_string
 from parameterized import parameterized
 
 import logging
@@ -1300,3 +1300,16 @@ class TestKeccak256(TestCase):
             return keccak_256(b).hex()
 
         self.assertEqual(expected_hash, kb(bs))
+
+
+class TestParseHexString(TestCase):
+    def test_ok(self):
+        self.assertEqual(bytes.fromhex("aabbcc"), parse_hex_string("aabbcc"))
+        self.assertEqual(bytes.fromhex("aabbcc"), parse_hex_string("AABBCC"))
+        self.assertEqual(bytes.fromhex("aabbcc"), parse_hex_string("0xaabbcc"))
+        self.assertEqual(b"", parse_hex_string(""))
+
+    def test_invalid(self):
+        for value in ["aab", "0xzz", "not-hex"]:
+            with self.assertRaises(ValueError):
+                parse_hex_string(value)
