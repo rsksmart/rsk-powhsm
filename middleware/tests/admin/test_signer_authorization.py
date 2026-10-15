@@ -25,6 +25,8 @@ from unittest.mock import patch, call, mock_open
 from admin.signer_authorization import SignerAuthorization, SignerVersion
 from comm.utils import keccak_256
 import json
+from hashlib import sha256
+from .ecdsa_utils import sign, address, to_high_s, unrecoverable_signature
 
 import logging
 
@@ -78,6 +80,54 @@ class TestSignerAuthorization(TestCase):
         self.sa.add_signature(new_sig)
 
         self.assertEqual(self.sa.signatures, self.sigs + [new_sig])
+
+    def test_add_signature_by_existing_signer_not_allowed(self):
+        digest = self.sigver.get_authorization_digest()
+        sa = SignerAuthorization(self.sigver, [sign("11"*32, digest)])
+        # Exact copy and high-S encoding share both candidate signers
+        for signature in [sign("11"*32, digest), to_high_s(sign("11"*32, digest))]:
+            with self.assertRaises(ValueError) as e:
+                sa.add_signature(signature)
+            self.assertIn("A signature by the same signer (one of ", str(e.exception))
+            self.assertIn(address("11"*32), str(e.exception))
+        # A new signature by the same signer shares only the actual signer
+        with self.assertRaises(ValueError) as e:
+            sa.add_signature(sign("11"*32, digest, k=12345))
+        self.assertEqual(
+            f"A signature by signer {address('11'*32)} already exists",
+            str(e.exception))
+        self.assertEqual(1, len(sa.signatures))
+
+    def test_add_signatures_by_different_signers(self):
+        digest = self.sigver.get_authorization_digest()
+        sa = SignerAuthorization(self.sigver, [])
+        signatures = [sign(key, digest) for key in ["11"*32, "22"*32, "33"*32]]
+        for signature in signatures:
+            sa.add_signature(signature)
+        self.assertEqual(signatures, sa.signatures)
+
+    def test_add_signature_normalizes_to_low_s(self):
+        digest = self.sigver.get_authorization_digest()
+        sa = SignerAuthorization(self.sigver, [])
+        low_s = sign("11"*32, digest)
+        sa.add_signature(to_high_s(low_s).upper())
+        self.assertEqual([low_s], sa.signatures)
+
+    def test_add_unrecoverable_signature_not_allowed(self):
+        with self.assertRaises(ValueError) as e:
+            self.sa.add_signature(unrecoverable_signature())
+        self.assertIn("unable to recover any signer", str(e.exception))
+
+    def test_unrecoverable_existing_signature_ignored(self):
+        digest = self.sigver.get_authorization_digest()
+        sa = SignerAuthorization(self.sigver, [unrecoverable_signature()])
+        sa.add_signature(sign("11"*32, digest))
+        self.assertEqual(2, len(sa.signatures))
+
+    def test_add_duplicate_signature_not_allowed(self):
+        with self.assertRaises(ValueError) as e:
+            self.sa.add_signature(self.sigs[0])
+        self.assertIn("already exists", str(e.exception))
 
     def test_add_invalid_signature(self):
         with self.assertRaises(ValueError):
@@ -266,6 +316,14 @@ class TestSignerVersion(TestCase):
                        b"signer_aabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
                        b"bbbbbbbbbbcc_iteration_45"),
             sv.get_authorization_digest())
+
+    def test_old_eth_digest(self):
+        sv = SignerVersion("aa" + "BB"*30 + "cc", "0x2d")
+
+        # SHA-256 of the bare message, as displayed by old Ledger Ethereum apps
+        self.assertEqual(
+            sha256(b"RSK_powHSM_signer_aa" + b"bb"*30 + b"cc_iteration_45").digest(),
+            sv.get_old_eth_digest())
 
     def test_to_dict(self):
         sv = SignerVersion("aa" + "BB"*30 + "cc", "0x2d")

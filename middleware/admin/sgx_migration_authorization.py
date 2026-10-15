@@ -21,9 +21,11 @@
 # SOFTWARE.
 
 import json
+from hashlib import sha256
 import secp256k1 as ec
 from .utils import is_hex_string_of_length, normalize_hex_string, keccak_256
 from .ledger_utils import encode_eth_message
+from .signature_utils import ECDSASignature, assert_signer_not_present
 
 
 class SGXMigrationAuthorization:
@@ -76,9 +78,13 @@ class SGXMigrationAuthorization:
 
     def add_signature(self, signature):
         self._assert_signature_valid(signature)
-        if self._contains_signature(signature):
-            raise ValueError("Signature already exists")
-        self._signatures.append(signature)
+        # Store signatures in low-S form, since that is the only form
+        # that some verifiers (e.g., libsecp256k1) accept
+        new_signature = ECDSASignature.from_der(bytes.fromhex(signature)).normalized()
+        assert_signer_not_present(
+            [ECDSASignature.from_der(bytes.fromhex(s)) for s in self._signatures],
+            new_signature, self._migration_spec.get_authorization_digest())
+        self._signatures.append(new_signature.to_der().hex())
 
     def to_dict(self):
         return {
@@ -96,9 +102,6 @@ class SGXMigrationAuthorization:
             ec.PrivateKey().ecdsa_deserialize(bytes.fromhex(signature))
         except Exception as e:
             raise ValueError(f"Invalid DER signature: {signature}: {e}")
-
-    def _contains_signature(self, signature):
-        return signature in self._signatures
 
 
 class SGXMigrationSpec:
@@ -129,6 +132,13 @@ class SGXMigrationSpec:
 
     def get_authorization_digest(self):
         return keccak_256(self.get_authorization_msg())
+
+    def get_old_eth_digest(self):
+        # SHA-256 of the bare message (no Ethereum signed message prefix),
+        # which is what Ledger's Ethereum app versions prior to 1.9.20
+        # display as the message hash. Only for display purposes, since
+        # the signature is still over the authorization digest
+        return sha256(self.msg.encode("ascii")).digest()
 
     def to_dict(self):
         return {
