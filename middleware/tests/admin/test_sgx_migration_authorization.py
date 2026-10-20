@@ -25,6 +25,8 @@ from unittest.mock import patch, call, mock_open
 from admin.sgx_migration_authorization import SGXMigrationAuthorization, SGXMigrationSpec
 from comm.utils import keccak_256
 import json
+from hashlib import sha256
+from .ecdsa_utils import sign, address, to_high_s, unrecoverable_signature
 
 import logging
 
@@ -91,9 +93,7 @@ class TestSGXMigrationAuthorization(TestCase):
 
     def test_add_signature(self):
         # Test adding a valid signature
-        new_sig = "3045022100d2dac5b641d6a454cacdff045ab428bfc4c86e"\
-                  "004ff69728050a33788f6e9e7602207e8b3536a7a50185e2"\
-                  "7219237358823b98678fe32aa7a30b31155cbffad3747d"
+        new_sig = sign("11"*32, self.migration_spec.get_authorization_digest())
         self.sa.add_signature(new_sig)
         self.assertEqual(self.sa.signatures, self.sigs + [new_sig])
 
@@ -101,10 +101,50 @@ class TestSGXMigrationAuthorization(TestCase):
         # Adding the same signature should not be allowed
         with self.assertRaises(ValueError) as e:
             self.sa.add_signature(self.sigs[0])
+        self.assertIn("already exists", str(e.exception))
+
+    def test_add_signature_by_existing_signer_not_allowed(self):
+        digest = self.migration_spec.get_authorization_digest()
+        sa = SGXMigrationAuthorization(self.migration_spec, [sign("11"*32, digest)])
+        # Exact copy and high-S encoding share both candidate signers
+        for signature in [sign("11"*32, digest), to_high_s(sign("11"*32, digest))]:
+            with self.assertRaises(ValueError) as e:
+                sa.add_signature(signature)
+            self.assertIn("A signature by the same signer (one of ", str(e.exception))
+            self.assertIn(address("11"*32), str(e.exception))
+        # A new signature by the same signer shares only the actual signer
+        with self.assertRaises(ValueError) as e:
+            sa.add_signature(sign("11"*32, digest, k=12345))
         self.assertEqual(
-            str(e.exception),
-            "Signature already exists"
-        )
+            f"A signature by signer {address('11'*32)} already exists",
+            str(e.exception))
+        self.assertEqual(1, len(sa.signatures))
+
+    def test_add_signatures_by_different_signers(self):
+        digest = self.migration_spec.get_authorization_digest()
+        sa = SGXMigrationAuthorization(self.migration_spec, [])
+        signatures = [sign(key, digest) for key in ["11"*32, "22"*32, "33"*32]]
+        for signature in signatures:
+            sa.add_signature(signature)
+        self.assertEqual(signatures, sa.signatures)
+
+    def test_add_signature_normalizes_to_low_s(self):
+        digest = self.migration_spec.get_authorization_digest()
+        sa = SGXMigrationAuthorization(self.migration_spec, [])
+        low_s = sign("11"*32, digest)
+        sa.add_signature(to_high_s(low_s).upper())
+        self.assertEqual([low_s], sa.signatures)
+
+    def test_add_unrecoverable_signature_not_allowed(self):
+        with self.assertRaises(ValueError) as e:
+            self.sa.add_signature(unrecoverable_signature())
+        self.assertIn("unable to recover any signer", str(e.exception))
+
+    def test_unrecoverable_existing_signature_ignored(self):
+        digest = self.migration_spec.get_authorization_digest()
+        sa = SGXMigrationAuthorization(self.migration_spec, [unrecoverable_signature()])
+        sa.add_signature(sign("11"*32, digest))
+        self.assertEqual(2, len(sa.signatures))
 
     def test_add_invalid_signature(self):
         # Test signature validation with various invalid formats
@@ -333,3 +373,12 @@ class TestSGXMigrationSpec(TestCase):
         msg = self.migration_spec.get_authorization_msg()
         expected_digest = keccak_256(msg)
         self.assertEqual(expected_digest, self.migration_spec.get_authorization_digest())
+
+    def test_old_eth_digest(self):
+        # SHA-256 of the bare message, as displayed by old Ledger Ethereum apps
+        expected_msg = (f"RSK_powHSM_SGX_upgrade_from_"
+                        f"{self.exporter_mrenclave}_to_{self.importer_mrenclave}")
+        self.assertEqual(sha256(expected_msg.encode("ascii")).digest(),
+                         self.migration_spec.get_old_eth_digest())
+        self.assertNotEqual(self.migration_spec.get_authorization_digest(),
+                            self.migration_spec.get_old_eth_digest())

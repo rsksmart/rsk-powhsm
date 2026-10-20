@@ -22,7 +22,7 @@
 
 import sys
 from os.path import isfile
-from argparse import ArgumentParser
+from argparse import ArgumentParser, RawDescriptionHelpFormatter
 import ecdsa
 from admin.misc import (
     get_eth_dongle,
@@ -33,10 +33,16 @@ from admin.misc import (
 from comm.utils import is_hex_string_of_length
 from comm.bip32 import BIP32Path
 from admin.sgx_migration_authorization import SGXMigrationAuthorization, SGXMigrationSpec
-from admin.ledger_utils import eth_message_to_printable
-
-# Default signing path
-DEFAULT_ETH_PATH = "m/44'/60'/0'/0/0"
+from admin.ledger_utils import (
+    DEFAULT_ETH_PATH,
+    format_message_to_sign,
+    pubkey_to_address,
+    to_checksum_address
+)
+from admin.external_signature import (
+    parse_external_signature,
+    describe_external_signature
+)
 
 
 def _require_output_path(options, require_existing=False):
@@ -47,19 +53,37 @@ def _require_output_path(options, require_existing=False):
 
 
 def do_message(options):
-    if options.exporter_hash is None:
-        raise AdminError("Must provide an exporter hash (-e/--exporter)")
-    if options.importer_hash is None:
-        raise AdminError("Must provide an importer hash (-i/--importer)")
+    if options.input_path is not None:
+        if options.exporter_hash is not None or options.importer_hash is not None:
+            raise AdminError("An input file (-f/--file) cannot be provided "
+                             "together with an exporter hash (-e/--exporter) or an "
+                             "importer hash (-i/--importer)")
 
-    info("Computing the SGX migration authorization message...")
-    migration_spec = SGXMigrationSpec({
-        "exporter": options.exporter_hash,
-        "importer": options.importer_hash
-    })
+        info(f"Opening SGX migration authorization file {options.input_path}...")
+        migration_spec = SGXMigrationAuthorization.from_jsonfile(
+            options.input_path).migration_spec
+    else:
+        if options.exporter_hash is None or options.importer_hash is None:
+            err_msg = "\n".join([
+                "Must provide either:",
+                "    - An exporter hash (-e/--exporter) and "
+                "importer hash (-i/--importer), or",
+                "    - An authorization file (-f/--file)"
+            ])
+            raise AdminError(err_msg)
+
+        info("Computing the SGX migration authorization message...")
+        migration_spec = SGXMigrationSpec({
+            "exporter": options.exporter_hash,
+            "importer": options.importer_hash
+        })
+
     sgx_authorization = SGXMigrationAuthorization.for_spec(migration_spec)
     if options.output_path is None:
-        info(eth_message_to_printable(migration_spec.get_authorization_msg()))
+        info(format_message_to_sign(
+            migration_spec.msg,
+            migration_spec.get_authorization_msg(),
+            migration_spec.get_authorization_digest()))
     else:
         sgx_authorization.save_to_jsonfile(options.output_path)
         info(f"SGX migration authorization saved to {options.output_path}")
@@ -72,8 +96,17 @@ def do_manual_sign(options):
 
     info(f"Opening SGX migration authorization file {options.output_path}...")
     sgx_authorization = SGXMigrationAuthorization.from_jsonfile(options.output_path)
+    migration_spec = sgx_authorization.migration_spec
+    info("Verifying signature...")
+    signature = parse_external_signature(
+        options.signature,
+        migration_spec.msg,
+        migration_spec.get_authorization_digest(),
+        options.signer)
+    for line in describe_external_signature(signature, options.signer is not None):
+        info(line)
     info("Adding signature...")
-    sgx_authorization.add_signature(options.signature)
+    sgx_authorization.add_signature(signature.der_signature)
     sgx_authorization.save_to_jsonfile(options.output_path)
     info(f"SGX migration authorization saved to {options.output_path}")
 
@@ -116,6 +149,7 @@ def do_eth(options):
         # Retrieve public key
         info(f"Retrieving public key for path '{str(path)}'...")
         pubkey = eth.get_pubkey(path)
+        info(f"Address: {to_checksum_address(pubkey_to_address(pubkey))}")
         info(f"Public key: {pubkey.hex()}")
 
         # If options.pubkey is True, we just want to retrieve the public key
@@ -134,11 +168,18 @@ def do_eth(options):
         info(f"Opening SGX migration authorization file {options.output_path}...")
         sgx_authorization = SGXMigrationAuthorization.from_jsonfile(options.output_path)
         migration_spec = sgx_authorization.migration_spec
+        # Show what is being signed, so that it can be checked on the device
         info("Signing with dongle...")
+        info("Check that the device shows the following message (or one of the digests):")
+        info("    Message:\n")
+        info(f"    {migration_spec.msg}\n")
+        info("    Digest (app >= 1.22.3, if hash display enabled):  "
+             f"0x{migration_spec.get_authorization_digest().hex()}")
+        info("    Digest (app <= 1.9.19):                           "
+             f"{migration_spec.get_old_eth_digest().hex().upper()}")
+        signature = eth.sign(path, migration_spec.msg.encode('ascii'))
+        vkey = ecdsa.VerifyingKey.from_string(pubkey, curve=ecdsa.SECP256k1)
         try:
-            signature = eth.sign(path, migration_spec.msg.encode('ascii'))
-            vkey = ecdsa.VerifyingKey.from_string(pubkey, curve=ecdsa.SECP256k1)
-
             if not vkey.verify_digest(
                 signature, migration_spec.get_authorization_digest(),
                 sigdecode=ecdsa.util.sigdecode_der
@@ -160,9 +201,35 @@ def do_eth(options):
 
 def main():
     parser = ArgumentParser(
-        description="powHSM SGX migration authorization generation and signing tool"
+        description="powHSM SGX migration authorization generation and signing tool",
+        formatter_class=RawDescriptionHelpFormatter,
+        epilog="""operations:
+  message   Print the authorization message to sign for the given exporter (-e)
+            and importer (-i) enclave hashes, or for an existing SGX migration
+            authorization file (-f). This is the message to paste into a
+            third-party wallet (e.g., MyEtherWallet, MetaMask). If an output
+            path (-o) is given, a new, unsigned SGX migration authorization
+            file is written there instead.
+  eth       Sign the authorization with a Ledger device running the Ethereum
+            app and add the signature to an existing SGX migration
+            authorization file (-o), using the default derivation path (or the
+            one specified with -p). With -b, only retrieve the device's public
+            key and save it to -o instead.
+  manual    Add an externally generated signature (-g), e.g., one obtained
+            from a third-party wallet, to an existing SGX migration
+            authorization file (-o). The signature can be given as hex-encoded
+            DER, as a hex-encoded 65-byte r||s||v signature (e.g., MetaMask,
+            MyEtherWallet, Ledger), or as a signed message JSON (e.g.,
+            MyEtherWallet, MyCrypto, Etherscan), either inline or as a path to
+            a file. The signature is verified against the authorization
+            message, and the signer address is shown. If an expected signer
+            (-s) is given, the signature must have been produced by it.
+  key       *****************NOT FOR PRODUCTION USE*****************
+            Sign the authorization with a private key (-k) and add the
+            signature to an existing SGX migration authorization file (-o).""",
     )
-    parser.add_argument("operation", choices=["message", "key", "eth", "manual"])
+    parser.add_argument("operation", choices=["message", "key", "eth", "manual"],
+                        help="Operation to perform (see 'operations' below).")
     parser.add_argument(
         "-o",
         "--output",
@@ -173,7 +240,7 @@ def main():
         "-k",
         "--key",
         dest="key",
-        help="Private key used for signing (only for 'key' option)."
+        help="Private key used for signing (only for 'key' option). "
         "Must be a 32-byte hex-encoded string.",
     )
     parser.add_argument(
@@ -187,8 +254,18 @@ def main():
         "-g",
         "--signature",
         dest="signature",
-        help="Signature to add to SGX migration authorization (only for 'manual' option)."
-        "Must be a hex-encoded, der-encoded SECP256k1 signature.",
+        help="Signature to add to the SGX migration authorization "
+        "(only for 'manual' option). "
+        "Accepts DER, 65-byte r||s||v (hex-encoded) or signed message JSON "
+        "(inline or a path to a file).",
+    )
+    parser.add_argument(
+        "-s",
+        "--signer",
+        dest="signer",
+        help="Expected signer of the signature (only for 'manual' option). "
+        "Either an address or a public key, hex-encoded. If given, the "
+        "signature must have been produced by this signer.",
     )
     parser.add_argument(
         "-b",
@@ -210,6 +287,14 @@ def main():
         help="The hash of the importer enclave (only for 'message' option)."
     )
     parser.add_argument(
+        "-f",
+        "--file",
+        dest="input_path",
+        help="Existing SGX migration authorization file from which to compute the "
+        "authorization message (only for 'message' option). "
+        "Mutually exclusive with '-e/--exporter' and '-i/--importer'.",
+    )
+    parser.add_argument(
         "-v",
         "--verbose",
         dest="verbose",
@@ -221,6 +306,10 @@ def main():
     options = parser.parse_args()
 
     try:
+        if options.input_path is not None and options.operation != "message":
+            raise AdminError("An input file (-f/--file) can only be "
+                             "provided for the 'message' operation")
+
         if options.operation == "message":
             do_message(options)
         elif options.operation == "key":

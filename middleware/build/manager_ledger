@@ -1,2 +1,2 @@
 #!/bin/bash
-source $(dirname $0)/bld-docker manager_ledger
+source $(dirname $0)/bld-n-pck manager_ledger
