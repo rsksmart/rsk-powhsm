@@ -3,6 +3,12 @@ FROM python:3.12-slim-bookworm@sha256:10f3aaab98db50cba827d3b33a91f39dc9ec2d02ca
 ARG PIP_TIMEOUT=60
 ARG SNAPSHOT_DATE=20260415T000000Z
 
+### Pinned digests and commits for downloaded dependencies ###
+
+# Hidapi wrapper with hid_exit support (https://github.com/rsksmart/cython-hidapi)
+# Commit is tag 0.10.1.post2 (https://github.com/rsksmart/cython-hidapi/releases/tag/0.10.1.post2)
+ENV HIDAPI_COMMIT=56d87e287e4da8fc379e3b96573f5ac93e02e613
+
 WORKDIR /hsm2
 
 RUN rm -f /etc/apt/sources.list.d/debian.sources && \
@@ -31,5 +37,5 @@ RUN pip install --timeout=${PIP_TIMEOUT} -r requirements.txt --require-hashes
 RUN rm -f requirements.txt
 
 # Hidapi wrapper with hid_exit support
-# https://github.com/rsksmart/cython-hidapi/releases/tag/0.10.1.post2 pinned by hash
-RUN pip install --timeout=${PIP_TIMEOUT} --use-pep517 git+https://github.com/rsksmart/cython-hidapi@56d87e287e4da8fc379e3b96573f5ac93e02e613
+# Build dependencies (setuptools, wheel, Cython) come from the hash-pinned requirements above
+RUN pip install --timeout=${PIP_TIMEOUT} --use-pep517 --no-build-isolation --no-deps git+https://github.com/rsksmart/cython-hidapi@$HIDAPI_COMMIT
