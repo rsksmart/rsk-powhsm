@@ -5,6 +5,12 @@ ENV PIP_VERSION=26.2.2
 ENV PIP_HASH=fd7f4dfa8190e014013b9f08f3e973f4e4c26ffd179a204895533a7254813a70
 ARG PIP_TIMEOUT=60
 
+### Pinned digests and commits for downloaded dependencies ###
+
+# Hidapi wrapper with hid_exit support (https://github.com/rsksmart/cython-hidapi)
+# Commit is tag 0.10.1.post2 (https://github.com/rsksmart/cython-hidapi/releases/tag/0.10.1.post2)
+ENV HIDAPI_COMMIT=56d87e287e4da8fc379e3b96573f5ac93e02e613
+
 WORKDIR /hsm2
 
 RUN rm -f /etc/apt/sources.list.d/debian.sources && \
@@ -38,5 +44,5 @@ RUN pip install --timeout=${PIP_TIMEOUT} -r requirements.txt --require-hashes
 RUN rm -f requirements.txt
 
 # Hidapi wrapper with hid_exit support
-# https://github.com/rsksmart/cython-hidapi/releases/tag/0.10.1.post2 pinned by hash
-RUN pip install --timeout=${PIP_TIMEOUT} --use-pep517 git+https://github.com/rsksmart/cython-hidapi@56d87e287e4da8fc379e3b96573f5ac93e02e613
+# Build dependencies (setuptools, wheel, Cython) come from the hash-pinned requirements above
+RUN pip install --timeout=${PIP_TIMEOUT} --use-pep517 --no-build-isolation --no-deps git+https://github.com/rsksmart/cython-hidapi@$HIDAPI_COMMIT
