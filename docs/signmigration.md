@@ -44,7 +44,7 @@ The tool can be run from within a middleware development environment terminal (s
 middleware documentation](../middleware/README.md) for details on setting one up), by
 means of the `signmigration.py` script within the `middleware` directory.
 
-A binary build of the tool, `signmigration`, is also included in every Ledger
+A binary build of the tool, `signmigration`, is also included in every SGX
 distribution. The binary accepts the exact same operations and options as the script.
 Throughout the rest of the document, we will use an example binary for the examples,
 located at `tools/signmigration`. For instance, to print the tool's built-in help, issue:
