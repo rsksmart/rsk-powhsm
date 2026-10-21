@@ -1,2 +1,2 @@
 #!/bin/bash
-source $(dirname $0)/bld-docker lbutils
+source $(dirname $0)/bld-n-pck lbutils
