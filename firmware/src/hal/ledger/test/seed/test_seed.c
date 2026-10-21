@@ -46,7 +46,24 @@ struct {
 
 struct {
     int os_perso_isonboarded_ret;
+    unsigned char sig[80];
+    int sig_length;
 } G_mocks;
+
+// A sound DER-encoded signature with r = s = 0xBB..BB (32 bytes each)
+static void build_sound_sig(unsigned char *sig, int *sig_length) {
+    sig[0] = 0x30;
+    sig[1] = 0x46;
+    sig[2] = 0x02;
+    sig[3] = 0x21;
+    sig[4] = 0x00;
+    memset(sig + 5, 0xBB, 32);
+    sig[37] = 0x02;
+    sig[38] = 0x21;
+    sig[39] = 0x00;
+    memset(sig + 40, 0xBB, 32);
+    *sig_length = 72;
+}
 
 struct {
     struct {
@@ -179,8 +196,10 @@ int cx_ecdsa_sign(cx_ecfp_private_key_t *key,
     if (G_throws.cx_ecdsa_sign) {
         THROW(4);
     }
-    memset(sig, 0xBB, 72);
-    return 72;
+    if (G_mocks.sig_length > 0) {
+        memcpy(sig, G_mocks.sig, G_mocks.sig_length);
+    }
+    return G_mocks.sig_length;
 }
 
 // Tests
@@ -189,6 +208,7 @@ void setup() {
     memset(&G_mocks, 0, sizeof(G_mocks));
     memset(&G_args, 0, sizeof(G_args));
     memset(&G_throws, 0, sizeof(G_throws));
+    build_sound_sig(G_mocks.sig, &G_mocks.sig_length);
 }
 
 void test_seed_available() {
@@ -307,7 +327,7 @@ void test_seed_sign_success() {
     memset(sig_out, 0, sizeof(sig_out));
     assert(seed_sign(path, path_length, hash32, sig_out, &sig_out_length));
     assert(sig_out_length == 72);
-    assert(memis(sig_out, 0xBB, 72));
+    assert(!memcmp(sig_out, G_mocks.sig, 72));
     assert(G_called.os_perso_derive_node_bip32);
     assert(G_called.cx_ecdsa_init_private_key);
     assert(G_called.cx_ecdsa_sign);
@@ -342,6 +362,7 @@ void test_seed_sign_buftoosmall() {
     memset(sig_out, 0x44, sizeof(sig_out));
     assert(!seed_sign(path, path_length, hash32, sig_out, &sig_out_length));
     assert(memis(sig_out, 0x44, 72));
+    assert(sig_out_length == 10);
 }
 
 void test_seed_sign_os_perso_derive_node_bip32_throws() {
@@ -355,7 +376,8 @@ void test_seed_sign_os_perso_derive_node_bip32_throws() {
     memset(sig_out, 0x11, sizeof(sig_out));
     G_throws.os_perso_derive_node_bip32 = true;
     assert(!seed_sign(path, path_length, hash32, sig_out, &sig_out_length));
-    assert(memis(sig_out, 0x11, 72));
+    assert(memis(sig_out, 0, 72));
+    assert(sig_out_length == 0);
 }
 
 void test_seed_sign_cx_ecdsa_init_private_key_throws() {
@@ -369,7 +391,8 @@ void test_seed_sign_cx_ecdsa_init_private_key_throws() {
     memset(sig_out, 0x22, sizeof(sig_out));
     G_throws.cx_ecdsa_init_private_key = true;
     assert(!seed_sign(path, path_length, hash32, sig_out, &sig_out_length));
-    assert(memis(sig_out, 0x22, 72));
+    assert(memis(sig_out, 0, 72));
+    assert(sig_out_length == 0);
 }
 
 void test_seed_sign_cx_ecdsa_sign_throws() {
@@ -383,7 +406,62 @@ void test_seed_sign_cx_ecdsa_sign_throws() {
     memset(sig_out, 0x33, sizeof(sig_out));
     G_throws.cx_ecdsa_sign = true;
     assert(!seed_sign(path, path_length, hash32, sig_out, &sig_out_length));
-    assert(memis(sig_out, 0x33, 72));
+    assert(memis(sig_out, 0, 72));
+    assert(sig_out_length == 0);
+}
+
+void test_seed_sign_parity_tag_ok() {
+    printf("Testing seed_sign() with parity bit set on sequence tag...\n");
+    setup();
+    unsigned int path[5] = {0};
+    unsigned char path_length = 5;
+    unsigned char hash32[32] = {0};
+    unsigned char sig_out[72];
+    unsigned char sig_out_length = sizeof(sig_out);
+    G_mocks.sig[0] = 0x31;
+    assert(seed_sign(path, path_length, hash32, sig_out, &sig_out_length));
+    assert(sig_out_length == 72);
+    assert(!memcmp(sig_out, G_mocks.sig, 72));
+}
+
+void assert_seed_sign_unsound() {
+    unsigned int path[5] = {0};
+    unsigned char path_length = 5;
+    unsigned char hash32[32] = {0};
+    unsigned char sig_out[72];
+    unsigned char sig_out_length = sizeof(sig_out);
+    memset(sig_out, 0x55, sizeof(sig_out));
+    assert(!seed_sign(path, path_length, hash32, sig_out, &sig_out_length));
+    assert(G_called.cx_ecdsa_sign);
+    assert(memis(sig_out, 0, 72));
+    assert(sig_out_length == 0);
+}
+
+void test_seed_sign_unsound_signature() {
+    printf("Testing seed_sign() when signature has an invalid tag...\n");
+    setup();
+    G_mocks.sig[0] = 0x32;
+    assert_seed_sign_unsound();
+
+    printf("Testing seed_sign() when signature has an invalid length...\n");
+    setup();
+    G_mocks.sig_length = 71;
+    assert_seed_sign_unsound();
+
+    printf("Testing seed_sign() when signature length is negative...\n");
+    setup();
+    G_mocks.sig_length = -1;
+    assert_seed_sign_unsound();
+
+    printf("Testing seed_sign() when signature r is zero...\n");
+    setup();
+    memset(G_mocks.sig + 5, 0, 32);
+    assert_seed_sign_unsound();
+
+    printf("Testing seed_sign() when signature s is out of range...\n");
+    setup();
+    memset(G_mocks.sig + 40, 0xFF, 32);
+    assert_seed_sign_unsound();
 }
 
 int main() {
@@ -400,6 +478,8 @@ int main() {
     test_seed_sign_os_perso_derive_node_bip32_throws();
     test_seed_sign_cx_ecdsa_init_private_key_throws();
     test_seed_sign_cx_ecdsa_sign_throws();
+    test_seed_sign_parity_tag_ok();
+    test_seed_sign_unsound_signature();
 
     printf("All Ledger HAL seed tests passed!\n");
     return 0;

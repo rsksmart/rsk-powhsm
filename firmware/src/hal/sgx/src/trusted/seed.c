@@ -36,6 +36,7 @@
 #include "secret_store.h"
 #include "bip32.h"
 #include "random.h"
+#include "sig_utils.h"
 
 #define SEST_SEED_KEY "seed"
 
@@ -221,6 +222,8 @@ bool seed_sign(uint32_t* path,
             path, path_length, derived_privkey, sizeof(derived_privkey))) {
         DEBUG("Error deriving private key for signing\n");
         explicit_bzero(derived_privkey, sizeof(derived_privkey));
+        explicit_bzero(sig_out, MAX_SIGNATURE_LENGTH);
+        *sig_out_length = 0;
         return false;
     }
 
@@ -231,16 +234,23 @@ bool seed_sign(uint32_t* path,
     explicit_bzero(derived_privkey, sizeof(derived_privkey));
     if (!signed_ok) {
         DEBUG("Error signing with derived private key\n");
+        explicit_bzero(sig_out, MAX_SIGNATURE_LENGTH);
+        *sig_out_length = 0;
         return false;
     }
     size_t temp_length = *sig_out_length;
     if (!secp256k1_ecdsa_signature_serialize_der(
             sp_ctx, sig_out, &temp_length, &sp_sig)) {
         DEBUG("Error serializing signature\n");
+        explicit_bzero(sig_out, MAX_SIGNATURE_LENGTH);
+        *sig_out_length = 0;
         return false;
     }
-    if (temp_length > MAX_SIGNATURE_LENGTH) {
-        DEBUG("Overflow while signing\n");
+    // Make sure the signature is sound before releasing it
+    if (!sig_der_is_sound(sig_out, temp_length)) {
+        DEBUG("Unsound signature produced\n");
+        explicit_bzero(sig_out, MAX_SIGNATURE_LENGTH);
+        *sig_out_length = 0;
         return false;
     }
     *sig_out_length = (uint8_t)temp_length;

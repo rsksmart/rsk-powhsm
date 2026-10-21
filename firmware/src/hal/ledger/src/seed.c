@@ -29,6 +29,8 @@
 #include "hal/constants.h"
 #include "hal/seed.h"
 
+#include "sig_utils.h"
+
 bool seed_available() {
     return os_perso_isonboarded() == 1;
 }
@@ -96,6 +98,7 @@ bool seed_sign(uint32_t* path,
 
     volatile unsigned char private_key_data[PRIVATE_KEY_LENGTH];
     volatile cx_ecfp_private_key_t private_key;
+    volatile int sig_length;
 
     // Check the destination buffer won't be overflowed by the signature
     if (*sig_out_length < MAX_SIGNATURE_LENGTH) {
@@ -116,19 +119,27 @@ bool seed_sign(uint32_t* path,
                                       (cx_ecfp_private_key_t*)&private_key);
             // Cleanup private key data
             explicit_bzero((void*)private_key_data, sizeof(private_key_data));
-            *sig_out_length = (uint8_t)cx_ecdsa_sign((void*)&private_key,
-                                                     CX_RND_RFC6979 | CX_LAST,
-                                                     CX_SHA256,
-                                                     hash32,
-                                                     HASH_LENGTH,
-                                                     sig_out);
+            sig_length = cx_ecdsa_sign((void*)&private_key,
+                                       CX_RND_RFC6979 | CX_LAST,
+                                       CX_SHA256,
+                                       hash32,
+                                       HASH_LENGTH,
+                                       sig_out);
             // Cleanup private key
             explicit_bzero((void*)&private_key, sizeof(private_key));
+            // Make sure the signature is sound before releasing it
+            if (sig_length < 0 ||
+                !sig_der_is_sound(sig_out, (size_t)sig_length)) {
+                THROW(1);
+            }
+            *sig_out_length = (uint8_t)sig_length;
         }
         CATCH_ALL {
-            // Cleanup key data and fail
+            // Cleanup key data, signature and fail
             explicit_bzero((void*)private_key_data, sizeof(private_key_data));
             explicit_bzero((void*)&private_key, sizeof(private_key));
+            explicit_bzero(sig_out, MAX_SIGNATURE_LENGTH);
+            *sig_out_length = 0;
             return false;
         }
         FINALLY {

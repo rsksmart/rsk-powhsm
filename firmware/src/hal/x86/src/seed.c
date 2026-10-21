@@ -37,6 +37,7 @@
 #include "bip32_path.h"
 #include "cJSON.h"
 #include "hex_reader.h"
+#include "sig_utils.h"
 
 #define SEED_DEFAULT_IS_ONBOARDED (true)
 
@@ -263,16 +264,18 @@ bool seed_sign(uint32_t* path,
 
     INFO_HEX("Signing hash:", hash32, HASH_LENGTH);
 
+    if (*sig_out_length < MAX_SIGNATURE_LENGTH) {
+        DEBUG("Output buffer for signature too small: %u bytes\n",
+              *sig_out_length);
+        return false;
+    }
+
     uint8_t key[PRIVATE_KEY_LENGTH];
     if (!get_key(path, path_length, key)) {
         DEBUG("Invalid path given: ");
         DEBUG_BIP32_PATH(path, path_length);
-        return false;
-    }
-
-    if (*sig_out_length < MAX_SIGNATURE_LENGTH) {
-        DEBUG("Output buffer for signature too small: %u bytes\n",
-              *sig_out_length);
+        explicit_bzero(sig_out, MAX_SIGNATURE_LENGTH);
+        *sig_out_length = 0;
         return false;
     }
 
@@ -280,6 +283,13 @@ bool seed_sign(uint32_t* path,
     secp256k1_ecdsa_sign(sp_ctx, &sp_sig, hash32, key, NULL, NULL);
     secp256k1_ecdsa_signature_serialize_der(
         sp_ctx, sig_out, &sig_serialized_size, &sp_sig);
+    // Make sure the signature is sound before releasing it
+    if (!sig_der_is_sound(sig_out, sig_serialized_size)) {
+        DEBUG("Unsound signature produced\n");
+        explicit_bzero(sig_out, MAX_SIGNATURE_LENGTH);
+        *sig_out_length = 0;
+        return false;
+    }
     *sig_out_length = (uint8_t)sig_serialized_size;
 
     return true;
