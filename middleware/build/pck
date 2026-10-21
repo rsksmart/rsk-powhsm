@@ -27,5 +27,7 @@ fi
 
 # Create archive
 GZIP=-n $TAR --sort=name --mtime=1960-10-30 --owner=0 --group=0 --numeric-owner -czf $BINPATH/$TARGET.tgz -C $BINPATH/$TARGET . 2> /dev/null
+RESULT=$?
 
 popd > /dev/null
+exit $RESULT
