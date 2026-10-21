@@ -165,11 +165,16 @@ bool seed_derive_pubkey(uint32_t* path,
     if (!derive_privkey(
             path, path_length, derived_privkey, sizeof(derived_privkey))) {
         DEBUG("Error deriving private key for public key gathering\n");
+        explicit_bzero(derived_privkey, sizeof(derived_privkey));
         return false;
     }
 
     // Derive the public key and serialize it uncompressed
-    if (!secp256k1_ec_pubkey_create(sp_ctx, &sp_pubkey, derived_privkey)) {
+    bool pubkey_created =
+        secp256k1_ec_pubkey_create(sp_ctx, &sp_pubkey, derived_privkey);
+    // Cleanup private key
+    explicit_bzero(derived_privkey, sizeof(derived_privkey));
+    if (!pubkey_created) {
         DEBUG("Error deriving public key\n");
         return false;
     }
@@ -215,12 +220,16 @@ bool seed_sign(uint32_t* path,
     if (!derive_privkey(
             path, path_length, derived_privkey, sizeof(derived_privkey))) {
         DEBUG("Error deriving private key for signing\n");
+        explicit_bzero(derived_privkey, sizeof(derived_privkey));
         return false;
     }
 
     // Sign and serialize as DER
-    if (!secp256k1_ecdsa_sign(
-            sp_ctx, &sp_sig, hash32, derived_privkey, NULL, NULL)) {
+    bool signed_ok = secp256k1_ecdsa_sign(
+        sp_ctx, &sp_sig, hash32, derived_privkey, NULL, NULL);
+    // Cleanup private key
+    explicit_bzero(derived_privkey, sizeof(derived_privkey));
+    if (!signed_ok) {
         DEBUG("Error signing with derived private key\n");
         return false;
     }
