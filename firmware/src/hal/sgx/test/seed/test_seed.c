@@ -385,11 +385,14 @@ void test_seed_sign_fails_when_sig_buffer_too_small() {
     printf("Test seed_sign fails when the signature buffer is too small...\n");
 
     init_with_valid_seed();
-    uint8_t sig[MAX_SIGNATURE_LENGTH] = {0};
+    uint8_t sig[MAX_SIGNATURE_LENGTH];
+    memset(sig, 0xAA, sizeof(sig));
     uint8_t sig_length = sizeof(sig) - 1;
     assert(!seed_sign(
         G_valid_path, sizeof(G_valid_path), G_hash, sig, &sig_length));
-    ASSERT_ARRAY_CLEARED(sig);
+    // Neither the buffer nor its length are touched
+    ASSERT_ARRAY_VALUE(sig, 0xAA);
+    assert(sig_length == sizeof(sig) - 1);
     teardown();
 }
 
@@ -399,11 +402,13 @@ void test_seed_sign_fails_when_bip32_derive_fails() {
 
     init_with_valid_seed();
     uint8_t sig[MAX_SIGNATURE_LENGTH];
+    memset(sig, 0xAA, sizeof(sig));
     uint8_t sig_length = sizeof(sig);
     uint32_t invalid_path[] = {0, 0, 0, 0, 0};
     assert(!seed_sign(
         invalid_path, sizeof(invalid_path), G_hash, sig, &sig_length));
     ASSERT_ARRAY_CLEARED(sig);
+    assert(sig_length == 0);
     teardown();
 }
 
