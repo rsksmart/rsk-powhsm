@@ -41,13 +41,18 @@ struct {
     bool cx_ecdsa_init_private_key;
     bool cx_ecfp_generate_pair;
     bool cx_ecdsa_sign;
+    bool cx_ecdsa_verify;
     bool os_memmove;
+    int os_perso_derive_node_bip32_count;
+    int cx_ecdsa_init_private_key_count;
+    int cx_ecfp_generate_pair_count;
 } G_called;
 
 struct {
     int os_perso_isonboarded_ret;
     unsigned char sig[80];
     int sig_length;
+    int verify_ret;
 } G_mocks;
 
 // A sound DER-encoded signature with r = s = 0xBB..BB (32 bytes each)
@@ -94,6 +99,18 @@ struct {
         uint8_t *sig_out;
     } cx_ecdsa_sign;
     struct {
+        cx_ecfp_public_key_t *key;
+        // Public key and signature contents at the time of the call
+        cx_ecfp_public_key_t key_value;
+        unsigned char sig_value[80];
+        int mode;
+        int hash_id;
+        uint8_t *hash32;
+        unsigned int hash_len;
+        uint8_t *sig;
+        unsigned int sig_len;
+    } cx_ecdsa_verify;
+    struct {
         void *dst;
         const void *src;
         size_t length;
@@ -106,6 +123,10 @@ static struct {
     bool cx_ecdsa_init_private_key;
     bool cx_ecfp_generate_pair;
     bool cx_ecdsa_sign;
+    bool cx_ecdsa_verify;
+    // Throw only on the second derivation
+    bool os_perso_derive_node_bip32_second;
+    bool cx_ecdsa_init_private_key_second;
 } G_throws;
 
 // Helper: returns true if all bytes in buf[0..len-1] are equal to val
@@ -137,12 +158,15 @@ void os_perso_derive_node_bip32(cx_curve_t curve,
                                 unsigned char *privateKey,
                                 unsigned char *chain) {
     G_called.os_perso_derive_node_bip32 = true;
+    G_called.os_perso_derive_node_bip32_count++;
     G_args.os_perso_derive_node_bip32.curve = curve;
     G_args.os_perso_derive_node_bip32.path = path;
     G_args.os_perso_derive_node_bip32.path_length = pathLength;
     G_args.os_perso_derive_node_bip32.out = privateKey;
     G_args.os_perso_derive_node_bip32.chain = chain;
-    if (G_throws.os_perso_derive_node_bip32) {
+    if (G_throws.os_perso_derive_node_bip32 ||
+        (G_throws.os_perso_derive_node_bip32_second &&
+         G_called.os_perso_derive_node_bip32_count == 2)) {
         THROW(1);
     }
     memset(privateKey, 0x42, 32); // Fill with dummy data
@@ -153,11 +177,14 @@ int cx_ecdsa_init_private_key(cx_curve_t curve,
                               unsigned int key_len,
                               cx_ecfp_private_key_t *key) {
     G_called.cx_ecdsa_init_private_key = true;
+    G_called.cx_ecdsa_init_private_key_count++;
     G_args.cx_ecdsa_init_private_key.curve = curve;
     G_args.cx_ecdsa_init_private_key.key = rawkey;
     G_args.cx_ecdsa_init_private_key.key_len = key_len;
     G_args.cx_ecdsa_init_private_key.private_key = key;
-    if (G_throws.cx_ecdsa_init_private_key) {
+    if (G_throws.cx_ecdsa_init_private_key ||
+        (G_throws.cx_ecdsa_init_private_key_second &&
+         G_called.cx_ecdsa_init_private_key_count == 2)) {
         THROW(2);
     }
     return 0;
@@ -168,6 +195,7 @@ int cx_ecfp_generate_pair(cx_curve_t curve,
                           cx_ecfp_private_key_t *privkey,
                           int keepprivate) {
     G_called.cx_ecfp_generate_pair = true;
+    G_called.cx_ecfp_generate_pair_count++;
     G_args.cx_ecfp_generate_pair.curve = curve;
     G_args.cx_ecfp_generate_pair.pub = pubkey;
     G_args.cx_ecfp_generate_pair.priv = privkey;
@@ -202,6 +230,29 @@ int cx_ecdsa_sign(cx_ecfp_private_key_t *key,
     return G_mocks.sig_length;
 }
 
+int cx_ecdsa_verify(cx_ecfp_public_key_t *key,
+                    int mode,
+                    cx_md_t hashID,
+                    unsigned char *hash,
+                    unsigned int hash_len,
+                    unsigned char *sig,
+                    unsigned int sig_len) {
+    G_called.cx_ecdsa_verify = true;
+    G_args.cx_ecdsa_verify.key = key;
+    G_args.cx_ecdsa_verify.key_value = *key;
+    G_args.cx_ecdsa_verify.mode = mode;
+    G_args.cx_ecdsa_verify.hash_id = hashID;
+    G_args.cx_ecdsa_verify.hash32 = hash;
+    G_args.cx_ecdsa_verify.hash_len = hash_len;
+    G_args.cx_ecdsa_verify.sig = sig;
+    G_args.cx_ecdsa_verify.sig_len = sig_len;
+    memcpy(G_args.cx_ecdsa_verify.sig_value, sig, sig_len);
+    if (G_throws.cx_ecdsa_verify) {
+        THROW(5);
+    }
+    return G_mocks.verify_ret;
+}
+
 // Tests
 void setup() {
     memset(&G_called, 0, sizeof(G_called));
@@ -209,6 +260,7 @@ void setup() {
     memset(&G_args, 0, sizeof(G_args));
     memset(&G_throws, 0, sizeof(G_throws));
     build_sound_sig(G_mocks.sig, &G_mocks.sig_length);
+    G_mocks.verify_ret = 1;
 }
 
 void test_seed_available() {
@@ -316,6 +368,39 @@ void test_seed_derive_pubkey_buftoosmall() {
     assert(memis(pubkey_out, 0x44, 65));
 }
 
+void test_seed_derive_pubkey_ok_after_failures() {
+    printf("Testing seed_derive_pubkey() ok after failed derivations...\n");
+    unsigned int path[5] = {0};
+    unsigned char path_length = 5;
+    unsigned char pubkey_out[65];
+    unsigned char pubkey_out_length;
+
+    // Failures within the key derivation helpers must leave
+    // the exception context in a sane state
+    setup();
+    G_throws.os_perso_derive_node_bip32 = true;
+    pubkey_out_length = sizeof(pubkey_out);
+    assert(
+        !seed_derive_pubkey(path, path_length, pubkey_out, &pubkey_out_length));
+    setup();
+    G_throws.cx_ecdsa_init_private_key = true;
+    pubkey_out_length = sizeof(pubkey_out);
+    assert(
+        !seed_derive_pubkey(path, path_length, pubkey_out, &pubkey_out_length));
+    setup();
+    G_throws.cx_ecfp_generate_pair = true;
+    pubkey_out_length = sizeof(pubkey_out);
+    assert(
+        !seed_derive_pubkey(path, path_length, pubkey_out, &pubkey_out_length));
+
+    setup();
+    pubkey_out_length = sizeof(pubkey_out);
+    assert(
+        seed_derive_pubkey(path, path_length, pubkey_out, &pubkey_out_length));
+    assert(pubkey_out_length == 65);
+    assert(memis(pubkey_out, 0xAA, 65));
+}
+
 void test_seed_sign_success() {
     printf("Testing seed_sign() ok...\n");
     setup();
@@ -349,6 +434,27 @@ void test_seed_sign_success() {
     assert(G_args.cx_ecdsa_sign.hash32 == hash32);
     assert(G_args.cx_ecdsa_sign.hash_len == 32);
     assert(G_args.cx_ecdsa_sign.sig_out == sig_out);
+
+    // Verification against an independently derived public key
+    assert(G_called.os_perso_derive_node_bip32_count == 2);
+    assert(G_called.cx_ecdsa_init_private_key_count == 2);
+    assert(G_called.cx_ecfp_generate_pair_count == 1);
+    assert(G_args.cx_ecfp_generate_pair.curve == CX_CURVE_256K1);
+    assert(G_args.cx_ecfp_generate_pair.pub != NULL);
+    assert(G_args.cx_ecfp_generate_pair.priv != NULL);
+    assert(G_args.cx_ecfp_generate_pair.keep_private == 1);
+
+    assert(G_called.cx_ecdsa_verify);
+    assert(G_args.cx_ecdsa_verify.key == G_args.cx_ecfp_generate_pair.pub);
+    assert(G_args.cx_ecdsa_verify.key_value.W_len == 65);
+    assert(memis(G_args.cx_ecdsa_verify.key_value.W, 0xAA, 65));
+    assert(G_args.cx_ecdsa_verify.mode == CX_LAST);
+    assert(G_args.cx_ecdsa_verify.hash_id == CX_SHA256);
+    assert(G_args.cx_ecdsa_verify.hash32 == hash32);
+    assert(G_args.cx_ecdsa_verify.hash_len == 32);
+    assert(G_args.cx_ecdsa_verify.sig == sig_out);
+    assert(G_args.cx_ecdsa_verify.sig_len == 72);
+    assert(!memcmp(G_args.cx_ecdsa_verify.sig_value, G_mocks.sig, 72));
 }
 
 void test_seed_sign_buftoosmall() {
@@ -422,6 +528,10 @@ void test_seed_sign_parity_tag_ok() {
     assert(seed_sign(path, path_length, hash32, sig_out, &sig_out_length));
     assert(sig_out_length == 72);
     assert(!memcmp(sig_out, G_mocks.sig, 72));
+    // Verified as produced
+    assert(G_called.cx_ecdsa_verify);
+    assert(G_args.cx_ecdsa_verify.sig_len == 72);
+    assert(!memcmp(G_args.cx_ecdsa_verify.sig_value, G_mocks.sig, 72));
 }
 
 void assert_seed_sign_unsound() {
@@ -433,6 +543,7 @@ void assert_seed_sign_unsound() {
     memset(sig_out, 0x55, sizeof(sig_out));
     assert(!seed_sign(path, path_length, hash32, sig_out, &sig_out_length));
     assert(G_called.cx_ecdsa_sign);
+    assert(!G_called.cx_ecdsa_verify);
     assert(memis(sig_out, 0, 72));
     assert(sig_out_length == 0);
 }
@@ -464,6 +575,82 @@ void test_seed_sign_unsound_signature() {
     assert_seed_sign_unsound();
 }
 
+void assert_seed_sign_verification_fails() {
+    unsigned int path[5] = {0};
+    unsigned char path_length = 5;
+    unsigned char hash32[32] = {0};
+    unsigned char sig_out[72];
+    unsigned char sig_out_length = sizeof(sig_out);
+    memset(sig_out, 0x55, sizeof(sig_out));
+    assert(!seed_sign(path, path_length, hash32, sig_out, &sig_out_length));
+    assert(G_called.cx_ecdsa_sign);
+    assert(memis(sig_out, 0, 72));
+    assert(sig_out_length == 0);
+}
+
+void test_seed_sign_verification_fails() {
+    printf("Testing seed_sign() when signature verification fails...\n");
+    setup();
+    G_mocks.verify_ret = 0;
+    assert_seed_sign_verification_fails();
+    assert(G_called.cx_ecdsa_verify);
+
+    printf("Testing seed_sign() when signature verification throws...\n");
+    setup();
+    G_throws.cx_ecdsa_verify = true;
+    assert_seed_sign_verification_fails();
+    assert(G_called.cx_ecdsa_verify);
+
+    printf("Testing seed_sign() when second derivation throws...\n");
+    setup();
+    G_throws.os_perso_derive_node_bip32_second = true;
+    assert_seed_sign_verification_fails();
+    assert(G_called.os_perso_derive_node_bip32_count == 2);
+    assert(!G_called.cx_ecdsa_verify);
+
+    printf("Testing seed_sign() when second private key init throws...\n");
+    setup();
+    G_throws.cx_ecdsa_init_private_key_second = true;
+    assert_seed_sign_verification_fails();
+    assert(G_called.cx_ecdsa_init_private_key_count == 2);
+    assert(!G_called.cx_ecfp_generate_pair);
+    assert(!G_called.cx_ecdsa_verify);
+
+    printf("Testing seed_sign() when verification public key generation "
+           "throws...\n");
+    setup();
+    G_throws.cx_ecfp_generate_pair = true;
+    assert_seed_sign_verification_fails();
+    assert(G_called.cx_ecfp_generate_pair);
+    assert(!G_called.cx_ecdsa_verify);
+}
+
+void test_seed_sign_ok_after_failures() {
+    printf("Testing seed_sign() ok after failed derivations...\n");
+    unsigned int path[5] = {0};
+    unsigned char path_length = 5;
+    unsigned char hash32[32] = {0};
+    unsigned char sig_out[72];
+    unsigned char sig_out_length;
+
+    // Failures within the private key derivation helper must leave
+    // the exception context in a sane state
+    setup();
+    G_throws.os_perso_derive_node_bip32 = true;
+    sig_out_length = sizeof(sig_out);
+    assert(!seed_sign(path, path_length, hash32, sig_out, &sig_out_length));
+    setup();
+    G_throws.cx_ecdsa_init_private_key_second = true;
+    sig_out_length = sizeof(sig_out);
+    assert(!seed_sign(path, path_length, hash32, sig_out, &sig_out_length));
+
+    setup();
+    sig_out_length = sizeof(sig_out);
+    assert(seed_sign(path, path_length, hash32, sig_out, &sig_out_length));
+    assert(sig_out_length == 72);
+    assert(!memcmp(sig_out, G_mocks.sig, 72));
+}
+
 int main() {
     test_seed_available();
 
@@ -472,6 +659,7 @@ int main() {
     test_seed_derive_pubkey_cx_ecdsa_init_private_key_throws();
     test_seed_derive_pubkey_cx_ecfp_generate_pair_throws();
     test_seed_derive_pubkey_buftoosmall();
+    test_seed_derive_pubkey_ok_after_failures();
 
     test_seed_sign_success();
     test_seed_sign_buftoosmall();
@@ -480,6 +668,8 @@ int main() {
     test_seed_sign_cx_ecdsa_sign_throws();
     test_seed_sign_parity_tag_ok();
     test_seed_sign_unsound_signature();
+    test_seed_sign_verification_fails();
+    test_seed_sign_ok_after_failures();
 
     printf("All Ledger HAL seed tests passed!\n");
     return 0;

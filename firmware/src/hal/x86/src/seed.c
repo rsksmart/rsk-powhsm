@@ -283,9 +283,27 @@ bool seed_sign(uint32_t* path,
     secp256k1_ecdsa_sign(sp_ctx, &sp_sig, hash32, key, NULL, NULL);
     secp256k1_ecdsa_signature_serialize_der(
         sp_ctx, sig_out, &sig_serialized_size, &sp_sig);
-    // Make sure the signature is sound before releasing it
+    // Make sure the signature is sound
     if (!sig_der_is_sound(sig_out, sig_serialized_size)) {
         DEBUG("Unsound signature produced\n");
+        explicit_bzero(sig_out, MAX_SIGNATURE_LENGTH);
+        *sig_out_length = 0;
+        return false;
+    }
+    // Verify the signature against the public key of an independent
+    // key lookup
+    uint8_t verify_key[PRIVATE_KEY_LENGTH];
+    secp256k1_pubkey sp_pubkey;
+    secp256k1_ecdsa_signature sp_sig_check;
+    bool pubkey_created =
+        get_key(path, path_length, verify_key) &&
+        secp256k1_ec_pubkey_create(sp_ctx, &sp_pubkey, verify_key);
+    explicit_bzero(verify_key, sizeof(verify_key));
+    if (!pubkey_created ||
+        !secp256k1_ecdsa_signature_parse_der(
+            sp_ctx, &sp_sig_check, sig_out, sig_serialized_size) ||
+        !secp256k1_ecdsa_verify(sp_ctx, &sp_sig_check, hash32, &sp_pubkey)) {
+        DEBUG("Signature verification failed\n");
         explicit_bzero(sig_out, MAX_SIGNATURE_LENGTH);
         *sig_out_length = 0;
         return false;
