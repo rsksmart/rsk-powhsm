@@ -1,7 +1,9 @@
-FROM python:3.12-slim-bookworm@sha256:10f3aaab98db50cba827d3b33a91f39dc9ec2d02ca9b85cbc5008220d07b17f3
+FROM python:3.12-slim-bookworm@sha256:6a0e06f5ba0b373d051aabd3fffb9b873f27f9a2a3a14bcbe37dee6f0e3bbc70
 
+ARG SNAPSHOT_DATE=20261023T000000Z
+ENV PIP_VERSION=26.2.2
+ENV PIP_HASH=fd7f4dfa8190e014013b9f08f3e973f4e4c26ffd179a204895533a7254813a70
 ARG PIP_TIMEOUT=60
-ARG SNAPSHOT_DATE=20260415T000000Z
 
 WORKDIR /hsm2
 
@@ -12,6 +14,7 @@ RUN rm -f /etc/apt/sources.list.d/debian.sources && \
 
 RUN apt-get update && \
     apt-get install -y apt-utils vim procps && \
+    apt-get install -y ca-certificates=20250419~deb12u2 && \
     apt-get install -y build-essential=12.9 && \
     apt-get install -y git && \
     apt-get install -y lcov && \
@@ -20,11 +23,15 @@ RUN apt-get update && \
 # Python package prerequisites
 RUN apt-get install -y \
     libsecp256k1-dev=0.2.0-2 \
-    libudev1=252.39-1~deb12u1 \
-    libudev-dev=252.39-1~deb12u1 \
+    libudev1=252.39-1~deb12u2 \
+    libudev-dev=252.39-1~deb12u2 \
     libusb-1.0-0-dev=2:1.0.26-1 \
     libffi-dev=3.4.4-1 \
     libjpeg-dev=1:2.1.5-2
+
+RUN echo "pip==${PIP_VERSION} --hash=sha256:${PIP_HASH}" > /tmp/pip-req.txt && \
+    pip install --timeout=${PIP_TIMEOUT} --require-hashes -r /tmp/pip-req.txt && \
+    rm -f /tmp/pip-req.txt
 
 COPY requirements.txt /hsm2/requirements.txt
 RUN pip install --timeout=${PIP_TIMEOUT} -r requirements.txt --require-hashes
