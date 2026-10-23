@@ -149,33 +149,6 @@ static bool derive_privkey(uint32_t* path,
     return true;
 }
 
-// Derive the public key for the given path
-static bool derive_pubkey(uint32_t* path,
-                          uint8_t path_length,
-                          secp256k1_pubkey* pubkey_out) {
-    uint8_t derived_privkey[PRIVATE_KEY_LENGTH];
-
-    // Derive the private key
-    if (!derive_privkey(
-            path, path_length, derived_privkey, sizeof(derived_privkey))) {
-        DEBUG("Error deriving private key for public key gathering\n");
-        explicit_bzero(derived_privkey, sizeof(derived_privkey));
-        return false;
-    }
-
-    // Derive the public key
-    bool pubkey_created =
-        secp256k1_ec_pubkey_create(sp_ctx, pubkey_out, derived_privkey);
-    // Cleanup private key
-    explicit_bzero(derived_privkey, sizeof(derived_privkey));
-    if (!pubkey_created) {
-        DEBUG("Error deriving public key\n");
-        return false;
-    }
-
-    return true;
-}
-
 bool seed_available() {
     return G_seed_available;
 }
@@ -185,11 +158,25 @@ bool seed_derive_pubkey(uint32_t* path,
                         uint8_t* pubkey_out,
                         uint8_t* pubkey_out_length) {
     secp256k1_pubkey sp_pubkey;
+    uint8_t derived_privkey[PRIVATE_KEY_LENGTH];
 
     INFO("Deriving public key for path...\n");
 
+    // Derive the private key
+    if (!derive_privkey(
+            path, path_length, derived_privkey, sizeof(derived_privkey))) {
+        DEBUG("Error deriving private key for public key gathering\n");
+        explicit_bzero(derived_privkey, sizeof(derived_privkey));
+        return false;
+    }
+
     // Derive the public key and serialize it uncompressed
-    if (!derive_pubkey(path, path_length, &sp_pubkey)) {
+    bool pubkey_created =
+        secp256k1_ec_pubkey_create(sp_ctx, &sp_pubkey, derived_privkey);
+    // Cleanup private key
+    explicit_bzero(derived_privkey, sizeof(derived_privkey));
+    if (!pubkey_created) {
+        DEBUG("Error deriving public key\n");
         return false;
     }
 
@@ -266,12 +253,40 @@ bool seed_sign(uint32_t* path,
         *sig_out_length = 0;
         return false;
     }
-    // Verify the signature against the public key of an independent
-    // derivation
+    // Sign again with an independently derived private key, and
+    // also derive the public key used for verification from it
     secp256k1_pubkey sp_pubkey;
     secp256k1_ecdsa_signature sp_sig_check;
-    if (!derive_pubkey(path, path_length, &sp_pubkey) ||
-        !secp256k1_ecdsa_signature_parse_der(
+    uint8_t sig_check[MAX_SIGNATURE_LENGTH];
+    size_t sig_check_length = sizeof(sig_check);
+    if (!derive_privkey(
+            path, path_length, derived_privkey, sizeof(derived_privkey))) {
+        DEBUG("Error deriving private key for signature check\n");
+        explicit_bzero(derived_privkey, sizeof(derived_privkey));
+        explicit_bzero(sig_out, MAX_SIGNATURE_LENGTH);
+        *sig_out_length = 0;
+        return false;
+    }
+    bool checked_ok =
+        secp256k1_ecdsa_sign(
+            sp_ctx, &sp_sig_check, hash32, derived_privkey, NULL, NULL) &&
+        secp256k1_ecdsa_signature_serialize_der(
+            sp_ctx, sig_check, &sig_check_length, &sp_sig_check) &&
+        secp256k1_ec_pubkey_create(sp_ctx, &sp_pubkey, derived_privkey);
+    // Cleanup private key
+    explicit_bzero(derived_privkey, sizeof(derived_privkey));
+    // Signing is deterministic, so both signatures must match
+    checked_ok = checked_ok && sig_check_length == temp_length &&
+                 !memcmp(sig_out, sig_check, temp_length);
+    explicit_bzero(sig_check, sizeof(sig_check));
+    if (!checked_ok) {
+        DEBUG("Signature check failed\n");
+        explicit_bzero(sig_out, MAX_SIGNATURE_LENGTH);
+        *sig_out_length = 0;
+        return false;
+    }
+    // Verify the signature
+    if (!secp256k1_ecdsa_signature_parse_der(
             sp_ctx, &sp_sig_check, sig_out, temp_length) ||
         !secp256k1_ecdsa_verify(sp_ctx, &sp_sig_check, hash32, &sp_pubkey)) {
         DEBUG("Signature verification failed\n");
