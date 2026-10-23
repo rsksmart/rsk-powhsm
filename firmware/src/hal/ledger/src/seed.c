@@ -71,13 +71,13 @@ static bool derive_privkey(uint32_t* path,
     return success;
 }
 
-// Derive the public key for the given path.
-// Upon failure, the given public key is wiped.
-static bool derive_pubkey(uint32_t* path,
-                          uint8_t path_length,
-                          volatile cx_ecfp_public_key_t* public_key) {
+bool seed_derive_pubkey(uint32_t* path,
+                        uint8_t path_length,
+                        uint8_t* pubkey_out,
+                        uint8_t* pubkey_out_length) {
 
     volatile cx_ecfp_private_key_t private_key;
+    volatile cx_ecfp_public_key_t public_key;
     volatile bool success = false;
 
     BEGIN_TRY {
@@ -85,39 +85,13 @@ static bool derive_pubkey(uint32_t* path,
             if (!derive_privkey(path, path_length, &private_key)) {
                 THROW(1);
             }
+            // Derive public key
             cx_ecfp_generate_pair(CX_CURVE_256K1,
-                                  (cx_ecfp_public_key_t*)public_key,
+                                  (cx_ecfp_public_key_t*)&public_key,
                                   (cx_ecfp_private_key_t*)&private_key,
                                   1);
-            success = true;
-        }
-        CATCH_ALL {
-            // Cleanup public key
-            explicit_bzero((void*)public_key, sizeof(cx_ecfp_public_key_t));
-        }
-        FINALLY {
             // Cleanup private key
             explicit_bzero((void*)&private_key, sizeof(private_key));
-        }
-    }
-    END_TRY;
-
-    return success;
-}
-
-bool seed_derive_pubkey(uint32_t* path,
-                        uint8_t path_length,
-                        uint8_t* pubkey_out,
-                        uint8_t* pubkey_out_length) {
-
-    volatile cx_ecfp_public_key_t public_key;
-    volatile bool success = false;
-
-    BEGIN_TRY {
-        TRY {
-            if (!derive_pubkey(path, path_length, &public_key)) {
-                THROW(1);
-            }
             if (*pubkey_out_length < public_key.W_len) {
                 THROW(1);
             }
@@ -131,7 +105,8 @@ bool seed_derive_pubkey(uint32_t* path,
             success = false;
         }
         FINALLY {
-            // Cleanup public key
+            // Cleanup key data
+            explicit_bzero((void*)&private_key, sizeof(private_key));
             explicit_bzero((void*)&public_key, sizeof(public_key));
         }
     }
@@ -148,6 +123,8 @@ bool seed_sign(uint32_t* path,
 
     volatile cx_ecfp_private_key_t private_key;
     volatile cx_ecfp_public_key_t public_key;
+    volatile unsigned char sig_check[MAX_SIGNATURE_LENGTH];
+    volatile int sig_check_length;
     volatile int sig_length;
     volatile bool success = false;
 
@@ -158,6 +135,7 @@ bool seed_sign(uint32_t* path,
 
     BEGIN_TRY {
         TRY {
+            // Sign
             if (!derive_privkey(path, path_length, &private_key)) {
                 THROW(1);
             }
@@ -174,11 +152,31 @@ bool seed_sign(uint32_t* path,
                 !sig_der_is_sound(sig_out, (size_t)sig_length)) {
                 THROW(1);
             }
-            // Verify the signature against the public key of an independent
-            // derivation
-            if (!derive_pubkey(path, path_length, &public_key)) {
+            // Sign again with an independently derived private key, and
+            // also derive the public key to use for verification
+            if (!derive_privkey(path, path_length, &private_key)) {
                 THROW(1);
             }
+            sig_check_length = cx_ecdsa_sign((void*)&private_key,
+                                             CX_RND_RFC6979 | CX_LAST,
+                                             CX_SHA256,
+                                             hash32,
+                                             HASH_LENGTH,
+                                             (unsigned char*)sig_check);
+            cx_ecfp_generate_pair(CX_CURVE_256K1,
+                                  (cx_ecfp_public_key_t*)&public_key,
+                                  (cx_ecfp_private_key_t*)&private_key,
+                                  1);
+            // Cleanup private key
+            explicit_bzero((void*)&private_key, sizeof(private_key));
+            // Signing is deterministic (RFC 6979), so both signatures must
+            // match
+            if (sig_check_length != sig_length ||
+                memcmp(sig_out, (const void*)sig_check, (size_t)sig_length)) {
+                THROW(1);
+            }
+            // Verify the signature against the public key obtained from the
+            // second derivation
             if (cx_ecdsa_verify((cx_ecfp_public_key_t*)&public_key,
                                 CX_LAST,
                                 CX_SHA256,
@@ -198,9 +196,10 @@ bool seed_sign(uint32_t* path,
             success = false;
         }
         FINALLY {
-            // Cleanup key data
+            // Cleanup key data and signature check
             explicit_bzero((void*)&private_key, sizeof(private_key));
             explicit_bzero((void*)&public_key, sizeof(public_key));
+            explicit_bzero((void*)sig_check, sizeof(sig_check));
         }
     }
     END_TRY;

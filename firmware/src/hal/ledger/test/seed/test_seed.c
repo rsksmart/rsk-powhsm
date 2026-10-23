@@ -46,12 +46,16 @@ struct {
     int os_perso_derive_node_bip32_count;
     int cx_ecdsa_init_private_key_count;
     int cx_ecfp_generate_pair_count;
+    int cx_ecdsa_sign_count;
 } G_called;
 
 struct {
     int os_perso_isonboarded_ret;
+    // Signatures produced by the first and second calls to cx_ecdsa_sign
     unsigned char sig[80];
     int sig_length;
+    unsigned char sig_check[80];
+    int sig_check_length;
     int verify_ret;
 } G_mocks;
 
@@ -97,7 +101,7 @@ struct {
         uint8_t *hash32;
         int hash_len;
         uint8_t *sig_out;
-    } cx_ecdsa_sign;
+    } cx_ecdsa_sign[2]; // First and second calls
     struct {
         cx_ecfp_public_key_t *key;
         // Public key and signature contents at the time of the call
@@ -124,9 +128,10 @@ static struct {
     bool cx_ecfp_generate_pair;
     bool cx_ecdsa_sign;
     bool cx_ecdsa_verify;
-    // Throw only on the second derivation
+    // Throw only on the second derivation / signature
     bool os_perso_derive_node_bip32_second;
     bool cx_ecdsa_init_private_key_second;
+    bool cx_ecdsa_sign_second;
 } G_throws;
 
 // Helper: returns true if all bytes in buf[0..len-1] are equal to val
@@ -215,19 +220,25 @@ int cx_ecdsa_sign(cx_ecfp_private_key_t *key,
                   unsigned int hash_len,
                   unsigned char *sig) {
     G_called.cx_ecdsa_sign = true;
-    G_args.cx_ecdsa_sign.private_key = key;
-    G_args.cx_ecdsa_sign.mode = mode;
-    G_args.cx_ecdsa_sign.hash_id = hashID;
-    G_args.cx_ecdsa_sign.hash32 = hash;
-    G_args.cx_ecdsa_sign.hash_len = hash_len;
-    G_args.cx_ecdsa_sign.sig_out = sig;
-    if (G_throws.cx_ecdsa_sign) {
+    G_called.cx_ecdsa_sign_count++;
+    bool second = G_called.cx_ecdsa_sign_count == 2;
+    int i = second ? 1 : 0;
+    G_args.cx_ecdsa_sign[i].private_key = key;
+    G_args.cx_ecdsa_sign[i].mode = mode;
+    G_args.cx_ecdsa_sign[i].hash_id = hashID;
+    G_args.cx_ecdsa_sign[i].hash32 = hash;
+    G_args.cx_ecdsa_sign[i].hash_len = hash_len;
+    G_args.cx_ecdsa_sign[i].sig_out = sig;
+    if (G_throws.cx_ecdsa_sign || (G_throws.cx_ecdsa_sign_second && second)) {
         THROW(4);
     }
-    if (G_mocks.sig_length > 0) {
-        memcpy(sig, G_mocks.sig, G_mocks.sig_length);
+    unsigned char *mock_sig = second ? G_mocks.sig_check : G_mocks.sig;
+    int mock_sig_length =
+        second ? G_mocks.sig_check_length : G_mocks.sig_length;
+    if (mock_sig_length > 0) {
+        memcpy(sig, mock_sig, mock_sig_length);
     }
-    return G_mocks.sig_length;
+    return mock_sig_length;
 }
 
 int cx_ecdsa_verify(cx_ecfp_public_key_t *key,
@@ -260,6 +271,7 @@ void setup() {
     memset(&G_args, 0, sizeof(G_args));
     memset(&G_throws, 0, sizeof(G_throws));
     build_sound_sig(G_mocks.sig, &G_mocks.sig_length);
+    build_sound_sig(G_mocks.sig_check, &G_mocks.sig_check_length);
     G_mocks.verify_ret = 1;
 }
 
@@ -428,12 +440,18 @@ void test_seed_sign_success() {
     assert(G_args.cx_ecdsa_init_private_key.key_len == 32);
     assert(G_args.cx_ecdsa_init_private_key.private_key != NULL);
 
-    assert(G_args.cx_ecdsa_sign.private_key != NULL);
-    assert(G_args.cx_ecdsa_sign.mode == (CX_RND_RFC6979 | CX_LAST));
-    assert(G_args.cx_ecdsa_sign.hash_id == CX_SHA256);
-    assert(G_args.cx_ecdsa_sign.hash32 == hash32);
-    assert(G_args.cx_ecdsa_sign.hash_len == 32);
-    assert(G_args.cx_ecdsa_sign.sig_out == sig_out);
+    // Signed twice, the second time onto a different buffer
+    assert(G_called.cx_ecdsa_sign_count == 2);
+    for (int i = 0; i < 2; i++) {
+        assert(G_args.cx_ecdsa_sign[i].private_key != NULL);
+        assert(G_args.cx_ecdsa_sign[i].mode == (CX_RND_RFC6979 | CX_LAST));
+        assert(G_args.cx_ecdsa_sign[i].hash_id == CX_SHA256);
+        assert(G_args.cx_ecdsa_sign[i].hash32 == hash32);
+        assert(G_args.cx_ecdsa_sign[i].hash_len == 32);
+    }
+    assert(G_args.cx_ecdsa_sign[0].sig_out == sig_out);
+    assert(G_args.cx_ecdsa_sign[1].sig_out != NULL);
+    assert(G_args.cx_ecdsa_sign[1].sig_out != sig_out);
 
     // Verification against an independently derived public key
     assert(G_called.os_perso_derive_node_bip32_count == 2);
@@ -443,6 +461,9 @@ void test_seed_sign_success() {
     assert(G_args.cx_ecfp_generate_pair.pub != NULL);
     assert(G_args.cx_ecfp_generate_pair.priv != NULL);
     assert(G_args.cx_ecfp_generate_pair.keep_private == 1);
+    // Public key derived from the key of the second signature
+    assert((void *)G_args.cx_ecfp_generate_pair.priv ==
+           G_args.cx_ecdsa_sign[1].private_key);
 
     assert(G_called.cx_ecdsa_verify);
     assert(G_args.cx_ecdsa_verify.key == G_args.cx_ecfp_generate_pair.pub);
@@ -525,6 +546,7 @@ void test_seed_sign_parity_tag_ok() {
     unsigned char sig_out[72];
     unsigned char sig_out_length = sizeof(sig_out);
     G_mocks.sig[0] = 0x31;
+    G_mocks.sig_check[0] = 0x31;
     assert(seed_sign(path, path_length, hash32, sig_out, &sig_out_length));
     assert(sig_out_length == 72);
     assert(!memcmp(sig_out, G_mocks.sig, 72));
@@ -614,6 +636,40 @@ void test_seed_sign_verification_fails() {
     assert_seed_sign_verification_fails();
     assert(G_called.cx_ecdsa_init_private_key_count == 2);
     assert(!G_called.cx_ecfp_generate_pair);
+    assert(!G_called.cx_ecdsa_verify);
+
+    printf("Testing seed_sign() when second signature throws...\n");
+    setup();
+    G_throws.cx_ecdsa_sign_second = true;
+    assert_seed_sign_verification_fails();
+    assert(G_called.cx_ecdsa_sign_count == 2);
+    assert(!G_called.cx_ecfp_generate_pair);
+    assert(!G_called.cx_ecdsa_verify);
+
+    printf("Testing seed_sign() when signatures differ...\n");
+    setup();
+    G_mocks.sig_check[71] ^= 0x01;
+    assert_seed_sign_verification_fails();
+    assert(G_called.cx_ecdsa_sign_count == 2);
+    assert(!G_called.cx_ecdsa_verify);
+
+    printf("Testing seed_sign() when signatures differ in parity bit...\n");
+    setup();
+    G_mocks.sig_check[0] = 0x31;
+    assert_seed_sign_verification_fails();
+    assert(!G_called.cx_ecdsa_verify);
+
+    printf("Testing seed_sign() when signature lengths differ...\n");
+    setup();
+    G_mocks.sig_check_length = 71;
+    assert_seed_sign_verification_fails();
+    assert(!G_called.cx_ecdsa_verify);
+
+    printf("Testing seed_sign() when second signature length is "
+           "negative...\n");
+    setup();
+    G_mocks.sig_check_length = -1;
+    assert_seed_sign_verification_fails();
     assert(!G_called.cx_ecdsa_verify);
 
     printf("Testing seed_sign() when verification public key generation "
