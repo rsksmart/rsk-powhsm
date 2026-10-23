@@ -9,6 +9,13 @@ RUN apt-get update && \
     apt-get install -y clang-tools && \
     apt-get install -y make
 
+# Distrust the compromised eMudhra-related roots, since the Ubuntu 20.04 fix
+# (USN-8944-2) is only available through Ubuntu Pro
+RUN sed -i -E 's#^(mozilla/(emSign_ECC_Root_CA_-_G3|Comodo_AAA_Services_root)\.crt)$#!\1#' /etc/ca-certificates.conf && \
+    [ "$(grep -cE '^!mozilla/(emSign_ECC_Root_CA_-_G3|Comodo_AAA_Services_root)\.crt$' /etc/ca-certificates.conf)" = "2" ] && \
+    update-ca-certificates --fresh && \
+    ! ls /etc/ssl/certs | grep -qE 'emSign_ECC_Root_CA_-_G3|Comodo_AAA_Services_root'
+
 # Create directory to host symlinks to Open Enclave static libraries
 ENV SGX_STATIC_LIBS=/opt/openenclave-libs
 ENV SGX_SECP256K1=/opt/secp256k1

@@ -8,6 +8,13 @@ RUN apt-get update && \
     apt-get install -y build-essential=12.8ubuntu1 && \
     apt-get install -y clang-tools
 
+# Distrust the compromised eMudhra-related roots, since the Ubuntu 20.04 fix
+# (USN-8944-2) is only available through Ubuntu Pro
+RUN sed -i -E 's#^(mozilla/(emSign_ECC_Root_CA_-_G3|Comodo_AAA_Services_root)\.crt)$#!\1#' /etc/ca-certificates.conf && \
+    [ "$(grep -cE '^!mozilla/(emSign_ECC_Root_CA_-_G3|Comodo_AAA_Services_root)\.crt$' /etc/ca-certificates.conf)" = "2" ] && \
+    update-ca-certificates --fresh && \
+    ! ls /etc/ssl/certs | grep -qE 'emSign_ECC_Root_CA_-_G3|Comodo_AAA_Services_root'
+
 RUN curl -L -o gcc-arm-none-eabi-9-2020-q2-update-x86_64-linux.tar.bz2 \
         https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2020q2/gcc-arm-none-eabi-9-2020-q2-update-x86_64-linux.tar.bz2 && \
     tar xjf gcc-arm-none-eabi-9-2020-q2-update-x86_64-linux.tar.bz2 && \
