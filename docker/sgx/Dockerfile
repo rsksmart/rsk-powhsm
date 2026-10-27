@@ -9,13 +9,28 @@ RUN apt-get update && \
     apt-get install -y clang-tools && \
     apt-get install -y make
 
+# Distrust the compromised eMudhra-related roots, since the Ubuntu 20.04 fix
+# (USN-8944-2) is only available through Ubuntu Pro
+RUN sed -i -E 's#^(mozilla/(emSign_ECC_Root_CA_-_G3|Comodo_AAA_Services_root)\.crt)$#!\1#' /etc/ca-certificates.conf && \
+    [ "$(grep -cE '^!mozilla/(emSign_ECC_Root_CA_-_G3|Comodo_AAA_Services_root)\.crt$' /etc/ca-certificates.conf)" = "2" ] && \
+    update-ca-certificates --fresh && \
+    ! ls /etc/ssl/certs | grep -qE 'emSign_ECC_Root_CA_-_G3|Comodo_AAA_Services_root'
+
 # Create directory to host symlinks to Open Enclave static libraries
 ENV SGX_STATIC_LIBS=/opt/openenclave-libs
 ENV SGX_SECP256K1=/opt/secp256k1
 
+### Pinned digests and commits for downloaded dependencies ###
+
+# libsecp256k1 (https://github.com/bitcoin-core/secp256k1)
+# Commit is tag v0.4.0 (https://github.com/bitcoin-core/secp256k1/releases/tag/v0.4.0)
+ENV SECP256K1_COMMIT=199d27cea32203b224b208627533c2e813cd3b21
+ENV SECP256K1_SHA256=3ffdeed78c7bebfe6cbd87bbe99d36982e92a6893d1e8b4dd4fdbf35a8811320
+
 # Build libsecp256k1 for Open Enclave
 RUN curl -L -o secp256k1.tar.gz \
-    https://github.com/bitcoin-core/secp256k1/archive/refs/tags/v0.4.0.tar.gz && \
+    https://github.com/bitcoin-core/secp256k1/archive/$SECP256K1_COMMIT.tar.gz && \
+    echo "$SECP256K1_SHA256  secp256k1.tar.gz" | sha256sum -c - && \
     mkdir -p $SGX_SECP256K1  && \
     tar -xzf secp256k1.tar.gz --strip-components=1 -C $SGX_SECP256K1 && \
     rm -f secp256k1.tar.gz && \
