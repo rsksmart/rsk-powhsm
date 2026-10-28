@@ -1,4 +1,4 @@
-# PowHSM protocol definition v5.x
+# PowHSM protocol definition v6.x
 
 ## Definitions
 
@@ -21,7 +21,7 @@
 #### Response
 ```
 {
-    "version": 5,
+    "version": 6,
     "errorcode": i
 }
 ```
@@ -56,7 +56,7 @@ details).
             "hhhh", "hhhh", ..., "hhhh"
         ]
     },
-    "version": 5
+    "version": 6
 }
 ```
 
@@ -90,7 +90,7 @@ section for details).
     "message": {
         "hash": "hhhh", // (**)
     },
-    "version": 5
+    "version": 6
 }
 
 // (*) the given string must be the
@@ -120,7 +120,7 @@ This operation can return `0`, `-101`, `-102`, `-103`, and generic errors. See t
 {
     "command": "getPubKey",
     "keyId": "xxxxx", // (*)
-    "version": 5
+    "version": 6
 }
 
 // (*) the given string must be the
@@ -151,7 +151,7 @@ This operation can return `0`, `-103`, and generic errors. See the error codes s
     "brothers": [
         ["hhhh", ..., "hhhh"], ..., ["hhhh", ..., "hhhh"] // (**)
     ],
-    "version": 5
+    "version": 6
 }
 
 // (*) each element must be the binary serialization of a block header as
@@ -185,7 +185,7 @@ This operation can return `0`, `1`, `-201`, `-202`, `-204`, `-205`, and generic 
 ```
 {
     "command": "resetAdvanceBlockchain",
-    "version": 5
+    "version": 6
 }
 ```
 
@@ -205,7 +205,7 @@ This operation can return `0` and generic errors. See the error codes section fo
 ```
 {
     "command": "blockchainState",
-    "version": 5
+    "version": 6
 }
 ```
 
@@ -247,7 +247,7 @@ This operation can return `0` and generic errors. See the error codes section fo
     "blocks": [
         "hhhh", "hhhh", ..., "hhhh" // (*)
     ],
-    "version": 5
+    "version": 6
 }
 
 // (*) each element must be the binary serialization of a block header as
@@ -271,7 +271,7 @@ This operation can return `0`, `-201`, `-203`, `-204`, and generic errors. See t
 ```
 {
     "command": "blockchainParameters",
-    "version": 5
+    "version": 6
 }
 ```
 
@@ -300,7 +300,7 @@ This operation can return `0` and generic errors. See the error codes section fo
 {
     "command": "signerHeartbeat",
     "udValue": "hhhh" (*),
-    "version": 5
+    "version": 6
 }
 
 // (*) Value corresponds to the user-defined value, and must be 16 bytes in size.
@@ -336,7 +336,7 @@ Currently, this operation is unsupported for the SGX version of powHSM, returnin
 {
     "command": "uiHeartbeat",
     "udValue": "hhhh" (*),
-    "version": 5
+    "version": 6
 }
 
 // (*) Value corresponds to the user-defined value, and must be 32 bytes in size.

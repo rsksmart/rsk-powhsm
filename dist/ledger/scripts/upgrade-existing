@@ -112,7 +112,7 @@ function installSigner() {
             --fileName $FIRMWARE_DIR/signer.hex \
             --icon "$ICON" \
             --appName "RSK Sign" \
-            --appVersion "4" \
+            --appVersion "6" \
             --path "" > /dev/null 2> /dev/null
     error
 }
