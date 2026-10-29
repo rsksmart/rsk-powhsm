@@ -288,16 +288,18 @@ follows:
 To add a signature, issue:
 
 ```
-> tools/signapp manual -o /path/to/signer_auth.json -g <signature> -s <expected_signer>
+> tools/signapp manual -o /path/to/signer_auth.json -g <signature> [-s <expected_signer>]
 ```
 
 where `<signature>` is the signature (see the supported formats below) and
 `<expected_signer>` is the address or public key of the authorizer that is supposed to
 have produced it.
 
-The tool verifies the given signature against the authorization message for the Signer
-version in the signer authorization file, and outputs the detected signature format and
-signer address. For example:
+The tool uses the message from the Signer version in the authorization file in combination
+with the given signature to recover the signer address, which is then shown for
+verification purposes. If an expected signer (`-s`) is given (which is optional but
+strongly recommended), then the recovered signer address is validated against it and no
+signature is added in case of mismatch. For example:
 
 ```
 Opening signer authorization file /path/to/signer_auth.json...

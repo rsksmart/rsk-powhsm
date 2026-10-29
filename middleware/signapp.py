@@ -245,10 +245,11 @@ def main():
             file (-o). The signature can be given as hex-encoded DER, as a
             hex-encoded 65-byte r||s||v signature (e.g., MetaMask, MyEtherWallet,
             Ledger), or as a signed message JSON (e.g., MyEtherWallet, MyCrypto,
-            Etherscan), either inline or as a path to a file. The signature is
-            verified against the authorization message, and the signer address
-            is shown. If an expected signer (-s) is given, the signature must
-            have been produced by it.
+            Etherscan), either inline or as a path to a file. The message from the
+            authorization file is used in combination with the given signature to
+            recover the signer address, which is shown for verification purposes.
+            If an expected signer (-s) is given, the signature must have been
+            produced by it.
   key       *****************NOT FOR PRODUCTION USE*****************
             Sign the authorization with a private key (-k) and add the
             signature to the signer authorization file (-o). If the file does
