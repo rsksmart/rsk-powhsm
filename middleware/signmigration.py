@@ -30,7 +30,7 @@ from admin.misc import (
     info,
     AdminError
 )
-from comm.utils import is_hex_string_of_length
+from comm.utils import is_hex_string_of_length, parse_hex_string
 from comm.bip32 import BIP32Path
 from admin.sgx_migration_authorization import SGXMigrationAuthorization, SGXMigrationSpec
 from admin.ledger_utils import (
@@ -123,7 +123,7 @@ def do_key(options):
     migration_spec = sgx_authorization.migration_spec
     info("Signing with key...")
     sk = ecdsa.SigningKey.from_string(
-        bytes.fromhex(options.key),
+        parse_hex_string(options.key),
         curve=ecdsa.SECP256k1
     )
     signature = sk.sign_digest(

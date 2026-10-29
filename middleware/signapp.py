@@ -30,7 +30,7 @@ from admin.misc import (
     info,
     AdminError
 )
-from comm.utils import is_hex_string_of_length
+from comm.utils import is_hex_string_of_length, parse_hex_string
 from comm.bip32 import BIP32Path
 from admin.signer_authorization import SignerAuthorization, SignerVersion
 from admin.ledger_utils import (
@@ -158,7 +158,7 @@ def do_key(options):
     signer_authorization, signer_version = _load_or_create_authorization(options)
     info("Signing with key...")
     sk = ecdsa.SigningKey.from_string(
-        bytes.fromhex(options.key),
+        parse_hex_string(options.key),
         curve=ecdsa.SECP256k1
     )
     signature = sk.sign_digest(
