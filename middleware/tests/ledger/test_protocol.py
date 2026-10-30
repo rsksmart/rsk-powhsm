@@ -48,7 +48,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.dongle.disconnect = Mock()
         self.dongle.is_onboarded = Mock(return_value=True)
         self.dongle.get_current_mode = Mock(return_value=HSM2Dongle.MODE.SIGNER)
-        self.dongle.get_version = Mock(return_value=HSM2FirmwareVersion(5, 6, 1))
+        self.dongle.get_version = Mock(return_value=HSM2FirmwareVersion(6, 0, 0))
         self.dongle.get_signer_parameters = Mock(return_value=Mock(
             min_required_difficulty=123))
         self.protocol = HSM2ProtocolLedger(self.pin, self.dongle)
@@ -65,7 +65,7 @@ class TestHSM2ProtocolLedger(TestCase):
                 "pubKey": "this-is-the-public-key"
             },
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "getPubKey",
                 "keyId": "m/44'/1'/2'/3/4"
             }),
@@ -81,7 +81,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual(
             {"errorcode": -103},
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "getPubKey",
                 "keyId": "m/44'/1'/2'/3/4"
             }),
@@ -97,7 +97,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual(
             {"errorcode": -905},
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "getPubKey",
                 "keyId": "m/44'/1'/2'/3/4"
             }),
@@ -113,7 +113,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual(
             {"errorcode": -905},
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "getPubKey",
                 "keyId": "m/44'/1'/2'/3/4"
             }),
@@ -131,7 +131,7 @@ class TestHSM2ProtocolLedger(TestCase):
                 "pubKey": "this-is-the-public-key"
             },
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "getPubKey",
                 "keyId": "m/44'/1'/2'/3/4"
             }),
@@ -146,7 +146,7 @@ class TestHSM2ProtocolLedger(TestCase):
 
         with self.assertRaises(HSM2ProtocolError):
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "getPubKey",
                 "keyId": "m/44'/1'/2'/3/4"
             })
@@ -159,7 +159,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual(
             {"errorcode": -102},
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "sign",
                 "keyId": "m/44'/1'/2'/3/4",
                 "auth": {
@@ -192,7 +192,7 @@ class TestHSM2ProtocolLedger(TestCase):
                 }
             },
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "sign",
                 "keyId": "m/44'/1'/2'/3/4",
                 "auth": {
@@ -248,7 +248,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual(
             {"errorcode": protocol_error_code},
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "sign",
                 "keyId": "m/44'/1'/2'/3/4",
                 "auth": {
@@ -289,7 +289,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual(
             {"errorcode": -905},
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "sign",
                 "keyId": "m/44'/1'/2'/3/4",
                 "auth": {
@@ -332,7 +332,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual(
             {"errorcode": -905},
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "sign",
                 "keyId": "m/44'/1'/2'/3/4",
                 "auth": {
@@ -378,7 +378,7 @@ class TestHSM2ProtocolLedger(TestCase):
                 }
             },
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "sign",
                 "keyId": "m/44'/1'/2'/3/4",
                 "auth": {
@@ -404,7 +404,7 @@ class TestHSM2ProtocolLedger(TestCase):
 
         with self.assertRaises(HSM2ProtocolError):
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "sign",
                 "keyId": "m/44'/1'/2'/3/4",
                 "auth": {
@@ -450,7 +450,7 @@ class TestHSM2ProtocolLedger(TestCase):
                 }
             },
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "sign",
                 "keyId": "m/44'/1'/2'/3/4",
                 "auth": {
@@ -497,7 +497,7 @@ class TestHSM2ProtocolLedger(TestCase):
                 }
             },
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "sign",
                 "keyId": "m/44'/1'/2'/3/4",
                 "message": {
@@ -527,7 +527,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual(
             {"errorcode": protocol_error_code},
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "sign",
                 "keyId": "m/44'/1'/2'/3/4",
                 "message": {
@@ -550,7 +550,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual(
             {"errorcode": -905},
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "sign",
                 "keyId": "m/44'/1'/2'/3/4",
                 "message": {
@@ -573,7 +573,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual(
             {"errorcode": -905},
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "sign",
                 "keyId": "m/44'/1'/2'/3/4",
                 "message": {
@@ -602,7 +602,7 @@ class TestHSM2ProtocolLedger(TestCase):
                 }
             },
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "sign",
                 "keyId": "m/44'/1'/2'/3/4",
                 "message": {
@@ -620,7 +620,7 @@ class TestHSM2ProtocolLedger(TestCase):
 
         with self.assertRaises(HSM2ProtocolError):
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "sign",
                 "keyId": "m/44'/1'/2'/3/4",
                 "message": {
@@ -641,7 +641,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual(
             {"errorcode": -102},
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "sign",
                 "keyId": "m/44'/1'/2'/3/4",
                 "message": {
@@ -688,7 +688,7 @@ class TestHSM2ProtocolLedger(TestCase):
                 },
             },
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "blockchainState"
             }),
         )
@@ -702,7 +702,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual(
             {"errorcode": -905},
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "blockchainState"
             }),
         )
@@ -716,7 +716,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual(
             {"errorcode": -905},
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "blockchainState"
             }),
         )
@@ -730,7 +730,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual(
             {"errorcode": -905},
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "blockchainState"
             }),
         )
@@ -774,7 +774,7 @@ class TestHSM2ProtocolLedger(TestCase):
                 },
             },
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "blockchainState"
             }),
         )
@@ -785,7 +785,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual(
             {"errorcode": 0},
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "resetAdvanceBlockchain"
             }),
         )
@@ -799,7 +799,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual(
             {"errorcode": -905},
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "resetAdvanceBlockchain"
             }),
         )
@@ -813,7 +813,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual(
             {"errorcode": -905},
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "resetAdvanceBlockchain"
             }),
         )
@@ -827,7 +827,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual(
             {"errorcode": 0},
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "resetAdvanceBlockchain"
             }),
         )
@@ -840,7 +840,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual(
             {"errorcode": -905},
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "resetAdvanceBlockchain"
             }),
         )
@@ -868,7 +868,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual(
             {"errorcode": expected_code},
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "advanceBlockchain",
                 "blocks": ["aabbcc", "ddeeff"],
                 "brothers": [["bb11"], ["bb21", "bb22"]],
@@ -890,7 +890,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual(
             {"errorcode": -905},
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "advanceBlockchain",
                 "blocks": ["aabbcc", "ddeeff"],
                 "brothers": [["bb11", "bb12", "bb13"], ["bb21", "bb22"]],
@@ -912,7 +912,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual(
             {"errorcode": -905},
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "advanceBlockchain",
                 "blocks": ["aabbcc", "ddeeff"],
                 "brothers": [["bb11", "bb12", "bb13"], ["bb21", "bb22"]],
@@ -934,7 +934,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual(
             {"errorcode": 0},
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "advanceBlockchain",
                 "blocks": ["aabbcc", "ddeeff"],
                 "brothers": [["bb11", "bb12", "bb13"], ["bb21", "bb22"]],
@@ -949,7 +949,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual(
             {"errorcode": -905},
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "advanceBlockchain",
                 "blocks": ["aabbcc", "ddeeff"],
                 "brothers": [["bb11", "bb12", "bb13"], ["bb21", "bb22"]],
@@ -983,7 +983,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual(
             {"errorcode": expected_code},
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "updateAncestorBlock",
                 "blocks": ["aabbcc", "ddeeff"],
             }),
@@ -1001,7 +1001,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual(
             {"errorcode": -905},
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "updateAncestorBlock",
                 "blocks": ["aabbcc", "ddeeff"],
             }),
@@ -1019,7 +1019,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual(
             {"errorcode": -905},
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "updateAncestorBlock",
                 "blocks": ["aabbcc", "ddeeff"],
             }),
@@ -1037,7 +1037,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual(
             {"errorcode": 0},
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "updateAncestorBlock",
                 "blocks": ["aabbcc", "ddeeff"],
             }),
@@ -1051,7 +1051,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual(
             {"errorcode": -905},
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "updateAncestorBlock",
                 "blocks": ["aabbcc", "ddeeff"],
             }),
@@ -1080,7 +1080,7 @@ class TestHSM2ProtocolLedger(TestCase):
                 },
             },
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "blockchainParameters"
             }),
         )
@@ -1102,7 +1102,7 @@ class TestHSM2ProtocolLedger(TestCase):
                 },
             },
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "blockchainParameters"
             }),
         )
@@ -1113,7 +1113,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual(
             {"errorcode": -905},
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "blockchainParameters"
             }),
         )
@@ -1124,7 +1124,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual(
             {"errorcode": -905},
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "blockchainParameters"
             }),
         )
@@ -1149,7 +1149,7 @@ class TestHSM2ProtocolLedger(TestCase):
                 },
             },
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "signerHeartbeat",
                 "udValue": "77"*16,
             }),
@@ -1161,7 +1161,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual(
             {"errorcode": -905},
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "signerHeartbeat",
                 "udValue": "99"*16,
             }),
@@ -1173,7 +1173,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual(
             {"errorcode": -905},
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "signerHeartbeat",
                 "udValue": "11"*16,
             }),
@@ -1185,7 +1185,7 @@ class TestHSM2ProtocolLedger(TestCase):
         self.assertEqual(
             {"errorcode": -905},
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "signerHeartbeat",
                 "udValue": "22"*16,
             }),
@@ -1223,7 +1223,7 @@ class TestHSM2ProtocolLedger(TestCase):
                 },
             },
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "uiHeartbeat",
                 "udValue": "77"*32,
             }),
@@ -1237,7 +1237,7 @@ class TestHSM2ProtocolLedger(TestCase):
 
         self.assertEqual({"errorcode": -905},
                          self.protocol.handle_request({
-                             "version": 5,
+                             "version": 6,
                              "command": "uiHeartbeat",
                              "udValue": "77"*32,
                          }))
@@ -1253,7 +1253,7 @@ class TestHSM2ProtocolLedger(TestCase):
 
         self.assertEqual({"errorcode": -905},
                          self.protocol.handle_request({
-                             "version": 5,
+                             "version": 6,
                              "command": "uiHeartbeat",
                              "udValue": "77"*32,
                          }))
@@ -1270,7 +1270,7 @@ class TestHSM2ProtocolLedger(TestCase):
 
         self.assertEqual({"errorcode": -905},
                          self.protocol.handle_request({
-                             "version": 5,
+                             "version": 6,
                              "command": "uiHeartbeat",
                              "udValue": "77"*32,
                          }))
@@ -1294,7 +1294,7 @@ class TestHSM2ProtocolLedger(TestCase):
 
         self.assertEqual({"errorcode": -905},
                          self.protocol.handle_request({
-                             "version": 5,
+                             "version": 6,
                              "command": "uiHeartbeat",
                              "udValue": "77"*32,
                          }))
@@ -1322,7 +1322,7 @@ class TestHSM2ProtocolLedger(TestCase):
 
         self.assertEqual({"errorcode": -905},
                          self.protocol.handle_request({
-                             "version": 5,
+                             "version": 6,
                              "command": "uiHeartbeat",
                              "udValue": "77"*32,
                          }))
@@ -1351,7 +1351,7 @@ class TestHSM2ProtocolLedger(TestCase):
 
         self.assertEqual({"errorcode": -905},
                          self.protocol.handle_request({
-                             "version": 5,
+                             "version": 6,
                              "command": "uiHeartbeat",
                              "udValue": "77"*32,
                          }))
@@ -1364,7 +1364,7 @@ class TestHSM2ProtocolLedger(TestCase):
 
         self.assertEqual({"errorcode": -905},
                          self.protocol.handle_request({
-                             "version": 5,
+                             "version": 6,
                              "command": "uiHeartbeat",
                              "udValue": "77"*32,
                          }))
@@ -1391,7 +1391,7 @@ class TestHSM2ProtocolLedger(TestCase):
                 },
             },
             self.protocol.handle_request({
-                "version": 5,
+                "version": 6,
                 "command": "uiHeartbeat",
                 "udValue": "77"*32,
             }),
@@ -1406,7 +1406,7 @@ class TestHSM2ProtocolLedger(TestCase):
 
         self.assertEqual({"errorcode": -905},
                          self.protocol.handle_request({
-                             "version": 5,
+                             "version": 6,
                              "command": "uiHeartbeat",
                              "udValue": "77"*32,
                          }))
@@ -1420,7 +1420,7 @@ class TestHSM2ProtocolLedger(TestCase):
 
         self.assertEqual({"errorcode": -905},
                          self.protocol.handle_request({
-                             "version": 5,
+                             "version": 6,
                              "command": "uiHeartbeat",
                              "udValue": "77"*32,
                          }))

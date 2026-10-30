@@ -43,7 +43,7 @@ class PowHsmAttestationMessage(CStruct):
     uint8_t timestamp 8
     """
 
-    HEADER_REGEX = re.compile(b"^POWHSM:(5.[0-9])::")
+    HEADER_REGEX = re.compile(b"^POWHSM:([56].[0-9])::")
 
     @classmethod
     def is_header(cls, value):

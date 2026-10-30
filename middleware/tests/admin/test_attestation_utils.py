@@ -37,10 +37,11 @@ logging.disable(logging.CRITICAL)
 
 class TestPowHsmAttestationMessage(TestCase):
     @parameterized.expand([
-        ("ok_exact", True, b"POWHSM:5.6::"),
-        ("ok_longer", True, b"POWHSM:5.3::whatcomesafterwards"),
+        ("ok_exact", True, b"POWHSM:6.0::"),
+        ("ok_lower_version", True, b"POWHSM:5.3::"),
+        ("ok_longer", True, b"POWHSM:6.0::whatcomesafterwards"),
         ("version_mismatch", False, b"POWHSM:4.3::"),
-        ("shorter", False, b"POWHSM:5.3:"),
+        ("shorter", False, b"POWHSM:6.0:"),
         ("invalid", False, b"something invalid"),
     ])
     def test_is_header(self, _, expected, header):
@@ -48,7 +49,7 @@ class TestPowHsmAttestationMessage(TestCase):
 
     def test_parse_ok(self):
         msg = PowHsmAttestationMessage(
-            b"POWHSM:5.7::" +
+            b"POWHSM:6.0::" +
             b"abc" +
             bytes.fromhex("aa"*32) +
             bytes.fromhex("bb"*32) +
@@ -81,7 +82,7 @@ class TestPowHsmAttestationMessage(TestCase):
     def test_parse_shorter(self):
         with self.assertRaises(ValueError) as e:
             PowHsmAttestationMessage(
-                b"POWHSM:5.7::" +
+                b"POWHSM:6.0::" +
                 b"abc" +
                 bytes.fromhex("aa"*32) +
                 bytes.fromhex("bb"*32) +
@@ -94,7 +95,7 @@ class TestPowHsmAttestationMessage(TestCase):
     def test_parse_longer(self):
         with self.assertRaises(ValueError) as e:
             PowHsmAttestationMessage(
-                b"POWHSM:5.7::" +
+                b"POWHSM:6.0::" +
                 b"abc" +
                 bytes.fromhex("aa"*32) +
                 bytes.fromhex("bb"*32) +

@@ -35,8 +35,8 @@ logging.disable(logging.CRITICAL)
 
 EXPECTED_UI_DERIVATION_PATH = "m/44'/0'/0'/0/0"
 LEGACY_SIGNER_HEADER = b"HSM:SIGNER:5.3"
-POWHSM_HEADER = b"POWHSM:5.6::"
-UI_HEADER = b"HSM:UI:5.6"
+POWHSM_HEADER = b"POWHSM:6.0::"
+UI_HEADER = b"HSM:UI:6.0"
 
 
 @patch("sys.stdout.write")
@@ -143,7 +143,7 @@ class TestVerifyLedgerAttestation(TestCase):
                 f"Authorized signer hash: {'cc'*32}",
                 "Authorized signer iteration: 291",
                 f"Installed UI hash: {'ee'*32}",
-                "Installed UI version: 5.6",
+                "Installed UI version: 6.0",
             ],
             fill="-",
         )
@@ -187,7 +187,7 @@ class TestVerifyLedgerAttestation(TestCase):
                 f"Authorized signer hash: {'cc'*32}",
                 "Authorized signer iteration: 291",
                 f"Installed UI hash: {'ee'*32}",
-                "Installed UI version: 5.6",
+                "Installed UI version: 6.0",
             ],
             fill="-",
         )
@@ -199,7 +199,7 @@ class TestVerifyLedgerAttestation(TestCase):
                 "",
                 "Installed Signer hash: ffffffffffffffffffffffffffffffffffffffffffff" +
                 "ffffffffffffffffffff",
-                "Installed Signer version: 5.6",
+                "Installed Signer version: 6.0",
                 "Platform: plf",
                 "UD value: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" +
                 "aaaaaaa",
@@ -244,7 +244,7 @@ class TestVerifyLedgerAttestation(TestCase):
                 f"Authorized signer hash: {'cc'*32}",
                 "Authorized signer iteration: 291",
                 f"Installed UI hash: {'ee'*32}",
-                "Installed UI version: 5.6",
+                "Installed UI version: 6.0",
             ],
             fill="-",
         )
@@ -414,7 +414,7 @@ class TestVerifyLedgerAttestation(TestCase):
                                                                 load_pubkeys_mock,
                                                                 certificate_mock, _):
         load_pubkeys_mock.return_value = self.public_keys
-        signer_header = (b"POWHSM:5.9::" + b"aa"*300).hex()
+        signer_header = (b"POWHSM:6.0::" + b"aa"*300).hex()
         self.result["signer"] = {
             "valid": True,
             "value": signer_header,
