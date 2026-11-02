@@ -212,9 +212,9 @@ void test_get_attestation_get_ok() {
 
             size_t offset = 0;
             assert(!memcmp(G_att_ctx.msg + offset,
-                           "POWHSM:5.6::",
-                           strlen("POWHSM:5.6::")));
-            offset += strlen("POWHSM:5.6::");
+                           "POWHSM:6.0::",
+                           strlen("POWHSM:6.0::")));
+            offset += strlen("POWHSM:6.0::");
             assert(!memcmp(G_att_ctx.msg + offset, "tst", 3));
             offset += 3;
             assert(!memcmp(

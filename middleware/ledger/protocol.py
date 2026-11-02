@@ -37,8 +37,8 @@ from ledger.hsm2dongle import (
 
 class HSM2ProtocolLedger(HSM2Protocol):
     # Current manager supported versions for HSM UI and HSM SIGNER (<=)
-    UI_VERSION = HSM2FirmwareVersion(5, 6, 1)
-    APP_VERSION = HSM2FirmwareVersion(5, 6, 1)
+    UI_VERSION = HSM2FirmwareVersion(6, 0, 0)
+    APP_VERSION = HSM2FirmwareVersion(6, 0, 0)
 
     # Amount of time to wait to make sure the app is opened
     OPEN_APP_WAIT = 1  # second
