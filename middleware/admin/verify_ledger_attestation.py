@@ -28,7 +28,7 @@ from .utils import is_nonempty_hex_string
 from .certificate import HSMCertificate, HSMCertificateRoot
 
 
-UI_MESSAGE_HEADER_REGEX = re.compile(b"^HSM:UI:([2345].[0-9])")
+UI_MESSAGE_HEADER_REGEX = re.compile(b"^HSM:UI:([23456].[0-9])")
 SIGNER_LEGACY_MESSAGE_HEADER_REGEX = re.compile(b"^HSM:SIGNER:([2345].[0-9])")
 UI_DERIVATION_PATH = "m/44'/0'/0'/0/0"
 UD_VALUE_LENGTH = 32
