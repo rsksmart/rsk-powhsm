@@ -23,7 +23,7 @@
 include ../common/common.mk
 
 PROG = test.out
-OBJS = test_seed.o seed.o exceptions.o
+OBJS = test_seed.o seed.o sig_utils.o exceptions.o
 
 all: $(PROG)
 

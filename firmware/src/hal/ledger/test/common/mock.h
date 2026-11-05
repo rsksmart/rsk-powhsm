@@ -124,4 +124,12 @@ int cx_ecdsa_sign(cx_ecfp_private_key_t *key,
                   unsigned int hash_len,
                   unsigned char *sig);
 
+int cx_ecdsa_verify(cx_ecfp_public_key_t *key,
+                    int mode,
+                    cx_md_t hashID,
+                    unsigned char *hash,
+                    unsigned int hash_len,
+                    unsigned char *sig,
+                    unsigned int sig_len);
+
 #endif // __MOCK_H
