@@ -1,5 +1,5 @@
 {
-    "name": "Sign authorized with invalid TX type",
+    "name": "Sign authorized with TX type 0x05",
     "operation": "signAuthorized",
     "expected": "0x6a8b",
     "btcTx": "010000000136641869ca081e70f394c6948e8af409e18b619df2ed74aa106c1ca29787b96e01000000220020a16b5755f7f6f96dbd65f5f0d6ab9418b89af4b1f14a1bb8a09062c35f0dcb54ffffffff0200e9a435000000001976a914389ffce9cd9ae88dcc0631e88a821ffdbe9bfe2688acc0832f05000000001976a9147480a33f950689af511e6e84c138dbbd3c3ee41588ac00000000",

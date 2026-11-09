@@ -42,7 +42,8 @@
 // -----------------------------------------------------------------------
 
 // Valid RSK receipts have the form [field_0, ..., field_5]
-// (six fields in the top-level list).
+// (six fields in the top-level list for legacy transactions,
+// four fields for typed transactions).
 //
 // In particular, field_3 (the fourth top level field) has the form
 // [log_0, ..., log_n], with n >= 0. This is the log list.
