@@ -56,7 +56,7 @@ DEFAULT_KEYS = ["m/44'/137'/0'/0/0", "m/44'/137'/1'/0/0"]
 DEFAULT_OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "results")
 DEFAULT_BOOTSTRAP_ITERATIONS = 2000
 
-PROTOCOL_VERSION = 5
+PROTOCOL_VERSION = 6
 ERROR_CODE_OK = 0
 SOCKET_TIMEOUT = 60
 PROGRESS_EVERY = 50

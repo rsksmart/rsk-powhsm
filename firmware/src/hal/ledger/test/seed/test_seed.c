@@ -565,6 +565,7 @@ void assert_seed_sign_unsound() {
     memset(sig_out, 0x55, sizeof(sig_out));
     assert(!seed_sign(path, path_length, hash32, sig_out, &sig_out_length));
     assert(G_called.cx_ecdsa_sign);
+    assert(G_called.cx_ecdsa_sign_count == 1);
     assert(!G_called.cx_ecdsa_verify);
     assert(memis(sig_out, 0, 72));
     assert(sig_out_length == 0);
