@@ -23,7 +23,7 @@
 include ../common/common.mk
 
 PROG = test.out
-OBJS = seed.o test_seed.o mock_secret_store.o log.o
+OBJS = seed.o sig_utils.o test_seed.o mock_secret_store.o log.o
 LIBS = -lsecp256k1 -lmbedcrypto
 
 all: $(PROG)

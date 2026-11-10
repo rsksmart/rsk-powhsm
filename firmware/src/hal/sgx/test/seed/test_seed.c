@@ -51,6 +51,12 @@ uint8_t G_pubkey[PUBKEY_UNCMP_LENGTH] = {
     0xc4, 0x5e, 0x5f, 0xfc, 0x49, 0x36, 0x46, 0x6e, 0x7d, 0x98, 0xf6,
     0xc7, 0xc0, 0xec, 0x73, 0x65, 0x39, 0xf7, 0x46, 0x91, 0xa6};
 
+// A different valid private key, used to simulate faulty derivations
+uint8_t G_alt_privkey[PRIVATE_KEY_LENGTH] = {
+    0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc,
+    0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc,
+    0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc};
+
 // This is the only path that will generate a valid private key
 uint32_t G_valid_path[] = {0x8000002c, 0x80000000, 0x80000000, 0, 0};
 
@@ -77,6 +83,13 @@ bool G_getrandom_fail_next = false;
 // Forces the next call to bip32_derive_private to return success, even if the
 // derived private key is invalid
 bool G_force_derive_private_success = false;
+// Number of calls to bip32_derive_private
+unsigned int G_derive_private_calls = 0;
+// If non-zero, the call to bip32_derive_private (1-based) that derives
+// G_alt_privkey instead of the expected private key
+unsigned int G_derive_private_alt_key_on_call = 0;
+// If non-zero, the call to bip32_derive_private (1-based) that fails
+unsigned int G_derive_private_fail_on_call = 0;
 bool G_mock_oe_is_within_enclave;
 
 // Mock implementations
@@ -92,10 +105,17 @@ bool bip32_derive_private(uint8_t *out,
     assert(seed_length == SEED_LENGTH);
     ASSERT_MEMCMP(seed, G_valid_seed, seed_length);
 
+    G_derive_private_calls++;
+
     // If the provided path is exactly the same as the expected, the valid
     // private key is generated. Otherwise, the private key is set to all zeros
     bool success = true;
-    if ((memcmp(path, G_valid_path, sizeof(G_valid_path)) == 0)) {
+    if (G_derive_private_calls == G_derive_private_fail_on_call) {
+        memset(out, 0, PRIVATE_KEY_LENGTH);
+        success = false;
+    } else if (G_derive_private_calls == G_derive_private_alt_key_on_call) {
+        memcpy(out, G_alt_privkey, sizeof(G_alt_privkey));
+    } else if ((memcmp(path, G_valid_path, sizeof(G_valid_path)) == 0)) {
         memcpy(out, G_privkey, sizeof(G_privkey));
     } else {
         memset(out, 0, PRIVATE_KEY_LENGTH);
@@ -144,6 +164,9 @@ bool oe_is_within_enclave(const void *ptr, size_t size) {
 // Helper functions
 static void setup() {
     mock_sest_init();
+    G_derive_private_calls = 0;
+    G_derive_private_alt_key_on_call = 0;
+    G_derive_private_fail_on_call = 0;
     // Set up the random buffer and compute the valid seed. The same random
     // bytes wil be used by the seed module to derive the internal seed
     syscall(SYS_getrandom, G_random_buffer, sizeof(G_random_buffer), 0);
@@ -377,6 +400,47 @@ void test_seed_sign_success() {
         G_valid_path, sizeof(G_valid_path), G_hash, sig, &sig_length));
     assert(sig_length <= MAX_SIGNATURE_LENGTH);
     assert_signature_valid(G_hash, G_pubkey, sig, sig_length);
+    // Key derived once for signing and once for verification
+    assert(G_derive_private_calls == 2);
+    teardown();
+}
+
+static void assert_seed_sign_verification_fails() {
+    init_with_valid_seed();
+    G_derive_private_calls = 0;
+    uint8_t sig[MAX_SIGNATURE_LENGTH];
+    memset(sig, 0xAA, sizeof(sig));
+    uint8_t sig_length = sizeof(sig);
+    assert(!seed_sign(
+        G_valid_path, sizeof(G_valid_path), G_hash, sig, &sig_length));
+    assert(G_derive_private_calls == 2);
+    ASSERT_ARRAY_CLEARED(sig);
+    assert(sig_length == 0);
+}
+
+void test_seed_sign_fails_when_signing_key_differs() {
+    setup();
+    printf("Test seed_sign fails when the signing key derivation differs...\n");
+    G_derive_private_alt_key_on_call = 1;
+    assert_seed_sign_verification_fails();
+    teardown();
+}
+
+void test_seed_sign_fails_when_verification_key_differs() {
+    setup();
+    printf("Test seed_sign fails when the verification key derivation "
+           "differs...\n");
+    G_derive_private_alt_key_on_call = 2;
+    assert_seed_sign_verification_fails();
+    teardown();
+}
+
+void test_seed_sign_fails_when_verification_derivation_fails() {
+    setup();
+    printf("Test seed_sign fails when the verification key derivation "
+           "fails...\n");
+    G_derive_private_fail_on_call = 2;
+    assert_seed_sign_verification_fails();
     teardown();
 }
 
@@ -385,11 +449,14 @@ void test_seed_sign_fails_when_sig_buffer_too_small() {
     printf("Test seed_sign fails when the signature buffer is too small...\n");
 
     init_with_valid_seed();
-    uint8_t sig[MAX_SIGNATURE_LENGTH] = {0};
+    uint8_t sig[MAX_SIGNATURE_LENGTH];
+    memset(sig, 0xAA, sizeof(sig));
     uint8_t sig_length = sizeof(sig) - 1;
     assert(!seed_sign(
         G_valid_path, sizeof(G_valid_path), G_hash, sig, &sig_length));
-    ASSERT_ARRAY_CLEARED(sig);
+    // Neither the buffer nor its length are touched
+    ASSERT_ARRAY_VALUE(sig, 0xAA);
+    assert(sig_length == sizeof(sig) - 1);
     teardown();
 }
 
@@ -399,11 +466,13 @@ void test_seed_sign_fails_when_bip32_derive_fails() {
 
     init_with_valid_seed();
     uint8_t sig[MAX_SIGNATURE_LENGTH];
+    memset(sig, 0xAA, sizeof(sig));
     uint8_t sig_length = sizeof(sig);
     uint32_t invalid_path[] = {0, 0, 0, 0, 0};
     assert(!seed_sign(
         invalid_path, sizeof(invalid_path), G_hash, sig, &sig_length));
     ASSERT_ARRAY_CLEARED(sig);
+    assert(sig_length == 0);
     teardown();
 }
 
@@ -560,6 +629,9 @@ int main() {
     test_seed_sign_success();
     test_seed_sign_fails_when_sig_buffer_too_small();
     test_seed_sign_fails_when_bip32_derive_fails();
+    test_seed_sign_fails_when_signing_key_differs();
+    test_seed_sign_fails_when_verification_key_differs();
+    test_seed_sign_fails_when_verification_derivation_fails();
 
     test_seed_output_USE_FROM_EXPORT_ONLY_success();
     test_seed_output_USE_FROM_EXPORT_ONLY_fails_when_no_valid_seed();
