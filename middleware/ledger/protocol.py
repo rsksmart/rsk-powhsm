@@ -243,6 +243,7 @@ class HSM2ProtocolLedger(HSM2Protocol):
         raise HSM2ProtocolError(msg)
 
     def _get_pubkey(self, request):
+        self.logger.info("Get public key for key id '%s'", request["keyId"])
         try:
             self.ensure_connection()
             return (
@@ -270,6 +271,10 @@ class HSM2ProtocolLedger(HSM2Protocol):
             if message_validation < self.ERROR_CODE_OK:
                 return (message_validation,)
 
+            self.logger.info(
+                "Sign unauthorized hash request for key id '%s' (hash '%s')",
+                request["keyId"], request["message"]["hash"],
+            )
             try:
                 self.ensure_connection()
                 sign_result = self.hsm2dongle.sign_unauthorized(
@@ -302,11 +307,21 @@ class HSM2ProtocolLedger(HSM2Protocol):
             # is fully unsigned before sending.
             try:
                 unsigned_btc_tx = get_unsigned_tx(msg["tx"])
-                self.logger.debug("Unsigned BTC tx: %s", get_tx_hash(unsigned_btc_tx))
+                unsigned_tx_hash = get_tx_hash(unsigned_btc_tx)
+                tx_hash = get_tx_hash(msg["tx"])
             except Exception as e:
                 self.logger.error("Error unsigning BTC tx: %s", str(e))
                 return (self.ERROR_CODE_INVALID_MESSAGE,)
 
+            if msg["sighashComputationMode"] == SighashComputationMode.SEGWIT.value:
+                tx_desc = f"txid '{tx_hash}'"
+            else:
+                tx_desc = f"tx hash '{tx_hash}', unsigned tx hash '{unsigned_tx_hash}'"
+
+            self.logger.info(
+                "Sign authorized %s tx request for key id '%s' (%s, input %d)",
+                msg["sighashComputationMode"], request["keyId"], tx_desc, msg["input"],
+            )
             try:
                 self.ensure_connection()
                 sign_result = self.hsm2dongle.sign_authorized(
@@ -351,6 +366,7 @@ class HSM2ProtocolLedger(HSM2Protocol):
         ).get(error_code, self.ERROR_CODE_UNKNOWN)
 
     def _blockchain_state(self, request):
+        self.logger.info("Blockchain state query")
         try:
             self.ensure_connection()
             state = self.hsm2dongle.get_blockchain_state()
@@ -382,6 +398,7 @@ class HSM2ProtocolLedger(HSM2Protocol):
         return (self.ERROR_CODE_OK, {"state": state_result})
 
     def _reset_advance_blockchain(self, request):
+        self.logger.info("Reset advance blockchain")
         try:
             self.ensure_connection()
             self.hsm2dongle.reset_advance_blockchain()
@@ -397,6 +414,9 @@ class HSM2ProtocolLedger(HSM2Protocol):
         return (self.ERROR_CODE_OK, {})
 
     def _advance_blockchain(self, request):
+        self.logger.info(
+            "Advance blockchain with %d blocks", len(request["blocks"])
+        )
         try:
             self.ensure_connection()
             advance_result = self.hsm2dongle.advance_blockchain(
@@ -430,6 +450,9 @@ class HSM2ProtocolLedger(HSM2Protocol):
         }).get(result, self.ERROR_CODE_UNKNOWN)
 
     def _update_ancestor_block(self, request):
+        self.logger.info(
+            "Update ancestor with %d blocks", len(request["blocks"])
+        )
         try:
             self.ensure_connection()
             update_result = self.hsm2dongle.update_ancestor(request["blocks"])
@@ -458,6 +481,7 @@ class HSM2ProtocolLedger(HSM2Protocol):
         }).get(result, self.ERROR_CODE_UNKNOWN)
 
     def _get_blockchain_parameters(self, request):
+        self.logger.info("Get blockchain parameters")
         try:
             self.ensure_connection()
             params = self.hsm2dongle.get_signer_parameters()
@@ -476,6 +500,7 @@ class HSM2ProtocolLedger(HSM2Protocol):
             return (self.ERROR_CODE_DEVICE,)
 
     def _signer_heartbeat(self, request):
+        self.logger.info("Signer heartbeat (udValue '%s')", request["udValue"])
         try:
             self.ensure_connection()
 
@@ -504,6 +529,7 @@ class HSM2ProtocolLedger(HSM2Protocol):
             return (self.ERROR_CODE_DEVICE,)
 
     def _ui_heartbeat(self, request):
+        self.logger.info("UI heartbeat (udValue '%s')", request["udValue"])
         try:
             self.ensure_connection()
 
