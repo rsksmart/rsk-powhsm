@@ -19,3 +19,4 @@ jobs:
         with:
           fail-on-severity: high
           comment-summary-in-pr: true
+          allow-ghsas: GHSA-wj6h-64fc-37mp # There is no planned fix and we don't use the library for critical operations
