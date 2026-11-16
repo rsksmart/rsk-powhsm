@@ -107,7 +107,7 @@ static void list_end() {
 
     // Block can end at the BTC mm header or anywhere past it
     if (block.field < F_MM_HEADER) {
-        FAIL(BLOCK_TOO_SHORT);
+        FAIL(BLOCK_FIELD_COUNT_INVALID);
     }
 }
 
