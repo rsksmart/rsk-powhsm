@@ -143,6 +143,51 @@ unsigned int hsmsim_admin_process_apdu(unsigned int rx) {
             (unsigned char)seed_available());
         tx = TX_FOR_DATA_SIZE(0);
         break;
+    case HSMSIM_ADMIN_CMD_SET_BEST_BLOCK:
+        if (APDU_DATA_SIZE(rx) != HASH_LENGTH) {
+            LOG("ADMIN: Invalid best block hash size. Expected %d "
+                "bytes, got %d.\n",
+                HASH_LENGTH,
+                APDU_DATA_SIZE(rx));
+            return hsmsim_admin_error(HSMSIM_ADMIN_ERROR_DATA_SIZE);
+        }
+        // Setting best block is intended for both advance blockchain
+        // and update ancestor operations testing, so we backup and restore
+        // the whole lot
+        memcpy(hsmsim_admin_data.old_ancestor_block,
+               N_bc_state.ancestor_block,
+               HASH_LENGTH);
+        memcpy(hsmsim_admin_data.old_ancestor_receipts_root,
+               N_bc_state.ancestor_receipt_root,
+               HASH_LENGTH);
+        memcpy(hsmsim_admin_data.old_best_block,
+               N_bc_state.best_block,
+               HASH_LENGTH);
+        memcpy(N_bc_state.best_block, APDU_DATA_PTR, HASH_LENGTH);
+        hsmsim_admin_data.best_block_set = true;
+        LOG_HEX("ADMIN: Best block set to", N_bc_state.best_block, HASH_LENGTH);
+        tx = TX_FOR_DATA_SIZE(0);
+        break;
+    case HSMSIM_ADMIN_CMD_RESET_BEST_BLOCK:
+        if (!hsmsim_admin_data.best_block_set) {
+            LOG("ADMIN: Cannot reset best block: not set.\n");
+            return hsmsim_admin_error(HSMSIM_ADMIN_ERROR_INVALID_STATE);
+        }
+        // Restore the whole lot
+        memcpy(N_bc_state.best_block,
+               hsmsim_admin_data.old_best_block,
+               HASH_LENGTH);
+        memcpy(N_bc_state.ancestor_block,
+               hsmsim_admin_data.old_ancestor_block,
+               HASH_LENGTH);
+        memcpy(N_bc_state.ancestor_receipt_root,
+               hsmsim_admin_data.old_ancestor_receipts_root,
+               HASH_LENGTH);
+        hsmsim_admin_data.best_block_set = false;
+        LOG_HEX(
+            "ADMIN: Best block reset to", N_bc_state.best_block, HASH_LENGTH);
+        tx = TX_FOR_DATA_SIZE(0);
+        break;
     default:
         LOG("ADMIN: Invalid CMD: %d.\n", APDU_CMD());
         return hsmsim_admin_error(HSMSIM_ADMIN_ERROR_INVALID_PROTOCOL);

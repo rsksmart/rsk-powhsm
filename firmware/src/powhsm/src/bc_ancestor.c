@@ -165,6 +165,11 @@ static void str_start(const uint16_t size) {
  * @arg[in] size   size in bytes of arrived chunk
  */
 static void str_chunk(const uint8_t* chunk, const size_t size) {
+    // Ignore zero-length chunks
+    // SRLP parser should prevent this from happening at all
+    if (size == 0)
+        return;
+
     // Count chunk length as received bytes only if:
     //  - Chunk doesn't belong to a bad string, or
     //  - Bad string actually has RLP prefix

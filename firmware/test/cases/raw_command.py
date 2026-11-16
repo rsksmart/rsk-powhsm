@@ -33,21 +33,38 @@ class RawCommand(TestCase):
     def op_name(cls):
         return "rawCommand"
 
+    def _parse_cmds(self, commands, optional=True):
+        if optional and commands is None:
+            return None
+
+        if type(commands) == str:
+            return [bytes.fromhex(commands)]
+
+        if type(commands) == list and \
+           all(map(lambda c: is_nonempty_hex_string(c) or c == "", commands)):
+            return list(map(bytes.fromhex, commands))
+
+        raise TestCaseError(f"Invalid raw commands: {commands}")
+
+    def _run_cmds_ignore_errors(self, dongle, commands):
+        if commands is not None:
+            for command in commands:
+                try:
+                    dongle.dongle.exchange(command)
+                except CommException:
+                    pass
+
     def __init__(self, spec):
         super().__init__(spec)
 
-        self.commands = spec.get("command")
-        if type(self.commands) == str:
-            self.commands = [self.commands]
-
-        if type(self.commands) == list and \
-           all(map(lambda c: is_nonempty_hex_string(c) or c == "", self.commands)):
-            self.commands = list(map(lambda c: bytes.fromhex(c), self.commands))
-        else:
-            raise TestCaseError(f"Invalid raw command: {spec.get("command")}")
+        self.commands = self._parse_cmds(spec.get("command"), optional=False)
+        self.setup = self._parse_cmds(spec.get("setup"), optional=True)
+        self.teardown = self._parse_cmds(spec.get("teardown"), optional=True)
 
     def run(self, dongle, debug, run_args):
         try:
+            self._run_cmds_ignore_errors(dongle, self.setup)
+
             for command in self.commands:
                 dongle.dongle.exchange(command)
 
@@ -71,3 +88,5 @@ class RawCommand(TestCase):
             # All good, expected error code
         except RuntimeError as e:
             raise TestCaseError(str(e))
+        finally:
+            self._run_cmds_ignore_errors(dongle, self.teardown)

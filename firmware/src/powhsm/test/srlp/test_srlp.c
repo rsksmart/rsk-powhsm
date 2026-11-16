@@ -48,7 +48,11 @@ void handle_bytearray_chunk_as_hex(const uint8_t* bytearray, const size_t len) {
 }
 
 void handle_bytearray_chunk_as_str(const uint8_t* bytearray, const size_t len) {
-    unsigned char* buf = malloc(len);
+    if (len == 0) {
+        printf("Parser reported a zero-length chunk and shouldn't have\n");
+        exit(1);
+    }
+    unsigned char* buf = malloc(len + 1);
     memcpy(buf, bytearray, len);
     buf[len] = 0;
     printf("Received: %s, len = %zu\n", buf, len);
@@ -192,6 +196,25 @@ void test_empty_str() {
     do_test("empty string", rlp, sizeof(rlp), &std_cbs, RLP_OK);
 }
 
+void test_single_byte_string_chunks() {
+    unsigned char rlp[] = {0x88,
+                           0x41,
+                           0x41,
+                           0x41,
+                           0x41,
+                           0x41,
+                           0x41,
+                           0x41,
+                           0x41,
+                           0x81, // Chunk size = 10
+                           0x42};
+    do_test("single byte string at the end of chunk",
+            rlp,
+            sizeof(rlp),
+            &std_cbs,
+            RLP_OK);
+}
+
 int read_block_file(const char* file_name, char** buffer, size_t* len) {
     FILE* f = fopen(file_name, "rb");
     fseek(f, 0, SEEK_END);
@@ -237,6 +260,7 @@ int main() {
     test_long_nested_list();
     test_empty_list();
     test_empty_str();
+    test_single_byte_string_chunks();
 
     test_block("resources/block-0900123.rlp", RLP_OK);
     test_block("resources/block-1234000.rlp", RLP_OK);
