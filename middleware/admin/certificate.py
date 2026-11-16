@@ -73,7 +73,8 @@ class HSMCertificate:
                 current = self._elements[current.signed_by]
 
             # Validate the chain from root to leaf
-            # If valid, return True and the value of the leaf
+            # If valid, return True, the value of the leaf, its tweak and
+            # the public key of its certifier
             # If not valid, return False and the name of the element that
             # failed the validation
             current_pubkey = root_pubkey
@@ -84,7 +85,12 @@ class HSMCertificate:
                     break
                 # Reached the leaf? => valid!
                 if len(chain) == 0:
-                    result[target] = (True, current.get_value(), current.tweak)
+                    result[target] = (
+                        True,
+                        current.get_value(),
+                        current.tweak,
+                        current_pubkey.serialize(compressed=False).hex(),
+                    )
                     break
 
                 current_pubkey = ec.PublicKey(bytes.fromhex(current.get_value()),
