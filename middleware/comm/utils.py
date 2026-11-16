@@ -105,6 +105,10 @@ def normalize_hex_string(value):
     return value
 
 
+def parse_hex_string(value):
+    return bytes.fromhex(normalize_hex_string(value))
+
+
 def has_nonempty_hex_field(mp, name):
     return name in mp and \
            type(mp[name]) == str and \

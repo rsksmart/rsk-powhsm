@@ -22,7 +22,10 @@
 
 from unittest import TestCase
 from unittest.mock import patch, call, Mock
-from admin.ledger_utils import compute_app_hash, encode_eth_message
+from admin.ledger_utils import compute_app_hash, encode_eth_message, \
+    format_message_to_sign, pubkey_to_address, to_checksum_address
+import secp256k1 as ec
+from .ecdsa_utils import WEB3_PRIVATE_KEY, WEB3_ADDRESS
 from hashlib import sha256
 
 import logging
@@ -62,3 +65,44 @@ class TestEncodeEthMessage(TestCase):
             b"015d29cc1ab8e6dde8250395",
             encode_eth_message("0xbe5fd059b11047155e6e8018ab2f4337c84a347e015d29cc1a"
                                "b8e6dde8250395"))
+
+
+class TestFormatMessageToSign(TestCase):
+    def test_format(self):
+        formatted = format_message_to_sign(
+            "a-message",
+            encode_eth_message("a-message"),
+            bytes.fromhex("aabbccdd"))
+        lines = formatted.split("\n")
+
+        self.assertIn("    a-message", lines)
+        self.assertIn("    Full message: "
+                      "\\x19Ethereum Signed Message:\\n9a-message", lines)
+        self.assertIn("    Digest (keccak256):        0xaabbccdd", lines)
+        # The message to paste must appear before any reference information
+        self.assertLess(lines.index("    a-message"),
+                        min(i for i, l in enumerate(lines) if "reference" in l))
+
+
+class TestPubkeyToAddress(TestCase):
+    def test_compressed_and_uncompressed(self):
+        # Derive the public key with secp256k1, independently of pubkey_to_address
+        pubkey = ec.PrivateKey(bytes.fromhex(WEB3_PRIVATE_KEY), raw=True).pubkey
+        for compressed in [True, False]:
+            self.assertEqual(
+                WEB3_ADDRESS.lower(),
+                pubkey_to_address(pubkey.serialize(compressed=compressed)))
+
+    def test_invalid_pubkey(self):
+        with self.assertRaises(Exception):
+            pubkey_to_address(bytes.fromhex("04" + "00"*64))
+
+
+class TestToChecksumAddress(TestCase):
+    def test_eip55_vectors(self):
+        for address in ["0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed",
+                        "0xfB6916095ca1df60bB79Ce92cE3Ea74c37c5d359",
+                        "0xdbF03B407c01E7cD3CBea99509d93f8DDDC8C6FB",
+                        "0xD1220A0cf47c7B9Be7A2E6BA89F429762e7b9aDb"]:
+            self.assertEqual(address, to_checksum_address(address.lower()))
+            self.assertEqual(address, to_checksum_address(address.lower()[2:]))
