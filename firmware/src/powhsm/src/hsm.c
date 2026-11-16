@@ -318,4 +318,3 @@ unsigned int hsm_process_apdu(unsigned int rx) {
 bool hsm_exit_requested() {
     return _hsm_exit_requested;
 }
-
