@@ -29,6 +29,12 @@ jobs:
       - name: Firmware HAL's unit tests
         run: firmware/src/hal/x86/test/run-all.sh
 
+      - name: Firmware HAL's common unit tests
+        run: firmware/src/hal/common/test/run-all.sh
+
+      - name: Firmware HAL's Ledger unit tests
+        run: firmware/src/hal/ledger/test/run-all.sh
+
       - name: Firmware common lib unit tests
         run: firmware/src/common/test/run-all.sh
 
