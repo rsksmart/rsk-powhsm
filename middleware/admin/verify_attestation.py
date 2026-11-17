@@ -172,6 +172,14 @@ def do_verify_attestation(options):
         raise AdminError(
             f"Invalid Signer attestation: error validating '{signer_result[1]}'")
 
+    # Validate that the signer attestation is signed by the same public key
+    # as the UI attestation
+    if ui_result[3] != signer_result[3]:
+        raise AdminError(
+            "Signer attestation is not signed by the same public key "
+            f"as the UI attestation ({signer_result[3]} vs. "
+            f"{ui_result[3]})")
+
     signer_message = bytes.fromhex(signer_result[1])
     signer_hash = bytes.fromhex(signer_result[2])
     mh_match = match_signer_message_header(signer_message)

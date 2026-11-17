@@ -73,11 +73,13 @@ void rlp_start(const rlp_callbacks_t* cbs) {
 
 // Notify the user about a trivial bytearray (length = 0 or 1).
 // Defined as a macro to save stack space.
-#define TRIVIAL_BYTEARRAY(bytearray, len)                                      \
-    {                                                                          \
-        ((rlp_start_cb_t)PIC(rlp_callbacks->bytearray_start))(len);            \
-        ((rlp_chunk_cb_t)PIC(rlp_callbacks->bytearray_chunk))(bytearray, len); \
-        ((rlp_end_cb_t)PIC(rlp_callbacks->bytearray_end))();                   \
+#define TRIVIAL_BYTEARRAY(bytearray, len)                                    \
+    {                                                                        \
+        ((rlp_start_cb_t)PIC(rlp_callbacks->bytearray_start))(len);          \
+        if ((len) > 0)                                                       \
+            ((rlp_chunk_cb_t)PIC(rlp_callbacks->bytearray_chunk))(bytearray, \
+                                                                  len);      \
+        ((rlp_end_cb_t)PIC(rlp_callbacks->bytearray_end))();                 \
     }
 
 // Push a context item to the stack. Defined as a macro to save stack.
@@ -264,7 +266,8 @@ int rlp_consume(uint8_t* buf, const uint8_t len) {
     }
 
     // If the item being parsed is a byte array, notify about the seen chunk.
-    if (rlp_ctx[rlp_ctx_ptr].state == RLP_STR) {
+    if (rlp_ctx[rlp_ctx_ptr].state == RLP_STR &&
+        (buf + len - rlp_frame_start) > 0) {
         ((rlp_chunk_cb_t)PIC(rlp_callbacks->bytearray_chunk))(
             rlp_frame_start, buf + len - rlp_frame_start);
     }

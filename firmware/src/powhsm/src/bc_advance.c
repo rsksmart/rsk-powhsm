@@ -240,7 +240,7 @@ static void validate_mm_hash() {
         FAIL(BTC_CB_TXN_INVALID);
     }
 
-    if (ptr + RSK_TAG_LEN + HASH_SIZE > last) {
+    if (ptr + RSK_TAG_LEN + HASH_SIZE > last + 1) {
         FAIL(BTC_CB_TXN_INVALID);
     }
 
@@ -446,7 +446,7 @@ static void list_end() {
     }
 
     if (block.field != F_COINBASE_TXN) {
-        FAIL(BLOCK_TOO_SHORT);
+        FAIL(BLOCK_FIELD_COUNT_INVALID);
     }
 }
 
@@ -543,6 +543,11 @@ static void str_start(const uint16_t size) {
  * @arg[in] size   size in bytes of arrived chunk
  */
 static void str_chunk(const uint8_t* chunk, const size_t size) {
+    // Ignore zero-length chunks
+    // SRLP parser should prevent this from happening at all
+    if (size == 0)
+        return;
+
     // Count chunk length as received bytes only if:
     //  - Chunk doesn't belong to a bad string, or
     //  - Bad string actually has RLP prefix
@@ -965,25 +970,28 @@ unsigned int bc_advance(volatile unsigned int rx) {
 
                 return handle_end_of_block();
             } else { // Processing brother
-                // Have we finished parsing this brother?
-                if (block.size == block.recv) {
-                    --block.brother_count;
-
-                    // Have we finished parsing all the brothers?
-                    if (!block.brother_count) {
-                        return handle_end_of_block();
-                    }
-
-                    // Remember this brother's hash to
-                    // compare against the next one
-                    HSTORE(block.prev_brother_hash, block.block_hash);
-
-                    // Request next brother meta
-                    expected_state = OP_ADVANCE_BROTHER_META;
-                    SET_APDU_OP(OP_ADVANCE_BROTHER_META);
-                    SET_APDU_TXLEN(0);
-                    return TX_NO_DATA();
+                // Having a valid brother means
+                // we must have finished parsing it
+                if (block.recv != block.size) {
+                    FAIL(BLOCK_FIELD_COUNT_INVALID);
                 }
+
+                --block.brother_count;
+
+                // Have we finished parsing all the brothers?
+                if (!block.brother_count) {
+                    return handle_end_of_block();
+                }
+
+                // Remember this brother's hash to
+                // compare against the next one
+                HSTORE(block.prev_brother_hash, block.block_hash);
+
+                // Request next brother meta
+                expected_state = OP_ADVANCE_BROTHER_META;
+                SET_APDU_OP(OP_ADVANCE_BROTHER_META);
+                SET_APDU_TXLEN(0);
+                return TX_NO_DATA();
             }
         }
 

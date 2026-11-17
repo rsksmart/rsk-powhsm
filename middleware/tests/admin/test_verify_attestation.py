@@ -83,8 +83,9 @@ class TestVerifyAttestation(TestCase):
         self.signer_hash = bytes.fromhex("ff" * 32)
 
         self.result = {}
-        self.result['ui'] = (True, self.ui_msg.hex(), self.ui_hash.hex())
-        self.result['signer'] = (True, self.signer_msg.hex(), self.signer_hash.hex())
+        self.result['ui'] = (True, self.ui_msg.hex(), self.ui_hash.hex(), 'att_pubkey')
+        self.result['signer'] = (True, self.signer_msg.hex(), self.signer_hash.hex(),
+                                 'att_pubkey')
 
     @patch("admin.verify_attestation.head")
     @patch("admin.verify_attestation.HSMCertificate")
@@ -130,6 +131,46 @@ class TestVerifyAttestation(TestCase):
             fill="-",
         )
         self.assertEqual(expected_call_signer, head_mock.call_args_list[2])
+
+    @patch("admin.verify_attestation.head")
+    @patch("admin.verify_attestation.HSMCertificate")
+    @patch("json.loads")
+    def test_verify_attestation_ui_signer_different_certifiers(self,
+                                                               loads_mock,
+                                                               certificate_mock,
+                                                               head_mock,
+                                                               _):
+        loads_mock.return_value = self.public_keys
+        att_cert = Mock()
+        att_cert.validate_and_get_values = Mock(return_value=self.result)
+        certificate_mock.from_jsonfile = Mock(return_value=att_cert)
+
+        self.result['signer'] = self.result['signer'][:3] + ('different_pubkey',)
+
+        with patch('builtins.open', mock_open(read_data='')) as file_mock:
+            with self.assertRaises(AdminError) as e:
+                do_verify_attestation(self.default_options)
+
+        self.assertIn("is not signed by the same", str(e.exception))
+
+        self.assertEqual([call(self.pubkeys_path, 'r')], file_mock.call_args_list)
+        self.assertEqual([call(self.certification_path)],
+                         certificate_mock.from_jsonfile.call_args_list)
+
+        expected_call_ui = call(
+            [
+                "UI verified with:",
+                f"UD value: {'aa'*32}",
+                f"Derived public key ({EXPECTED_UI_DERIVATION_PATH}): {'bb'*33}",
+                f"Authorized signer hash: {'cc'*32}",
+                "Authorized signer iteration: 291",
+                f"Installed UI hash: {'ee'*32}",
+                "Installed UI version: 5.2",
+            ],
+            fill="-",
+        )
+        self.assertEqual(expected_call_ui, head_mock.call_args_list[1])
+        self.assertEqual(head_mock.call_count, 2)
 
     def test_verify_attestation_no_certificate(self, _):
         options = self.default_options

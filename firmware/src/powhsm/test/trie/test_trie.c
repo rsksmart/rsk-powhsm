@@ -611,6 +611,7 @@ int main() {
                "ccccccc22ff0000000001");
     test_error("4411ccccccccccccccccccccccccccccccccccccccccccccccccccccc"
                "ccccccc22ff0000000001");
+    test_error("50ff0012aabbccddeeff1122334455");
 
     return 0;
 }

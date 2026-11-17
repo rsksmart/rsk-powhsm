@@ -83,15 +83,19 @@ uint8_t svarint_consume(const uint8_t* buf, const uint8_t len) {
             }
             break;
         case SVARINT_ST_BODY:
-            // We don't support values greater than 32 bits in practice
-            // (we do support up to 32 bit values
-            // represented as 64 bit values though)
-            if (ctx->offset > 3 && buf[i] > 0) {
-                ctx->state = SVARINT_ERR_UNSUPPORTED;
-                return i + 1;
+            if (ctx->offset <= 3) {
+                // Read little endian varint value
+                ctx->value += buf[i] << (8 * ctx->offset++);
+            } else {
+                // We don't support values greater than 32 bits in practice
+                // (we do support up to 32 bit values
+                // represented as 64 bit values though)
+                if (buf[i] > 0) {
+                    ctx->state = SVARINT_ERR_UNSUPPORTED;
+                    return i + 1;
+                }
+                ctx->offset++;
             }
-            // Read little endian varint value
-            ctx->value += buf[i] << (8 * ctx->offset++);
             if (--ctx->size == 0) {
                 ctx->state = SVARINT_ST_DONE;
                 return i + 1;

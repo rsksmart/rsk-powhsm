@@ -33,11 +33,7 @@ def get_unsigned_tx(raw_tx_hex, hex=True):
 
 
 def get_tx_hash(raw_tx_hex):
-    return _deserialize_tx(raw_tx_hex).GetHash()[::-1].hex()
-
-
-def get_tx_hash_for_unsigned_tx(raw_tx_hex):
-    return _unsign_tx(raw_tx_hex).GetHash()[::-1].hex()
+    return _deserialize_tx(raw_tx_hex).GetTxid()[::-1].hex()
 
 
 def get_tx_version(raw_tx_hex):

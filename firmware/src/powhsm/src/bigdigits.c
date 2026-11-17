@@ -46,6 +46,9 @@
 /* No asserts in stripped down version of this library */
 #define assert(x)
 
+// Disable static analyzer for this third-party library file
+#ifndef __clang_analyzer__
+
 #include "bigdigits.h"
 #include "hal/log.h"
 
@@ -411,6 +414,13 @@ DIGIT_T mpShiftLeft(DIGIT_T a[], const DIGIT_T *b,
     size_t i, y, nw, bits;
     DIGIT_T mask, carry, nextcarry;
 
+    // Special case handling: no shift
+    if (shift == 0)
+    {
+        mpSetEqual(a, b, ndigits);
+        return 0;
+    }
+
     /* Do we shift whole digits? */
     if (shift >= BITS_PER_DIGIT)
     {
@@ -455,6 +465,13 @@ DIGIT_T mpShiftRight(DIGIT_T a[], const DIGIT_T b[], size_t shift, size_t ndigit
     /* [v2.1] Modified to cope with shift > BITS_PERDIGIT */
     size_t i, y, nw, bits;
     DIGIT_T mask, carry, nextcarry;
+
+    // Special case handling: no shift
+    if (shift == 0)
+    {
+        mpSetEqual(a, b, ndigits);
+        return 0;
+    }
 
     /* Do we shift whole digits? */
     if (shift >= BITS_PER_DIGIT)
@@ -764,6 +781,8 @@ DIGIT_T spDivide(DIGIT_T *q, DIGIT_T *r, const DIGIT_T u[2], DIGIT_T v)
     *r = uu[0];
     return q2;
 }
+
+#endif // __clang_analyzer__
 
 // Platform-dependent code
 #ifndef HSM_PLATFORM_LEDGER

@@ -14,10 +14,20 @@ pushd $(dirname $0) > /dev/null
 # Bin path
 BINPATH=../bin
 
-# Strip symbols
-find $BINPATH/$TARGET -type f | xargs strip --remove-section=".note.gnu.build-id" --remove-section=".comment" --remove-section=".gnu_debuglink" 2> /dev/null
+TAR=tar
+if [[ "$(uname -s)" == "Darwin" ]]; then
+    # Mach-O binaries are code signed by PyInstaller, and stripping
+    # them would invalidate the signatures. Also, GNU tar is needed
+    # for reproducible archives.
+    TAR=gtar
+else
+    # Strip symbols
+    find $BINPATH/$TARGET -type f | xargs strip --remove-section=".note.gnu.build-id" --remove-section=".comment" --remove-section=".gnu_debuglink" 2> /dev/null
+fi
 
 # Create archive
-GZIP=-n tar --sort=name --mtime=1960-10-30 --owner=0 --group=0 --numeric-owner -czf $BINPATH/$TARGET.tgz -C $BINPATH/$TARGET . 2> /dev/null
+GZIP=-n $TAR --sort=name --mtime=1960-10-30 --owner=0 --group=0 --numeric-owner -czf $BINPATH/$TARGET.tgz -C $BINPATH/$TARGET . 2> /dev/null
+RESULT=$?
 
 popd > /dev/null
+exit $RESULT

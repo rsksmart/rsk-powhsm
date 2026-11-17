@@ -22,7 +22,6 @@
 
 from unittest import TestCase
 from comm.bitcoin import (
-    get_tx_hash_for_unsigned_tx,
     get_signature_hash_for_p2sh_input,
     get_block_hash_as_int,
     get_merkle_root,
@@ -122,13 +121,44 @@ eba721036f66639295ca8e4294c24d63e3fbc11247f6ba6a27b6b4de9a3492f414152d9b5368aeff
 """.replace("\n", "").replace("\r", "")
 
 
+# Mainnet tx at block 170 (legacy, non-segwit)
+# https://blockstream.info/tx/f4184fc596403b9d638783cf57adfe4c75c605f6356fbc91338530e9831e9e16
+MAINNET_LEGACY_TX = """
+0100000001c997a5e56e104102fa209c6a852dd90660a20b2d9c352423edce25857fcd3704000000
+004847304402204e45e16932b8af514961a1d3a1a25fdf3f4f7732e9d624c6c61548ab5fb8cd4102
+20181522ec8eca07de4860a4acdd12909d831cc56cbbac4622082221a8768d1d0901ffffffff0200
+ca9a3b00000000434104ae1a62fe09c5f51b13905f07f06b99a2f7159b2225f374cd378d71302fa2
+8414e7aab37397f554a7df5f142c21c1b7303b8a0626f1baded5c72a704f7e6cd84cac00286bee00
+00000043410411db93e1dcdb8a016b49840f8c53bc1eb68a382e97b1482ecad7b148a6909a5cb2e0
+eaddfb84ccf9744464f82e160bfa9b8b64f9d4c03f999b8643f656b412a3ac00000000
+""".replace("\n", "").replace("\r", "")
+
+MAINNET_LEGACY_TX_HASH = (
+    "f4184fc596403b9d638783cf57adfe4c75c605f6356fbc91338530e9831e9e16")
+
+# Mainnet tx at block 800000 (P2SH-P2WPKH segwit)
+# https://blockstream.info/tx/7110dd4fbc69136c243988d415a210fde0ad460fcd74080ebc83f330c45bf45f
+MAINNET_SEGWIT_TX = """
+020000000001011aad797ee1f04ee744a36ccbd399c71e981717f586eb03ccd163b4d2f0bb525700
+0000001716001474d064027dd228e80a49957c744532e91fe8bc7affffffff0218790000000000002
+251208c92e5000e6e02c459f5da1508b8b51df6d375e4f6997c8c2f02fb9051c5e4750c6200000000
+000017a9147ebd5e5726b9f53038176541ad99d34a87c6667c8702483045022100cf8412f9114bd48
+3c58cdba5d95ea3764c82dd05839127dead7c1a67d69945490220030ea21e373c339b0e1f3c5dfb3d
+207d358b6881ed4b22891c6431f59a45c7cb0121032961838aee846d4ca1ac6f0dcf77c616eeaf979
+8e249b6e9ebab5ff9c8ccd63200000000
+""".replace("\n", "").replace("\r", "")
+
+MAINNET_SEGWIT_TX_HASH = (
+    "7110dd4fbc69136c243988d415a210fde0ad460fcd74080ebc83f330c45bf45f")
+
+
 class TestBitcoin(TestCase):
     def test_signed_unsigned_different_sample1(self):
         self.assertNotEqual(SAMPLE_1_UNSIGNED, SAMPLE_1_PARTIALLY_SIGNED)
 
-    def test_get_tx_hash_for_unsigned_sample1(self):
+    def test_get_unsigned_tx_hash_sample1(self):
         self.assertEqual(SAMPLE_1_UNSIGNED_HASH,
-                         get_tx_hash_for_unsigned_tx(SAMPLE_1_UNSIGNED))
+                         get_tx_hash(get_unsigned_tx(SAMPLE_1_UNSIGNED)))
 
     def test_get_tx_hash_sample1(self):
         self.assertEqual(SAMPLE_1_UNSIGNED_HASH, get_tx_hash(SAMPLE_1_UNSIGNED))
@@ -137,9 +167,9 @@ class TestBitcoin(TestCase):
         self.assertEqual(SAMPLE_1_PARTIALLY_SIGNED_HASH,
                          get_tx_hash(SAMPLE_1_PARTIALLY_SIGNED))
 
-    def test_get_tx_for_unsigned_hash_partially_signed_sample1(self):
+    def test_get_unsigned_tx_hash_partially_signed_sample1(self):
         self.assertEqual(SAMPLE_1_UNSIGNED_HASH,
-                         get_tx_hash_for_unsigned_tx(SAMPLE_1_PARTIALLY_SIGNED))
+                         get_tx_hash(get_unsigned_tx(SAMPLE_1_PARTIALLY_SIGNED)))
 
     def test_get_sighash_unsigned_sample1(self):
         self.assertEqual(
@@ -169,13 +199,13 @@ class TestBitcoin(TestCase):
         self.assertEqual(SAMPLE_2_PARTIALLY_SIGNED_HASH,
                          get_tx_hash(SAMPLE_2_PARTIALLY_SIGNED))
 
-    def test_get_tx_hash_for_unsigned_sample2(self):
+    def test_get_unsigned_tx_hash_sample2(self):
         self.assertEqual(SAMPLE_2_UNSIGNED_HASH,
-                         get_tx_hash_for_unsigned_tx(SAMPLE_2_UNSIGNED))
+                         get_tx_hash(get_unsigned_tx(SAMPLE_2_UNSIGNED)))
 
-    def test_get_tx_hash_for_unsigned_partially_signed_sample2(self):
+    def test_get_unsigned_tx_hash_partially_signed_sample2(self):
         self.assertEqual(SAMPLE_2_UNSIGNED_HASH,
-                         get_tx_hash_for_unsigned_tx(SAMPLE_2_PARTIALLY_SIGNED))
+                         get_tx_hash(get_unsigned_tx(SAMPLE_2_PARTIALLY_SIGNED)))
 
     def test_get_sighash_unsigned_sample2_input0(self):
         self.assertEqual(
@@ -189,9 +219,18 @@ class TestBitcoin(TestCase):
             get_signature_hash_for_p2sh_input(SAMPLE_2_UNSIGNED, 1),
         )
 
-    def test_get_tx_hash_not_signed_sample3(self):
+    def test_get_unsigned_tx_hash_sample3(self):
         self.assertEqual(SAMPLE_3_UNSIGNED_HASH,
-                         get_tx_hash_for_unsigned_tx(SAMPLE_3_UNSIGNED))
+                         get_tx_hash(get_unsigned_tx(SAMPLE_3_UNSIGNED)))
+
+    def test_get_tx_hash_mainnet_legacy(self):
+        self.assertEqual(MAINNET_LEGACY_TX_HASH, get_tx_hash(MAINNET_LEGACY_TX))
+
+    def test_get_tx_hash_mainnet_segwit(self):
+        self.assertEqual(MAINNET_SEGWIT_TX_HASH, get_tx_hash(MAINNET_SEGWIT_TX))
+
+    def test_get_unsigned_tx_segwit_unchanged(self):
+        self.assertEqual(MAINNET_SEGWIT_TX, get_unsigned_tx(MAINNET_SEGWIT_TX))
 
     def test_get_sighash_unsigned_sample3_input0(self):
         self.assertEqual(

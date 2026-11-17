@@ -271,8 +271,8 @@ class TestCertificate(TestCase):
         })
 
         self.assertEqual({
-            'attestation': (True, att_pubkey, None),
-            'device': (True, device_pubkey, None)
+            'attestation': (True, att_pubkey, None, device_pubkey),
+            'device': (True, device_pubkey, None, root_pubkey)
         }, cert.validate_and_get_values(root_pubkey))
 
     def test_create_and_get_values_invalid_pubkey(self):
@@ -346,7 +346,7 @@ class TestCertificate(TestCase):
 
         self.assertEqual({
             'attestation': (False, 'attestation'),
-            'device': (True, device_pubkey, None)
+            'device': (True, device_pubkey, None, root_pubkey)
         }, cert.validate_and_get_values(root_pubkey))
 
     def test_validate_and_get_values_invalid_elements(self):

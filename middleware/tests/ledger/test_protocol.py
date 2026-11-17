@@ -158,11 +158,17 @@ class TestHSM2ProtocolLedger(TestCase):
     @patch("ledger.protocol.get_tx_hash")
     @patch("ledger.protocol.get_unsigned_tx")
     @patch("comm.protocol.BIP32Path")
-    def test_sign_authorized_legacy_ok(self, BIP32PathMock, get_unsigned_tx_mock, _):
+    def test_sign_authorized_legacy_ok(self, BIP32PathMock, get_unsigned_tx_mock,
+                                       get_tx_hash_mock):
         BIP32PathMock.return_value = "the-key-id"
         signature = Mock(r="this-is-r", s="this-is-s")
         self.dongle.sign_authorized.return_value = (True, signature)
         get_unsigned_tx_mock.return_value = "the-unsigned-tx"
+        get_tx_hash_mock.side_effect = lambda tx: {
+            "the-unsigned-tx": "the-unsigned-tx-hash",
+            "eeff": "the-tx-hash",
+        }[tx]
+        self.protocol.logger = Mock()
 
         self.assertEqual(
             {
@@ -204,15 +210,28 @@ class TestHSM2ProtocolLedger(TestCase):
             self.dongle.sign_authorized.call_args_list,
         )
         self.assertFalse(self.dongle.disconnect.called)
+        self.assertEqual([call("the-unsigned-tx"), call("eeff")],
+                         get_tx_hash_mock.call_args_list)
+        self.assertIn(
+            call("Sign authorized %s tx request for key id '%s' (%s, input %d)",
+                 "legacy", "the-key-id",
+                 "tx hash 'the-tx-hash', unsigned tx hash 'the-unsigned-tx-hash'", 12),
+            self.protocol.logger.info.call_args_list)
 
     @patch("ledger.protocol.get_tx_hash")
     @patch("ledger.protocol.get_unsigned_tx")
     @patch("comm.protocol.BIP32Path")
-    def test_sign_authorized_segwit_ok(self, BIP32PathMock, get_unsigned_tx_mock, _):
+    def test_sign_authorized_segwit_ok(self, BIP32PathMock, get_unsigned_tx_mock,
+                                       get_tx_hash_mock):
         BIP32PathMock.return_value = "the-key-id"
         signature = Mock(r="this-is-r", s="this-is-s")
         self.dongle.sign_authorized.return_value = (True, signature)
         get_unsigned_tx_mock.return_value = "the-unsigned-tx"
+        get_tx_hash_mock.side_effect = lambda tx: {
+            "the-unsigned-tx": "the-unsigned-tx-hash",
+            "eeff": "the-tx-hash",
+        }[tx]
+        self.protocol.logger = Mock()
 
         self.assertEqual(
             {
@@ -256,6 +275,13 @@ class TestHSM2ProtocolLedger(TestCase):
             self.dongle.sign_authorized.call_args_list,
         )
         self.assertFalse(self.dongle.disconnect.called)
+        self.assertEqual([call("the-unsigned-tx"), call("eeff")],
+                         get_tx_hash_mock.call_args_list)
+        self.assertIn(
+            call("Sign authorized %s tx request for key id '%s' (%s, input %d)",
+                 "segwit", "the-key-id",
+                 "txid 'the-tx-hash'", 12),
+            self.protocol.logger.info.call_args_list)
 
     @parameterized.expand([
         ("path", -1, -103),
